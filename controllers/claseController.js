@@ -1,38 +1,61 @@
 const Clase = require('../models/claseModel');
 const axios = require('axios');
 
+const requestOptions = {
+  headers: {
+    'Content-Type': 'application/json'
+  }
+};
+
 exports.getClases = async (req, res) => {
   try {
-    const requestOptions = {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-  
-    const response = await axios.get("https://www.dnd5eapi.co/api/classes", requestOptions)
+    let bbdd = false;
+    let clases = [];
 
-    let clasesBbdd = [];
     try {
       // Intenta recuperar datos de MongoDB
-      clasesBbdd = await Clase.find();
+      clases = await Clase.find();
+      bbdd = true
     } catch (dbError) {
       // Maneja el error si MongoDB no está disponible
       console.error("MongoDB no está disponible, se procederá solo con datos de la API externa");
     }
 
-    const clasesAux = response.data.results.map(claseApi => {
-      
-      const claseAux = clasesBbdd?.find(clase => clase.index === claseApi.index)
+    if (!bbdd) {
+      const response = await axios.get("https://www.dnd5eapi.co/api/classes", requestOptions)
 
-      return {
-        index: claseApi.index,
-        name: claseAux?.name ?? claseApi?.name
-      }
-    })
-
-    res.json(clasesAux);
+      clases = response.data.results.map(claseApi => {
+        return {
+          index: claseApi.index,
+          name: claseApi?.name
+        }
+      })
+    }
+  
+    res.json(clases);
     
   } catch (error) {
+    res.status(500).json({ error: 'Error al recuperar las clases' });
+  }
+};
+
+exports.getClaseNivel = async (req, res) => {
+  try {
+    const clase = req.params.clase;
+    const nivel = req.params.nivel;
+
+    let datos = {}
+    let bbdd = false;
+
+    if (!bbdd) {
+      const response = await axios.get(`https://www.dnd5eapi.co/api/classes/${clase}/levels/${nivel}`, requestOptions)
+      datos = response.data
+    }
+  
+    res.json(datos);
+    
+  } catch (error) {
+    console.log(error)
     res.status(500).json({ error: 'Error al recuperar las clases' });
   }
 };

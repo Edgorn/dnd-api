@@ -1,39 +1,39 @@
 const Transfondo = require('../models/transfondoModel');
 const axios = require('axios');
 
+const requestOptions = {
+  headers: {
+    'Content-Type': 'application/json'
+  }
+};
+
 exports.getTransfondos = async (req, res) => {
   try {
-    const requestOptions = {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-  
-    const response = await axios.get("https://www.dnd5eapi.co/api/backgrounds", requestOptions)
-
-    let transfondosBbdd = [];
+    let bbdd = false
+    let transfondos = [];
 
     try {
       // Intenta recuperar datos de MongoDB
-      transfondosBbdd = await Transfondo.find();
+      transfondos = await Transfondo.find();
+      bbdd = true
     } catch (dbError) {
       // Maneja el error si MongoDB no está disponible
+      console.log(dbError)
       console.error("MongoDB no está disponible, se procederá solo con datos de la API externa");
     }
 
-    let transfondosAux = response.data.results.map(transfondoApi => {
-      const transfondoAux = transfondosBbdd.find(transfondo => transfondo.index === transfondoApi.index)
-      transfondosBbdd = transfondosBbdd.filter(transfondo => transfondo.index !== transfondoApi.index)
-      
-      return {
-        index: transfondoApi.index,
-        name: transfondoAux?.name ?? transfondoApi?.name
-      }
-    })
+    if (!bbdd) {
+      const response = await axios.get("https://www.dnd5eapi.co/api/backgrounds", requestOptions)
 
-    transfondosAux = transfondosAux.concat(transfondosBbdd.map(transfondo => ( { index: transfondo.index, name: transfondo.name } )))
+      transfondos = response.data.results.map(transfondoApi => {
+        return {
+          index: transfondoApi.index,
+          name: transfondoApi?.name
+        }
+      })
+    }
 
-    res.json(transfondosAux);
+    res.json(transfondos);
     
   } catch (error) {
     res.status(500).json({ error: 'Error al recuperar las clases' });
