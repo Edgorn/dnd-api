@@ -5,7 +5,15 @@ const razaSchema = new mongoose.Schema({
   name: String,
   subraces: [{
     index: String,
-    name: String
+    name: String,
+    ability_bonuses: [{
+      index: String,
+      bonus: Number
+    }]
+  }],
+  ability_bonuses: [{
+    index: String,
+    bonus: Number
   }]
 }, { collection: 'Razas' });
 

@@ -24,38 +24,30 @@ exports.getClases = async (req, res) => {
     if (!bbdd) {
       const response = await axios.get("https://www.dnd5eapi.co/api/classes", requestOptions)
 
-      clases = response.data.results.map(claseApi => {
+      clases = await Promise.all(response.data.results.map(async claseApi => {
+        const classData = await axios.get(`https://www.dnd5eapi.co/api/classes/${claseApi.index}`, requestOptions)
+        const classLevels = await axios.get(`https://www.dnd5eapi.co/api/classes/${claseApi.index}/levels`, requestOptions)
+        console.log(classData.data.saving_throws.map(saving => saving.index))
+
+        const levels = classLevels.data.map(level => {
+          return {
+            level: level.level,
+            prof_bonus: level.prof_bonus
+          }
+        })
+
         return {
           index: claseApi.index,
-          name: claseApi?.name
+          name: claseApi?.name,
+          levels,
+          saving_throws: classData.data.saving_throws.map(saving => saving.index)
         }
-      })
+      }))
     }
   
     res.json(clases);
     
   } catch (error) {
-    res.status(500).json({ error: 'Error al recuperar las clases' });
-  }
-};
-
-exports.getClaseNivel = async (req, res) => {
-  try {
-    const clase = req.params.clase;
-    const nivel = req.params.nivel;
-
-    let datos = {}
-    let bbdd = false;
-
-    if (!bbdd) {
-      const response = await axios.get(`https://www.dnd5eapi.co/api/classes/${clase}/levels/${nivel}`, requestOptions)
-      datos = response.data
-    }
-  
-    res.json(datos);
-    
-  } catch (error) {
-    console.log(error)
     res.status(500).json({ error: 'Error al recuperar las clases' });
   }
 };
