@@ -33,6 +33,16 @@ exports.getTransfondos = async (req, res) => {
       })
     }
 
+    transfondos.sort((a, b) => {
+      if (a.name < b.name) {
+        return -1;
+      }
+      if (a.name > b.name) {
+        return 1;
+      }
+      return 0;
+    });
+
     res.json(transfondos);
     
   } catch (error) {

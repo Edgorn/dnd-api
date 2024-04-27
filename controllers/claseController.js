@@ -27,7 +27,56 @@ exports.getClases = async (req, res) => {
       clases = await Promise.all(response.data.results.map(async claseApi => {
         const classData = await axios.get(`https://www.dnd5eapi.co/api/classes/${claseApi.index}`, requestOptions)
         const classLevels = await axios.get(`https://www.dnd5eapi.co/api/classes/${claseApi.index}/levels`, requestOptions)
-        console.log(classData.data.saving_throws.map(saving => saving.index))
+        const proficiency_choices = classData.data.proficiency_choices
+
+        const proficiency = []
+
+        proficiency_choices.forEach(prof => {
+          const options = []
+          let choice = false
+          prof.from.options.forEach(option => {
+            if (option.option_type === 'choice') {
+              choice = true
+              const optionsAux = []
+              option.choice.from.options.forEach(option2 => {
+                if (option2.item.index.includes("skill-")) {
+                  optionsAux.push({
+                    type: 'skill',
+                    index: option2.item.index.replace("skill-", "")
+                  })
+                } else {
+                  optionsAux.push({
+                    type: 'reference',
+                    index: option2.item.index
+                  })
+                }
+              })
+
+              options.push({
+                choose: option.choice.choose,
+                options: optionsAux
+              })
+            } else {
+              if (option.item.index.includes("skill-")) {
+                options.push({
+                  type: 'skill',
+                  index: option.item.index.replace("skill-", "")
+                })
+              } else {
+                options.push({
+                  type: 'reference',
+                  index: option.item.index
+                })
+              }
+            }
+          })
+          
+          proficiency.push({
+            choose: prof.choose,
+            options,
+            choice
+          })
+        })
 
         const levels = classLevels.data.map(level => {
           return {
@@ -40,10 +89,21 @@ exports.getClases = async (req, res) => {
           index: claseApi.index,
           name: claseApi?.name,
           levels,
-          saving_throws: classData.data.saving_throws.map(saving => saving.index)
+          saving_throws: classData.data.saving_throws.map(saving => saving.index),
+          proficiency
         }
       }))
     }
+
+    clases.sort((a, b) => {
+      if (a.name < b.name) {
+        return -1;
+      }
+      if (a.name > b.name) {
+        return 1;
+      }
+      return 0;
+    });
   
     res.json(clases);
     

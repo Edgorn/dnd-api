@@ -7,7 +7,12 @@ const claseSchema = new mongoose.Schema({
     level: Number,
     prof_bonus: Number
   }],
-  saving_throws: [String]
+  saving_throws: [String],
+  proficiency: [{
+    choose: Number,
+    options: [],
+    choice: Boolean
+  }]
 }, { collection: 'Clases' });
 
 const Clase = mongoose.model('Clases', claseSchema);
