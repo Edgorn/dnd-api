@@ -90,7 +90,7 @@ exports.getClases = async (req, res) => {
           name: claseApi?.name,
           levels,
           saving_throws: classData.data.saving_throws.map(saving => saving.index),
-          proficiency
+          proficiency_options: proficiency
         }
       }))
     }

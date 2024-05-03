@@ -25,12 +25,31 @@ exports.getTransfondos = async (req, res) => {
     if (!bbdd) {
       const response = await axios.get("https://www.dnd5eapi.co/api/backgrounds", requestOptions)
 
-      transfondos = response.data.results.map(transfondoApi => {
+      transfondos = await Promise.all(response.data.results.map(async transfondoApi => {
+        const transfondoData = await axios.get("https://www.dnd5eapi.co" + transfondoApi.url, requestOptions)
+
+        const starting_proficiencies = []
+
+        transfondoData.data.starting_proficiencies.forEach((prof) => {
+          if (prof.index.includes("skill-")) {
+            starting_proficiencies.push({
+              type: 'skill',
+              index: prof.index.replace("skill-", "")
+            })
+          } else {
+            starting_proficiencies.push({
+              type: 'reference',
+              index: prof.index
+            })
+          }
+        })
+
         return {
           index: transfondoApi.index,
-          name: transfondoApi?.name
+          name: transfondoApi?.name,
+          starting_proficiencies
         }
-      })
+      }))
     }
 
     transfondos.sort((a, b) => {

@@ -69,12 +69,55 @@ const consultarRazas = (razasApi) => {
   const razasAux = []
 
   razasApi.forEach(razaApi => {
+    const starting_proficiencies = []
+
+    razaApi.starting_proficiencies.forEach(profiency => {
+      if (profiency.index.includes("skill-")) {
+        starting_proficiencies.push({
+          type: 'skill',
+          index: profiency.index.replace("skill-", "")
+        })
+      } else {
+        starting_proficiencies.push({
+          type: 'reference',
+          index: profiency.index
+        })
+      }
+    })
+
+    const proficiency_options = []
+
+    razaApi?.starting_proficiency_options?.from?.options?.forEach(option => {
+      if (option.item.index.includes("skill-")) {
+        proficiency_options.push({
+          type: 'skill',
+          index: option.item.index.replace("skill-", "")
+        })
+      } else {
+        proficiency_options.push({
+          type: 'reference',
+          index: option.item.index
+        })
+      }
+    })
 
     razasAux.push({
       index: razaApi.index,
       name: razaApi.name,
       subraces: consultarSubrazas(razaApi.subraces),
-      ability_bonuses: razaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }})
+      ability_bonuses: razaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }}),
+      starting_proficiencies,
+      starting_proficiency_options: (
+        razaApi?.starting_proficiency_options
+        ?
+        {
+          choose: razaApi?.starting_proficiency_options?.choose,
+          options: proficiency_options,
+          choice: false
+        }
+        :
+        undefined
+      )
     })
   })
 
@@ -85,11 +128,27 @@ const consultarSubrazas = (subrazasApi) => {
   const subrazasAux = []
 
   subrazasApi.forEach(subrazaApi => {
+    const starting_proficiencies = []
+
+    subrazaApi.starting_proficiencies.forEach(profiency => {
+      if (profiency.index.includes("skill-")) {
+        starting_proficiencies.push({
+          type: 'skill',
+          index: profiency.index.replace("skill-", "")
+        })
+      } else {
+        starting_proficiencies.push({
+          type: 'reference',
+          index: profiency.index
+        })
+      }
+    })
 
     subrazasAux.push({
       index: subrazaApi.index,
       name: subrazaApi?.name,
-      ability_bonuses: subrazaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }})
+      ability_bonuses: subrazaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }}),
+      starting_proficiencies
     })
   })
 

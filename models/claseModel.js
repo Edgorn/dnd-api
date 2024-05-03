@@ -8,7 +8,7 @@ const claseSchema = new mongoose.Schema({
     prof_bonus: Number
   }],
   saving_throws: [String],
-  proficiency: [{
+  proficiency_options: [{
     choose: Number,
     options: [],
     choice: Boolean
