@@ -110,13 +110,13 @@ const consultarRazas = (razasApi) => {
       starting_proficiency_options: (
         razaApi?.starting_proficiency_options
         ?
-        {
+        [{
           choose: razaApi?.starting_proficiency_options?.choose,
           options: proficiency_options,
           choice: false
-        }
+        }]
         :
-        undefined
+        []
       )
     })
   })
