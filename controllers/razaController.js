@@ -17,7 +17,7 @@ exports.getRazas = async (req, res) => {
     try {
       // Intenta recuperar datos de MongoDB
       razas = await Raza.find();
-      bbdd = true
+      //  bbdd = true
     } catch (dbError) {
       // Maneja el error si MongoDB no está disponible
       console.error("MongoDB no está disponible, se procederá solo con datos de la API externa");
@@ -101,23 +101,55 @@ const consultarRazas = (razasApi) => {
       }
     })
 
+    const options = []
+
+    if (razaApi?.starting_proficiency_options) {
+      options.push({
+        choose: razaApi?.starting_proficiency_options?.choose,
+        options: proficiency_options,
+        choice: false
+      })
+    }
+
+    if (razaApi?.language_options) {
+      const languages = razaApi.language_options.from.options.map(language => {
+        return {
+          type: 'language',
+          index: language.item.index
+        }
+      })
+
+      options.push({
+        choose: razaApi?.language_options?.choose,
+        options: languages,
+        choice: false
+      })
+    }
+
+    if (razaApi?.ability_bonus_options) {
+      const abilities = razaApi.ability_bonus_options.from.options.map(ability => {
+        return {
+          type: 'ability',
+          index: ability.ability_score.index
+        }
+      })
+
+      options.push({
+        choose: razaApi?.ability_bonus_options?.choose,
+        options: abilities,
+        choice: false
+      })
+    }
+
+
     razasAux.push({
       index: razaApi.index,
       name: razaApi.name,
       subraces: consultarSubrazas(razaApi.subraces),
       ability_bonuses: razaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }}),
       starting_proficiencies,
-      starting_proficiency_options: (
-        razaApi?.starting_proficiency_options
-        ?
-        [{
-          choose: razaApi?.starting_proficiency_options?.choose,
-          options: proficiency_options,
-          choice: false
-        }]
-        :
-        []
-      )
+      options,
+      languages: razaApi.languages.map(language => language.index)
     })
   })
 

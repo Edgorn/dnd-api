@@ -44,10 +44,31 @@ exports.getTransfondos = async (req, res) => {
           }
         })
 
+        const options = []
+
+        if (transfondoData?.data?.language_options) {
+          const url = transfondoData?.data?.language_options.from.resource_list_url
+          const languageData = await axios.get("https://www.dnd5eapi.co" + url, requestOptions)
+  
+          const optionsLanguage = languageData.data.results.map(language => {
+            return {
+              index: language.index,
+              type: 'language'
+            }
+          })
+
+          options.push({
+            choose: transfondoData?.data?.language_options?.choose,
+            options: optionsLanguage,
+            choice: false
+          })
+        }
+
         return {
           index: transfondoApi.index,
           name: transfondoApi?.name,
-          starting_proficiencies
+          starting_proficiencies,
+          options
         }
       }))
     }
