@@ -17,7 +17,7 @@ exports.getRazas = async (req, res) => {
     try {
       // Intenta recuperar datos de MongoDB
       razas = await Raza.find();
-      //  bbdd = true
+      bbdd = true
     } catch (dbError) {
       // Maneja el error si MongoDB no está disponible
       console.error("MongoDB no está disponible, se procederá solo con datos de la API externa");
