@@ -14,7 +14,8 @@ const razaSchema = new mongoose.Schema({
   ability_bonuses: [{
     index: String,
     bonus: Number
-  }]
+  }],
+  languages: [String]
 }, { collection: 'Razas' });
 
 const Raza = mongoose.model('Razas', razaSchema);
