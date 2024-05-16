@@ -6,6 +6,7 @@ const claseRoutes = require('./routes/claseRoutes');
 const transfondoRoutes = require('./routes/transfondoRoutes');
 const habilidadRoutes = require('./routes/habilidadRoutes');
 const idiomaRoutes = require('./routes/idiomaRoutes');
+const competenciaRoutes = require('./routes/competenciaRoutes');
 const axios = require('axios');
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(claseRoutes);
 app.use(transfondoRoutes);
 app.use(habilidadRoutes);
 app.use(idiomaRoutes);
+app.use(competenciaRoutes);
 
 app.use(async (req, res) => {
   if (req.originalUrl !== '/favicon.ico') {

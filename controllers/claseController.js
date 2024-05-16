@@ -85,12 +85,22 @@ exports.getClases = async (req, res) => {
           }
         })
 
+        const starting_proficiencies = classData?.data?.proficiencies
+          .filter(prof => prof.index.split('-')[0] !== 'saving')
+          .map(prof => {
+            return {
+              type: 'reference',
+              index: prof.index
+            }
+          })
+
         return {
           index: claseApi.index,
           name: claseApi?.name,
           levels,
           saving_throws: classData.data.saving_throws.map(saving => saving.index),
-          proficiency_options: proficiency
+          proficiency_options: proficiency,
+          starting_proficiencies
         }
       }))
     }

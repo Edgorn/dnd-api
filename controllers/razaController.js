@@ -176,11 +176,29 @@ const consultarSubrazas = (subrazasApi) => {
       }
     })
 
+    const options = []
+
+    if (subrazaApi?.language_options) {
+      const languages = subrazaApi.language_options.from.options.map(language => {
+        return {
+          type: 'language',
+          index: language.item.index
+        }
+      })
+
+      options.push({
+        choose: subrazaApi?.language_options?.choose,
+        options: languages,
+        choice: false
+      })
+    }
+
     subrazasAux.push({
       index: subrazaApi.index,
       name: subrazaApi?.name,
       ability_bonuses: subrazaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }}),
-      starting_proficiencies
+      starting_proficiencies,
+      options
     })
   })
 
