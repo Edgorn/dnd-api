@@ -50,17 +50,12 @@ exports.getTransfondos = async (req, res) => {
           const url = transfondoData?.data?.language_options.from.resource_list_url
           const languageData = await axios.get("https://www.dnd5eapi.co" + url, requestOptions)
   
-          const optionsLanguage = languageData.data.results.map(language => {
-            return {
-              index: language.index,
-              type: 'language'
-            }
-          })
+          const optionsLanguage = languageData.data.results.map(language => language.index)
 
           options.push({
             choose: transfondoData?.data?.language_options?.choose,
             options: optionsLanguage,
-            choice: false
+            type: 'language'
           })
         }
 

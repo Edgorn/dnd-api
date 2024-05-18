@@ -86,18 +86,15 @@ const consultarRazas = (razasApi) => {
     })
 
     const proficiency_options = []
+    let type = 'reference'
 
     razaApi?.starting_proficiency_options?.from?.options?.forEach(option => {
       if (option.item.index.includes("skill-")) {
-        proficiency_options.push({
-          type: 'skill',
-          index: option.item.index.replace("skill-", "")
-        })
+        type = 'skill'
+        proficiency_options.push(option.item.index.replace("skill-", ""))
       } else {
-        proficiency_options.push({
-          type: 'reference',
-          index: option.item.index
-        })
+        type = 'reference'
+        proficiency_options.push(option.item.index)
       }
     })
 
@@ -107,40 +104,32 @@ const consultarRazas = (razasApi) => {
       options.push({
         choose: razaApi?.starting_proficiency_options?.choose,
         options: proficiency_options,
+        type,
         choice: false
       })
     }
 
     if (razaApi?.language_options) {
-      const languages = razaApi.language_options.from.options.map(language => {
-        return {
-          type: 'language',
-          index: language.item.index
-        }
-      })
+      const languages = razaApi.language_options.from.options.map(language => language.item.index)
 
       options.push({
         choose: razaApi?.language_options?.choose,
         options: languages,
+        type: 'language',
         choice: false
       })
     }
 
     if (razaApi?.ability_bonus_options) {
-      const abilities = razaApi.ability_bonus_options.from.options.map(ability => {
-        return {
-          type: 'ability',
-          index: ability.ability_score.index
-        }
-      })
+      const abilities = razaApi.ability_bonus_options.from.options.map(ability => ability.ability_score.index)
 
       options.push({
         choose: razaApi?.ability_bonus_options?.choose,
         options: abilities,
+        type: 'ability',
         choice: false
       })
     }
-
 
     razasAux.push({
       index: razaApi.index,
@@ -179,16 +168,12 @@ const consultarSubrazas = (subrazasApi) => {
     const options = []
 
     if (subrazaApi?.language_options) {
-      const languages = subrazaApi.language_options.from.options.map(language => {
-        return {
-          type: 'language',
-          index: language.item.index
-        }
-      })
+      const languages = subrazaApi.language_options.from.options.map(language => language.item.index)
 
       options.push({
         choose: subrazaApi?.language_options?.choose,
         options: languages,
+        type: 'language',
         choice: false
       })
     }

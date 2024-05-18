@@ -33,40 +33,34 @@ exports.getClases = async (req, res) => {
 
         proficiency_choices.forEach(prof => {
           const options = []
-          let choice = false
+          let type = ''
           prof.from.options.forEach(option => {
             if (option.option_type === 'choice') {
-              choice = true
+              type = 'choice'
+              let typeAux = ''
               const optionsAux = []
               option.choice.from.options.forEach(option2 => {
                 if (option2.item.index.includes("skill-")) {
-                  optionsAux.push({
-                    type: 'skill',
-                    index: option2.item.index.replace("skill-", "")
-                  })
+                  typeAux = 'skill'
+                  optionsAux.push(option2.item.index.replace("skill-", ""))
                 } else {
-                  optionsAux.push({
-                    type: 'reference',
-                    index: option2.item.index
-                  })
+                  typeAux = 'reference'
+                  optionsAux.push(option2.item.index)
                 }
               })
 
               options.push({
                 choose: option.choice.choose,
-                options: optionsAux
+                options: optionsAux,
+                type: typeAux
               })
             } else {
               if (option.item.index.includes("skill-")) {
-                options.push({
-                  type: 'skill',
-                  index: option.item.index.replace("skill-", "")
-                })
+                type = 'skill'
+                options.push(option.item.index.replace("skill-", ""))
               } else {
-                options.push({
-                  type: 'reference',
-                  index: option.item.index
-                })
+                type = 'reference'
+                options.push(option.item.inde)
               }
             }
           })
@@ -74,7 +68,7 @@ exports.getClases = async (req, res) => {
           proficiency.push({
             choose: prof.choose,
             options,
-            choice
+            type
           })
         })
 
@@ -99,7 +93,7 @@ exports.getClases = async (req, res) => {
           name: claseApi?.name,
           levels,
           saving_throws: classData.data.saving_throws.map(saving => saving.index),
-          proficiency_options: proficiency,
+          options: proficiency,
           starting_proficiencies
         }
       }))
