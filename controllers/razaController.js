@@ -7,8 +7,6 @@ const requestOptions = {
   }
 };
 
-// REVISAR HABILIDADES SEMIELFOS
-
 exports.getRazas = async (req, res) => {
   try {
     let bbdd = false;
@@ -104,8 +102,7 @@ const consultarRazas = (razasApi) => {
       options.push({
         choose: razaApi?.starting_proficiency_options?.choose,
         options: proficiency_options,
-        type,
-        choice: false
+        type
       })
     }
 
@@ -115,8 +112,7 @@ const consultarRazas = (razasApi) => {
       options.push({
         choose: razaApi?.language_options?.choose,
         options: languages,
-        type: 'language',
-        choice: false
+        type: 'language'
       })
     }
 
@@ -126,19 +122,21 @@ const consultarRazas = (razasApi) => {
       options.push({
         choose: razaApi?.ability_bonus_options?.choose,
         options: abilities,
-        type: 'ability',
-        choice: false
+        type: 'ability'
       })
     }
 
     razasAux.push({
       index: razaApi.index,
       name: razaApi.name,
+      desc: '',
+      speed: razaApi.speed,
       subraces: consultarSubrazas(razaApi.subraces),
       ability_bonuses: razaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }}),
       starting_proficiencies,
       options,
-      languages: razaApi.languages.map(language => language.index)
+      languages: razaApi.languages.map(language => language.index),
+      traits: razaApi?.traits?.map(trait => trait.index) ?? []
     })
   })
 
@@ -173,17 +171,18 @@ const consultarSubrazas = (subrazasApi) => {
       options.push({
         choose: subrazaApi?.language_options?.choose,
         options: languages,
-        type: 'language',
-        choice: false
+        type: 'language'
       })
     }
 
     subrazasAux.push({
       index: subrazaApi.index,
       name: subrazaApi?.name,
+      desc: subrazaApi.desc,
       ability_bonuses: subrazaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }}),
       starting_proficiencies,
-      options
+      options,
+      traits: subrazaApi?.racial_traits?.map(trait => trait.index) ?? []
     })
   })
 
