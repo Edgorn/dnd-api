@@ -31,8 +31,19 @@ exports.getRazas = async (req, res) => {
             const subrazasAux = await Promise.all(
               r.subraces.map(async sr => {
                 const subrace = await axios.get("https://www.dnd5eapi.co" + sr.url, requestOptions)
+
+                let spell_options = null
+
+                await Promise.all(
+                  subrace.data.racial_traits.map(async rt => {
+                    const trait = await axios.get("https://www.dnd5eapi.co" + rt.url, requestOptions)
+                    if (trait?.data?.trait_specific?.spell_options) {
+                      spell_options = trait?.data?.trait_specific?.spell_options
+                    }
+                  })
+                )
   
-                return subrace.data
+                return {...subrace.data, spell_options}
               })
             )
   
@@ -172,6 +183,16 @@ const consultarSubrazas = (subrazasApi) => {
         choose: subrazaApi?.language_options?.choose,
         options: languages,
         type: 'language'
+      })
+    }
+
+    if (subrazaApi?.spell_options) {
+      const spells = subrazaApi.spell_options.from.options.map(spell => spell.item.index)
+      
+      options.push({
+        choose: subrazaApi?.spell_options?.choose,
+        options: spells,
+        type: 'spell-int'
       })
     }
 

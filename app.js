@@ -8,6 +8,8 @@ const habilidadRoutes = require('./routes/habilidadRoutes');
 const idiomaRoutes = require('./routes/idiomaRoutes');
 const competenciaRoutes = require('./routes/competenciaRoutes');
 const rasgoRoutes = require('./routes/rasgoRoutes');
+const fichaRoutes = require('./routes/fichaRoutes');
+const conjuroRoutes = require('./routes/conjuroRoutes');
 const axios = require('axios');
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const fs = require('fs');
@@ -29,6 +31,8 @@ app.use(habilidadRoutes);
 app.use(idiomaRoutes);
 app.use(competenciaRoutes);
 app.use(rasgoRoutes);
+app.use(fichaRoutes);
+app.use(conjuroRoutes);
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 
@@ -48,13 +52,11 @@ app.post('/crearFicha', async (req, res) => {
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const form = pdfDoc.getForm();
 
-    console.log(req.body)
-
     await escribirHeaders({ character: req.body, form, raza: raza[0] })
     await firstPage({ character: req.body, form, raza: raza[0], traits })
     await escribirRasgos({ form, traits, rasgos, pdfDoc })
     await escribirCompetencias({ form, traits, rasgos, pdfDoc, character: req.body })
-
+/*
     const fields = form.getFields();
 
     fields.forEach(field => {
@@ -65,7 +67,7 @@ app.post('/crearFicha', async (req, res) => {
       console.log('____________')
       
     });
-
+*/
     //form.flatten();
 
     const pdfBytes = await pdfDoc.save();
@@ -141,17 +143,6 @@ async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
 
   const lineSpacing = 8;
   let textY = page1.getHeight() - 395;
-/*
-  page1.drawText(traits?.raceName+'', {
-    x: 415,
-    y: textY,
-    size: fontSize,
-    font: fontBold,
-    color: rgb(0, 0, 0)
-  });
-
-  textY -= (lineSpacing + 1);
-*/
   let x = 415
 
   const maxWidth = 160;

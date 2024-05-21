@@ -12,6 +12,7 @@ const razaSchema = new mongoose.Schema({
       index: String,
       bonus: Number
     }],
+    speed: Number,
     traits: [String]
   }],
   ability_bonuses: [{
