@@ -142,6 +142,7 @@ const consultarRazas = (razasApi) => {
       name: razaApi.name,
       desc: '',
       speed: razaApi.speed,
+      size: razaApi.size,
       subraces: consultarSubrazas(razaApi.subraces),
       ability_bonuses: razaApi.ability_bonuses.map(ab => { return { index: ab.ability_score.index, bonus: ab.bonus }}),
       starting_proficiencies,

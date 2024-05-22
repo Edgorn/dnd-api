@@ -119,7 +119,9 @@ function escribirHeaders({character, form, raza}) {
 function firstPage({ character, form, raza, traits }) {
   const { subrace } = character
   const subraza = raza?.subraces?.find(s => s.index === subrace)
-  form.getTextField('Speed').setText((subraza?.speed ?? raza?.speed) + ' pies')
+  const speed = subraza?.speed ?? raza?.speed
+  
+  form.getTextField('Speed').setText(speed ? speed + ' pies' : '')
   /*let CA = 10
 
   if (traits?.raceTraits?.includes('dwarven-toughness')) {
@@ -137,11 +139,11 @@ async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
 
   traits?.raceTraits?.forEach(trait => {
     const rasgo = rasgos.find(r => r.index === trait)
-    
-    if (!traits?.raceTraits.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell'  ) {
+
+    if (rasgo && !traits?.raceTraits.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell'  ) {
       textY = escribirParrafo({ 
         titulo: rasgo?.name, 
-        descripcion: rasgo?.desc?.join('\n'),
+        descripcion: rasgo?.desc?.join('|'),
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth: 170,
@@ -162,39 +164,45 @@ function escribirParrafo({ titulo, descripcion, fontTitle, fontText, maxWidth, p
   const lineSpacing = 8;
   const textWidth = fontTitle.widthOfTextAtSize(titulo + '. ', fontSize);
   const texto = titulo + ': ' + descripcion
-  const wrappedLines = wrapText(texto, fontTitle, fontSize, maxWidth);
 
-  wrappedLines.forEach((wrappedLine, index) => {
-    if (index === 0) {
-      page.drawText(titulo + '. ', {
-        x: x,
-        y: textY,
-        size: fontSize,
-        font: fontTitle,
-        color: rgb(0, 0, 0)
-      });
-
-      page.drawText(wrappedLine.split(': ')[1], {
-        x: x + textWidth,
-        y: textY,
-        size: fontSize,
-        font: fontText,
-        color: rgb(0, 0, 0)
-      });
-    } else {
-      page.drawText(wrappedLine, {
-        x: x,
-        y: textY,
-        size: fontSize,
-        font: fontText,
-        color: rgb(0, 0, 0)
-      });
-    }
+  texto.split('|').forEach((text, ind) => {
     
-    textY -= lineSpacing;
-  })
+    const wrappedLines = wrapText(text, fontTitle, fontSize, maxWidth);
+
+    wrappedLines.forEach((wrappedLine, index) => {
+      if (index === 0 && ind === 0) {
+        page.drawText(titulo + '. ', {
+          x: x,
+          y: textY,
+          size: fontSize,
+          font: fontTitle,
+          color: rgb(0, 0, 0)
+        });
   
-  return textY-3
+        page.drawText(wrappedLine.split(': ')[1], {
+          x: x + textWidth,
+          y: textY,
+          size: fontSize,
+          font: fontText,
+          color: rgb(0, 0, 0)
+        });
+      } else {
+        page.drawText(wrappedLine, {
+          x: x,
+          y: textY,
+          size: fontSize,
+          font: fontText,
+          color: rgb(0, 0, 0)
+        });
+      }
+      
+      textY -= lineSpacing;
+    })
+
+    textY -= 2;
+  })
+
+  return textY-1
 }
 
 async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
@@ -219,16 +227,19 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
     }
   })
 
-  textY = escribirParrafo({ 
-    titulo: 'Competencias', 
-    descripcion: listaCompetencias?.join(', '),
-    fontTitle: fontBold,
-    fontText: fontRegular,
-    maxWidth,
-    page: page1,
-    x,
-    y: textY
-  })
+  if (listaCompetencias.length > 0) {
+    textY = escribirParrafo({ 
+      titulo: 'Competencias', 
+      descripcion: listaCompetencias?.join(', '),
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth,
+      page: page1,
+      x,
+      y: textY
+    })
+  }
+
 
   //  IDIOMAS
   const idiomas = await Idioma.find();
@@ -257,7 +268,7 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
     if (rasgo?.type === 'proficiency') {
       textY = escribirParrafo({ 
         titulo: rasgo?.name, 
-        descripcion: rasgo?.desc?.join('\n'),
+        descripcion: rasgo?.desc?.join('|'),
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth,
@@ -286,8 +297,6 @@ async function escribirConjuros({ character, form }) {
     const nombre = spell.split('_')
     const conjuro = conjurosList?.find(c => c.index === nombre[0])
     if (conjuro) {
-      console.log(nombre)
-      console.log(nombre[1])
       const tipo = caracteristicas[nombre[1]] ?? (nombre[1] === 'magia-drow' ? 'Magia Drow' : nombre[1])
       form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + tipo + ')')
     }
@@ -308,7 +317,7 @@ async function escribirAtaques({ character, form, traits, pdfDoc, rasgos }) {
     if (rasgo?.type === 'spell') {
       textY = escribirParrafo({ 
         titulo: rasgo?.name, 
-        descripcion: rasgo?.desc?.join('\n'),
+        descripcion: rasgo?.desc?.join('|'),
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth: 170,
