@@ -5,22 +5,36 @@ const razaSchema = new mongoose.Schema({
   name: String,
   desc: String,
   speed: Number,
+  size: String,
   subraces: [{
     index: String,
     name: String,
+    desc: String,
+    speed: Number,
+    types: [{
+      name: String,
+      desc: String
+    }],
     ability_bonuses: [{
       index: String,
       bonus: Number
     }],
-    speed: Number,
-    traits: [String]
+    starting_proficiencies: [],
+    traits: [String],
+    options: [],
+    spells: [String],
+    resistances: [String]
   }],
   ability_bonuses: [{
     index: String,
     bonus: Number
   }],
+  starting_proficiencies: [],
   languages: [String],
-  traits: [String]
+  traits: [String],
+  options: [],
+  spells: [String],
+  resistances: [String]
 }, { collection: 'Razas' });
 
 const Raza = mongoose.model('Razas', razaSchema);

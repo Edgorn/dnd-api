@@ -3,15 +3,21 @@ const fs = require('fs');
 const Raza = require('../models/razaModel');
 const Rasgo = require('../models/rasgoModel');
 
-const { listTraits, escribirHeaders, firstPage, escribirRasgos, escribirCompetencias, escribirSkills, escribirConjuros, escribirAtaques } = require('../helpers/fichaHelpers');
+const { listTraits, escribirHeaders, firstPage, escribirRasgos, escribirCompetencias, escribirSkills, escribirConjuros, escribirAtaques, listSpells, listSkills, listProficiencies, listLanguages } = require('../helpers/fichaHelpers');
 
 async function crearFicha(req, res) {
-  const { race } = req.body
+  const { race, subrace } = req.body
 
   const raza = await Raza.find({ index: race });
+  const subraza = raza[0]?.subraces?.find(srace => srace.index === subrace)
+
   const rasgos = await Rasgo.find();
 
-  const traits = listTraits({ character: req.body, raza: raza[0] ?? null})
+  const spells = listSpells({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
+  const traits = listTraits({ raza: raza[0] ?? null, subraza: subraza ?? null })
+  const skills = listSkills({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
+  const proficiencies = listProficiencies({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
+  const languages = listLanguages({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
 
   const existingPdfBytes = fs.readFileSync('./hoja.pdf');
 
@@ -22,12 +28,12 @@ async function crearFicha(req, res) {
     //form.getCheckBox('').
 
     await escribirHeaders({ character: req.body, form, raza: raza[0] })
-    await firstPage({ character: req.body, form, raza: raza[0], traits })
-    await escribirConjuros({ character: req.body, form })
-    await escribirAtaques({ character: req.body, form, traits, pdfDoc, rasgos })
-    await escribirSkills({ character: req.body, form })
+    await firstPage({ character: req.body, form, raza: raza[0] })
+    await escribirConjuros({ spells, form })
+    await escribirAtaques({ pdfDoc, traits, rasgos })
+    await escribirSkills({ skills, form })
     await escribirRasgos({ form, traits, rasgos, pdfDoc })
-    await escribirCompetencias({ form, traits, rasgos, pdfDoc, character: req.body })
+    await escribirCompetencias({ form, traits, rasgos, pdfDoc, proficiencies, languages })
 /*
     const fields = form.getFields();
 

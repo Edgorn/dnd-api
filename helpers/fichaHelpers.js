@@ -2,6 +2,7 @@ const { StandardFonts, rgb } = require("pdf-lib")
 const Competencia = require("../models/competenciaModel")
 const Idioma = require("../models/idiomaModel")
 const Conjuro = require("../models/conjuroModel")
+const Rasgo = require("../models/rasgoModel")
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 
@@ -71,17 +72,93 @@ const skill = {
   "animal-handling": 'Check Box 40'
 }
 
-function listTraits({ character, raza }) {
+function listTraits({ raza, subraza }) {
+  return [ 
+    ...raza?.traits ?? [],
+    ...subraza?.traits ?? []
+  ]
+}
 
-  const { subrace } = character  
-  const subraza = raza?.subraces?.find(srace => srace.index === subrace)
+function listSpells({ character, raza, subraza }) {
+  const { spells } = character 
 
-  const race = subraza?.name ?? raza?.name ?? ''
+  const listSpells = [
+    ...raza?.spells?.map(spell => {
+      return {
+        index: spell.split('_')[0],
+        type: spell.split('_')[1]
+      }
+    }) ?? [],
+    ...subraza?.spells?.map(spell => {
+      return {
+        index: spell.split('_')[0],
+        type: spell.split('_')[1]
+      }
+    }) ?? [],
+    ...spells ?? []
+  ]
 
-  return {
-    raceName: race,
-    raceTraits: [ ...raza?.traits ?? [], ...subraza?.traits ?? [] ]
-  }
+  const seen = new Set();
+
+  const uniqueList = listSpells.filter(item => {
+    const duplicate = seen.has(item.index);
+    seen.add(item.index);
+    return !duplicate;
+  });
+
+  return uniqueList
+}
+
+function listSkills({ character, raza, subraza }) {
+  const { skills } = character 
+
+  const listSkills = [
+    ...raza?.starting_proficiencies?.filter(prof => prof.type === 'habilidad')?.map(prof => prof.index) ?? [],
+    ...subraza?.starting_proficiencies?.filter(prof => prof.type === 'habilidad')?.map(prof => prof.index) ?? [],
+    ...skills ?? []
+  ]
+
+  return listSkills
+}
+
+function listProficiencies({ character, raza, subraza }) {
+  const { proficiencies } = character
+
+  const listProficiencies = [
+    ...raza?.starting_proficiencies?.filter(prof => prof.type !== 'habilidad')?.map(prof => prof.index) ?? [],
+    ...subraza?.starting_proficiencies?.filter(prof => prof.type !== 'habilidad')?.map(prof => prof.index) ?? [],
+    ...proficiencies ?? []
+  ]
+
+  const seen = new Set();
+
+  const uniqueList = listProficiencies.filter(item => {
+    const duplicate = seen.has(item);
+    seen.add(item);
+    return !duplicate;
+  });
+
+  return uniqueList
+}
+
+function listLanguages({ character, raza, subraza }) {
+  const { languages } = character
+
+  const listLanguages = [
+    ...raza?.languages ?? [],
+    ...subraza?.languages ?? [],
+    ...languages ?? []
+  ]
+
+  const seen = new Set();
+
+  const uniqueList = listLanguages.filter(item => {
+    const duplicate = seen.has(item);
+    seen.add(item);
+    return !duplicate;
+  });
+
+  return uniqueList
 }
 
 function escribirHeaders({character, form, raza}) {
@@ -96,7 +173,7 @@ function escribirHeaders({character, form, raza}) {
   } = character;
 
   const subraza = raza?.subraces?.find(srace => srace.index === subrace)
-  const race = type==='' ? subraza?.name ?? raza?.name ?? '' : type
+  const race = type==='' || !type ? subraza?.name ?? raza?.name ?? '' : type
 
   form.getTextField('CharacterName').setText(name)
   form.getTextField('CharacterName 2').setText(name)
@@ -116,17 +193,12 @@ function escribirHeaders({character, form, raza}) {
   form.getTextField('Hair').setText(hair)
 }
 
-function firstPage({ character, form, raza, traits }) {
+function firstPage({ character, form, raza }) {
   const { subrace } = character
   const subraza = raza?.subraces?.find(s => s.index === subrace)
   const speed = subraza?.speed ?? raza?.speed
   
   form.getTextField('Speed').setText(speed ? speed + ' pies' : '')
-  /*let CA = 10
-
-  if (traits?.raceTraits?.includes('dwarven-toughness')) {
-    CA += character?.level ?? 1
-  }*/
 }
 
 async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
@@ -137,10 +209,10 @@ async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
 
   let textY = page1.getHeight() - 395;
 
-  traits?.raceTraits?.forEach(trait => {
+  traits?.forEach(trait => {
     const rasgo = rasgos.find(r => r.index === trait)
 
-    if (rasgo && !traits?.raceTraits.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell'  ) {
+    if (rasgo && !traits?.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell'  ) {
       textY = escribirParrafo({ 
         titulo: rasgo?.name, 
         descripcion: rasgo?.desc?.join('|'),
@@ -205,7 +277,7 @@ function escribirParrafo({ titulo, descripcion, fontTitle, fontText, maxWidth, p
   return textY-1
 }
 
-async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
+async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, languages }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -219,7 +291,7 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
   const competencias = await Competencia.find();
   const listaCompetencias = []
 
-  character?.proficiencies.forEach(proficiency => {
+  proficiencies?.forEach(proficiency => {
     const competencia = competencias.find(i => i.index === proficiency)
 
     if (competencia?.name) {
@@ -230,7 +302,7 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
   if (listaCompetencias.length > 0) {
     textY = escribirParrafo({ 
       titulo: 'Competencias', 
-      descripcion: listaCompetencias?.join(', '),
+      descripcion: listaCompetencias?.join(', ')+'.',
       fontTitle: fontBold,
       fontText: fontRegular,
       maxWidth,
@@ -240,19 +312,18 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
     })
   }
 
-
   //  IDIOMAS
   const idiomas = await Idioma.find();
   const listaIdiomas = []
 
-  character?.languages.forEach(language => {
+  languages?.forEach(language => {
     const idioma = idiomas.find(i => i.index === language)
     listaIdiomas.push(idioma.name)
   })
 
   textY = escribirParrafo({ 
     titulo: 'Idiomas', 
-    descripcion: listaIdiomas?.join(', '),
+    descripcion: listaIdiomas?.join(', ')+'.',
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth,
@@ -262,7 +333,7 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
   })
 
   // RASGOS
-  traits?.raceTraits?.forEach(trait => {
+  traits?.forEach(trait => {
     const rasgo = rasgos.find(r => r.index === trait)
 
     if (rasgo?.type === 'proficiency') {
@@ -280,30 +351,33 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, character }) {
   })
 }
 
-async function escribirSkills({ character, form }) {
-  const { skills } = character
-
-  skills.forEach(s => {
+async function escribirSkills({ skills, form }) {
+  skills?.forEach(s => {
     form.getCheckBox(skill[s]).check()
   })
 }
 
-async function escribirConjuros({ character, form }) {
-  const { spells } = character
-
+async function escribirConjuros({ spells, form }) {
   const conjurosList = await Conjuro.find()
+  const rasgosList = await Rasgo.find()
 
   spells?.forEach((spell, index) => {
-    const nombre = spell.split('_')
-    const conjuro = conjurosList?.find(c => c.index === nombre[0])
+    const conjuro = conjurosList?.find(c => c.index === spell.index)
+
     if (conjuro) {
-      const tipo = caracteristicas[nombre[1]] ?? (nombre[1] === 'magia-drow' ? 'Magia Drow' : nombre[1])
-      form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + tipo + ')')
+      const tipo = caracteristicas[spell.type]
+
+      if (tipo) {
+        form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + tipo + ')')
+      } else {
+        const rasgo = rasgosList?.find(c => c.index === spell.type)
+        form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + rasgo.name + ')')
+      }
     }
   })
 }
 
-async function escribirAtaques({ character, form, traits, pdfDoc, rasgos }) {
+async function escribirAtaques({ pdfDoc, rasgos, traits }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -311,7 +385,7 @@ async function escribirAtaques({ character, form, traits, pdfDoc, rasgos }) {
 
   let textY = page1.getHeight() - 460;
 
-  traits?.raceTraits?.forEach(trait => {
+  traits?.forEach(trait => {
     const rasgo = rasgos.find(r => r.index === trait)
     
     if (rasgo?.type === 'spell') {
@@ -350,6 +424,10 @@ function wrapText(text, font, fontSize, maxWidth) {
 
 module.exports = {
   listTraits,
+  listSpells,
+  listSkills,
+  listProficiencies,
+  listLanguages,
   escribirHeaders,
   firstPage,
   escribirSkills,
