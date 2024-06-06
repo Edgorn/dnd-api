@@ -6,21 +6,13 @@ const Competencia = require('../models/competenciaModel');
 const Conjuro = require('../models/conjuroModel');
 const Daño = require('../models/dañoModel');
 const axios = require('axios');
+const { formatearAbilityBonuses, formatearCompetencias, formatearRasgos, formatearOptions, formatearConjuros, formatearResistencias, formatearIdiomas } = require('../helpers/formatDataHelpers');
 
 const requestOptions = {
   headers: {
     'Content-Type': 'application/json'
   }
 };
-
-const caracteristicas = {
-  str: 'Fuerza',
-  dex: 'Destreza',
-  con: 'Constitucion',
-  int: 'Inteligencia',
-  wis: 'Sabiduria',
-  cha: 'Carisma'
-}
 
 exports.getAllRazas = async (req, res) => {
   try {
@@ -110,7 +102,6 @@ exports.getRazas = async (req, res) => {
 
 const formatearRazas = (razasApi, idiomasApi, rasgosApi, habilidadesApi, competenciaApi, conjuroApi, dañosApi) => {
   const razas = razasApi.map(raza => {
-    console.log(raza.index)
     return {
       index: raza.index,
       name: raza.name,
@@ -143,8 +134,6 @@ const formatearRazas = (razasApi, idiomasApi, rasgosApi, habilidadesApi, compete
 
 const formatearSubrazas = (subrazasApi, rasgosApi, habilidadesApi, competenciaApi, idiomasApi, conjuroApi, dañosApi) => {
   const subrazas = subrazasApi.map(subraza => {
-    
-    console.log(subraza.index)
     return {
       index: subraza.index,
       name: subraza.name,
@@ -176,174 +165,6 @@ const formatearSubrazas = (subrazasApi, rasgosApi, habilidadesApi, competenciaAp
   });
 
   return subrazas
-}
-
-const formatearAbilityBonuses = (ability_bonuses) => {
-  const abilityBonuses = ability_bonuses?.map(ability => {
-    return {
-      index: ability?.index,
-      name: caracteristicas[ability?.index] ?? ability.index,
-      bonus: ability?.bonus
-    }
-  })
-
-  return abilityBonuses
-}
-
-const formatearIdiomas = (languagesApi, idiomasApi) => {
-  const languages = languagesApi?.map(language => {
-    const idioma = idiomasApi.find(idioma => idioma.index === language)
-    return {
-      index: idioma?.index,
-      name: idioma?.name
-    }
-  })
-
-  return languages
-}
-
-const formatearRasgos = (traitsApi, rasgosApi) => {
-  const traits = []
-  
-  traitsApi?.forEach(trait => {
-    const rasgo = rasgosApi.find(rasgo => rasgo.index === trait)
-
-    if (!traits?.includes(rasgo?.discard)) {
-      traits.push({
-        index: rasgo?.index,
-        name: rasgo?.name,
-        desc: rasgo?.desc?.join('\n')
-      })
-    }
-  })
-
-  return traits
-}
-
-const formatearCompetencias = (proficiencies, habilidadesApi, competenciaApi) => {
-  const habilidades = proficiencies.map(proficiency => {
-    if (proficiency.type === 'habilidad') {
-      const habilidad = habilidadesApi.find(habilidad => habilidad.index === proficiency.index)
-
-      return {
-        index: habilidad?.index,
-        name: habilidad?.name,
-        type: 'habilidad'
-      }
-    } else {
-      const competencia = competenciaApi.find(competencia => competencia.index === proficiency.index)
-
-      return {
-        index: competencia?.index,
-        name: competencia?.name,
-        type: competencia?.type
-      }
-    }
-  })
-
-  return habilidades
-}
-
-const formatearOptions = (optionsApi, idiomasApi, competenciaApi, habilidadesApi, conjuroApi) => {
-  return optionsApi.map(optionApi => {
-
-    const options = []
-
-    if (optionApi?.type === 'idioma') {
-      optionApi.options.forEach(option => {
-
-        const idioma = idiomasApi.find(idioma => idioma.index === option)
-
-        options.push({
-          index: idioma.index,
-          name: idioma.name
-        })
-      })
-    } else if (optionApi?.type === 'herramienta') {
-      optionApi.options.forEach(option => {
-
-        const competencia = competenciaApi.find(competencia => competencia.index === option)
-
-        options.push({
-          index: competencia.index,
-          name: competencia.name
-        })
-      })
-    } else if (optionApi?.type === 'habilidad') {
-      optionApi.options.forEach(option => {
-
-        const habilidad = habilidadesApi.find(habilidad => habilidad.index === option)
-
-        options.push({
-          index: habilidad.index,
-          name: habilidad.name
-        })
-      })
-    } else if (optionApi?.type === 'caracteristica') {
-      optionApi.options.forEach(option => {
-        options.push({
-          index: option,
-          name: caracteristicas[option] ?? ''
-        })
-      })
-    } else if (optionApi?.type?.split('_')[0] === 'conjuro') {
-      optionApi.options.forEach(option => {
-        const conjuro = conjuroApi.find(conjuro => conjuro.index === option)
-
-        options.push({
-          index: conjuro.index,
-          name: conjuro.name
-        })
-      })
-    } else {
-      console.log(optionApi)
-    }
-
-    return {
-      choose: optionApi?.choose,
-      type: optionApi?.type,
-      options
-    }
-  })
-}
-
-const formatearConjuros = (spellsApi, conjuroApi, rasgosApi) => {
-  const conjuros = spellsApi.map(spell => {
-    const arraySpell = spell.split('_')
-    const conjuro = conjuroApi.find(conjuro => conjuro.index === arraySpell[0])
-    const caracteristica = caracteristicas[arraySpell[1]]
-
-    let tipo = ''
-
-    if (caracteristica) {
-      tipo = caracteristica
-    } else {
-      const rasgo = rasgosApi.find(rasgo => rasgo.index === arraySpell[1])
-      tipo = rasgo.name
-    }
-
-    return {
-      index: conjuro.index,
-      name: conjuro.name,
-      type: arraySpell[1],
-      typeName: tipo
-    }
-  })
-
-  return conjuros
-}
-
-const formatearResistencias = (resistancesApi, dañosApi) => {
-  const resistencias = resistancesApi.map(resistance => {
-    const daño = dañosApi.find(daño => daño.index === resistance)
-
-    return {
-      index: daño.index,
-      name: daño.name
-    }
-  })
-
-  return resistencias
 }
 
 const consultarAllRazas = (razasApi) => {

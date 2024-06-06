@@ -1,5 +1,4 @@
 const { StandardFonts, rgb } = require("pdf-lib")
-const Competencia = require("../models/competenciaModel")
 const Idioma = require("../models/idiomaModel")
 const Conjuro = require("../models/conjuroModel")
 const Rasgo = require("../models/rasgoModel")
@@ -72,10 +71,19 @@ const skill = {
   "animal-handling": 'Check Box 40'
 }
 
-function listTraits({ raza, subraza }) {
+function listTraits({ raza, subraza, clase, level }) {
+  const traitsClase = []
+
+  clase?.levels
+    ?.filter(lev => lev.level <= level)
+    ?.forEach(level => {
+      traitsClase.push(...level.traits)
+    })
+    
   return [ 
     ...raza?.traits ?? [],
-    ...subraza?.traits ?? []
+    ...subraza?.traits ?? [],
+    ...traitsClase ?? []
   ]
 }
 
@@ -95,7 +103,7 @@ function listSpells({ character, raza, subraza }) {
         type: spell.split('_')[1]
       }
     }) ?? [],
-    ...spells ?? []
+    ...spells.map(spell => { return { index: spell } }) ?? []
   ]
 
   const seen = new Set();
@@ -121,12 +129,13 @@ function listSkills({ character, raza, subraza }) {
   return listSkills
 }
 
-function listProficiencies({ character, raza, subraza }) {
+function listProficiencies({ character, raza, subraza, clase, competencias }) {
   const { proficiencies } = character
 
   const listProficiencies = [
     ...raza?.starting_proficiencies?.filter(prof => prof.type !== 'habilidad')?.map(prof => prof.index) ?? [],
     ...subraza?.starting_proficiencies?.filter(prof => prof.type !== 'habilidad')?.map(prof => prof.index) ?? [],
+    ...clase?.starting_proficiencies?.filter(prof => prof.type !== 'habilidad')?.map(prof => prof.index) ?? [],
     ...proficiencies ?? []
   ]
 
@@ -138,7 +147,17 @@ function listProficiencies({ character, raza, subraza }) {
     return !duplicate;
   });
 
-  return uniqueList
+  const uniqueProficiencies = []
+
+  uniqueList.forEach(prof => {
+    const competencia = competencias.find(comp => comp.index === prof)
+
+    if (!uniqueList.includes(competencia.desc[0])) {
+      uniqueProficiencies.push(prof)
+    }
+  })
+
+  return uniqueProficiencies
 }
 
 function listLanguages({ character, raza, subraza }) {
@@ -161,7 +180,35 @@ function listLanguages({ character, raza, subraza }) {
   return uniqueList
 }
 
-function escribirHeaders({character, form, raza}) {
+function listEquipment({ character, equipamientos }) {
+  const list = []
+  const weapons = []
+  const musical = []
+  const armors = [] 
+
+  character?.equipment?.forEach(equip => {
+    const equipment = equipamientos.find(e => e.index === equip.index)
+
+    if (equipment) {
+      if (equipment?.category === 'Paquete de equipo') {
+        equipment.content.forEach(item => {
+          const equipmentItem = equipamientos.find(e => e.index === item.item)
+          list.push({ name: equipmentItem.name, quantity: item.quantity*equip.quantity })
+        })
+      } else if (equipment?.category === 'Arma') {
+        weapons.push({ name: equipment.name, quantity: equip.quantity, damage: equipment?.weapon?.damage?.dice })
+      } else if (equipment?.category === 'Instrumento musical') {
+        musical.push({ name: equipment.name, quantity: equip.quantity })
+      } else if (equipment?.category === 'Armadura') {
+        armors.push({ name: equipment.name, quantity: equip.quantity, class: equipment?.armor?.class })
+      }
+    }
+  })
+
+  return { equipment: list, weapons, musical, armors }
+}
+
+async function escribirHeaders({character, form, raza, clase}) {
   const {
     name='',
     level=1,
@@ -178,7 +225,7 @@ function escribirHeaders({character, form, raza}) {
   form.getTextField('CharacterName').setText(name)
   form.getTextField('CharacterName 2').setText(name)
 
-  form.getTextField('ClassLevel').setText('' + level)
+  form.getTextField('ClassLevel').setText((clase?.name ?? '') + ' ' + level)
   form.getTextField('PlayerName').setText(playerName)
   form.getTextField('Race ').setText(race)
   form.getTextField('XP').setText(experiencePoints + '/' + nivel[level-1])
@@ -193,27 +240,42 @@ function escribirHeaders({character, form, raza}) {
   form.getTextField('Hair').setText(hair)
 }
 
-function firstPage({ character, form, raza }) {
-  const { subrace } = character
+async function firstPage({ character, form, raza, clase, traits }) {
+  const { subrace, level, money } = character
   const subraza = raza?.subraces?.find(s => s.index === subrace)
   const speed = subraza?.speed ?? raza?.speed
+
+  let live = clase?.hit_die
+
+  if (traits.includes('dwarven-toughness')) {
+    live += level
+  }
+
+  const dataLevel = clase?.levels?.find(lev => lev.level === level)
   
   form.getTextField('Speed').setText(speed ? speed + ' pies' : '')
+  form.getTextField('HPMax').setText(live + '')
+  form.getTextField('HDTotal').setText(level + 'd' + clase?.hit_die)
+  form.getTextField('ProfBonus').setText('+' + (dataLevel?.prof_bonus ?? ''))
+  form.getTextField('GP').setText('' + money)
 }
 
 async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
+  const page2 = pages[1]
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  let textY = page1.getHeight() - 395;
+  let textY1 = page1.getHeight() - 395;
+  let textY2 = page2.getHeight() - 385;
+  let maxHeight = 44
 
   traits?.forEach(trait => {
     const rasgo = rasgos.find(r => r.index === trait)
 
     if (rasgo && !traits?.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell'  ) {
-      textY = escribirParrafo({ 
+      const { textY, actualHeight } = escribirParrafo({ 
         titulo: rasgo?.name, 
         descripcion: rasgo?.desc?.join('|'),
         fontTitle: fontBold,
@@ -221,8 +283,29 @@ async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
         maxWidth: 170,
         page: page1,
         x: 415,
-        y: textY
+        y: textY1,
+        maxHeight
       })
+
+      if (maxHeight === actualHeight) {
+        const { textY } = escribirParrafo({ 
+          titulo: rasgo?.name, 
+          descripcion: rasgo?.desc?.join('|'),
+          fontTitle: fontBold,
+          fontText: fontRegular,
+          maxWidth: 383,
+          page: page2,
+          x: 225,
+          y: textY2
+        })
+
+        textY2 = textY
+
+      } else {
+        textY1 = textY
+        maxHeight = actualHeight
+      }
+
     }
   })
 
@@ -230,26 +313,82 @@ async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
   form.flatten();
 }
 
-function escribirParrafo({ titulo, descripcion, fontTitle, fontText, maxWidth, page, x, y }) {
+function escribirParrafo({ titulo, descripcion, fontTitle, fontText, maxWidth, page, x, y, maxHeight=1000 }) {
   let textY = y
   const fontSize = 8; 
   const lineSpacing = 8;
-  const textWidth = fontTitle.widthOfTextAtSize(titulo + '. ', fontSize);
+  const textWidth = titulo==='' ? 0 : fontTitle.widthOfTextAtSize(titulo + '. ', fontSize);
   const texto = titulo + ': ' + descripcion
 
+  const textoFilas = []
+  let lineasTexto = 0
+  let actualHeight = maxHeight
+
   texto.split('|').forEach((text, ind) => {
+    const parrafo = wrapText(text, fontTitle, fontSize, maxWidth)
+    textoFilas.push(parrafo)
+    lineasTexto += parrafo.length
+  })
+
+  if (lineasTexto <= maxHeight) {
+    textoFilas.forEach((wrappedLines, ind) => {
+      //const wrappedLines = wrapText(text, fontTitle, fontSize, maxWidth);
+  
+      wrappedLines.forEach((wrappedLine, index) => {
+        if (index === 0 && ind === 0) {
+          if (titulo !== '') {
+            page.drawText(titulo + '. ', {
+              x: x,
+              y: textY,
+              size: fontSize,
+              font: fontTitle,
+              color: rgb(0, 0, 0)
+            });
+          }
     
+          page.drawText(wrappedLine.split(': ')[1], {
+            x: x + textWidth,
+            y: textY,
+            size: fontSize,
+            font: fontText,
+            color: rgb(0, 0, 0)
+          });
+        } else {
+          page.drawText(wrappedLine, {
+            x: x,
+            y: textY,
+            size: fontSize,
+            font: fontText,
+            color: rgb(0, 0, 0)
+          });
+        }
+        
+        textY -= lineSpacing;
+      })
+  
+      textY -= 2;
+    })
+
+    actualHeight -= lineasTexto
+  }
+
+  
+
+/*
+  texto.split('|').forEach((text, ind) => {
     const wrappedLines = wrapText(text, fontTitle, fontSize, maxWidth);
 
     wrappedLines.forEach((wrappedLine, index) => {
       if (index === 0 && ind === 0) {
-        page.drawText(titulo + '. ', {
-          x: x,
-          y: textY,
-          size: fontSize,
-          font: fontTitle,
-          color: rgb(0, 0, 0)
-        });
+        if (titulo !== '') {
+          page.drawText(titulo + '. ', {
+            x: x,
+            y: textY,
+            size: fontSize,
+            font: fontTitle,
+            color: rgb(0, 0, 0)
+          });
+        }
   
         page.drawText(wrappedLine.split(': ')[1], {
           x: x + textWidth,
@@ -273,11 +412,11 @@ function escribirParrafo({ titulo, descripcion, fontTitle, fontText, maxWidth, p
 
     textY -= 2;
   })
-
-  return textY-1
+*/
+  return { textY: textY-1, actualHeight }
 }
 
-async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, languages }) {
+async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, languages, competencias }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -288,7 +427,6 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, lan
   const maxWidth = 170;
 
   // COMPETENCIAS
-  const competencias = await Competencia.find();
   const listaCompetencias = []
 
   proficiencies?.forEach(proficiency => {
@@ -300,7 +438,7 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, lan
   })
 
   if (listaCompetencias.length > 0) {
-    textY = escribirParrafo({ 
+    const { textY: actualY } = escribirParrafo({ 
       titulo: 'Competencias', 
       descripcion: listaCompetencias?.join(', ')+'.',
       fontTitle: fontBold,
@@ -310,6 +448,8 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, lan
       x,
       y: textY
     })
+
+    textY = actualY
   }
 
   //  IDIOMAS
@@ -321,7 +461,7 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, lan
     listaIdiomas.push(idioma.name)
   })
 
-  textY = escribirParrafo({ 
+  const { textY: actualY } = escribirParrafo({ 
     titulo: 'Idiomas', 
     descripcion: listaIdiomas?.join(', ')+'.',
     fontTitle: fontBold,
@@ -332,12 +472,14 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, lan
     y: textY
   })
 
+  textY = actualY
+
   // RASGOS
   traits?.forEach(trait => {
     const rasgo = rasgos.find(r => r.index === trait)
 
     if (rasgo?.type === 'proficiency') {
-      textY = escribirParrafo({ 
+      const { textY: actualY } = escribirParrafo({ 
         titulo: rasgo?.name, 
         descripcion: rasgo?.desc?.join('|'),
         fontTitle: fontBold,
@@ -347,34 +489,90 @@ async function escribirCompetencias({ traits, rasgos, pdfDoc, proficiencies, lan
         x,
         y: textY
       })
+
+      textY = actualY
     }
   })
 }
 
-async function escribirSkills({ skills, form }) {
+async function escribirSkills({ skills, form, clase }) {
+  clase?.saving_throws.forEach(sav => {
+    form.getCheckBox(salvacion[sav]).check()
+  })
   skills?.forEach(s => {
     form.getCheckBox(skill[s]).check()
   })
 }
 
-async function escribirConjuros({ spells, form }) {
+async function escribirConjuros({ spells, form, clase, character }) {
+
+  if (clase?.spellcasting) {
+    form.getTextField('Spellcasting Class 2').setText(clase?.name + '')
+    form.getTextField('SpellcastingAbility 2').setText(caracteristicas[clase?.spellcasting] + '')
+
+    const level = character?.level ?? 1
+    const slots = clase?.levels?.find(lev => lev.level === level)?.spellcasting
+    
+    form.getTextField('SlotsTotal 19').setText(slots?.spell_slots_level_1 + '')
+    form.getTextField('SlotsRemaining 19').setText(0 + '')
+
+    form.getTextField('SlotsTotal 20').setText(slots?.spell_slots_level_2 + '')
+    form.getTextField('SlotsRemaining 20').setText(0 + '')
+    
+    form.getTextField('SlotsTotal 21').setText(slots?.spell_slots_level_3 + '')
+    form.getTextField('SlotsRemaining 21').setText(0 + '')
+    
+    form.getTextField('SlotsTotal 22').setText(slots?.spell_slots_level_4 + '')
+    form.getTextField('SlotsRemaining 22').setText(0 + '')
+    
+    form.getTextField('SlotsTotal 23').setText(slots?.spell_slots_level_5 + '')
+    form.getTextField('SlotsRemaining 23').setText(0 + '')
+    
+    form.getTextField('SlotsTotal 24').setText(slots?.spell_slots_level_6 + '')
+    form.getTextField('SlotsRemaining 24').setText(0 + '')
+    
+    form.getTextField('SlotsTotal 25').setText(slots?.spell_slots_level_7 + '')
+    form.getTextField('SlotsRemaining 25').setText(0 + '')
+    
+    form.getTextField('SlotsTotal 26').setText(slots?.spell_slots_level_8 + '')
+    form.getTextField('SlotsRemaining 26').setText(0 + '')
+    
+    form.getTextField('SlotsTotal 27').setText(slots?.spell_slots_level_9 + '')
+    form.getTextField('SlotsRemaining 27').setText(0 + '')
+  }
+
   const conjurosList = await Conjuro.find()
   const rasgosList = await Rasgo.find()
+  const conjurosLista = []
 
   spells?.forEach((spell, index) => {
     const conjuro = conjurosList?.find(c => c.index === spell.index)
 
     if (conjuro) {
-      const tipo = caracteristicas[spell.type]
+      const tipo = caracteristicas[spell?.type]
 
       if (tipo) {
         form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + tipo + ')')
       } else {
         const rasgo = rasgosList?.find(c => c.index === spell.type)
-        form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + rasgo.name + ')')
+        if (rasgo) {
+          form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + rasgo.name + ')')
+        } else {
+          if (conjuro.level === 0) {
+            form.getTextField(conjuros.trucos[index]).setText(conjuro.name + '')
+          } else {
+            conjurosLista.push(conjuro)
+          }
+        }
       }
     }
   })
+
+  conjurosLista
+    .filter(conjuro => conjuro.level === 1)
+    .forEach((conjuro, index) => {
+      form.getTextField(conjuros.nvl1[index]).setText(conjuro.name + '')
+    })
 }
 
 async function escribirAtaques({ pdfDoc, rasgos, traits }) {
@@ -389,7 +587,7 @@ async function escribirAtaques({ pdfDoc, rasgos, traits }) {
     const rasgo = rasgos.find(r => r.index === trait)
     
     if (rasgo?.type === 'spell') {
-      textY = escribirParrafo({ 
+      const { textY: actualY } = escribirParrafo({ 
         titulo: rasgo?.name, 
         descripcion: rasgo?.desc?.join('|'),
         fontTitle: fontBold,
@@ -399,8 +597,107 @@ async function escribirAtaques({ pdfDoc, rasgos, traits }) {
         x: 225,
         y: textY
       })
+
+      textY = actualY
     }
   })
+}
+
+async function escribirTesoro({ pdfDoc, equipment }) {
+  const pages = pdfDoc.getPages();
+  const page1 = pages[1]
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  let textY = page1.getHeight() - 610;
+
+  const text = equipment.map(eq => eq.quantity + 'x ' + eq.name).join('|')
+
+  const { textY: actualY } = escribirParrafo({ 
+    titulo: '', 
+    descripcion: text,
+    fontTitle: fontBold,
+    fontText: fontRegular,
+    maxWidth: 370,
+    page: page1,
+    x: 225,
+    y: textY
+  })
+
+  textY = actualY
+}
+
+async function escribirEquipamiento({ pdfDoc, weapons, musical, armors }) {
+  await escribirArmas({ pdfDoc, weapons })
+  await escribirEquipo({ pdfDoc, musical, armors })
+}
+
+async function escribirArmas({ pdfDoc, weapons }) {
+  const pages = pdfDoc.getPages();
+  const page1 = pages[0]
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  let textY = page1.getHeight() - 460;
+
+  const text = weapons.map(eq => eq.quantity + 'x ' + eq.name + ' (' + eq.damage + ')').join('|')
+
+  const { textY: actualY } = escribirParrafo({ 
+    titulo: '', 
+    descripcion: text,
+    fontTitle: fontBold,
+    fontText: fontRegular,
+    maxWidth: 370,
+    page: page1,
+    x: 225,
+    y: textY
+  })
+
+  textY = actualY
+}
+
+async function escribirEquipo({ pdfDoc, musical, armors }) {
+  const pages = pdfDoc.getPages();
+  const page1 = pages[0]
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  let textY = page1.getHeight() - 600;
+  
+  const text1 = armors
+    .map(eq => {
+      const ca = eq?.class?.dex_bonus ? (eq?.class?.base + '+0') : eq?.class?.base
+      return eq.quantity + 'x ' + eq.name + ' (' + ca + ' CA)'
+    })
+    .join('|')
+
+  const text2 = musical.map(eq => eq.quantity + 'x ' + eq.name).join('|')
+
+  const { textY: actualY1 } = escribirParrafo({ 
+    titulo: '', 
+    descripcion: text1,
+    fontTitle: fontBold,
+    fontText: fontRegular,
+    maxWidth: 370,
+    page: page1,
+    x: 268,
+    y: textY
+  })
+
+  textY = actualY1
+
+  const { textY: actualY2 } = escribirParrafo({ 
+    titulo: '', 
+    descripcion: text2,
+    fontTitle: fontBold,
+    fontText: fontRegular,
+    maxWidth: 370,
+    page: page1,
+    x: 268,
+    y: textY
+  })
+
+  textY = actualY2
 }
 
 function wrapText(text, font, fontSize, maxWidth) {
@@ -428,11 +725,14 @@ module.exports = {
   listSkills,
   listProficiencies,
   listLanguages,
+  listEquipment,
   escribirHeaders,
   firstPage,
   escribirSkills,
   escribirRasgos,
   escribirCompetencias,
   escribirConjuros,
-  escribirAtaques
+  escribirAtaques,
+  escribirTesoro,
+  escribirEquipamiento
 };

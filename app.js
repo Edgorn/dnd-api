@@ -11,6 +11,7 @@ const rasgoRoutes = require('./routes/rasgoRoutes');
 const fichaRoutes = require('./routes/fichaRoutes');
 const conjuroRoutes = require('./routes/conjuroRoutes');
 const dañoRoutes = require('./routes/dañoRoutes');
+const equipamientoRoutes = require('./routes/equipamientoRoutes');
 const axios = require('axios');
 
 const app = express();
@@ -29,6 +30,7 @@ app.use(rasgoRoutes);
 app.use(fichaRoutes);
 app.use(conjuroRoutes);
 app.use(dañoRoutes);
+app.use(equipamientoRoutes);
 
 app.use(async (req, res) => {
   if (req.originalUrl !== '/favicon.ico') {

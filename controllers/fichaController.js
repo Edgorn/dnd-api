@@ -2,38 +2,35 @@ const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const fs = require('fs');
 const Raza = require('../models/razaModel');
 const Rasgo = require('../models/rasgoModel');
+const Clase = require('../models/claseModel');
 
-const { listTraits, escribirHeaders, firstPage, escribirRasgos, escribirCompetencias, escribirSkills, escribirConjuros, escribirAtaques, listSpells, listSkills, listProficiencies, listLanguages } = require('../helpers/fichaHelpers');
+const { listTraits, escribirHeaders, firstPage, escribirRasgos, escribirCompetencias, escribirSkills, escribirConjuros, escribirAtaques, listSpells, listSkills, listProficiencies, listLanguages, listEquipment, escribirEquipamientos, escribirArmas, escribirTesoro, escribirEquipamiento } = require('../helpers/fichaHelpers');
+const Competencia = require('../models/competenciaModel');
+const Equipamiento = require('../models/equipamientoModel');
 
 async function crearFicha(req, res) {
-  const { race, subrace } = req.body
+  const { race, subrace, class: clas, level } = req.body
 
   const raza = await Raza.find({ index: race });
   const subraza = raza[0]?.subraces?.find(srace => srace.index === subrace)
 
+  const clase = await Clase.find({ index: clas })
   const rasgos = await Rasgo.find();
+  const competencias = await Competencia.find();
+  const equipamientos = await Equipamiento.find()
 
   const spells = listSpells({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
-  const traits = listTraits({ raza: raza[0] ?? null, subraza: subraza ?? null })
+  const traits = listTraits({ raza: raza[0] ?? null, subraza: subraza ?? null, clase: clase[0], level })
   const skills = listSkills({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
-  const proficiencies = listProficiencies({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
+  const proficiencies = listProficiencies({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null, clase: clase[0], competencias })
   const languages = listLanguages({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
+  const { equipment, weapons, musical, armors } = listEquipment({ character: req.body, clase: clase[0], equipamientos })
 
   const existingPdfBytes = fs.readFileSync('./hoja.pdf');
 
   try {
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const form = pdfDoc.getForm();
-
-    //form.getCheckBox('').
-
-    await escribirHeaders({ character: req.body, form, raza: raza[0] })
-    await firstPage({ character: req.body, form, raza: raza[0] })
-    await escribirConjuros({ spells, form })
-    await escribirAtaques({ pdfDoc, traits, rasgos })
-    await escribirSkills({ skills, form })
-    await escribirRasgos({ form, traits, rasgos, pdfDoc })
-    await escribirCompetencias({ form, traits, rasgos, pdfDoc, proficiencies, languages })
 /*
     const fields = form.getFields();
 
@@ -43,10 +40,19 @@ async function crearFicha(req, res) {
       if (type === 'PDFTextField') {
         console.log(`Tipo: ${type}`);
         console.log('-' + field.getName() + '-');
-        console.log('____________')
       }
     });
 */
+    await escribirHeaders({ character: req.body, form, raza: raza[0], clase: clase[0] })
+    await firstPage({ character: req.body, form, raza: raza[0], clase: clase[0], traits })
+    await escribirConjuros({ spells, form, clase: clase[0], character: req.body })
+    await escribirAtaques({ pdfDoc, traits, rasgos })
+    await escribirSkills({ skills, form, clase: clase[0] })
+    await escribirRasgos({ form, traits, rasgos, pdfDoc })
+    await escribirCompetencias({ form, traits, rasgos, pdfDoc, proficiencies, languages, competencias: competencias })
+    await escribirTesoro({ pdfDoc, equipment })
+    await escribirEquipamiento({ pdfDoc, weapons, musical, armors })
+
     //form.flatten();
 
     const pdfBytes = await pdfDoc.save();

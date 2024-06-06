@@ -1,5 +1,12 @@
 const Clase = require('../models/claseModel');
+const Habilidad = require('../models/habilidadModel');
+const Competencia = require('../models/competenciaModel');
 const axios = require('axios');
+const { formatearCompetencias, formatearOptions, formatearEquipamientosOptions, formatearRasgos, formatearDinero } = require('../helpers/formatDataHelpers');
+const Idioma = require('../models/idiomaModel');
+const Conjuro = require('../models/conjuroModel');
+const Equipamiento = require('../models/equipamientoModel');
+const Rasgo = require('../models/rasgoModel');
 
 const requestOptions = {
   headers: {
@@ -7,7 +14,16 @@ const requestOptions = {
   }
 };
 
-exports.getClases = async (req, res) => {
+const caracteristicas = {
+  str: 'Fuerza',
+  dex: 'Destreza',
+  con: 'Constitucion',
+  int: 'Inteligencia',
+  wis: 'Sabiduria',
+  cha: 'Carisma'
+}
+
+exports.getAllClases = async (req, res) => {
   try {
     let bbdd = false;
     let clases = [];
@@ -115,3 +131,71 @@ exports.getClases = async (req, res) => {
     res.status(500).json({ error: 'Error al recuperar las clases' });
   }
 };
+
+exports.getClases = async (req, res) => {
+  try {
+    const clasesApi = await Clase.find();
+    const habilidadesApi = await Habilidad.find();
+    const competenciaApi = await Competencia.find();
+    const idiomasApi = await Idioma.find();
+    const conjuroApi = await Conjuro.find();
+    const equipamientApi = await Equipamiento.find();
+    const rasgosApi = await Rasgo.find();
+
+    const clases = formatearClases(clasesApi, habilidadesApi, competenciaApi, idiomasApi , conjuroApi, equipamientApi, rasgosApi) ?? []
+    
+    res.json(clases); 
+    
+  } catch (error) {
+    res.status(500).json({ error: 'Error al recuperar las clases' });
+  }
+};
+
+const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi , conjuroApi, equipamientoApi, rasgosApi) => {
+  //console.log(equipamientApi)
+  const clases = clasesApi.map(clase => {
+
+    const equipamientoClase = []
+
+    clase.starting_equipment.forEach(equipment => {
+      const equipamiento = equipamientoApi.find(equi => equi.index === equipment.index)
+
+      equipamientoClase.push({
+        index: equipamiento.index,
+        name: equipamiento.name,
+        quantity: equipment.quantity
+      })
+    })
+
+    const traits = []
+    const spellOptions = []
+
+    clase.levels
+      .filter(level => level.level <= 1)
+      .forEach(level => {
+        traits.push(...level.traits)
+        spellOptions.push(...level?.spellcasting?.options ?? [])
+      })
+    
+    return {
+      index: clase.index,
+      name: clase.name,
+      desc: clase?.desc ?? '',
+      hit_die: clase.hit_die ?? 0,
+      proficiencies: formatearCompetencias(clase.starting_proficiencies, habilidadesApi, competenciaApi),
+      saving_throws: clase?.saving_throws?.map(sav => { return { index: sav, name: caracteristicas[sav] } }) ?? [],
+      options: formatearOptions(clase.options, idiomasApi, competenciaApi, habilidadesApi, conjuroApi),
+      equipment: equipamientoClase,
+      equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], equipamientoApi),
+      traits: formatearRasgos(traits, rasgosApi),
+      money: formatearDinero(clase.money, equipamientoApi),
+      spellcasting_options: formatearOptions(spellOptions, idiomasApi, competenciaApi, habilidadesApi, conjuroApi)
+    }
+  })
+
+  clases.sort((a, b) => {
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
+
+  return clases
+}
