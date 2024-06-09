@@ -169,6 +169,73 @@ const formatearOptions = (optionsApi, idiomasApi, competenciasApi, habilidadesAp
 }
 
 const formatearEquipamientosOptions = (optionsApi, equipamientoApi) => {
+  const equipo = []
+
+  optionsApi?.map(optionApi => {
+    if (Array.isArray(optionApi)) {
+      const opciones = []
+      optionApi?.forEach(opt => {
+        if (opt?.items) {
+          const name = []
+          opt?.items?.forEach(item => {
+            const equipamiento = equipamientoApi.find(eq => eq.index === item.index)
+            name.push(item?.quantity + 'x ' + equipamiento?.name)
+          })
+
+          opciones.push({
+            items: opt?.items,
+            name: name.join(' - ')
+          })
+
+        } else if (opt?.api) {
+          const valoresApi = opt?.api?.split('-')
+  
+          let equipamientoAux = equipamientoApi
+  
+          if (valoresApi[0]) {
+            type = valoresApi[0]
+            equipamientoAux = equipamientoAux.filter(eq => eq?.category?.toLowerCase() === valoresApi[0])
+          }
+  
+          if (valoresApi[1]) {
+            equipamientoAux = equipamientoAux.filter(eq => eq?.weapon?.category?.toLowerCase() === valoresApi[1])
+          }
+  
+          if (valoresApi[2]) {
+            equipamientoAux = equipamientoAux.filter(eq => eq?.weapon?.range?.toLowerCase() === valoresApi[2])
+          }
+
+          const options = []
+  
+          equipamientoAux.forEach(equip => {
+            if (!options.map(op => op.index).includes(equip.index)) {
+              options.push({
+                index: equip?.index,
+                name: equip?.name,
+                quantity: opt?.quantity
+              })
+            }
+          })
+
+          opciones.push({
+            name: 'Cualquier ' + valoresApi[0] + ' ' + valoresApi[1] + ' ' + (valoresApi[2] ?? ''),
+            choose: 1,
+            options
+          })
+        }
+      })
+      equipo.push(opciones)
+    }
+    /*optionApi?.forEach(opt => {
+      console.log(opt)
+      console.log('____________')
+    })*/
+  })
+
+  console.log(equipo)
+  return equipo
+
+
   return optionsApi.map(optionApi => {
     const options = []
     let type = ''
@@ -214,7 +281,6 @@ const formatearEquipamientosOptions = (optionsApi, equipamientoApi) => {
         }
 
         equipamientoAux.forEach(equip => {
-          
           if (!options.map(op => op.index).includes(equip.index)) {
             options.push({
               index: [equip?.index],

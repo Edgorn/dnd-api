@@ -66,10 +66,14 @@ exports.getAllEquipamientos = async (req, res) => {
             categoria = 'Equipo estandar'
           } else if ((equipamiento?.data?.gear_category?.name ?? '') === 'Kits') {
             categoria = 'Utensilios'
+          } else if ((equipamiento?.data?.gear_category?.name ?? '') === 'Ammunition') {
+            categoria = 'Munición'
+          } else if ((equipamiento?.data?.gear_category?.name ?? '') === 'Arcane Foci') {
+            categoria = 'Canalizador arcano'
           } else {
             categoria = equipamiento?.data?.gear_category?.name ?? ''
-            
-            /*console.log(actualEquip.category)
+            /*
+            console.log(actualEquip.category)
             console.log(equipamiento?.data?.gear_category?.name ?? '')
             console.log('__________________')*/
             
@@ -87,6 +91,8 @@ exports.getAllEquipamientos = async (req, res) => {
             class: equipamiento?.data?.armor_class,
             stealth_disadvantage: equipamiento?.data?.stealth_disadvantage
           }
+        } else {
+
         }
 
         return {

@@ -15,6 +15,15 @@ const caracteristicas = {
 }
 
 const salvacion = {
+  str: 'STRsavePROF',
+  dex: 'DEXsavePROF',
+  con: 'CONsavePROF',
+  int: 'INTsavePROF',
+  wis: 'WISsavePROF',
+  cha: 'CHAsavePROF'
+}
+
+const salvacionOld = {
   str: 'Check Box 11',
   dex: 'Check Box 18',
   con: 'Check Box 19',
@@ -25,14 +34,14 @@ const salvacion = {
 
 const conjuros = {
   trucos: [
-    'Spells 1014',
-    'Spells 1016',
-    'Spells 1017',
-    'Spells 1018',
-    'Spells 1019',
-    'Spells 1020',
-    'Spells 1021',
-    'Spells 1022'
+    'Spells1',
+    'Spells2',
+    'Spells3',
+    'Spells4',
+    'Spells5',
+    'Spells6',
+    'Spells7',
+    'Spells8'
   ],
   nvl1: [
     'Spells 1015',
@@ -50,7 +59,7 @@ const conjuros = {
   ]
 }
 
-const skill = {
+const skillOld = {
   acrobatics: 'Check Box 23',
   athletics: 'Check Box 25',
   arcana: 'Check Box 24',
@@ -69,6 +78,27 @@ const skill = {
   stealth: 'Check Box 38',
   survival: 'Check Box 39',
   "animal-handling": 'Check Box 40'
+}
+
+const skill = {
+  acrobatics: 'acroPROF',
+  athletics: 'athPROF',
+  arcana: 'arcanaPROF',
+  deception: 'decepPROF',
+  history: 'histPROF',
+  intimidation: 'intimPROF',
+  performance: 'perfPROF',
+  investigation: 'investPROF',
+  "sleight-of-hand": 'sohPROF',
+  medicine: 'medPROF',
+  nature: 'naturePROF',
+  perception: 'perPROF',
+  insight: 'insightPROF',
+  persuasion: 'persPROF',
+  religion: 'religPROF',
+  stealth: 'stealthPROF',
+  survival: 'survPROF',
+  "animal-handling": 'anhanPROF'
 }
 
 function listTraits({ raza, subraza, clase, level }) {
@@ -227,21 +257,24 @@ async function escribirHeaders({character, form, raza, clase}) {
 
   form.getTextField('ClassLevel').setText((clase?.name ?? '') + ' ' + level)
   form.getTextField('PlayerName').setText(playerName)
-  form.getTextField('Race ').setText(race)
-  form.getTextField('XP').setText(experiencePoints + '/' + nivel[level-1])
+  
+  form.getField('Race').setOptions([race])
+  form.getField('Race').select(race)
+
+  form.getTextField('ExperiencePoints').setText(experiencePoints + '/' + nivel[level-1])
 
   const { age='', height='', weight='', eyes='', hair='', skin='' } = appearance
 
   form.getTextField('Age').setText(age ? age + ' años' : '')
-  form.getTextField('Weight').setText(height ? height + ' cm' : '')
-  form.getTextField('Height').setText(weight ? weight + ' kg' : '')
   form.getTextField('Eyes').setText(eyes)
+  form.getTextField('Height').setText(height ? height + ' cm' : '')
   form.getTextField('Skin').setText(skin)
+  form.getTextField('Weight').setText(weight ? weight + ' kg' : '')
   form.getTextField('Hair').setText(hair)
 }
 
 async function firstPage({ character, form, raza, clase, traits }) {
-  const { subrace, level, money } = character
+  const { subrace, level, money, ability_scores } = character
   const subraza = raza?.subraces?.find(s => s.index === subrace)
   const speed = subraza?.speed ?? raza?.speed
 
@@ -252,12 +285,34 @@ async function firstPage({ character, form, raza, clase, traits }) {
   }
 
   const dataLevel = clase?.levels?.find(lev => lev.level === level)
+
+  form.getTextField('STRscore').setText(ability_scores.str + '')
+  form.getTextField('DEXscore').setText(ability_scores.dex + '')
+  form.getTextField('CONscore').setText(ability_scores.con + '')
+  form.getTextField('INTscore').setText(ability_scores.int + '')
+  form.getTextField('WISscore').setText(ability_scores.wis + '')
+  form.getTextField('CHAscore').setText(ability_scores.cha + '')
   
-  form.getTextField('Speed').setText(speed ? speed + ' pies' : '')
-  form.getTextField('HPMax').setText(live + '')
-  form.getTextField('HDTotal').setText(level + 'd' + clase?.hit_die)
   form.getTextField('ProfBonus').setText('+' + (dataLevel?.prof_bonus ?? ''))
-  form.getTextField('GP').setText('' + money)
+  
+  
+  form.getTextField('Speed').setText((speed ?? '') + '')
+  form.getTextField('HPMax').setText(live + '')
+  form.getTextField('HitDiceTotal').setText(level + 'd' + clase?.hit_die)
+  
+  form.getTextField('Copper').setText('0')
+  form.getTextField('Silver').setText('0')
+  form.getTextField('Electrum').setText('0')
+  form.getTextField('Gold').setText('' + (money ?? 0))
+  form.getTextField('Platinum').setText('0')
+}
+
+const valorHabilidad = (value) => {
+  return formatNumber(Math.floor(value/2 - 5))
+}
+
+function formatNumber(num) {
+  return (num >= 0 ? "+" : "-") + num.toString();
 }
 
 async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
@@ -293,7 +348,7 @@ async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
           descripcion: rasgo?.desc?.join('|'),
           fontTitle: fontBold,
           fontText: fontRegular,
-          maxWidth: 383,
+          maxWidth: 185,
           page: page2,
           x: 225,
           y: textY2
@@ -308,9 +363,6 @@ async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
 
     }
   })
-
-  form.getTextField('Features and Traits').setText('');
-  form.flatten();
 }
 
 function escribirParrafo({ titulo, descripcion, fontTitle, fontText, maxWidth, page, x, y, maxHeight=1000 }) {
@@ -499,6 +551,7 @@ async function escribirSkills({ skills, form, clase }) {
   clase?.saving_throws.forEach(sav => {
     form.getCheckBox(salvacion[sav]).check()
   })
+
   skills?.forEach(s => {
     form.getCheckBox(skill[s]).check()
   })
@@ -627,12 +680,12 @@ async function escribirTesoro({ pdfDoc, equipment }) {
   textY = actualY
 }
 
-async function escribirEquipamiento({ pdfDoc, weapons, musical, armors }) {
-  await escribirArmas({ pdfDoc, weapons })
+async function escribirEquipamiento({ pdfDoc, weapons, musical, armors, traits, rasgos }) {
+  await escribirArmas({ pdfDoc, weapons, traits, rasgos })
   await escribirEquipo({ pdfDoc, musical, armors })
 }
 
-async function escribirArmas({ pdfDoc, weapons }) {
+async function escribirArmas({ pdfDoc, weapons, traits, rasgos }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -647,13 +700,32 @@ async function escribirArmas({ pdfDoc, weapons }) {
     descripcion: text,
     fontTitle: fontBold,
     fontText: fontRegular,
-    maxWidth: 370,
+    maxWidth: 170,
     page: page1,
     x: 225,
     y: textY
   })
 
   textY = actualY
+
+  traits?.forEach(trait => {
+    const rasgo = rasgos.find(r => r.index === trait)
+    
+    if (rasgo?.type === 'spell') {
+      const { textY: actualY } = escribirParrafo({ 
+        titulo: rasgo?.name, 
+        descripcion: rasgo?.desc?.join('|'),
+        fontTitle: fontBold,
+        fontText: fontRegular,
+        maxWidth: 170,
+        page: page1,
+        x: 225,
+        y: textY
+      })
+
+      textY = actualY
+    }
+  })
 }
 
 async function escribirEquipo({ pdfDoc, musical, armors }) {

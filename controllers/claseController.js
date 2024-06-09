@@ -169,12 +169,14 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
 
     const traits = []
     const spellOptions = []
+    const subclasesOptions = []
 
     clase.levels
       .filter(level => level.level <= 1)
       .forEach(level => {
         traits.push(...level.traits)
         spellOptions.push(...level?.spellcasting?.options ?? [])
+        subclasesOptions.push(...level?.subclasses_options ?? [])
       })
     
     return {
@@ -189,7 +191,8 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
       equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], equipamientoApi),
       traits: formatearRasgos(traits, rasgosApi),
       money: formatearDinero(clase.money, equipamientoApi),
-      spellcasting_options: formatearOptions(spellOptions, idiomasApi, competenciaApi, habilidadesApi, conjuroApi)
+      spellcasting_options: formatearOptions(spellOptions, idiomasApi, competenciaApi, habilidadesApi, conjuroApi),
+      subclases_options: subclasesOptions
     }
   })
 

@@ -26,34 +26,36 @@ async function crearFicha(req, res) {
   const languages = listLanguages({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
   const { equipment, weapons, musical, armors } = listEquipment({ character: req.body, clase: clase[0], equipamientos })
 
-  const existingPdfBytes = fs.readFileSync('./hoja.pdf');
+  const existingPdfBytes = fs.readFileSync('./hoja-nueva.pdf');
 
   try {
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const form = pdfDoc.getForm();
-/*
+
     const fields = form.getFields();
 
     fields.forEach((field, index) => {
       const type = field.constructor.name;
 
       if (type === 'PDFTextField') {
-        console.log(`Tipo: ${type}`);
-        console.log('-' + field.getName() + '-');
+        //if (index > 0 && index < 10) {
+          console.log(`Tipo: ${type}`);
+          console.log('-' + field.getName() + '-');
+          //field.setText('1')
+        //}
       }
     });
-*/
-    await escribirHeaders({ character: req.body, form, raza: raza[0], clase: clase[0] })
-    await firstPage({ character: req.body, form, raza: raza[0], clase: clase[0], traits })
-    await escribirConjuros({ spells, form, clase: clase[0], character: req.body })
-    await escribirAtaques({ pdfDoc, traits, rasgos })
-    await escribirSkills({ skills, form, clase: clase[0] })
+
+
+    await escribirHeaders({ character: req.body, form, raza: raza[0], clase: clase[0] })  //Rellena datos
+    await firstPage({ character: req.body, form, raza: raza[0], clase: clase[0], traits })  //Rellena datos
+    await escribirSkills({ character: req.body, skills, form, clase: clase[0] })
     await escribirRasgos({ form, traits, rasgos, pdfDoc })
     await escribirCompetencias({ form, traits, rasgos, pdfDoc, proficiencies, languages, competencias: competencias })
     await escribirTesoro({ pdfDoc, equipment })
-    await escribirEquipamiento({ pdfDoc, weapons, musical, armors })
+    await escribirEquipamiento({ pdfDoc, weapons, musical, armors, traits, rasgos })
+    await escribirConjuros({ spells, form, clase: clase[0], character: req.body })
 
-    //form.flatten();
 
     const pdfBytes = await pdfDoc.save();
 

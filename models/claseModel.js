@@ -10,7 +10,8 @@ const claseSchema = new mongoose.Schema({
     level: Number,
     prof_bonus: Number,
     traits: [String],
-    spellcasting: {}
+    spellcasting: {},
+    subclasses_options: []
   }],
   saving_throws: [String],
   options: [],
