@@ -2,7 +2,7 @@ const Clase = require('../models/claseModel');
 const Habilidad = require('../models/habilidadModel');
 const Competencia = require('../models/competenciaModel');
 const axios = require('axios');
-const { formatearCompetencias, formatearOptions, formatearEquipamientosOptions, formatearRasgos, formatearDinero } = require('../helpers/formatDataHelpers');
+const { formatearCompetencias, formatearOptions, formatearEquipamientosOptions, formatearRasgos, formatearDinero, formatearConjuros } = require('../helpers/formatDataHelpers');
 const Idioma = require('../models/idiomaModel');
 const Conjuro = require('../models/conjuroModel');
 const Equipamiento = require('../models/equipamientoModel');
@@ -152,7 +152,6 @@ exports.getClases = async (req, res) => {
 };
 
 const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi , conjuroApi, equipamientoApi, rasgosApi) => {
-  //console.log(equipamientApi)
   const clases = clasesApi.map(clase => {
 
     const equipamientoClase = []
@@ -174,9 +173,36 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
     clase.levels
       .filter(level => level.level <= 1)
       .forEach(level => {
+        const subclases_options = level?.subclasses_options?.map(sub => {
+          const options = sub?.options?.map(opt => {
+            const subclase = level?.subclasses[opt.index]
+            const spells = []
+
+            subclase?.spells?.forEach(spell => {
+              const conjuro = conjuroApi.find(conj => conj.index === spell)
+
+              spells.push({
+                index: conjuro.index,
+                name: conjuro.name
+              })
+            })
+
+            return {
+              ...opt,
+              traits: formatearRasgos(subclase?.traits ?? [], rasgosApi),
+              spells
+            }
+          })
+
+          return {
+            ...sub,
+            options
+          }
+        })
+
         traits.push(...level.traits)
         spellOptions.push(...level?.spellcasting?.options ?? [])
-        subclasesOptions.push(...level?.subclasses_options ?? [])
+        subclasesOptions.push(...subclases_options ?? [])
       })
     
     return {

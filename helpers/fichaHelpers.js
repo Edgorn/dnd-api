@@ -5,13 +5,22 @@ const Rasgo = require("../models/rasgoModel")
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 
-const caracteristicas = {
+const caracteristicasOld = {
   str: 'Fuerza',
   dex: 'Destreza',
   con: 'Constitucion',
   int: 'Inteligencia',
   wis: 'Sabiduria',
   cha: 'Carisma'
+}
+
+const caracteristicas = {
+  str: 'FUE',
+  dex: 'DES',
+  con: 'CON',
+  int: 'INT',
+  wis: 'SAB',
+  cha: 'CAR'
 }
 
 const salvacion = {
@@ -44,18 +53,18 @@ const conjuros = {
     'Spells8'
   ],
   nvl1: [
-    'Spells 1015',
-    'Spells 1023',
-    'Spells 1024',
-    'Spells 1025',
-    'Spells 1026',
-    'Spells 1027',
-    'Spells 1028',
-    'Spells 1029',
-    'Spells 1030',
-    'Spells 1031',
-    'Spells 1032',
-    'Spells 1033',
+    'Spells9',
+    'Spells10',
+    'Spells11',
+    'Spells12',
+    'Spells13',
+    'Spells14',
+    'Spells15',
+    'Spells16',
+    'Spells17',
+    'Spells18',
+    'Spells19',
+    'Spells20',
   ]
 }
 
@@ -101,13 +110,13 @@ const skill = {
   "animal-handling": 'anhanPROF'
 }
 
-function listTraits({ raza, subraza, clase, level }) {
+function listTraits({ raza, subraza, clase, level, subclass }) {
   const traitsClase = []
 
   clase?.levels
     ?.filter(lev => lev.level <= level)
     ?.forEach(level => {
-      traitsClase.push(...level.traits)
+      traitsClase.push(...level?.traits ?? [], ...(level?.subclasses && level?.subclasses[subclass]?.traits) ?? [])
     })
     
   return [ 
@@ -117,23 +126,11 @@ function listTraits({ raza, subraza, clase, level }) {
   ]
 }
 
-function listSpells({ character, raza, subraza }) {
+function listSpells({ character }) {
   const { spells } = character 
 
   const listSpells = [
-    ...raza?.spells?.map(spell => {
-      return {
-        index: spell.split('_')[0],
-        type: spell.split('_')[1]
-      }
-    }) ?? [],
-    ...subraza?.spells?.map(spell => {
-      return {
-        index: spell.split('_')[0],
-        type: spell.split('_')[1]
-      }
-    }) ?? [],
-    ...spells.map(spell => { return { index: spell } }) ?? []
+    ...spells.map(spell => { return { index: spell?.index ?? spell, type: spell?.type } }) ?? []
   ]
 
   const seen = new Set();
@@ -215,6 +212,7 @@ function listEquipment({ character, equipamientos }) {
   const weapons = []
   const musical = []
   const armors = [] 
+  const municion = []
 
   character?.equipment?.forEach(equip => {
     const equipment = equipamientos.find(e => e.index === equip.index)
@@ -231,11 +229,15 @@ function listEquipment({ character, equipamientos }) {
         musical.push({ name: equipment.name, quantity: equip.quantity })
       } else if (equipment?.category === 'Armadura') {
         armors.push({ name: equipment.name, quantity: equip.quantity, class: equipment?.armor?.class })
+      } else if (equipment?.category === 'Equipo estandar') {
+        list.push({ name: equipment.name, quantity: equip.quantity })
+      } else if (equipment?.category === 'Munición') {
+        municion.push({ name: equipment.name, quantity: equip.quantity })
       }
     }
   })
 
-  return { equipment: list, weapons, musical, armors }
+  return { equipment: list, weapons, musical, armors, municion }
 }
 
 async function escribirHeaders({character, form, raza, clase}) {
@@ -292,11 +294,19 @@ async function firstPage({ character, form, raza, clase, traits }) {
   form.getTextField('INTscore').setText(ability_scores.int + '')
   form.getTextField('WISscore').setText(ability_scores.wis + '')
   form.getTextField('CHAscore').setText(ability_scores.cha + '')
-  
+
   form.getTextField('ProfBonus').setText('+' + (dataLevel?.prof_bonus ?? ''))
+
+  let AC = 10 + valorHabilidad(ability_scores.dex)
+
+  if (traits.includes('barbarian-unarmored-defense')) {
+    AC += valorHabilidad(ability_scores.con)
+  }
   
-  
+  form.getTextField('AC').setText(AC + '')
+  form.getTextField('Init').setText(formatNumber(valorHabilidad(ability_scores.dex)) + '')
   form.getTextField('Speed').setText((speed ?? '') + '')
+
   form.getTextField('HPMax').setText(live + '')
   form.getTextField('HitDiceTotal').setText(level + 'd' + clase?.hit_die)
   
@@ -308,14 +318,14 @@ async function firstPage({ character, form, raza, clase, traits }) {
 }
 
 const valorHabilidad = (value) => {
-  return formatNumber(Math.floor(value/2 - 5))
+  return Math.floor(value/2 - 5)
 }
 
 function formatNumber(num) {
   return (num >= 0 ? "+" : "-") + num.toString();
 }
 
-async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
+async function escribirRasgos({ traits, rasgos, pdfDoc}) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -337,7 +347,7 @@ async function escribirRasgos({ form, traits, rasgos, pdfDoc}) {
         fontText: fontRegular,
         maxWidth: 170,
         page: page1,
-        x: 415,
+        x: 412,
         y: textY1,
         maxHeight
       })
@@ -424,47 +434,6 @@ function escribirParrafo({ titulo, descripcion, fontTitle, fontText, maxWidth, p
     actualHeight -= lineasTexto
   }
 
-  
-
-/*
-  texto.split('|').forEach((text, ind) => {
-    const wrappedLines = wrapText(text, fontTitle, fontSize, maxWidth);
-
-    wrappedLines.forEach((wrappedLine, index) => {
-      if (index === 0 && ind === 0) {
-        if (titulo !== '') {
-          page.drawText(titulo + '. ', {
-            x: x,
-            y: textY,
-            size: fontSize,
-            font: fontTitle,
-            color: rgb(0, 0, 0)
-          });
-        }
-  
-        page.drawText(wrappedLine.split(': ')[1], {
-          x: x + textWidth,
-          y: textY,
-          size: fontSize,
-          font: fontText,
-          color: rgb(0, 0, 0)
-        });
-      } else {
-        page.drawText(wrappedLine, {
-          x: x,
-          y: textY,
-          size: fontSize,
-          font: fontText,
-          color: rgb(0, 0, 0)
-        });
-      }
-      
-      textY -= lineSpacing;
-    })
-
-    textY -= 2;
-  })
-*/
   return { textY: textY-1, actualHeight }
 }
 
@@ -558,61 +527,61 @@ async function escribirSkills({ skills, form, clase }) {
 }
 
 async function escribirConjuros({ spells, form, clase, character }) {
-
   if (clase?.spellcasting) {
-    form.getTextField('Spellcasting Class 2').setText(clase?.name + '')
-    form.getTextField('SpellcastingAbility 2').setText(caracteristicas[clase?.spellcasting] + '')
+    form.getField('SpellClass').setOptions([clase?.name + ''])
+    form.getField('SpellClass').select(clase?.name + '')
 
     const level = character?.level ?? 1
     const slots = clase?.levels?.find(lev => lev.level === level)?.spellcasting
-    
-    form.getTextField('SlotsTotal 19').setText(slots?.spell_slots_level_1 + '')
-    form.getTextField('SlotsRemaining 19').setText(0 + '')
 
-    form.getTextField('SlotsTotal 20').setText(slots?.spell_slots_level_2 + '')
-    form.getTextField('SlotsRemaining 20').setText(0 + '')
-    
-    form.getTextField('SlotsTotal 21').setText(slots?.spell_slots_level_3 + '')
-    form.getTextField('SlotsRemaining 21').setText(0 + '')
-    
-    form.getTextField('SlotsTotal 22').setText(slots?.spell_slots_level_4 + '')
-    form.getTextField('SlotsRemaining 22').setText(0 + '')
-    
-    form.getTextField('SlotsTotal 23').setText(slots?.spell_slots_level_5 + '')
-    form.getTextField('SlotsRemaining 23').setText(0 + '')
-    
-    form.getTextField('SlotsTotal 24').setText(slots?.spell_slots_level_6 + '')
-    form.getTextField('SlotsRemaining 24').setText(0 + '')
-    
-    form.getTextField('SlotsTotal 25').setText(slots?.spell_slots_level_7 + '')
-    form.getTextField('SlotsRemaining 25').setText(0 + '')
-    
-    form.getTextField('SlotsTotal 26').setText(slots?.spell_slots_level_8 + '')
-    form.getTextField('SlotsRemaining 26').setText(0 + '')
-    
-    form.getTextField('SlotsTotal 27').setText(slots?.spell_slots_level_9 + '')
-    form.getTextField('SlotsRemaining 27').setText(0 + '')
+    form.getTextField('SlotsTot1').setText(slots?.spell_slots_level_1 + '')
+    form.getTextField('SlotsRemaining1').setText(0 + '')
+
+    form.getTextField('SlotsTot2').setText(slots?.spell_slots_level_2 + '')
+    form.getTextField('SlotsRemaining2').setText(0 + '')
+
+    form.getTextField('SlotsTot3').setText(slots?.spell_slots_level_3 + '')
+    form.getTextField('SlotsRemaining3').setText(0 + '')
+
+    form.getTextField('SlotsTot4').setText(slots?.spell_slots_level_4 + '')
+    form.getTextField('SlotsRemaining4').setText(0 + '')
+
+    form.getTextField('SlotsTot5').setText(slots?.spell_slots_level_5 + '')
+    form.getTextField('SlotsRemaining5').setText(0 + '')
+
+    form.getTextField('SlotsTot6').setText(slots?.spell_slots_level_6 + '')
+    form.getTextField('SlotsRemaining6').setText(0 + '')
+
+    form.getTextField('SlotsTot7').setText(slots?.spell_slots_level_7 + '')
+    form.getTextField('SlotsRemaining7').setText(0 + '')
+
+    form.getTextField('SlotsTot8').setText(slots?.spell_slots_level_8 + '')
+    form.getTextField('SlotsRemaining8').setText(0 + '')
+
+    form.getTextField('SlotsTot9').setText(slots?.spell_slots_level_9 + '')
+    form.getTextField('SlotsRemaining9').setText(0 + '')
   }
 
   const conjurosList = await Conjuro.find()
   const rasgosList = await Rasgo.find()
+  const trucosLista = []
   const conjurosLista = []
 
-  spells?.forEach((spell, index) => {
+  spells?.forEach(spell => {
     const conjuro = conjurosList?.find(c => c.index === spell.index)
 
     if (conjuro) {
       const tipo = caracteristicas[spell?.type]
 
       if (tipo) {
-        form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + tipo + ')')
+        trucosLista.push(conjuro.name + ' (' + tipo + ')')
       } else {
         const rasgo = rasgosList?.find(c => c.index === spell.type)
         if (rasgo) {
-          form.getTextField(conjuros.trucos[index]).setText(conjuro.name + ' (' + rasgo.name + ')')
+          trucosLista.push(conjuro.name + ' (' + rasgo.name + ')')
         } else {
           if (conjuro.level === 0) {
-            form.getTextField(conjuros.trucos[index]).setText(conjuro.name + '')
+            trucosLista.push(conjuro.name + '')
           } else {
             conjurosLista.push(conjuro)
           }
@@ -621,13 +590,19 @@ async function escribirConjuros({ spells, form, clase, character }) {
     }
   })
 
+  
   conjurosLista
     .filter(conjuro => conjuro.level === 1)
     .forEach((conjuro, index) => {
       form.getTextField(conjuros.nvl1[index]).setText(conjuro.name + '')
     })
+    
+    trucosLista
+      .forEach((name, index) => {
+        form.getTextField(conjuros.trucos[index]).setText(name)
+      })
 }
-
+/*
 async function escribirAtaques({ pdfDoc, rasgos, traits }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
@@ -655,6 +630,7 @@ async function escribirAtaques({ pdfDoc, rasgos, traits }) {
     }
   })
 }
+*/
 
 async function escribirTesoro({ pdfDoc, equipment }) {
   const pages = pdfDoc.getPages();
@@ -662,7 +638,7 @@ async function escribirTesoro({ pdfDoc, equipment }) {
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  let textY = page1.getHeight() - 610;
+  let textY = page1.getHeight() - 612;
 
   const text = equipment.map(eq => eq.quantity + 'x ' + eq.name).join('|')
 
@@ -680,9 +656,9 @@ async function escribirTesoro({ pdfDoc, equipment }) {
   textY = actualY
 }
 
-async function escribirEquipamiento({ pdfDoc, weapons, musical, armors, traits, rasgos }) {
+async function escribirEquipamiento({ pdfDoc, weapons, musical, armors, traits, rasgos, municion }) {
   await escribirArmas({ pdfDoc, weapons, traits, rasgos })
-  await escribirEquipo({ pdfDoc, musical, armors })
+  await escribirEquipo({ pdfDoc, musical, armors, municion })
 }
 
 async function escribirArmas({ pdfDoc, weapons, traits, rasgos }) {
@@ -695,18 +671,20 @@ async function escribirArmas({ pdfDoc, weapons, traits, rasgos }) {
 
   const text = weapons.map(eq => eq.quantity + 'x ' + eq.name + ' (' + eq.damage + ')').join('|')
 
-  const { textY: actualY } = escribirParrafo({ 
-    titulo: '', 
-    descripcion: text,
-    fontTitle: fontBold,
-    fontText: fontRegular,
-    maxWidth: 170,
-    page: page1,
-    x: 225,
-    y: textY
-  })
-
-  textY = actualY
+  if (text !== '') {
+    const { textY: actualY } = escribirParrafo({ 
+      titulo: '', 
+      descripcion: text,
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth: 170,
+      page: page1,
+      x: 225,
+      y: textY
+    })
+  
+    textY = actualY
+  }
 
   traits?.forEach(trait => {
     const rasgo = rasgos.find(r => r.index === trait)
@@ -728,13 +706,13 @@ async function escribirArmas({ pdfDoc, weapons, traits, rasgos }) {
   })
 }
 
-async function escribirEquipo({ pdfDoc, musical, armors }) {
+async function escribirEquipo({ pdfDoc, musical, armors, municion }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  let textY = page1.getHeight() - 600;
+  let textY = page1.getHeight() - 625;
   
   const text1 = armors
     .map(eq => {
@@ -744,32 +722,52 @@ async function escribirEquipo({ pdfDoc, musical, armors }) {
     .join('|')
 
   const text2 = musical.map(eq => eq.quantity + 'x ' + eq.name).join('|')
+  const text3 = municion.map(eq => eq.quantity + 'x ' + eq.name).join('|')
 
-  const { textY: actualY1 } = escribirParrafo({ 
-    titulo: '', 
-    descripcion: text1,
-    fontTitle: fontBold,
-    fontText: fontRegular,
-    maxWidth: 370,
-    page: page1,
-    x: 268,
-    y: textY
-  })
+  if (text1 !== '') {
+    const { textY: actualY1 } = escribirParrafo({ 
+      titulo: '', 
+      descripcion: text1,
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth: 370,
+      page: page1,
+      x: 270,
+      y: textY
+    })
 
-  textY = actualY1
+    textY = actualY1
+  }
 
-  const { textY: actualY2 } = escribirParrafo({ 
-    titulo: '', 
-    descripcion: text2,
-    fontTitle: fontBold,
-    fontText: fontRegular,
-    maxWidth: 370,
-    page: page1,
-    x: 268,
-    y: textY
-  })
+  if (text2 !== '') {
+    const { textY: actualY2 } = escribirParrafo({ 
+      titulo: '', 
+      descripcion: text2,
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth: 370,
+      page: page1,
+      x: 270,
+      y: textY
+    })
+  
+    textY = actualY2
+  }
 
-  textY = actualY2
+  if (text3 !== '') {
+    const { textY: actualY3 } = escribirParrafo({ 
+      titulo: '', 
+      descripcion: text3,
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth: 370,
+      page: page1,
+      x: 270,
+      y: textY
+    })
+
+    textY = actualY3
+  }
 }
 
 function wrapText(text, font, fontSize, maxWidth) {
@@ -804,7 +802,7 @@ module.exports = {
   escribirRasgos,
   escribirCompetencias,
   escribirConjuros,
-  escribirAtaques,
+  //escribirAtaques,
   escribirTesoro,
   escribirEquipamiento
 };

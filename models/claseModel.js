@@ -11,7 +11,8 @@ const claseSchema = new mongoose.Schema({
     prof_bonus: Number,
     traits: [String],
     spellcasting: {},
-    subclasses_options: []
+    subclasses_options: [],
+    subclasses: {}
   }],
   saving_throws: [String],
   options: [],

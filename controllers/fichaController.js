@@ -9,7 +9,7 @@ const Competencia = require('../models/competenciaModel');
 const Equipamiento = require('../models/equipamientoModel');
 
 async function crearFicha(req, res) {
-  const { race, subrace, class: clas, level } = req.body
+  const { race, subrace, class: clas, level, subclass } = req.body
 
   const raza = await Raza.find({ index: race });
   const subraza = raza[0]?.subraces?.find(srace => srace.index === subrace)
@@ -20,18 +20,18 @@ async function crearFicha(req, res) {
   const equipamientos = await Equipamiento.find()
 
   const spells = listSpells({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
-  const traits = listTraits({ raza: raza[0] ?? null, subraza: subraza ?? null, clase: clase[0], level })
+  const traits = listTraits({ raza: raza[0] ?? null, subraza: subraza ?? null, clase: clase[0], level, subclass })
   const skills = listSkills({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
   const proficiencies = listProficiencies({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null, clase: clase[0], competencias })
   const languages = listLanguages({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
-  const { equipment, weapons, musical, armors } = listEquipment({ character: req.body, clase: clase[0], equipamientos })
+  const { equipment, weapons, musical, armors, municion } = listEquipment({ character: req.body, clase: clase[0], equipamientos })
 
   const existingPdfBytes = fs.readFileSync('./hoja-nueva.pdf');
 
   try {
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const form = pdfDoc.getForm();
-
+/*
     const fields = form.getFields();
 
     fields.forEach((field, index) => {
@@ -44,8 +44,7 @@ async function crearFicha(req, res) {
           //field.setText('1')
         //}
       }
-    });
-
+    });*/
 
     await escribirHeaders({ character: req.body, form, raza: raza[0], clase: clase[0] })  //Rellena datos
     await firstPage({ character: req.body, form, raza: raza[0], clase: clase[0], traits })  //Rellena datos
@@ -53,9 +52,8 @@ async function crearFicha(req, res) {
     await escribirRasgos({ form, traits, rasgos, pdfDoc })
     await escribirCompetencias({ form, traits, rasgos, pdfDoc, proficiencies, languages, competencias: competencias })
     await escribirTesoro({ pdfDoc, equipment })
-    await escribirEquipamiento({ pdfDoc, weapons, musical, armors, traits, rasgos })
+    await escribirEquipamiento({ pdfDoc, weapons, musical, armors, traits, rasgos, municion })
     await escribirConjuros({ spells, form, clase: clase[0], character: req.body })
-
 
     const pdfBytes = await pdfDoc.save();
 

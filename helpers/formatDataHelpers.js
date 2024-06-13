@@ -138,7 +138,7 @@ const formatearOptions = (optionsApi, idiomasApi, competenciasApi, habilidadesAp
           ...conjuroApi
             .filter(conjuro => conjuro.level === parseInt(level))
             .filter(conjuro => conjuro.classes.includes(clase))
-            .map(conjuro => { return { index: conjuro.index, name: conjuro.name } })
+            .map(conjuro => { return { index: conjuro.index, name: conjuro.name, type: (optionApi?.type?.split('_')[1] ?? undefined) } })
         )
       
       } else {
@@ -218,7 +218,7 @@ const formatearEquipamientosOptions = (optionsApi, equipamientoApi) => {
           })
 
           opciones.push({
-            name: 'Cualquier ' + valoresApi[0] + ' ' + valoresApi[1] + ' ' + (valoresApi[2] ?? ''),
+            name: 'Cualquier ' + valoresApi[0] + ' ' + (valoresApi[1] ?? '') + ' ' + (valoresApi[2] ?? ''),
             choose: 1,
             options
           })
@@ -232,7 +232,6 @@ const formatearEquipamientosOptions = (optionsApi, equipamientoApi) => {
     })*/
   })
 
-  console.log(equipo)
   return equipo
 
 
@@ -313,7 +312,7 @@ const formatearConjuros = (spellsApi, conjuroApi, rasgosApi) => {
   const conjuros = spellsApi.map(spell => {
     const arraySpell = spell.split('_')
     const conjuro = conjuroApi.find(conjuro => conjuro.index === arraySpell[0])
-    const caracteristica = caracteristicas[arraySpell[1]]
+    const caracteristica = caracteristicas[arraySpell[1]] 
 
     let tipo = ''
 
