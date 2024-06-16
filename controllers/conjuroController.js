@@ -1,5 +1,5 @@
 const axios = require('axios');
-const Conjuro = require('../models/conjuroModel');
+const Conjuro = require('../src/infrastructure/databases/mongoDb/schemas/Conjuro');
 
 const requestOptions = {
   headers: {

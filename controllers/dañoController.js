@@ -1,5 +1,5 @@
 const axios = require('axios');
-const Daños = require('../models/dañoModel');
+const Daños = require('../src/infrastructure/databases/mongoDb/schemas/Daño');
 
 const requestOptions = {
   headers: {

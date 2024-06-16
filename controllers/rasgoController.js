@@ -1,4 +1,4 @@
-const Rasgo = require('../models/rasgoModel');
+const Rasgo = require('../src/infrastructure/databases/mongoDb/schemas/Rasgo');
 const axios = require('axios');
 
 const requestOptions = {

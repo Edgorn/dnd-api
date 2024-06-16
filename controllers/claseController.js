@@ -1,12 +1,12 @@
-const Clase = require('../models/claseModel');
-const Habilidad = require('../models/habilidadModel');
-const Competencia = require('../models/competenciaModel');
+const Clase = require('../src/infrastructure/databases/mongoDb/schemas/Clase');
+const Habilidad = require('../src/infrastructure/databases/mongoDb/schemas/Habilidad');
+const Competencia = require('../src/infrastructure/databases/mongoDb/schemas/Competencia');
 const axios = require('axios');
 const { formatearCompetencias, formatearOptions, formatearEquipamientosOptions, formatearRasgos, formatearDinero, formatearConjuros } = require('../helpers/formatDataHelpers');
-const Idioma = require('../models/idiomaModel');
-const Conjuro = require('../models/conjuroModel');
-const Equipamiento = require('../models/equipamientoModel');
-const Rasgo = require('../models/rasgoModel');
+const Idioma = require('../src/infrastructure/databases/mongoDb/schemas/Idioma');
+const Conjuro = require('../src/infrastructure/databases/mongoDb/schemas/Conjuro');
+const Equipamiento = require('../src/infrastructure/databases/mongoDb/schemas/Equipamiento');
+const Rasgo = require('../src/infrastructure/databases/mongoDb/schemas/Rasgo');
 
 const requestOptions = {
   headers: {
@@ -144,10 +144,9 @@ exports.getClases = async (req, res) => {
 
     const clases = formatearClases(clasesApi, habilidadesApi, competenciaApi, idiomasApi , conjuroApi, equipamientApi, rasgosApi) ?? []
     
-    res.json(clases); 
-    
+    return { success: true, data: clases }
   } catch (error) {
-    res.status(500).json({ error: 'Error al recuperar las clases' });
+    return { success: false, message: 'Error al recuperar las clases' }
   }
 };
 
@@ -190,7 +189,9 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
             return {
               ...opt,
               traits: formatearRasgos(subclase?.traits ?? [], rasgosApi),
-              spells
+              spells,
+              options: formatearOptions(subclase?.options ?? [], idiomasApi, competenciaApi, habilidadesApi, conjuroApi),
+              proficiencies: formatearCompetencias(subclase?.proficiencies ?? [], habilidadesApi, competenciaApi)
             }
           })
 

@@ -1,10 +1,10 @@
-const Raza = require('../models/razaModel');
-const Idioma = require('../models/idiomaModel');
-const Rasgo = require('../models/rasgoModel');
-const Habilidad = require('../models/habilidadModel');
-const Competencia = require('../models/competenciaModel');
-const Conjuro = require('../models/conjuroModel');
-const Daño = require('../models/dañoModel');
+const Raza = require('../src/infrastructure/databases/mongoDb/schemas/Raza');
+const Idioma = require('../src/infrastructure/databases/mongoDb/schemas/Idioma');
+const Rasgo = require('../src/infrastructure/databases/mongoDb/schemas/Rasgo');
+const Habilidad = require('../src/infrastructure/databases/mongoDb/schemas/Habilidad');
+const Competencia = require('../src/infrastructure/databases/mongoDb/schemas/Competencia');
+const Conjuro = require('../src/infrastructure/databases/mongoDb/schemas/Conjuro');
+const Daño = require('../src/infrastructure/databases/mongoDb/schemas/Daño');
 const axios = require('axios');
 const { formatearAbilityBonuses, formatearCompetencias, formatearRasgos, formatearOptions, formatearConjuros, formatearResistencias, formatearIdiomas } = require('../helpers/formatDataHelpers');
 
@@ -81,7 +81,8 @@ exports.getAllRazas = async (req, res) => {
   }
 };
 
-exports.getRazas = async (req, res) => {
+exports.getRazas = async () => {
+  
   try {
     // Intenta recuperar datos de MongoDB
     const razasApi = await Raza.find();
@@ -94,9 +95,9 @@ exports.getRazas = async (req, res) => {
 
     const razas = formatearRazas(razasApi, idiomasApi, rasgosApi, habilidadesApi, competenciaApi, conjuroApi, dañosApi) ?? []
 
-    res.json(razas);
+    return { success: true, data: razas }
   } catch (dbError) {
-    res.status(500).json({ error: 'Error al recuperar las razas' });
+    return { success: false, message: 'Error al recuperar las razas' }
   }
 }
 

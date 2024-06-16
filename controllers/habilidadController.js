@@ -1,5 +1,5 @@
 const axios = require('axios');
-const Habilidad = require('../models/habilidadModel');
+const Habilidad = require('../src/infrastructure/databases/mongoDb/schemas/Habilidad');
 
 const requestOptions = {
   headers: {

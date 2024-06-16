@@ -1,6 +1,6 @@
 //const Rasgo = require('../models/rasgoModel');
 const axios = require('axios');
-const Equipamiento = require('../models/equipamientoModel');
+const Equipamiento = require('../src/infrastructure/databases/mongoDb/schemas/Equipamiento');
 
 const requestOptions = {
   headers: {
@@ -23,7 +23,7 @@ exports.getAllEquipamientos = async (req, res) => {
     try {
       // Intenta recuperar datos de MongoDB
       equipamientos = await Equipamiento.find();
-      bbdd = true
+      //bbdd = true
     } catch (dbError) {
       // Maneja el error si MongoDB no está disponible
       console.error("MongoDB no está disponible, se procederá solo con datos de la API externa");
@@ -70,18 +70,25 @@ exports.getAllEquipamientos = async (req, res) => {
             categoria = 'Munición'
           } else if ((equipamiento?.data?.gear_category?.name ?? '') === 'Arcane Foci') {
             categoria = 'Canalizador arcano'
+          } else if ((equipamiento?.data?.gear_category?.name ?? '') === 'Holy Symbols') {
+            categoria = 'Simbolo sagrado'
+          } else if ((equipamiento?.data?.gear_category?.name ?? '') === 'Druidic Foci') {
+            categoria = 'Canalizador druidico'
           } else {
             categoria = equipamiento?.data?.gear_category?.name ?? ''
-            /*
+            
             console.log(actualEquip.category)
             console.log(equipamiento?.data?.gear_category?.name ?? '')
-            console.log('__________________')*/
+            console.log('__________________')
             
           }
         } else if (category === 'tools') {
           if (equipamiento?.data?.tool_category === 'Musical Instrument') {
             categoria = 'Instrumento musical'
           } else {
+            /*console.log(actualEquip.category)
+            console.log(equipamiento?.data?.gear_category?.name ?? '')
+            console.log('__________________')*/
             categoria = equipamiento?.data?.tool_category ?? ''
           }
         } else if (category === 'armor') {

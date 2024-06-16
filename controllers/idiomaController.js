@@ -1,5 +1,5 @@
 const axios = require('axios');
-const Idioma = require('../models/idiomaModel');
+const Idioma = require('../src/infrastructure/databases/mongoDb/schemas/Idioma');
 
 const requestOptions = {
   headers: {

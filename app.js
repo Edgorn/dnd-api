@@ -1,8 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./config/db');
-const razaRoutes = require('./routes/razaRoutes');
-const claseRoutes = require('./routes/claseRoutes');
+const connectDB = require('./src/infrastructure/databases/mongoDb/mongodb');
+const razaRoutes = require('./src/infrastructure/http/raza.infrastructure');
+const claseRoutes = require('./src/infrastructure/http/clase.infrastructure');
+const defaultApi = require('./src/infrastructure/defaultApi/index');
+
 const transfondoRoutes = require('./routes/transfondoRoutes');
 const habilidadRoutes = require('./routes/habilidadRoutes');
 const idiomaRoutes = require('./routes/idiomaRoutes');
@@ -12,7 +14,6 @@ const fichaRoutes = require('./routes/fichaRoutes');
 const conjuroRoutes = require('./routes/conjuroRoutes');
 const dañoRoutes = require('./routes/dañoRoutes');
 const equipamientoRoutes = require('./routes/equipamientoRoutes');
-const axios = require('axios');
 
 const app = express();
 app.use(cors());
@@ -31,28 +32,28 @@ app.use(fichaRoutes);
 app.use(conjuroRoutes);
 app.use(dañoRoutes);
 app.use(equipamientoRoutes);
+app.use('*', defaultApi)
 
+/*
 app.use(async (req, res) => {
   if (req.originalUrl !== '/favicon.ico') {
     const apiUrl = 'https://www.dnd5eapi.co/api' + req.originalUrl;
 
-    console.log(apiUrl)
-  
     try {
-      const response = await axios({
+      const { status, data } = await axios({
         method: req.method,
         url: apiUrl,
         data: req.body,
         headers: { 'Content-Type': 'application/json' } 
       });
-  
-      res.json(response.data);
+     
+      res.status(status).json(data);
     } catch (error) {
       res.status(500).json({ error: "Error al procesar la consulta externa" });
     }
   }
 });
-
+*/
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

@@ -1,5 +1,5 @@
 const axios = require('axios');
-const Competencia = require('../models/competenciaModel');
+const Competencia = require('../src/infrastructure/databases/mongoDb/schemas/Competencia');
 
 const requestOptions = {
   headers: {

@@ -1,4 +1,4 @@
-const Transfondo = require('../models/transfondoModel');
+const Transfondo = require('../src/infrastructure/databases/mongoDb/schemas/Transfondo');
 const axios = require('axios');
 
 const requestOptions = {

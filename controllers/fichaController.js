@@ -1,12 +1,12 @@
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const fs = require('fs');
-const Raza = require('../models/razaModel');
-const Rasgo = require('../models/rasgoModel');
-const Clase = require('../models/claseModel');
+const Raza = require('../src/infrastructure/databases/mongoDb/schemas/Raza');
+const Rasgo = require('../src/infrastructure/databases/mongoDb/schemas/Rasgo');
+const Clase = require('../src/infrastructure/databases/mongoDb/schemas/Clase');
 
 const { listTraits, escribirHeaders, firstPage, escribirRasgos, escribirCompetencias, escribirSkills, escribirConjuros, escribirAtaques, listSpells, listSkills, listProficiencies, listLanguages, listEquipment, escribirEquipamientos, escribirArmas, escribirTesoro, escribirEquipamiento } = require('../helpers/fichaHelpers');
-const Competencia = require('../models/competenciaModel');
-const Equipamiento = require('../models/equipamientoModel');
+const Competencia = require('../src/infrastructure/databases/mongoDb/schemas/Competencia');
+const Equipamiento = require('../src/infrastructure/databases/mongoDb/schemas/Equipamiento');
 
 async function crearFicha(req, res) {
   const { race, subrace, class: clas, level, subclass } = req.body
