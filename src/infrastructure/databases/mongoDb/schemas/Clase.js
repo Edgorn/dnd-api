@@ -12,7 +12,8 @@ const claseSchema = new mongoose.Schema({
     traits: [String],
     spellcasting: {},
     subclasses_options: [],
-    subclasses: {}
+    subclasses: {},
+    terrain_options: {}
   }],
   saving_throws: [String],
   options: [],

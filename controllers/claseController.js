@@ -168,12 +168,16 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
     const traits = []
     const spellOptions = []
     const subclasesOptions = []
+    const spells = []
+    let terrainOptions = {}
 
     clase.levels
       .filter(level => level.level <= 1)
       .forEach(level => {
+        
         const subclases_options = level?.subclasses_options?.map(sub => {
           const options = sub?.options?.map(opt => {
+            
             const subclase = level?.subclasses[opt.index]
             const spells = []
 
@@ -201,10 +205,41 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
           }
         })
 
+        if (level?.spellcasting?.spells) {
+          const dataApi = level?.spellcasting?.spells.split('_')
+          const lev = dataApi[0]
+          const clase = dataApi[1]
+
+          type = parseInt(lev) === 0 ? 'truco' : 'conjuro'
+
+          spells.push(
+            ...conjuroApi
+              .filter(conjuro => conjuro.level === parseInt(lev))
+              .filter(conjuro => conjuro.classes.includes(clase))
+              .map(conjuro => { return { index: conjuro.index, name: conjuro.name } })
+          )
+        }
+
         traits.push(...level.traits)
         spellOptions.push(...level?.spellcasting?.options ?? [])
         subclasesOptions.push(...subclases_options ?? [])
+        
+        if (level?.terrain_options) {
+          terrainOptions = {
+            ...level?.terrain_options ?? {},
+            options: level?.terrain_options?.options.map(opt => {
+              return {
+                index: opt,
+                name: opt
+              }
+            })
+          }
+        }
       })
+
+    spells.sort((a, b) => {
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    });
     
     return {
       index: clase.index,
@@ -219,7 +254,9 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
       traits: formatearRasgos(traits, rasgosApi),
       money: formatearDinero(clase.money, equipamientoApi),
       spellcasting_options: formatearOptions(spellOptions, idiomasApi, competenciaApi, habilidadesApi, conjuroApi),
-      subclases_options: subclasesOptions
+      subclases_options: subclasesOptions,
+      spells,
+      terrain_options: terrainOptions
     }
   })
 

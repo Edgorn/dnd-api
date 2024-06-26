@@ -106,7 +106,7 @@ const formatearOptions = (optionsApi, idiomasApi, competenciasApi, habilidadesAp
           })
         })
       }
-    } else if (optionApi?.type === 'habilidad') {
+    } else if (optionApi?.type === 'habilidad' || optionApi?.type === 'habilidad (doble bonus)') {
       if (optionApi.api === 'all') {
         options.push(...habilidadesApi.map(habilidad => { return { index: habilidad.index, name: habilidad.name } }))
       } else {

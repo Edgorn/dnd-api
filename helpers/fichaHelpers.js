@@ -145,12 +145,13 @@ function listSpells({ character }) {
 }
 
 function listSkills({ character, raza, subraza }) {
-  const { skills } = character 
+  const { skills, dobleSkills } = character 
 
   const listSkills = [
     ...raza?.starting_proficiencies?.filter(prof => prof.type === 'habilidad')?.map(prof => prof.index) ?? [],
     ...subraza?.starting_proficiencies?.filter(prof => prof.type === 'habilidad')?.map(prof => prof.index) ?? [],
-    ...skills ?? []
+    ...skills ?? [],
+    ...dobleSkills ?? []
   ]
 
   return listSkills
@@ -229,10 +230,12 @@ function listEquipment({ character, equipamientos }) {
         musical.push({ name: equipment.name, quantity: equip.quantity })
       } else if (equipment?.category === 'Armadura') {
         armors.push({ name: equipment.name, quantity: equip.quantity, class: equipment?.armor?.class })
-      } else if (equipment?.category === 'Equipo estandar') {
+      } else if (equipment?.category === 'Equipo estandar' || equipment?.category === 'Canalizador arcano' || equipment?.category === 'Simbolo sagrado' || equipment?.category === 'Canalizador druidico') {
         list.push({ name: equipment.name, quantity: equip.quantity })
       } else if (equipment?.category === 'Munición') {
         municion.push({ name: equipment.name, quantity: equip.quantity })
+      } else {
+        console.log(equipment)
       }
     }
   })
@@ -325,7 +328,7 @@ function formatNumber(num) {
   return (num >= 0 ? "+" : "-") + num.toString();
 }
 
-async function escribirRasgos({ traits, rasgos, pdfDoc}) {
+async function escribirRasgos({ traits, rasgos, pdfDoc, terrain }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -337,9 +340,21 @@ async function escribirRasgos({ traits, rasgos, pdfDoc}) {
   let maxHeight = 44
 
   traits?.forEach(trait => {
-    const rasgo = rasgos.find(r => r.index === trait)
+    let rasgo = rasgos.find(r => r.index === trait)
 
-    if (rasgo && !traits?.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell'  ) {
+    if (rasgo?.index === 'born-explorer') {
+      const desc1 = rasgo?.desc[0]
+        ?.replace("un tipo de entorno natural concreto", "el tipo de terreno "+terrain[0].toLowerCase())
+        ?.replace("tu terreno predilecto", "el tipo de terreno "+terrain[0].toLowerCase())
+
+      const desc2 = rasgo?.desc[1]
+        ?.replace("tu terreno favorito", "el tipo de terreno "+terrain[0].toLowerCase())
+
+      rasgo.desc[0] = desc1
+      rasgo.desc[1] = desc2
+    }
+    
+    if (rasgo && !traits?.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell') {
       const { textY, actualHeight } = escribirParrafo({ 
         titulo: rasgo?.name, 
         descripcion: rasgo?.desc?.join('|'),
@@ -590,17 +605,21 @@ async function escribirConjuros({ spells, form, clase, character }) {
     }
   })
 
-  
   conjurosLista
     .filter(conjuro => conjuro.level === 1)
     .forEach((conjuro, index) => {
-      form.getTextField(conjuros.nvl1[index]).setText(conjuro.name + '')
+      let valor = form.getTextField(conjuros.nvl1[index%12]).getText() ?? ''
+      if (valor === '') {
+        form.getTextField(conjuros.nvl1[index%12]).setText(conjuro?.name + '')
+      } else {
+        form.getTextField(conjuros.nvl1[index%12]).setText(valor + ', ' + conjuro?.name)
+      }
     })
     
-    trucosLista
-      .forEach((name, index) => {
-        form.getTextField(conjuros.trucos[index]).setText(name)
-      })
+  trucosLista
+    .forEach((name, index) => {
+      form.getTextField(conjuros.trucos[index]).setText(name)
+    })
 }
 /*
 async function escribirAtaques({ pdfDoc, rasgos, traits }) {
