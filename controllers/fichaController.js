@@ -9,7 +9,7 @@ const Competencia = require('../src/infrastructure/databases/mongoDb/schemas/Com
 const Equipamiento = require('../src/infrastructure/databases/mongoDb/schemas/Equipamiento');
 
 async function crearFicha(req, res) {
-  const { race, subrace, class: clas, level, subclass, terrain } = req.body
+  const { race, subrace, class: clas, level, subclass, terrain, trait } = req.body
 
   const raza = await Raza.find({ index: race });
   const subraza = raza[0]?.subraces?.find(srace => srace.index === subrace)
@@ -20,7 +20,7 @@ async function crearFicha(req, res) {
   const equipamientos = await Equipamiento.find()
 
   const spells = listSpells({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
-  const traits = listTraits({ raza: raza[0] ?? null, subraza: subraza ?? null, clase: clase[0], level, subclass })
+  const traits = listTraits({ raza: raza[0] ?? null, subraza: subraza ?? null, clase: clase[0], level, subclass, trait })
   const skills = listSkills({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })
   const proficiencies = listProficiencies({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null, clase: clase[0], competencias })
   const languages = listLanguages({ character: req.body, raza: raza[0] ?? null, subraza: subraza ?? null })

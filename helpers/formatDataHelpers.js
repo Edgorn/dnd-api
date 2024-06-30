@@ -38,6 +38,12 @@ const formatearRasgos = (traitsApi, rasgosApi) => {
     const rasgo = rasgosApi.find(rasgo => rasgo.index === trait)
 
     if (!traits?.includes(rasgo?.discard)) {
+
+      if (rasgo.isMutable) {
+        console.log(rasgo)
+      }
+
+
       traits.push({
         index: rasgo?.index,
         name: rasgo?.name,
@@ -151,13 +157,19 @@ const formatearOptions = (optionsApi, idiomasApi, competenciasApi, habilidadesAp
           })
         })
       }
+    } else if (optionApi?.type === 'choice') {
+      options.push(...formatearOptions(optionApi?.options, idiomasApi, competenciasApi, habilidadesApi, conjuroApi))
     } else {
-      /*console.log(optionApi.type)
+      /*console.log(optionApi)
       console.log('___________')*/
     }
 
     options.sort((a, b) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+      if (a?.name) {
+        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+      } else {
+        return a.type.localeCompare(b.type, 'es', { sensitivity: 'base' });
+      }
     });
 
     return {
@@ -175,6 +187,8 @@ const formatearEquipamientosOptions = (optionsApi, equipamientoApi) => {
     if (Array.isArray(optionApi)) {
       const opciones = []
       optionApi?.forEach(opt => {
+        const opcion = {}
+
         if (opt?.items) {
           const name = []
           opt?.items?.forEach(item => {
@@ -182,12 +196,11 @@ const formatearEquipamientosOptions = (optionsApi, equipamientoApi) => {
             name.push(item?.quantity + 'x ' + equipamiento?.name)
           })
 
-          opciones.push({
-            items: opt?.items,
-            name: name.join(' - ')
-          })
-
-        } else if (opt?.api) {
+          opcion.items = opt?.items
+          opcion.name = name.join(' - ')
+        } 
+        
+        if (opt?.api) {
           const valoresApi = opt?.api?.split('-')
   
           let equipamientoAux = equipamientoApi
@@ -211,18 +224,19 @@ const formatearEquipamientosOptions = (optionsApi, equipamientoApi) => {
             if (!options.map(op => op.index).includes(equip.index)) {
               options.push({
                 index: equip?.index,
-                name: equip?.name,
-                quantity: opt?.quantity
+                name: equip?.name
               })
             }
           })
 
-          opciones.push({
-            name: 'Cualquier ' + valoresApi[0] + ' ' + (valoresApi[1] ?? '') + ' ' + (valoresApi[2] ?? ''),
-            choose: 1,
-            options
-          })
+          const nombre = 'Cualquier ' + valoresApi[0] + ' ' + (valoresApi[1] ?? '') + ' ' + (valoresApi[2] ?? '')
+
+          opcion.name = opcion.name ? opcion.name + ' - ' + nombre : nombre
+          opcion.choose = opt?.quantity
+          opcion.options = options
         }
+
+        opciones.push(opcion)
       })
       equipo.push(opciones)
     }

@@ -2,7 +2,7 @@ const Clase = require('../src/infrastructure/databases/mongoDb/schemas/Clase');
 const Habilidad = require('../src/infrastructure/databases/mongoDb/schemas/Habilidad');
 const Competencia = require('../src/infrastructure/databases/mongoDb/schemas/Competencia');
 const axios = require('axios');
-const { formatearCompetencias, formatearOptions, formatearEquipamientosOptions, formatearRasgos, formatearDinero, formatearConjuros } = require('../helpers/formatDataHelpers');
+const { formatearCompetencias, formatearOptions, formatearEquipamientosOptions, formatearRasgos, formatearDinero, formatearConjuros, formatearIdiomas } = require('../helpers/formatDataHelpers');
 const Idioma = require('../src/infrastructure/databases/mongoDb/schemas/Idioma');
 const Conjuro = require('../src/infrastructure/databases/mongoDb/schemas/Conjuro');
 const Equipamiento = require('../src/infrastructure/databases/mongoDb/schemas/Equipamiento');
@@ -166,6 +166,7 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
     })
 
     const traits = []
+    let traitsOptions = {}
     const spellOptions = []
     const subclasesOptions = []
     const spells = []
@@ -190,12 +191,20 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
               })
             })
 
+            let traits_options_subclase = subclase?.traits_options
+
+            if (traits_options_subclase) {
+              traits_options_subclase.options = formatearRasgos(traits_options_subclase?.options ?? [], rasgosApi)
+            }
+
             return {
               ...opt,
               traits: formatearRasgos(subclase?.traits ?? [], rasgosApi),
               spells,
               options: formatearOptions(subclase?.options ?? [], idiomasApi, competenciaApi, habilidadesApi, conjuroApi),
-              proficiencies: formatearCompetencias(subclase?.proficiencies ?? [], habilidadesApi, competenciaApi)
+              proficiencies: formatearCompetencias(subclase?.proficiencies ?? [], habilidadesApi, competenciaApi),
+              languages: formatearIdiomas(subclase?.languages ?? [], idiomasApi),
+              traits_options: traits_options_subclase
             }
           })
 
@@ -223,6 +232,7 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
         traits.push(...level.traits)
         spellOptions.push(...level?.spellcasting?.options ?? [])
         subclasesOptions.push(...subclases_options ?? [])
+        traitsOptions = level?.traits_options
         
         if (level?.terrain_options) {
           terrainOptions = {
@@ -240,6 +250,10 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
     spells.sort((a, b) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
+
+    if (traitsOptions) {
+      traitsOptions.options = formatearRasgos(traitsOptions?.options ?? [], rasgosApi)
+    }
     
     return {
       index: clase.index,
@@ -256,7 +270,8 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
       spellcasting_options: formatearOptions(spellOptions, idiomasApi, competenciaApi, habilidadesApi, conjuroApi),
       subclases_options: subclasesOptions,
       spells,
-      terrain_options: terrainOptions
+      terrain_options: terrainOptions,
+      traits_options: traitsOptions
     }
   })
 

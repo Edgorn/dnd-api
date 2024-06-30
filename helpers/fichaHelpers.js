@@ -110,7 +110,7 @@ const skill = {
   "animal-handling": 'anhanPROF'
 }
 
-function listTraits({ raza, subraza, clase, level, subclass }) {
+function listTraits({ raza, subraza, clase, level, subclass, trait }) {
   const traitsClase = []
 
   clase?.levels
@@ -118,6 +118,10 @@ function listTraits({ raza, subraza, clase, level, subclass }) {
     ?.forEach(level => {
       traitsClase.push(...level?.traits ?? [], ...(level?.subclasses && level?.subclasses[subclass]?.traits) ?? [])
     })
+
+  if (trait) {
+    traitsClase.push(trait)
+  }
     
   return [ 
     ...raza?.traits ?? [],
@@ -159,6 +163,8 @@ function listSkills({ character, raza, subraza }) {
 
 function listProficiencies({ character, raza, subraza, clase, competencias }) {
   const { proficiencies } = character
+
+  console.log(proficiencies)
 
   const listProficiencies = [
     ...raza?.starting_proficiencies?.filter(prof => prof.type !== 'habilidad')?.map(prof => prof.index) ?? [],

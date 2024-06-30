@@ -13,7 +13,8 @@ const claseSchema = new mongoose.Schema({
     spellcasting: {},
     subclasses_options: [],
     subclasses: {},
-    terrain_options: {}
+    terrain_options: {},
+    traits_options: {}
   }],
   saving_throws: [String],
   options: [],

@@ -6,7 +6,8 @@ const rasgoSchema = new mongoose.Schema({
   desc: [String],
   sum_desc: Boolean,
   type: String,
-  discard: String
+  discard: String,
+  isMutable: Boolean
 }, { collection: 'Rasgos' });
 
 const Rasgo = mongoose.model(' ', rasgoSchema);
