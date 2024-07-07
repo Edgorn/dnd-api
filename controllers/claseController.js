@@ -171,6 +171,7 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
     const subclasesOptions = []
     const spells = []
     let terrainOptions = {}
+    let enemyOptions = []
 
     clase.levels
       .filter(level => level.level <= 1)
@@ -245,6 +246,22 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
             })
           }
         }
+
+        if (level?.enemy_options) {
+          enemyOptions.push(
+            ...level?.enemy_options.map(en => {
+              return {
+                ...en,
+                options: en.options.map(opt => {
+                  return {
+                    index: opt,
+                    name: opt
+                  }
+                })
+              }
+            })
+          )
+        }
       })
 
     spells.sort((a, b) => {
@@ -271,6 +288,7 @@ const formatearClases = (clasesApi, habilidadesApi, competenciaApi, idiomasApi ,
       subclases_options: subclasesOptions,
       spells,
       terrain_options: terrainOptions,
+      enemy_options: enemyOptions,
       traits_options: traitsOptions
     }
   })

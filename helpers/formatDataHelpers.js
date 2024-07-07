@@ -37,21 +37,25 @@ const formatearRasgos = (traitsApi, rasgosApi) => {
   traitsApi?.forEach(trait => {
     const rasgo = rasgosApi.find(rasgo => rasgo.index === trait)
 
-    if (!traits?.includes(rasgo?.discard)) {
-
+    if (rasgo && !traits?.includes(rasgo?.discard)) {
       if (rasgo.isMutable) {
         console.log(rasgo)
       }
-
 
       traits.push({
         index: rasgo?.index,
         name: rasgo?.name,
         desc: rasgo?.desc?.join('\n')
       })
+    } else if (trait === 'rogue-expertise') {
+      traits.push({
+        index: 'rogue-expertise',
+        name: '',
+        desc: ''
+      })
     }
   })
-
+  
   return traits
 }
 
