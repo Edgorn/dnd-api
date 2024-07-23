@@ -10,6 +10,4 @@ const rasgoSchema = new mongoose.Schema({
   isMutable: Boolean
 }, { collection: 'Rasgos' });
 
-const Rasgo = mongoose.model(' ', rasgoSchema);
-
-module.exports = Rasgo;
+module.exports = mongoose.model(' ', rasgoSchema);;

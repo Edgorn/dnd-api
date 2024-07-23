@@ -2,9 +2,10 @@ const mongoose = require('mongoose');
 
 const transfondoSchema = new mongoose.Schema({
   index: String,
-  name: String
+  name: String,
+  starting_proficiencies: [],
+  options: []
+
 }, { collection: 'Transfondos' });
 
-const Transfondo = mongoose.model('Transfondos', transfondoSchema);
-
-module.exports = Transfondo;
+module.exports = mongoose.model('Transfondos', transfondoSchema);

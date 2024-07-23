@@ -37,6 +37,4 @@ const razaSchema = new mongoose.Schema({
   resistances: [String]
 }, { collection: 'Razas' });
 
-const Raza = mongoose.model('Razas', razaSchema);
-
-module.exports = Raza;
+module.exports = mongoose.model('Razas', razaSchema);

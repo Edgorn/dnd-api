@@ -6,6 +6,4 @@ const dañoSchema = new mongoose.Schema({
   desc: String
 }, { collection: 'Daños' });
 
-const Daño = mongoose.model('Daños', dañoSchema);
-
-module.exports = Daño;
+module.exports = mongoose.model('Daños', dañoSchema);

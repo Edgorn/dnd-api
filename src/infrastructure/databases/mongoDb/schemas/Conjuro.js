@@ -7,6 +7,4 @@ const conjuroSchema = new mongoose.Schema({
   classes: [String]
 }, { collection: 'Conjuros' });
 
-const Conjuro = mongoose.model('Conjuros', conjuroSchema);
-
-module.exports = Conjuro;
+module.exports = mongoose.model('Conjuros', conjuroSchema);

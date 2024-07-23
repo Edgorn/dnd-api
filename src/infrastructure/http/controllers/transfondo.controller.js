@@ -1,13 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const razaController = require('../../../controllers/razaController');
+const transfondoController = require('../../../../controllers/transfondoController');
 
-router.get('/razas', async (req, res) => {
+const getTransfondos = async (req, res) => {
   const token = true
 
   try {
     if (token) {
-      const { success, data, message } = await razaController.getRazas()
+      const { success, data, message } = await transfondoController.getTransfondos()
 
       if (success) {
         res.status(200).json(data);
@@ -20,6 +18,6 @@ router.get('/razas', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Error al recuperar las razas' });
   }
-});
+};
 
-module.exports = router;
+module.exports = { getTransfondos };

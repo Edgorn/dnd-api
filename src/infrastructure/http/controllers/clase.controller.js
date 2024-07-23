@@ -1,8 +1,6 @@
-const express = require('express');
-const router = express.Router();
-const claseController = require('../../../controllers/claseController');
+const claseController = require('../../../../controllers/claseController');
 
-router.get('/clases', async (req, res) => {
+const getClases = async (req, res) => {
   const token = true
 
   try {
@@ -20,6 +18,6 @@ router.get('/clases', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Error al recuperar las clases' });
   }
-});
+};
 
-module.exports = router;
+module.exports = { getClases };

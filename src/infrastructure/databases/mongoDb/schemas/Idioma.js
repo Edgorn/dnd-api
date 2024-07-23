@@ -8,6 +8,4 @@ const idiomaSchema = new mongoose.Schema({
   script: String
 }, { collection: 'Idiomas' });
 
-const Idioma = mongoose.model('Idiomas', idiomaSchema);
-
-module.exports = Idioma;
+module.exports = mongoose.model('Idiomas', idiomaSchema);

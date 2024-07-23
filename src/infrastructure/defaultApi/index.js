@@ -5,7 +5,6 @@ const axios = require('axios');
 router.use(async (req, res) => {
   if (req.originalUrl !== '/favicon.ico') {
     const apiUrl = 'https://www.dnd5eapi.co/api' + req.originalUrl;
-    console.log(apiUrl)
     try {
       const { status, data } = await axios({
         method: req.method,

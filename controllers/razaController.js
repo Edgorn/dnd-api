@@ -81,8 +81,14 @@ exports.getAllRazas = async (req, res) => {
   }
 };
 
+
+
+
+
+
+
+
 exports.getRazas = async () => {
-  
   try {
     // Intenta recuperar datos de MongoDB
     const razasApi = await Raza.find();
@@ -100,6 +106,14 @@ exports.getRazas = async () => {
     return { success: false, message: 'Error al recuperar las razas' }
   }
 }
+
+
+
+
+
+
+
+
 
 const formatearRazas = (razasApi, idiomasApi, rasgosApi, habilidadesApi, competenciaApi, conjuroApi, dañosApi) => {
   const razas = razasApi.map(raza => {

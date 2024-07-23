@@ -17,6 +17,4 @@ const equipamientoSchema = new mongoose.Schema({
   content: [{item: String, quantity: Number}]
 }, { collection: 'Equipamientos' });
 
-const Equipamiento = mongoose.model('Equipamientos', equipamientoSchema);
-
-module.exports = Equipamiento;
+module.exports = mongoose.model('Equipamientos', equipamientoSchema);

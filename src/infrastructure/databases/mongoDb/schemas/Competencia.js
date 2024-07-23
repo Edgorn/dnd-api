@@ -7,6 +7,4 @@ const competenciaSchema = new mongoose.Schema({
   desc: [String]
 }, { collection: 'Competencias' });
 
-const Competencia = mongoose.model('Competencias', competenciaSchema);
-
-module.exports = Competencia;
+module.exports = mongoose.model('Competencias', competenciaSchema);

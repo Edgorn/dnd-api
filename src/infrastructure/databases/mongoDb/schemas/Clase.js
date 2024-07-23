@@ -30,6 +30,4 @@ const claseSchema = new mongoose.Schema({
   spellcasting: String
 }, { collection: 'Clases' });
 
-const Clase = mongoose.model('Clases', claseSchema);
-
-module.exports = Clase;
+module.exports = mongoose.model('Clases', claseSchema);

@@ -5,6 +5,4 @@ const habilidadSchema = new mongoose.Schema({
   name: String
 }, { collection: 'Habilidades' });
 
-const Habilidad = mongoose.model('Habilidades', habilidadSchema);
-
-module.exports = Habilidad;
+module.exports = mongoose.model('Habilidades', habilidadSchema);
