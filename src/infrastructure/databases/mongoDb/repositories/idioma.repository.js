@@ -25,6 +25,10 @@ class IdiomaRepository extends IIdiomaRepository {
   obtenerIdiomasPorIndices(indices) {
     return indices.map(index => this.obtenerIdiomaPorIndice(index));
   }
+
+  obtenerIdiomas() {
+    return Object.values(this.idiomasMap)
+  }
 }
 
 module.exports = IdiomaRepository;

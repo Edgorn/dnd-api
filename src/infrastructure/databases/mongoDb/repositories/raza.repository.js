@@ -1,7 +1,10 @@
 const IRazaRepository = require('../../../../domain/repositories/IRazaRepository');
-const { formatearAbilityBonuses } = require('../../../../utils/formatters');
+const { formatearAbilityBonuses, formatearCompetencias, formatearOptions, formatearConjuros } = require('../../../../utils/formatters');
 const RazaSchema = require('../schemas/Raza');
+const CompetenciaRepository = require('./competencia.repository');
+const ConjuroRepository = require('./conjuros.repository');
 const DañoRepository = require('./daño.repository');
+const HabilidadRepository = require('./habilidad.repository');
 const IdiomaRepository = require('./idioma.repository');
 const RasgoRepository = require('./rasgo.repository');
 
@@ -12,6 +15,9 @@ class RazaRepository extends IRazaRepository {
     this.idiomaRepository = new IdiomaRepository()
     this.rasgoRepository = new RasgoRepository()
     this.dañoRepository = new DañoRepository()
+    this.habilidadRepository = new HabilidadRepository()
+    this.competenciaRepository = new CompetenciaRepository()
+    this.conjuroRepository = new ConjuroRepository()
   }
 
   async obtenerTodas() {
@@ -47,16 +53,16 @@ class RazaRepository extends IRazaRepository {
         subraces: this.formatearSubrazas(raza?.subraces ?? []),
         ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
         languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
+        proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
         traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
+        options: formatearOptions(raza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
+        spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
         resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])
       };
       
     } catch (e) {
-      console.log('ERRORADS')
       console.log(e)
     }
-
-    
   }
 
   formatearSubrazas(subrazas) {
@@ -88,7 +94,10 @@ class RazaRepository extends IRazaRepository {
         }
       }),
       ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),
+      proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       traits: this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? []),
+      options: formatearOptions(subraza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
+      spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
       resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])
     }
   }
