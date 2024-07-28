@@ -1,14 +1,16 @@
+const ObtenerTodasLasRazas = require('../../../application/use-cases/obtenerTodasLasRazas');
 const RazaService = require('../../../domain/services/raza.service');
 const RazaRepository = require('../../databases/mongoDb/repositories/raza.repository');
 
 const razaService = new RazaService(new RazaRepository())
+const obtenerTodasLasRazas = new ObtenerTodasLasRazas(razaService);
 
 const getRazas = async (req, res) => {
   const token = true
 
   try {
     if (token) {
-      const { success, data, message } = await razaService.obtenerTodasLasRazas()
+      const { success, data, message } = await obtenerTodasLasRazas.execute()
 
       if (success) {
         res.status(200).json(data);
