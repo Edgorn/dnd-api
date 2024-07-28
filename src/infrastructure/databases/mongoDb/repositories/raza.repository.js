@@ -43,26 +43,21 @@ class RazaRepository extends IRazaRepository {
   }
 
   formatearRaza(raza) {
-    try {
-      return {
-        index: raza.index,
-        name: raza.name,
-        desc: raza.desc,
-        speed: raza.speed,
-        size: raza.size,
-        subraces: this.formatearSubrazas(raza?.subraces ?? []),
-        ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
-        languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
-        proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
-        traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
-        options: formatearOptions(raza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-        spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
-        resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])
-      };
-      
-    } catch (e) {
-      console.log(e)
-    }
+    return {
+      index: raza.index,
+      name: raza.name,
+      desc: raza.desc,
+      speed: raza.speed,
+      size: raza.size,
+      subraces: this.formatearSubrazas(raza?.subraces ?? []),
+      ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
+      languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
+      proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
+      traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
+      options: formatearOptions(raza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
+      spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
+      resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])
+    };
   }
 
   formatearSubrazas(subrazas) {

@@ -30,6 +30,10 @@ class CompetenciaRepository extends ICompetenciaRepository {
   obtenerCompetencias() {
     return Object.values(this.competenciasMap)
   }
+
+  obtenerCompetenciasPorType(type) {
+    return this.obtenerCompetencias().filter(competencia => competencia.type === type)
+  }
 }
 
 module.exports = CompetenciaRepository;

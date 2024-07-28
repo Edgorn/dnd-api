@@ -63,10 +63,10 @@ const formatearOptions = (optionsApi, idiomaRepository, competenciasRepository, 
         options.push(...idiomaRepository.obtenerIdiomasPorIndices(optionApi.options))
       }
     } else if (type === 'herramienta') {
-      if (optionApi.api === 'all') {
+      if (optionApi?.api) {
         options.push(
           ...competenciasRepository
-            .obtenerCompetencias()
+            .obtenerCompetenciasPorType(optionApi?.api)
             .map(competencia => {
               return {
                 index: competencia.index,
@@ -74,7 +74,8 @@ const formatearOptions = (optionsApi, idiomaRepository, competenciasRepository, 
               }
             })
         )
-        type = 'instrumento'
+        
+        type = optionApi?.api
       } else {
         options.push(
           ...competenciasRepository
@@ -173,10 +174,104 @@ const formatearConjuros = (spellsApi, conjuroRepository, rasgoRepository) => {
   return conjuros
 }
 
+const formatearSalvacion = (ability_bonuses) => {
+  const abilityBonuses = ability_bonuses?.map(ability => {
+    return {
+      index: ability,
+      name: caracteristicas[ability] ?? ability
+    }
+  })
+
+  return abilityBonuses
+}
+
+const formatearEquipamiento = (equipamientosApi, equipamientoRepository) => {
+  return equipamientosApi.map(equipamientoApi => {
+    const equipamiento = equipamientoRepository.obtenerEquipamientoPorIndice(equipamientoApi.index)
+
+    return {
+      index: equipamiento.index,
+      name: equipamiento.name,
+      quantity: equipamientoApi.quantity
+    }
+  })
+}
+
+const formatearEquipamientosOptions = (optionsApi, equipamientoRepository) => {
+  return optionsApi.map(optionApi => {
+    return optionApi?.map(opt => {
+      const opcion = {}
+
+      if (opt?.items) {
+        const name = opt?.items?.map(item => {
+          const equipamiento = equipamientoRepository.obtenerEquipamientoPorIndice(item.index)
+          return item?.quantity + 'x ' + equipamiento?.name
+        })
+
+        opcion.items = opt?.items
+        opcion.name = name.join(' - ')
+
+      }
+
+      if (opt?.api) {
+        const valoresApi = opt?.api?.split('-')
+        const equipamientoAux = equipamientoRepository.obtenerEquipamientosPorTipos(valoresApi[0], valoresApi[1], valoresApi[2])
+
+        const options = []
+  
+        equipamientoAux.forEach(equip => {
+          if (!options.map(op => op.index).includes(equip.index)) {
+            options.push({
+              index: equip?.index,
+              name: equip?.name
+            })
+          }
+        })
+
+        const nombre = 'Cualquier ' + valoresApi[0] + ' ' + (valoresApi[1] ?? '') + ' ' + (valoresApi[2] ?? '')
+
+        opcion.name = opcion.name ? opcion.name + ' - ' + nombre : nombre
+        opcion.choose = opt?.quantity
+        opcion.options = options
+      }
+
+      return opcion
+    })
+  })
+}
+
+const formatearDinero = (money, equipamientoRepository) => {
+  const data = 
+    equipamientoRepository
+      .obtenerEquipamientosPorIndices(money?.packs)
+      .map(equip => {
+        return {
+          index: equip.index,
+          name: equip.name
+        }
+      })
+
+  if (money?.money) {
+    const { quantity, dice, multiply, unit } = money?.money
+    const name = quantity + 'd' + dice + ' x ' + multiply + ' ' + unit
+
+    data.push({
+      index: 'money',
+      name 
+    })
+  }
+
+  return data
+}
+
 
 module.exports = {
   formatearAbilityBonuses,
   formatearCompetencias,
   formatearOptions,
-  formatearConjuros
+  formatearConjuros,
+  formatearSalvacion,
+  formatearEquipamiento,
+  formatearEquipamientosOptions,
+  formatearDinero
 };

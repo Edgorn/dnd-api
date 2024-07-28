@@ -1,11 +1,14 @@
-const claseController = require('../../../../controllers/claseController');
+const ClaseService = require('../../../domain/services/clase.service');
+const ClaseRepository = require('../../databases/mongoDb/repositories/clase.repository');
+
+const claseService = new ClaseService(new ClaseRepository())
 
 const getClases = async (req, res) => {
   const token = true
 
   try {
     if (token) {
-      const { success, data, message } = await claseController.getClases()
+      const { success, data, message } = await claseService.obtenerTodasLasClases()
 
       if (success) {
         res.status(200).json(data);

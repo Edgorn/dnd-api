@@ -32,8 +32,14 @@ class ConjuroRepository extends IConjuroRepository {
     const conjuros = Object.values(this.conjurosMap)
       .filter(conjuro => conjuro.level === parseInt(nivel))
       .filter(conjuro => conjuro.classes.includes(clase))
+      .map(conjuro => { return { index: conjuro.index, name: conjuro.name } })
     
-      return conjuros
+    conjuros.sort((a, b) => {
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    });
+
+
+    return conjuros
   }
 }
 

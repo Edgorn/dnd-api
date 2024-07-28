@@ -244,10 +244,6 @@ const formatearEquipamientosOptions = (optionsApi, equipamientoApi) => {
       })
       equipo.push(opciones)
     }
-    /*optionApi?.forEach(opt => {
-      console.log(opt)
-      console.log('____________')
-    })*/
   })
 
   return equipo
