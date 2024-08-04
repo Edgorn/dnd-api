@@ -1,11 +1,14 @@
-const transfondoController = require('../../../../controllers/transfondoController');
+//const transfondoController = require('../../../../controllers/transfondoController');
 
 const getTransfondos = async (req, res) => {
   const token = true
 
   try {
     if (token) {
-      const { success, data, message } = await transfondoController.getTransfondos()
+      const success = false
+      const message = "En proceso"
+      const data = {}
+      //const { success, data, message } = await transfondoController.getTransfondos()
 
       if (success) {
         res.status(200).json(data);

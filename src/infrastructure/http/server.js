@@ -2,10 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require('../databases/mongoDb/mongodb');
-const usuarioRoutes = require('../http/routes/usuario.routes');
-const razaRoutes = require('../http/routes/raza.routes');
-const claseRoutes = require('../http/routes/clase.routes');
-const transfondoRoutes = require('../http/routes/transfondo.routes');
+const usuarioRoutes = require('./routes/usuario.routes');
+const razaRoutes = require('./routes/raza.routes');
+const claseRoutes = require('./routes/clase.routes');
+const transfondoRoutes = require('./routes/transfondo.routes');
 const defaultApi = require('../defaultApi/index');
 
 const app = express();
