@@ -1,4 +1,4 @@
-const IClaseRepository = require('../../../../domain/repositories/IClaseRepository');
+import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 const { formatearCompetencias, formatearOptions, formatearSalvacion, formatearEquipamiento, formatearEquipamientosOptions, formatearDinero } = require('../../../../utils/formatters');
 const ClaseSchema = require('../schemas/Clase');
 const CompetenciaRepository = require('./competencia.repository');

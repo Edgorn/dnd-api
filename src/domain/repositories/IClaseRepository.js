@@ -1,7 +1,5 @@
-class IClaseRepository {
+export default class IClaseRepository {
   async obtenerTodas() {
     throw new Error('Método no implementado');
   }
 }
-
-module.exports = IClaseRepository;
