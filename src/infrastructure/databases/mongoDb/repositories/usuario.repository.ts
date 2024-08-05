@@ -14,8 +14,7 @@ export default class UsuarioRepository extends IUsuarioRepository {
       return { 
         token: usuario[0]?.index,
         user: {
-          name: usuario[0]?.name,
-          password: usuario[0].password
+          name: usuario[0]?.name
         }
       }
     } else {

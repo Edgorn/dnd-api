@@ -7,6 +7,5 @@ export interface LogearUsuarioResult {
   token: any;
   user: {
     name: any;
-    password: any;
   };
 }
