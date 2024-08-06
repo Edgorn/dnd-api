@@ -9,3 +9,19 @@ export interface LogearUsuarioResult {
     name: any;
   };
 }
+
+export interface RazaMongo {
+  index: string,
+  name: string,
+  desc: string,
+  speed: string,
+  size: string
+}
+
+export interface RazaApi {
+  index: string,
+  name: string,
+  desc: string,
+  speed: string,
+  size: string
+}

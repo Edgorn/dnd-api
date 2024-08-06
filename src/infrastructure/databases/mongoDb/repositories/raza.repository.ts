@@ -5,6 +5,7 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
+import { RazaApi, RazaMongo } from '../../../../domain/types';
 const { formatearAbilityBonuses, formatearCompetencias, formatearOptions, formatearConjuros } = require('../../../../utils/formatters');
 const RazaSchema = require('../schemas/Raza');
 const CompetenciaRepository = require('./competencia.repository');
@@ -15,21 +16,21 @@ const IdiomaRepository = require('./idioma.repository');
 const RasgoRepository = require('./rasgo.repository');
 
 export default class RazaRepository extends IRazaRepository {
-  idiomaRepository: IIdiomaRepository
+  /*idiomaRepository: IIdiomaRepository
   rasgoRepository: IRasgoRepository
   dañoRepository: IDañoRepository
   habilidadRepository: IHabilidadRepository
   competenciaRepository: ICompetenciaRepository
-  conjuroRepository: IConjuroRepository
+  conjuroRepository: IConjuroRepository*/
 
   constructor() {
     super()
-    this.idiomaRepository = new IdiomaRepository()
+    /*this.idiomaRepository = new IdiomaRepository()
     this.rasgoRepository = new RasgoRepository()
     this.dañoRepository = new DañoRepository()
     this.habilidadRepository = new HabilidadRepository()
     this.competenciaRepository = new CompetenciaRepository()
-    this.conjuroRepository = new ConjuroRepository()
+    this.conjuroRepository = new ConjuroRepository()*/
   }
 
   async obtenerTodas() {
@@ -38,7 +39,7 @@ export default class RazaRepository extends IRazaRepository {
     return this.formatearRazas(razas)
   }
 
-  formatearRazas(razas: any[]) {
+  formatearRazas(razas: RazaMongo[]): RazaApi[] {
     const formateadas = razas.map(raza => this.formatearRaza(raza))
 
     formateadas.sort((a, b) => {
@@ -54,24 +55,25 @@ export default class RazaRepository extends IRazaRepository {
     return formateadas;
   }
 
-  formatearRaza(raza: any) {
+  formatearRaza(raza: RazaMongo): RazaApi {
     return {
       index: raza.index,
       name: raza.name,
       desc: raza.desc,
       speed: raza.speed,
       size: raza.size,
-      subraces: this.formatearSubrazas(raza?.subraces ?? []),
+      /*subraces: this.formatearSubrazas(raza?.subraces ?? []),
       ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
       proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
       options: formatearOptions(raza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
-      resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])
+      resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])*/
     };
+    
   }
-
+/*
   formatearSubrazas(subrazas: any[]) {
     const formateadas = subrazas.map(raza => this.formatearSubraza(raza))
 
@@ -107,5 +109,5 @@ export default class RazaRepository extends IRazaRepository {
       spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
       resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])
     }
-  }
+  }*/
 }
