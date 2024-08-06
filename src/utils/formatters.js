@@ -51,101 +51,105 @@ const formatearCompetencias = (proficiencies, habilidadRepository, competenciaRe
 }
 
 const formatearOptions = (optionsApi, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository) => {
-
-  return optionsApi.map(optionApi => {
-    const options = []
-    let type = optionApi?.type
-
-    if (type === 'idioma') {
-      if (optionApi.api === 'all') {
-        options.push(...idiomaRepository.obtenerIdiomas())
-      } else {
-        options.push(...idiomaRepository.obtenerIdiomasPorIndices(optionApi.options))
-      }
-    } else if (type === 'herramienta') {
-      if (optionApi?.api) {
+  try {
+    return optionsApi.map(optionApi => {
+      const options = []
+      let type = optionApi?.type
+  
+      if (type === 'idioma') {
+        if (optionApi.api === 'all') {
+          options.push(...idiomaRepository.obtenerIdiomas())
+        } else {
+          options.push(...idiomaRepository.obtenerIdiomasPorIndices(optionApi.options))
+        }
+      } else if (type === 'herramienta') {
+        if (optionApi?.api) {
+          options.push(
+            ...competenciasRepository
+              .obtenerCompetenciasPorType(optionApi?.api)
+              .map(competencia => {
+                return {
+                  index: competencia.index,
+                  name: competencia.name
+                }
+              })
+          )
+          
+          type = optionApi?.api
+        } else {
+          options.push(
+            ...competenciasRepository
+              .obtenerCompetenciasPorIndices(optionApi.options)
+              .map(competencia => {
+                return {
+                  index: competencia.index,
+                  name: competencia.name
+                }
+              })
+          )
+        }
+      } else if (type === 'habilidad' || type === 'habilidad (doble bonus)') {
+        if (optionApi.api === 'all') {
+          options.push(...habilidadRepository.obtenerHabilidades())
+        } else {
+          options.push(...habilidadRepository.obtenerHabilidadesPorIndices(optionApi.options))
+        }
+      } else if (type === 'caracteristica') {
         options.push(
-          ...competenciasRepository
-            .obtenerCompetenciasPorType(optionApi?.api)
-            .map(competencia => {
-              return {
-                index: competencia.index,
-                name: competencia.name
-              }
-            })
+          ...optionApi.options.map(option => {
+            return {
+              index: option,
+              name: caracteristicas[option] ?? ''
+            }
+          })
         )
-        
-        type = optionApi?.api
+      } else if (type?.split('_')[0] === 'conjuro') {
+        if (optionApi.api) {
+          const dataApi = optionApi.api.split('_')
+          const level = dataApi[0]
+          const clase = dataApi[1]
+  
+          type = parseInt(level) === 0 ? 'truco' : 'conjuro'
+  
+          options.push(
+            ...conjuroRepository
+              .obtenerConjurosPorNivelClase(level, clase)
+              .map(conjuro => { return { index: conjuro.index, name: conjuro.name, type: (optionApi?.type?.split('_')[1] ?? undefined) } })
+          )
+  
+        } else {
+          options.push(
+            ...conjuroRepository
+              .obtenerConjurosPorIndices(optionApi.options)
+              .map(conjuro => { return { index: conjuro.index, name: conjuro.name, type: (optionApi?.type?.split('_')[1] ?? undefined) } })
+          )
+        }
+      } else if (type === 'choice') {
+        options.push(...formatearOptions(optionApi?.options, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository))
       } else {
-        options.push(
-          ...competenciasRepository
-            .obtenerCompetenciasPorIndices(optionApi.options)
-            .map(competencia => {
-              return {
-                index: competencia.index,
-                name: competencia.name
-              }
-            })
-        )
+        console.log(optionApi)
+        console.log('___________')
       }
-    } else if (type === 'habilidad' || type === 'habilidad (doble bonus)') {
-      if (optionApi.api === 'all') {
-        options.push(...habilidadRepository.obtenerHabilidades())
-      } else {
-        options.push(...habilidadRepository.obtenerHabilidadesPorIndices(optionApi.options))
+  
+  
+      options.sort((a, b) => {
+        if (a?.name) {
+          return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+        } else {
+          return a.type.localeCompare(b.type, 'es', { sensitivity: 'base' });
+        }
+      });
+  
+      return {
+        choose: optionApi?.choose,
+        type,
+        options
       }
-    } else if (type === 'caracteristica') {
-      options.push(
-        ...optionApi.options.map(option => {
-          return {
-            index: option,
-            name: caracteristicas[option] ?? ''
-          }
-        })
-      )
-    } else if (type?.split('_')[0] === 'conjuro') {
-      if (optionApi.api) {
-        const dataApi = optionApi.api.split('_')
-        const level = dataApi[0]
-        const clase = dataApi[1]
-
-        type = parseInt(level) === 0 ? 'truco' : 'conjuro'
-
-        options.push(
-          ...conjuroRepository
-            .obtenerConjurosPorNivelClase(level, clase)
-            .map(conjuro => { return { index: conjuro.index, name: conjuro.name, type: (optionApi?.type?.split('_')[1] ?? undefined) } })
-        )
-
-      } else {
-        options.push(
-          ...conjuroRepository
-            .obtenerConjurosPorIndices(optionApi.options)
-            .map(conjuro => { return { index: conjuro.index, name: conjuro.name, type: (optionApi?.type?.split('_')[1] ?? undefined) } })
-        )
-      }
-    } else if (type === 'choice') {
-      options.push(...formatearOptions(optionApi?.options, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository))
-    } else {
-      console.log(optionApi)
-      console.log('___________')
-    }
-
-
-    options.sort((a, b) => {
-      if (a?.name) {
-        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-      } else {
-        return a.type.localeCompare(b.type, 'es', { sensitivity: 'base' });
-      }
-    });
-
-    return {
-      choose: optionApi?.choose,
-      type,
-      options
-    }
-  })
+    })
+  } catch (e) {
+    console.error('ERROOOOOOOOOR')
+    console.error(e)
+  }
 }
 
 const formatearConjuros = (spellsApi, conjuroRepository, rasgoRepository) => {
