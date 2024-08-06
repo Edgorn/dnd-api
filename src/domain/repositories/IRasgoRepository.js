@@ -1,9 +1,9 @@
 class IRasgoRepository {
-  obtenerRasgosPorIndices() {
+  obtenerRasgosPorIndices(params) {
     throw new Error('Método no implementado');
   }
 
-  obtenerRasgoPorIndice() {
+  obtenerRasgoPorIndice(params) {
     throw new Error('Método no implementado');
   }
 }

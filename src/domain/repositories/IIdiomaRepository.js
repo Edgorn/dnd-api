@@ -1,5 +1,5 @@
 class IIdiomaRepository {
-  obtenerIdiomasPorIndices() {
+  obtenerIdiomasPorIndices(params) {
     throw new Error('Método no implementado');
   }
 

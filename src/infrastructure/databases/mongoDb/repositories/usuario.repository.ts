@@ -21,4 +21,10 @@ export default class UsuarioRepository extends IUsuarioRepository {
       return null
     }
   }
+
+  async validarToken(token: string): Promise<boolean> {
+    const usuario = await UsuarioSchema.find({ index: token })
+    
+    return usuario.length > 0
+  }
 }

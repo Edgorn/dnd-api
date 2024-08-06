@@ -1,4 +1,10 @@
-const IRazaRepository = require('../../../../domain/repositories/IRazaRepository');
+import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
+import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
+import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
+import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
+import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 const { formatearAbilityBonuses, formatearCompetencias, formatearOptions, formatearConjuros } = require('../../../../utils/formatters');
 const RazaSchema = require('../schemas/Raza');
 const CompetenciaRepository = require('./competencia.repository');
@@ -8,7 +14,13 @@ const HabilidadRepository = require('./habilidad.repository');
 const IdiomaRepository = require('./idioma.repository');
 const RasgoRepository = require('./rasgo.repository');
 
-class RazaRepository extends IRazaRepository {
+export default class RazaRepository extends IRazaRepository {
+  idiomaRepository: IIdiomaRepository
+  rasgoRepository: IRasgoRepository
+  dañoRepository: IDañoRepository
+  habilidadRepository: IHabilidadRepository
+  competenciaRepository: ICompetenciaRepository
+  conjuroRepository: IConjuroRepository
 
   constructor() {
     super()
@@ -26,7 +38,7 @@ class RazaRepository extends IRazaRepository {
     return this.formatearRazas(razas)
   }
 
-  formatearRazas(razas) {
+  formatearRazas(razas: any[]) {
     const formateadas = razas.map(raza => this.formatearRaza(raza))
 
     formateadas.sort((a, b) => {
@@ -42,7 +54,7 @@ class RazaRepository extends IRazaRepository {
     return formateadas;
   }
 
-  formatearRaza(raza) {
+  formatearRaza(raza: any) {
     return {
       index: raza.index,
       name: raza.name,
@@ -60,7 +72,7 @@ class RazaRepository extends IRazaRepository {
     };
   }
 
-  formatearSubrazas(subrazas) {
+  formatearSubrazas(subrazas: any[]) {
     const formateadas = subrazas.map(raza => this.formatearSubraza(raza))
 
     formateadas.sort((a, b) => {
@@ -76,13 +88,13 @@ class RazaRepository extends IRazaRepository {
     return formateadas;
   }
 
-  formatearSubraza(subraza) {
+  formatearSubraza(subraza: any) {
     return {
       index: subraza.index,
       name: subraza.name,
       desc: subraza.desc,
       speed: subraza.speed,
-      types: subraza?.types?.map(type => {
+      types: subraza?.types?.map((type: any) => {
         return {
           name: type.name,
           desc: type.desc
@@ -97,5 +109,3 @@ class RazaRepository extends IRazaRepository {
     }
   }
 }
-
-module.exports = RazaRepository;

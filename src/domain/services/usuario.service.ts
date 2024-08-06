@@ -21,4 +21,9 @@ export default class UsuarioService {
       return { success: false, message: 'Error al logearse' };
     }
   }
+
+  async validarToken(token: string): Promise<boolean> {
+    const result = await this.usuarioRepository.validarToken(token);
+    return result
+  }
 }

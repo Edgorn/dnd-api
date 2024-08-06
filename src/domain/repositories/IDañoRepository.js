@@ -1,9 +1,9 @@
 class IDañoRepository {
-  obtenerDañosPorIndices() {
+  obtenerDañosPorIndices(params) {
     throw new Error('Método no implementado');
   }
 
-  obtenerDañoPorIndice() {
+  obtenerDañoPorIndice(params) {
     throw new Error('Método no implementado');
   }
 }
