@@ -6,7 +6,7 @@ const caracteristicas = {
   wis: 'Sabiduria',
   cha: 'Carisma'
 }
-
+/*
 const formatearAbilityBonuses = (ability_bonuses) => {
   const abilityBonuses = ability_bonuses?.map(ability => {
     return {
@@ -17,7 +17,7 @@ const formatearAbilityBonuses = (ability_bonuses) => {
   })
 
   return abilityBonuses
-}
+}*/
 
 const formatearCompetencias = (proficiencies, habilidadRepository, competenciaRepository) => {
   const indicesHabilidades = 
@@ -270,7 +270,6 @@ const formatearDinero = (money, equipamientoRepository) => {
 
 
 module.exports = {
-  formatearAbilityBonuses,
   formatearCompetencias,
   formatearOptions,
   formatearConjuros,

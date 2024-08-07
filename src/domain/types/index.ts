@@ -15,7 +15,17 @@ export interface RazaMongo {
   name: string,
   desc: string,
   speed: string,
-  size: string
+  size: string,
+  subraces: SubrazaMongo[]
+  ability_bonuses: AbilityBonusesMongo[]
+}
+
+export interface SubrazaMongo {
+  index: string,
+  name: string,
+  desc: string,
+  speed: string,
+  ability_bonuses: AbilityBonusesMongo[]
 }
 
 export interface RazaApi {
@@ -23,5 +33,27 @@ export interface RazaApi {
   name: string,
   desc: string,
   speed: string,
-  size: string
+  size: string,
+  subraces: SubrazaApi[],
+  ability_bonuses: AbilityBonusesApi[]
+}
+
+export interface SubrazaApi {
+  index: string,
+  name: string,
+  desc: string,
+  speed: string,
+  ability_bonuses: AbilityBonusesApi[]
+}
+
+
+export interface AbilityBonusesMongo {
+  index: string,
+  bonus: number
+}
+
+export interface AbilityBonusesApi {
+  index: string,
+  name: string,
+  bonus: number
 }

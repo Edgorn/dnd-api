@@ -5,8 +5,9 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
-import { RazaApi, RazaMongo } from '../../../../domain/types';
-const { formatearAbilityBonuses, formatearCompetencias, formatearOptions, formatearConjuros } = require('../../../../utils/formatters');
+import { RazaApi, RazaMongo, SubrazaApi, SubrazaMongo } from '../../../../domain/types';
+import { formatearAbilityBonuses } from '../../../../utils/formatters';
+const { formatearCompetencias, formatearOptions, formatearConjuros } = require('../../../../utils/formatters-old');
 const RazaSchema = require('../schemas/Raza');
 const CompetenciaRepository = require('./competencia.repository');
 const ConjuroRepository = require('./conjuros.repository');
@@ -62,8 +63,8 @@ export default class RazaRepository extends IRazaRepository {
       desc: raza.desc,
       speed: raza.speed,
       size: raza.size,
-      /*subraces: this.formatearSubrazas(raza?.subraces ?? []),
-      ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
+      subraces: this.formatearSubrazas(raza?.subraces ?? []),
+      ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),/*
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
       proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
@@ -73,8 +74,8 @@ export default class RazaRepository extends IRazaRepository {
     };
     
   }
-/*
-  formatearSubrazas(subrazas: any[]) {
+
+  formatearSubrazas(subrazas: SubrazaMongo[]): SubrazaApi[] {
     const formateadas = subrazas.map(raza => this.formatearSubraza(raza))
 
     formateadas.sort((a, b) => {
@@ -90,24 +91,24 @@ export default class RazaRepository extends IRazaRepository {
     return formateadas;
   }
 
-  formatearSubraza(subraza: any) {
+  formatearSubraza(subraza: SubrazaMongo): SubrazaApi {
     return {
       index: subraza.index,
       name: subraza.name,
       desc: subraza.desc,
       speed: subraza.speed,
-      types: subraza?.types?.map((type: any) => {
+      /*types: subraza?.types?.map((type: any) => {
         return {
           name: type.name,
           desc: type.desc
         }
-      }),
-      ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),
+      }),*/
+      ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),/*
       proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       traits: this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? []),
       options: formatearOptions(subraza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
-      resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])
+      resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])*/
     }
-  }*/
+  }
 }
