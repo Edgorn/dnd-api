@@ -1,7 +1,15 @@
-const IIdiomaRepository = require('../../../../domain/repositories/IIdiomaRepository');
+import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import { IdiomaApi } from '../../../../domain/types';
 const IdiomaSchema = require('../schemas/Idioma');
 
-class IdiomaRepository extends IIdiomaRepository {
+export default class IdiomaRepository extends IIdiomaRepository {
+  idiomasMap: {
+    [key: string]: {
+      index: string,
+      name: string
+    }
+  }
+
   constructor() {
     super()
     this.idiomasMap = {}
@@ -10,7 +18,7 @@ class IdiomaRepository extends IIdiomaRepository {
 
   async cargarIdiomas() {
     const idiomas = await IdiomaSchema.find();
-    idiomas.forEach(idioma => {
+    idiomas.forEach((idioma: IdiomaApi) => {
       this.idiomasMap[idioma.index] = {
         index: idioma.index,
         name: idioma.name
@@ -18,11 +26,11 @@ class IdiomaRepository extends IIdiomaRepository {
     });
   }
 
-  obtenerIdiomaPorIndice(index) {
+  obtenerIdiomaPorIndice(index: string): IdiomaApi {
     return this.idiomasMap[index];
   }
 
-  obtenerIdiomasPorIndices(indices) {
+  obtenerIdiomasPorIndices(indices: string[]): IdiomaApi[] {
     return indices.map(index => this.obtenerIdiomaPorIndice(index));
   }
 
@@ -30,5 +38,3 @@ class IdiomaRepository extends IIdiomaRepository {
     return Object.values(this.idiomasMap)
   }
 }
-
-module.exports = IdiomaRepository;

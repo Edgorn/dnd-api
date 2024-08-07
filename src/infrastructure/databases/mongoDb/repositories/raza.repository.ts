@@ -11,24 +11,24 @@ const { formatearCompetencias, formatearOptions, formatearConjuros } = require('
 const RazaSchema = require('../schemas/Raza');
 const CompetenciaRepository = require('./competencia.repository');
 const ConjuroRepository = require('./conjuros.repository');
-const DañoRepository = require('./daño.repository');
+import DañoRepository from './daño.repository';
 const HabilidadRepository = require('./habilidad.repository');
-const IdiomaRepository = require('./idioma.repository');
-const RasgoRepository = require('./rasgo.repository');
+import IdiomaRepository from './idioma.repository';
+import RasgoRepository from './rasgo.repository';
 
 export default class RazaRepository extends IRazaRepository {
-  /*idiomaRepository: IIdiomaRepository
+  idiomaRepository: IIdiomaRepository
   rasgoRepository: IRasgoRepository
-  dañoRepository: IDañoRepository
+  dañoRepository: IDañoRepository/*
   habilidadRepository: IHabilidadRepository
   competenciaRepository: ICompetenciaRepository
   conjuroRepository: IConjuroRepository*/
 
   constructor() {
     super()
-    /*this.idiomaRepository = new IdiomaRepository()
+    this.idiomaRepository = new IdiomaRepository()
     this.rasgoRepository = new RasgoRepository()
-    this.dañoRepository = new DañoRepository()
+    this.dañoRepository = new DañoRepository()/*
     this.habilidadRepository = new HabilidadRepository()
     this.competenciaRepository = new CompetenciaRepository()
     this.conjuroRepository = new ConjuroRepository()*/
@@ -65,13 +65,13 @@ export default class RazaRepository extends IRazaRepository {
       speed: raza.speed,
       size: raza.size,
       subraces: this.formatearSubrazas(raza?.subraces ?? []),
-      ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),/*
-      languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
-      proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
+      ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
+      languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),/*
+      proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),*/
+      traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),/*
       options: formatearOptions(raza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
-      resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])*/
+      spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),*/
+      resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])
     };
     
   }
@@ -101,11 +101,11 @@ export default class RazaRepository extends IRazaRepository {
       speed: subraza.speed,
       types: subraza?.types,
       ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),/*
-      proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? []),
+      proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),*/
+      traits: this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? []),/*
       options: formatearOptions(subraza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
-      resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])*/
+      spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),*/
+      resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])
     }
   }
 }

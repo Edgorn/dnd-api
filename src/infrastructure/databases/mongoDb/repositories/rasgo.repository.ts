@@ -1,8 +1,16 @@
-const IRasgoRepository = require('../../../../domain/repositories/IRasgoRepository');
+import { RasgoMongo } from "../../../../domain/types";
+
+import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 const RasgoSchema = require('../schemas/Rasgo');
 
-class RasgoRepository extends IRasgoRepository {
-
+export default class RasgoRepository extends IRasgoRepository {
+  rasgosMap: {
+    [key: string]: {
+      index: string,
+      name: string,
+      desc: string
+    }
+  }
   constructor() {
     super()
     this.rasgosMap = {}
@@ -12,7 +20,7 @@ class RasgoRepository extends IRasgoRepository {
   async cargarRasgos() {
     const rasgos = await RasgoSchema.find();
 
-    rasgos.forEach(rasgo => {
+    rasgos.forEach((rasgo: RasgoMongo) => {
       this.rasgosMap[rasgo.index] = {
         index: rasgo.index,
         name: rasgo.name,
@@ -21,7 +29,7 @@ class RasgoRepository extends IRasgoRepository {
     });
   }
 
-  obtenerRasgoPorIndice(index) {
+  obtenerRasgoPorIndice(index: string) {
     if (index === 'rogue-expertise') {
       return {
         index: 'rogue-expertise',
@@ -33,9 +41,7 @@ class RasgoRepository extends IRasgoRepository {
     }
   }
 
-  obtenerRasgosPorIndices(indices) {
+  obtenerRasgosPorIndices(indices: string[]) {
     return indices.map(index => this.obtenerRasgoPorIndice(index));
   }
 }
-
-module.exports = RasgoRepository;

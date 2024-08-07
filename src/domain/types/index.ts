@@ -18,7 +18,10 @@ export interface RazaMongo {
   speed: string,
   size: string,
   subraces: SubrazaMongo[]
-  ability_bonuses: AbilityBonusesMongo[]
+  ability_bonuses: AbilityBonusesMongo[],
+  languages: string[],
+  traits: string[],
+  resistances: string[]
 }
 
 export interface SubrazaMongo {
@@ -28,7 +31,10 @@ export interface SubrazaMongo {
   desc: string,
   speed: string,
   types: razaType[],
-  ability_bonuses: AbilityBonusesMongo[]
+  ability_bonuses: AbilityBonusesMongo[],
+  languages: string[],
+  traits: string[],
+  resistances: string[]
 }
 
 export interface RazaApi {
@@ -39,7 +45,10 @@ export interface RazaApi {
   speed: string,
   size: string,
   subraces: SubrazaApi[],
-  ability_bonuses: AbilityBonusesApi[]
+  ability_bonuses: AbilityBonusesApi[],
+  languages: IdiomaApi[],
+  traits: RasgoApi[],
+  resistances: DañoApi[]
 }
 
 export interface SubrazaApi {
@@ -49,9 +58,10 @@ export interface SubrazaApi {
   desc: string,
   speed: string,
   types: razaType[],
-  ability_bonuses: AbilityBonusesApi[]
+  ability_bonuses: AbilityBonusesApi[],
+  traits: RasgoApi[],
+  resistances: DañoApi[]
 }
-
 
 export interface AbilityBonusesMongo {
   index: string,
@@ -68,4 +78,26 @@ export interface razaType {
   index: string,
   name: string,
   img: string
+}
+
+export interface IdiomaApi {
+  index: string,
+  name: string
+}
+
+export interface RasgoMongo {
+  index: string,
+  name: string,
+  desc: string[]
+}
+
+export interface RasgoApi {
+  index: string,
+  name: string,
+  desc: string
+}
+
+export interface DañoApi {
+  index: string,
+  name: string
 }

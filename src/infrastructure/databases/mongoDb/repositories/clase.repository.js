@@ -5,8 +5,8 @@ const CompetenciaRepository = require('./competencia.repository');
 const ConjuroRepository = require('./conjuros.repository');
 const EquipamientoRepository = require('./equipamiento.repository');
 const HabilidadRepository = require('./habilidad.repository');
-const IdiomaRepository = require('./idioma.repository');
-const RasgoRepository = require('./rasgo.repository');
+import IdiomaRepository from './idioma.repository';
+import RasgoRepository from './rasgo.repository';
 
 class ClaseRepository extends IClaseRepository {
 
