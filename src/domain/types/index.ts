@@ -13,6 +13,7 @@ export interface LogearUsuarioResult {
 export interface RazaMongo {
   index: string,
   name: string,
+  img: string,
   desc: string,
   speed: string,
   size: string,
@@ -23,14 +24,17 @@ export interface RazaMongo {
 export interface SubrazaMongo {
   index: string,
   name: string,
+  img: string,
   desc: string,
   speed: string,
+  types: razaType[],
   ability_bonuses: AbilityBonusesMongo[]
 }
 
 export interface RazaApi {
   index: string,
   name: string,
+  img: string,
   desc: string,
   speed: string,
   size: string,
@@ -41,8 +45,10 @@ export interface RazaApi {
 export interface SubrazaApi {
   index: string,
   name: string,
+  img: string,
   desc: string,
   speed: string,
+  types: razaType[],
   ability_bonuses: AbilityBonusesApi[]
 }
 
@@ -56,4 +62,10 @@ export interface AbilityBonusesApi {
   index: string,
   name: string,
   bonus: number
+}
+
+export interface razaType {
+  index: string,
+  name: string,
+  img: string
 }

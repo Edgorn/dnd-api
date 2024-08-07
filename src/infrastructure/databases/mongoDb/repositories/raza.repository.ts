@@ -61,6 +61,7 @@ export default class RazaRepository extends IRazaRepository {
       index: raza.index,
       name: raza.name,
       desc: raza.desc,
+      img: raza.img,
       speed: raza.speed,
       size: raza.size,
       subraces: this.formatearSubrazas(raza?.subraces ?? []),
@@ -95,14 +96,10 @@ export default class RazaRepository extends IRazaRepository {
     return {
       index: subraza.index,
       name: subraza.name,
+      img: subraza.img,
       desc: subraza.desc,
       speed: subraza.speed,
-      /*types: subraza?.types?.map((type: any) => {
-        return {
-          name: type.name,
-          desc: type.desc
-        }
-      }),*/
+      types: subraza?.types,
       ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),/*
       proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       traits: this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? []),
