@@ -42,7 +42,7 @@ export const formatearConjuros = (spellsApi: string[], conjuroRepository: IConju
     }
 
     return {
-      index: conjuro.index,
+      index: conjuro?.index ?? '',
       name: conjuro.name,
       type: arraySpell[1],
       typeName: tipo
