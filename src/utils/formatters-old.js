@@ -49,7 +49,7 @@ const formatearCompetencias = (proficiencies, habilidadRepository, competenciaRe
     ...competencias
   ]
 }
-
+/*
 const formatearOptions = (optionsApi, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository) => {
   try {
     return optionsApi.map(optionApi => {
@@ -176,7 +176,7 @@ const formatearConjuros = (spellsApi, conjuroRepository, rasgoRepository) => {
   })
 
   return conjuros
-}
+}*/
 
 const formatearSalvacion = (ability_bonuses) => {
   const abilityBonuses = ability_bonuses?.map(ability => {
@@ -271,8 +271,6 @@ const formatearDinero = (money, equipamientoRepository) => {
 
 module.exports = {
   formatearCompetencias,
-  formatearOptions,
-  formatearConjuros,
   formatearSalvacion,
   formatearEquipamiento,
   formatearEquipamientosOptions,

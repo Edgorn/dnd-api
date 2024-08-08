@@ -1,7 +1,16 @@
-const ICompetenciaRepository = require('../../../../domain/repositories/ICompetenciaRepository');
+import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
+import { CompetenciaApi } from '../../../../domain/types';
 const CompetenciaSchema = require('../schemas/Competencia');
 
-class CompetenciaRepository extends ICompetenciaRepository {
+export default class CompetenciaRepository extends ICompetenciaRepository {
+  competenciasMap: {
+    [key: string]: {
+      index: string,
+      name: string,
+      type: string
+    }
+  }
+
   constructor() {
     super()
     this.competenciasMap = {}
@@ -9,7 +18,8 @@ class CompetenciaRepository extends ICompetenciaRepository {
   }
 
   async cargarCompetencias() {
-    const competencias = await CompetenciaSchema.find();
+    const competencias: CompetenciaApi[] = await CompetenciaSchema.find();
+
     competencias.forEach(competencia => {
       this.competenciasMap[competencia.index] = {
         index: competencia.index,
@@ -19,11 +29,11 @@ class CompetenciaRepository extends ICompetenciaRepository {
     });
   }
 
-  obtenerCompetenciaPorIndice(index) {
+  obtenerCompetenciaPorIndice(index: string) {
     return this.competenciasMap[index];
   }
 
-  obtenerCompetenciasPorIndices(indices) {
+  obtenerCompetenciasPorIndices(indices: string[]) {
     return indices.map(index => this.obtenerCompetenciaPorIndice(index));
   }
 
@@ -31,9 +41,7 @@ class CompetenciaRepository extends ICompetenciaRepository {
     return Object.values(this.competenciasMap)
   }
 
-  obtenerCompetenciasPorType(type) {
+  obtenerCompetenciasPorType(type: string) {
     return this.obtenerCompetencias().filter(competencia => competencia.type === type)
   }
 }
-
-module.exports = CompetenciaRepository;

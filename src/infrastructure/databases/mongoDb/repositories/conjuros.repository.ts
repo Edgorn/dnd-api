@@ -1,7 +1,17 @@
-const IConjuroRepository = require('../../../../domain/repositories/IConjuroRepository');
+import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import { ConjuroMongo } from '../../../../domain/types';
 const ConjuroSchema = require('../schemas/Conjuro');
 
-class ConjuroRepository extends IConjuroRepository {
+export default class ConjuroRepository extends IConjuroRepository {
+  conjurosMap: {
+    [key: string]: {
+      index: string;
+      name: string;
+      level: number;
+      classes: string[];
+    };
+  }
+
   constructor() {
     super()
     this.conjurosMap = {}
@@ -9,7 +19,8 @@ class ConjuroRepository extends IConjuroRepository {
   }
 
   async cargarConjuros() {
-    const conjuros = await ConjuroSchema.find();
+    const conjuros: ConjuroMongo[] = await ConjuroSchema.find();
+
     conjuros.forEach(conjuro => {
       this.conjurosMap[conjuro.index] = {
         index: conjuro.index,
@@ -20,15 +31,15 @@ class ConjuroRepository extends IConjuroRepository {
     });
   }
 
-  obtenerConjuroPorIndice(index) {
+  obtenerConjuroPorIndice(index: string) {
     return this.conjurosMap[index];
   }
 
-  obtenerConjurosPorIndices(indices) {
+  obtenerConjurosPorIndices(indices: string[]) {
     return indices.map(index => this.obtenerConjuroPorIndice(index));
   }
 
-  obtenerConjurosPorNivelClase(nivel, clase) {
+  obtenerConjurosPorNivelClase(nivel: string, clase: string) {
     const conjuros = Object.values(this.conjurosMap)
       .filter(conjuro => conjuro.level === parseInt(nivel))
       .filter(conjuro => conjuro.classes.includes(clase))
@@ -38,9 +49,6 @@ class ConjuroRepository extends IConjuroRepository {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
 
-
     return conjuros
   }
 }
-
-module.exports = ConjuroRepository;

@@ -1,7 +1,15 @@
-const IHabilidadRepository = require('../../../../domain/repositories/IHabilidadRepository');
+import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
+import { HabilidadApi } from '../../../../domain/types';
 const HabilidadSchema = require('../schemas/Habilidad');
 
-class HabilidadRepository extends IHabilidadRepository {
+export default class HabilidadRepository extends IHabilidadRepository {
+  habilidadesMap: {
+    [key: string]: {
+      index: string,
+      name: string
+    }
+  }
+
   constructor() {
     super()
     this.habilidadesMap = {}
@@ -9,7 +17,7 @@ class HabilidadRepository extends IHabilidadRepository {
   }
 
   async cargarHabilidades() {
-    const habilidades = await HabilidadSchema.find();
+    const habilidades: HabilidadApi[] = await HabilidadSchema.find();
     habilidades.forEach(habilidad => {
       this.habilidadesMap[habilidad.index] = {
         index: habilidad.index,
@@ -18,11 +26,11 @@ class HabilidadRepository extends IHabilidadRepository {
     });
   }
 
-  obtenerHabilidadPorIndice(index) {
+  obtenerHabilidadPorIndice(index: string) {
     return this.habilidadesMap[index];
   }
 
-  obtenerHabilidadesPorIndices(indices) {
+  obtenerHabilidadesPorIndices(indices: string[]) {
     return indices.map(index => this.obtenerHabilidadPorIndice(index));
   }
 
@@ -30,5 +38,3 @@ class HabilidadRepository extends IHabilidadRepository {
     return Object.values(this.habilidadesMap)
   }
 }
-
-module.exports = HabilidadRepository;

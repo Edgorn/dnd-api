@@ -6,32 +6,31 @@ import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 import { RazaApi, RazaMongo, SubrazaApi, SubrazaMongo } from '../../../../domain/types';
-import { formatearAbilityBonuses } from '../../../../utils/formatters';
-const { formatearCompetencias, formatearOptions, formatearConjuros } = require('../../../../utils/formatters-old');
+import { formatearAbilityBonuses, formatearConjuros, formatearCompetencias, formatearOptions } from '../../../../utils/formatters';
 const RazaSchema = require('../schemas/Raza');
-const CompetenciaRepository = require('./competencia.repository');
-const ConjuroRepository = require('./conjuros.repository');
+import CompetenciaRepository from './competencia.repository';
+import ConjuroRepository from './conjuros.repository';
 import DañoRepository from './daño.repository';
-const HabilidadRepository = require('./habilidad.repository');
+import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
 import RasgoRepository from './rasgo.repository';
 
 export default class RazaRepository extends IRazaRepository {
   idiomaRepository: IIdiomaRepository
   rasgoRepository: IRasgoRepository
-  dañoRepository: IDañoRepository/*
+  dañoRepository: IDañoRepository
   habilidadRepository: IHabilidadRepository
   competenciaRepository: ICompetenciaRepository
-  conjuroRepository: IConjuroRepository*/
+  conjuroRepository: IConjuroRepository
 
   constructor() {
     super()
     this.idiomaRepository = new IdiomaRepository()
     this.rasgoRepository = new RasgoRepository()
-    this.dañoRepository = new DañoRepository()/*
+    this.dañoRepository = new DañoRepository()
     this.habilidadRepository = new HabilidadRepository()
     this.competenciaRepository = new CompetenciaRepository()
-    this.conjuroRepository = new ConjuroRepository()*/
+    this.conjuroRepository = new ConjuroRepository()
   }
 
   async obtenerTodas() {
@@ -66,14 +65,13 @@ export default class RazaRepository extends IRazaRepository {
       size: raza.size,
       subraces: this.formatearSubrazas(raza?.subraces ?? []),
       ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
-      languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),/*
-      proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),*/
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),/*
+      languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
+      proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
+      traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
       options: formatearOptions(raza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),*/
+      spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
       resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])
     };
-    
   }
 
   formatearSubrazas(subrazas: SubrazaMongo[]): SubrazaApi[] {
@@ -100,11 +98,11 @@ export default class RazaRepository extends IRazaRepository {
       desc: subraza.desc,
       speed: subraza.speed,
       types: subraza?.types,
-      ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),/*
-      proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),*/
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? []),/*
+      ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),
+      proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
+      traits: this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? []),
       options: formatearOptions(subraza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),*/
+      spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
       resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])
     }
   }

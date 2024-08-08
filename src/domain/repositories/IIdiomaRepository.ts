@@ -8,4 +8,8 @@ export default class IIdiomaRepository {
   obtenerIdiomaPorIndice(params: string): IdiomaApi {
     throw new Error('Método no implementado');
   }
+
+  obtenerIdiomas(): IdiomaApi[] {
+    throw new Error('Método no implementado');
+  }
 }

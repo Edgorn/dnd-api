@@ -1,10 +1,10 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 const { formatearCompetencias, formatearOptions, formatearSalvacion, formatearEquipamiento, formatearEquipamientosOptions, formatearDinero } = require('../../../../utils/formatters-old');
 const ClaseSchema = require('../schemas/Clase');
-const CompetenciaRepository = require('./competencia.repository');
-const ConjuroRepository = require('./conjuros.repository');
+import CompetenciaRepository from './competencia.repository';
+import ConjuroRepository from './conjuros.repository';
 const EquipamientoRepository = require('./equipamiento.repository');
-const HabilidadRepository = require('./habilidad.repository');
+import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
 import RasgoRepository from './rasgo.repository';
 

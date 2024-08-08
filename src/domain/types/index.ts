@@ -21,7 +21,10 @@ export interface RazaMongo {
   ability_bonuses: AbilityBonusesMongo[],
   languages: string[],
   traits: string[],
-  resistances: string[]
+  resistances: string[],
+  spells: string[],
+  starting_proficiencies: ProficienciesMongo[],
+  options: OptionsMongo[]
 }
 
 export interface SubrazaMongo {
@@ -34,7 +37,10 @@ export interface SubrazaMongo {
   ability_bonuses: AbilityBonusesMongo[],
   languages: string[],
   traits: string[],
-  resistances: string[]
+  resistances: string[],
+  spells: string[],
+  starting_proficiencies: ProficienciesMongo[],
+  options: OptionsMongo[]
 }
 
 export interface RazaApi {
@@ -48,7 +54,10 @@ export interface RazaApi {
   ability_bonuses: AbilityBonusesApi[],
   languages: IdiomaApi[],
   traits: RasgoApi[],
-  resistances: DañoApi[]
+  resistances: DañoApi[],
+  spells: ConjuroApi[],
+  proficiencies: ProficienciesApi[],
+  options: OptionsApi[]
 }
 
 export interface SubrazaApi {
@@ -60,7 +69,10 @@ export interface SubrazaApi {
   types: razaType[],
   ability_bonuses: AbilityBonusesApi[],
   traits: RasgoApi[],
-  resistances: DañoApi[]
+  resistances: DañoApi[],
+  spells: ConjuroApi[],
+  proficiencies: ProficienciesApi[],
+  options: OptionsApi[]
 }
 
 export interface AbilityBonusesMongo {
@@ -100,4 +112,51 @@ export interface RasgoApi {
 export interface DañoApi {
   index: string,
   name: string
+}
+
+export interface ConjuroMongo {
+  index: string,
+  name: string,
+  level: number,
+  classes: string[]
+}
+
+export interface ConjuroApi {
+  index: string,
+  name: string
+}
+
+export interface ProficienciesMongo {
+  index: string,
+  type: string
+}
+
+export interface ProficienciesApi {
+  index: string,
+  name: string,
+  type: string
+}
+
+export interface HabilidadApi {
+  index: string,
+  name: string
+}
+
+export interface CompetenciaApi {
+  index: string,
+  name: string,
+  type: string
+}
+
+export interface OptionsMongo {
+  type: string,
+  options: OptionsMongo[] | string[],
+  api?: string,
+  choose: number
+}
+
+export interface OptionsApi {
+  options: ({ index: string; name: string; } | OptionsApi)[],
+  choose: number,
+  type: string
 }
