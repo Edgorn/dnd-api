@@ -30,6 +30,11 @@ export const formatearConjuros = (spellsApi: string[], conjuroRepository: IConju
   const conjuros = spellsApi.map(spell => {
     const arraySpell = spell.split('_')
     const conjuro = conjuroRepository.obtenerConjuroPorIndice(arraySpell[0])
+
+    if (!conjuro) {
+      return null;
+    }
+
     const caracteristica = caracteristicas[arraySpell[1]] 
 
     let tipo = ''
@@ -42,12 +47,13 @@ export const formatearConjuros = (spellsApi: string[], conjuroRepository: IConju
     }
 
     return {
-      index: conjuro?.index ?? '',
+      index: conjuro.index ?? '',
       name: conjuro.name,
       type: arraySpell[1],
       typeName: tipo
     }
   })
+  .filter(conjuro => conjuro !== null);
 
   return conjuros
 }
