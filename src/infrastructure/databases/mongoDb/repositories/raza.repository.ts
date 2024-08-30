@@ -39,6 +39,12 @@ export default class RazaRepository extends IRazaRepository {
     return this.formatearRazas(razas)
   }
 
+  async getRaza(index: string) {
+    const raza = await RazaSchema.find({index});
+
+    return raza[0] ?? null
+  }
+
   formatearRazas(razas: RazaMongo[]): RazaApi[] {
     const formateadas = razas.map(raza => this.formatearRaza(raza))
 
