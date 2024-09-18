@@ -39,7 +39,7 @@ export default class ConjuroRepository extends IConjuroRepository {
     return indices.map(index => this.obtenerConjuroPorIndice(index));
   }
 
-  obtenerConjurosPorNivelClase(nivel: string, clase: string) {
+  obtenerConjurosPorNivelClase(nivel: string, clase: string): any {
     const conjuros = Object.values(this.conjurosMap)
       .filter(conjuro => conjuro.level === parseInt(nivel))
       .filter(conjuro => conjuro.classes.includes(clase))

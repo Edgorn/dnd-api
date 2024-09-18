@@ -21,7 +21,15 @@ const personajeSchema = new mongoose.Schema({
   proficiency_weapon: [String],
   proficiency_armor: [String],
   proficiencies: [String],
-  spells: [String]
+  spells: [String],
+  classes: [{
+    class: String,
+    level: Number
+  }],
+  CA: Number,
+  HPMax: Number,
+  HPActual: Number,
+  XP: Number
 }, { collection: 'Personajes' });
 
 module.exports = mongoose.model('Personajes', personajeSchema);

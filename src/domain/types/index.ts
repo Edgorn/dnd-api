@@ -55,7 +55,7 @@ export interface RazaApi {
   languages: IdiomaApi[],
   traits: RasgoApi[],
   resistances: DañoApi[],
-  spells: ConjuroApi[],
+  spells: (ConjuroApi | null)[],
   proficiencies: ProficienciesApi[],
   options: OptionsApi[]
 }
@@ -70,7 +70,7 @@ export interface SubrazaApi {
   ability_bonuses: AbilityBonusesApi[],
   traits: RasgoApi[],
   resistances: DañoApi[],
-  spells: ConjuroApi[],
+  spells: (ConjuroApi | null)[],
   proficiencies: ProficienciesApi[],
   options: OptionsApi[]
 }
@@ -123,7 +123,9 @@ export interface ConjuroMongo {
 
 export interface ConjuroApi {
   index: string,
-  name: string
+  name: string,
+  type: string,
+  typeName: string
 }
 
 export interface ProficienciesMongo {
