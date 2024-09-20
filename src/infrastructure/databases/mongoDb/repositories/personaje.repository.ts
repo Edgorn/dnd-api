@@ -42,10 +42,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
       HP += 1
     }
 
+    const dataType = subraza?.types?.find((t: any) => t.name === type)
+
     const personaje = new Personaje({
       name,
       user,
-      img: type?.img ?? subraza?.img ?? raza?.img,
+      img: dataType?.img ?? subraza?.img ?? raza?.img,
       background,
       appearance,
       abilities,

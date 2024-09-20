@@ -5,16 +5,16 @@ import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repo
 const usuarioService = new UsuarioService(new UsuarioRepository())
 const validarToken = new ValidarToken(usuarioService)
 
-import CrearPersonaje from "../../../application/use-cases/crearPersonaje";
-import ConsultarPersonajes from "../../../application/use-cases/consultarPersonajes";
-import PersonajeService from "../../../domain/services/personaje.service";
-import PersonajeRepository from "../../databases/mongoDb/repositories/personaje.repository";
+import CampañaRepository from "../../databases/mongoDb/repositories/campaña.repository";
+import CrearCampaña from "../../../application/use-cases/crearCampaña";
+import CampañaService from "../../../domain/services/campaña.service";
+import ConsultarCampañas from "../../../application/use-cases/consultarCampañas";
 
-const personajeService = new PersonajeService(new PersonajeRepository())
-const crearPersonaje = new CrearPersonaje(personajeService);
-const consultarPersonajes = new ConsultarPersonajes(personajeService);
+const campañaService = new CampañaService(new CampañaRepository())
+const crearCampaña = new CrearCampaña(campañaService)
+const consultarCampaña = new ConsultarCampañas(campañaService)
 
-const createCharacter = async (req: any, res: any) => {
+const createCampaign = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
 
@@ -22,7 +22,7 @@ const createCharacter = async (req: any, res: any) => {
     const validToken = await validarToken.execute(token)
 
     if (validToken) {
-      const { success, data, message } = await crearPersonaje.execute({ ...req.body, user: validToken })
+      const { success, data, message } = await crearCampaña.execute({ ...req.body, master: validToken })
 
       if (success) {
         res.status(201).json(data);
@@ -34,11 +34,12 @@ const createCharacter = async (req: any, res: any) => {
     }
   } catch (e) {
     console.error(e)
-    res.status(500).json({ error: 'Error al crear personaje' });
+    res.status(500).json({ error: 'Error al crear campaña' });
   }
 };
 
-const getCharacters = async (req: any, res: any) => {
+
+const getCampaign = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
 
@@ -46,7 +47,10 @@ const getCharacters = async (req: any, res: any) => {
     const validToken = await validarToken.execute(token)
 
     if (validToken) {
-      const { success, data, message } = await consultarPersonajes.execute(validToken)
+      const { success, data, message } = await consultarCampaña.execute(validToken)
+      //const { success, data, message } = await consultarPersonajes.execute(validToken)
+
+
 
       if (success) {
         res.status(201).json(data);
@@ -58,8 +62,8 @@ const getCharacters = async (req: any, res: any) => {
     }
   } catch (e) {
     console.error(e)
-    res.status(500).json({ error: 'Error al consultar personajes' });
+    res.status(500).json({ error: 'Error al consultar campañas' });
   }
 };
 
-export default { createCharacter, getCharacters };
+export default { createCampaign, getCampaign };

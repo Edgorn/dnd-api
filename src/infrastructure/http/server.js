@@ -5,6 +5,7 @@ const connectDB = require('../databases/mongoDb/mongodb');
 const usuarioRoutes = require('./routes/usuario.routes');
 const razaRoutes = require('./routes/raza.routes');
 const personajeRoutes = require('./routes/personaje.routes');
+const campañaRoutes = require('./routes/campaña.routes');
 const claseRoutes = require('./routes/clase.routes');
 const transfondoRoutes = require('./routes/transfondo.routes');
 const defaultApi = require('../defaultApi/index');
@@ -18,6 +19,7 @@ connectDB();
 app.use(usuarioRoutes)
 app.use(razaRoutes)
 app.use(personajeRoutes)
+app.use(campañaRoutes)
 app.use(claseRoutes);
 app.use(transfondoRoutes);
 app.use('*', defaultApi)

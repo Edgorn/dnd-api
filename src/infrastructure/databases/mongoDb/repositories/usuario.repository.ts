@@ -10,9 +10,10 @@ export default class UsuarioRepository extends IUsuarioRepository {
   async logearUsuario({ user, password }: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
     const usuario = await UsuarioSchema.find({ name: user, password: password })
 
+
     if (usuario[0]) {
       return { 
-        token: usuario[0]?.index,
+        token: usuario[0]?.token,
         user: {
           name: usuario[0]?.name
         }
@@ -23,8 +24,8 @@ export default class UsuarioRepository extends IUsuarioRepository {
   }
 
   async validarToken(token: string): Promise<boolean> {
-    const usuario = await UsuarioSchema.find({ index: token })
-    
-    return usuario.length > 0
+    const usuario = await UsuarioSchema.find({ token: token })
+
+    return usuario[0]?.index
   }
 }
