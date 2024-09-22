@@ -41,6 +41,7 @@ export default class CampañaRepository extends ICampañaRepository {
     const userMaster = await Usuario.find({ index: campaña.master })
 
     return {
+      id: campaña._id.toString(),
       name: campaña.name,
       isMaster: master === campaña.master,
       players: campaña.players.length,
