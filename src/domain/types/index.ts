@@ -141,7 +141,8 @@ export interface ProficienciesApi {
 
 export interface HabilidadApi {
   index: string,
-  name: string
+  name: string,
+  ability_score: string
 }
 
 export interface CompetenciaApi {

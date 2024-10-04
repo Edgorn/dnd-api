@@ -9,10 +9,14 @@ import CampañaRepository from "../../databases/mongoDb/repositories/campaña.re
 import CrearCampaña from "../../../application/use-cases/crearCampaña";
 import CampañaService from "../../../domain/services/campaña.service";
 import ConsultarCampañas from "../../../application/use-cases/consultarCampañas";
+import ConsultarCampaña from "../../../application/use-cases/consultarCampaña";
+import EntrarCampaña from "../../../application/use-cases/entrarCampaña";
 
 const campañaService = new CampañaService(new CampañaRepository())
 const crearCampaña = new CrearCampaña(campañaService)
-const consultarCampaña = new ConsultarCampañas(campañaService)
+const consultarCampañas = new ConsultarCampañas(campañaService)
+const consultarCampaña = new ConsultarCampaña(campañaService)
+const entrarCampaña = new EntrarCampaña(campañaService)
 
 const createCampaign = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
@@ -38,7 +42,6 @@ const createCampaign = async (req: any, res: any) => {
   }
 };
 
-
 const getCampaign = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
@@ -47,11 +50,22 @@ const getCampaign = async (req: any, res: any) => {
     const validToken = await validarToken.execute(token)
 
     if (validToken) {
-      const { success, data, message } = await consultarCampaña.execute(validToken)
-      //const { success, data, message } = await consultarPersonajes.execute(validToken)
+      const { id } = req.params;
 
-
-
+      let response = {
+        success: false,
+        data: {},
+        message: 'Error'
+      }
+      
+      if (id) {
+        response = await consultarCampaña.execute(validToken, id)
+      } else {
+        response = await consultarCampañas.execute(validToken)
+      }
+      
+      const { success, data, message } = response
+      
       if (success) {
         res.status(201).json(data);
       } else {
@@ -66,4 +80,30 @@ const getCampaign = async (req: any, res: any) => {
   }
 };
 
-export default { createCampaign, getCampaign };
+const entryCampaign = async (req: any, res: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
+  try {
+    const validToken = await validarToken.execute(token)
+
+    if (validToken) {
+      const { id } = req.body;
+
+      const { success, data, message } = await entrarCampaña.execute(validToken, id)
+      
+      if (success) {
+        res.status(201).json(data);
+      } else {
+        res.status(404).json({ error: message });
+      }
+    } else {
+      res.status(401).json({ error: 'Token invalido' });
+    }
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al consultar campañas' });
+  }
+};
+
+export default { createCampaign, getCampaign, entryCampaign };

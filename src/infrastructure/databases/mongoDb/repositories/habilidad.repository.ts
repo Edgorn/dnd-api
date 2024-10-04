@@ -6,7 +6,8 @@ export default class HabilidadRepository extends IHabilidadRepository {
   habilidadesMap: {
     [key: string]: {
       index: string,
-      name: string
+      name: string,
+      ability_score: string
     }
   }
 
@@ -21,7 +22,8 @@ export default class HabilidadRepository extends IHabilidadRepository {
     habilidades.forEach(habilidad => {
       this.habilidadesMap[habilidad.index] = {
         index: habilidad.index,
-        name: habilidad.name
+        name: habilidad.name,
+        ability_score: habilidad.ability_score
       };
     });
   }

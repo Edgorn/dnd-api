@@ -24,7 +24,16 @@ export default class PersonajeService {
       return { success: true, data: result };
       
     } catch (error) {
-      console.error(error)
+      return { success: false, message: 'Error crear personaje' };
+    }
+  }
+
+  async consultarPersonaje(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
+    try {
+      const result = await this.personajeRepository.consultarPersonaje(idUser, idCharacter);
+      return { success: true, data: result };
+      
+    } catch (error) {
       return { success: false, message: 'Error crear personaje' };
     }
   }

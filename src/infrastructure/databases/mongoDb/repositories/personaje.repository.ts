@@ -1,15 +1,27 @@
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
 import Personaje from '../schemas/Personaje';
+import CompetenciaRepository from './competencia.repository';
+import HabilidadRepository from './habilidad.repository';
+import IdiomaRepository from './idioma.repository';
+import RasgoRepository from './rasgo.repository';
 import RazaRepository from './raza.repository';
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 
 export default class PersonajeRepository extends IPersonajeRepository {
   razaRepository: RazaRepository
+  habilidadRepository: HabilidadRepository
+  idiomaRepository: IdiomaRepository
+  competenciaRepository: CompetenciaRepository
+  rasgoRepository: RasgoRepository
 
   constructor() {
     super()
     this.razaRepository = new RazaRepository()
+    this.habilidadRepository = new HabilidadRepository()
+    this.idiomaRepository = new IdiomaRepository()
+    this.competenciaRepository = new CompetenciaRepository()
+    this.rasgoRepository = new RasgoRepository()
   }
 
   async crear(data: any): Promise<any> {
@@ -98,8 +110,15 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return this.formatearPersonajes(personajes)
   }
 
+  
+  async consultarPersonaje(idUser: string, idCharacter: string): Promise<any> {
+    const personaje = await Personaje.findById(idCharacter);
+
+    return this.formatearPersonaje(personaje)
+  }
+
   formatearPersonajes(personajes: any[]): any[] {
-    const formateadas = personajes.map(personaje => this.formatearPersonaje(personaje))
+    const formateadas = personajes.map(personaje => this.formatearPersonajeBasico(personaje))
 
     formateadas.sort((a, b) => {
       if (a.name < b.name) {
@@ -114,10 +133,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return formateadas;
   }
 
-  formatearPersonaje(personaje: any): any {
+  formatearPersonajeBasico(personaje: any): any {
     const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
 
     return {
+      id: personaje._id.toString(),
       img: personaje.img,
       name: personaje.name,
       race: personaje.race,
@@ -128,6 +148,62 @@ export default class PersonajeRepository extends IPersonajeRepository {
       HPActual: personaje.HPActual,
       XP: personaje.XP,
       XPMax: nivel[level]
+    }
+  }
+
+  formatearPersonaje(personaje: any): any {
+    const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
+
+    const habilidades = this.habilidadRepository
+      .obtenerHabilidades()
+      .map(habilidad => {
+        return {
+          ...habilidad,
+          competencia: personaje?.skills?.includes(habilidad?.index) ? 1 : 0
+        }
+      })
+      .sort((a, b) => {
+        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+      })
+
+    const idiomas = this.idiomaRepository
+      .obtenerIdiomasPorIndices(personaje?.languages)
+      .map(idioma => idioma.name)
+
+    const weapons = this.competenciaRepository
+      .obtenerCompetenciasPorIndices(personaje?.proficiency_weapon)
+      .map(weapon => weapon.name)
+      
+    
+    const armors = this.competenciaRepository
+      .obtenerCompetenciasPorIndices(personaje?.proficiency_armor)
+      .map(armor => armor.name)
+      
+    const proficiencies = this.competenciaRepository
+      .obtenerCompetenciasPorIndices(personaje?.proficiencies)
+      .map(proficiency => proficiency.name)
+
+    const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
+
+    return {
+      id: personaje._id.toString(),
+      img: personaje.img,
+      name: personaje.name,
+      race: personaje.race,
+      classes: personaje.classes,
+      level,
+      XP: personaje.XP,
+      XPMax: nivel[level],
+      abilities: personaje?.abilities,
+      HPMax: personaje?.HPMax,
+      CA: personaje?.CA,
+      speed: personaje?.speed,
+      skills: habilidades,
+      languages: idiomas,
+      weapons,
+      armors,
+      proficiencies,
+      traits
     }
   }
 }

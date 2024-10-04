@@ -3,7 +3,15 @@ export default class ICampañaRepository {
     throw new Error('Método no implementado');
   }
 
-  async consultar(data: any): Promise<any> {
+  async consultarCampañas(data: any): Promise<any> {
+    throw new Error('Método no implementado');
+  }
+
+  async consultarCampaña(data: any, id: string | undefined): Promise<any> {
+    throw new Error('Método no implementado');
+  }
+
+  async entrarCampaña(data: any, id: string | undefined): Promise<any> {
     throw new Error('Método no implementado');
   }
 }
