@@ -1,5 +1,9 @@
-class ClaseService {
-  constructor(claseRepository) {
+import IClaseRepository from "../repositories/IClaseRepository";
+
+export default class ClaseService {
+  private claseRepository: IClaseRepository;
+
+  constructor(claseRepository: IClaseRepository) {
     this.claseRepository = claseRepository;
   }
 
@@ -12,5 +16,3 @@ class ClaseService {
     }
   }
 }
-
-module.exports = ClaseService;

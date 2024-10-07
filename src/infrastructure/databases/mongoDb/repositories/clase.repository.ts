@@ -1,4 +1,5 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
+import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 const { formatearCompetencias, formatearOptions, formatearSalvacion, formatearEquipamiento, formatearEquipamientosOptions, formatearDinero } = require('../../../../utils/formatters-old');
 const ClaseSchema = require('../schemas/Clase');
 import CompetenciaRepository from './competencia.repository';
@@ -8,15 +9,16 @@ import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
 import RasgoRepository from './rasgo.repository';
 
-class ClaseRepository extends IClaseRepository {
+export default class ClaseRepository extends IClaseRepository {
+  rasgoRepository: IRasgoRepository
 
   constructor() {
     super()
-    this.habilidadRepository = new HabilidadRepository()
+    /*this.habilidadRepository = new HabilidadRepository()
     this.competenciaRepository = new CompetenciaRepository()
     this.idiomaRepository = new IdiomaRepository()
     this.conjuroRepository = new ConjuroRepository()
-    this.equipamientoRepository = new EquipamientoRepository()
+    this.equipamientoRepository = new EquipamientoRepository()*/
     this.rasgoRepository = new RasgoRepository()
   }
 
@@ -26,10 +28,12 @@ class ClaseRepository extends IClaseRepository {
     return this.formatearClases(clases)
   }
 
-  formatearClases(clases) {
-    const formateadas = clases.map(clase => this.formatearClase(clase))
+  formatearClases(clases: any) {
+    const formateadas = clases
+      .filter((clase: any) => clase.index === 'barbarian')
+      .map((clase: any) => this.formatearClase(clase))
 
-    formateadas.sort((a, b) => {
+    formateadas.sort((a: any, b: any) => {
       if (a.name < b.name) {
         return -1;
       }
@@ -42,8 +46,9 @@ class ClaseRepository extends IClaseRepository {
     return formateadas;
   }
 
-  formatearClase(clase) {
-    const dataLevel = clase?.levels?.find(level => level.level === 1)
+  formatearClase(clase: any) {
+    
+    const dataLevel = clase?.levels?.find((level: any) => level.level === 1)/*
     const dataSpells = dataLevel?.spellcasting?.spells?.split('_')
     const traitsOptions = dataLevel?.traits_options
     const terrainOptions = dataLevel?.terrain_options
@@ -79,28 +84,29 @@ class ClaseRepository extends IClaseRepository {
         })
       )
     }
-    
+    */
     return {
       index: clase.index,
       name: clase.name,
       desc: clase?.desc ?? '',
-      hit_die: clase.hit_die ?? 0,
-      proficiencies: formatearCompetencias(clase?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
+      //hit_die: clase.hit_die ?? 0,
+      img: clase.img,
+      /*proficiencies: formatearCompetencias(clase?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
       options: formatearOptions(clase?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       equipment: formatearEquipamiento(clase?.starting_equipment ?? [], this.equipamientoRepository),
-      equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? []),
+      equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),*/
+      traits: this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? []),/*
       money: formatearDinero(clase.money, this.equipamientoRepository),
       spellcasting_options: formatearOptions(dataLevel?.spellcasting?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       spells: dataSpells ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataSpells[0], dataSpells[1]) : [],
       traits_options: traitsOptions,
       terrain_options: terrainOptions,
       enemy_options: enemyOptions,
-      subclases_options: this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)
+      subclases_options: this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*/
     };
   }
-
+/*
   formatearSubclasesType(subclasses_type, subclases) {
     const formateadas = subclasses_type.map(subclasse_type => this.formatearSubclaseType(subclasse_type, subclases))
 
@@ -160,8 +166,6 @@ class ClaseRepository extends IClaseRepository {
       spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
       traits_options: traits_options_subclase
     }
-  }
+  }*/
 
 }
-
-module.exports = ClaseRepository;

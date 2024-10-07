@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const claseController = require('../controllers/clase.controller');
+import claseController from '../controllers/clase.controller';
 
 router.get('/clases', claseController.getClases);
 

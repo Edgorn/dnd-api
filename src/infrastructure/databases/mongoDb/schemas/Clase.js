@@ -5,6 +5,7 @@ const claseSchema = new mongoose.Schema({
   name: String,
   desc: String,
   hit_die: Number,
+  img: String,
   starting_proficiencies: [],
   levels: [{
     level: Number,
