@@ -7,7 +7,8 @@ export default class CompetenciaRepository extends ICompetenciaRepository {
     [key: string]: {
       index: string,
       name: string,
-      type: string
+      type: string,
+      desc: [string]
     }
   }
 
@@ -24,7 +25,8 @@ export default class CompetenciaRepository extends ICompetenciaRepository {
       this.competenciasMap[competencia.index] = {
         index: competencia.index,
         name: competencia.name,
-        type: competencia.type
+        type: competencia.type,
+        desc: competencia?.desc ?? []
       };
     });
   }
@@ -43,5 +45,21 @@ export default class CompetenciaRepository extends ICompetenciaRepository {
 
   obtenerCompetenciasPorType(type: string) {
     return this.obtenerCompetencias().filter(competencia => competencia.type === type)
+  }
+
+  obtenerCompetenciasPorIndicesSinRep(indices: string[]) {
+    const indicesSinRep = [...new Set(indices)]
+    const competencias_aux = indicesSinRep.map(index => this.obtenerCompetenciaPorIndice(index))
+    const indices_aux = competencias_aux.map(comp => comp.index)
+
+    const competencias:any[] = []
+
+    competencias_aux.forEach(competencia => {
+      if(!competencia.desc.some(elemento => indices_aux.includes(elemento))) {
+        competencias.push(competencia)
+      }
+    })
+
+    return competencias;
   }
 }

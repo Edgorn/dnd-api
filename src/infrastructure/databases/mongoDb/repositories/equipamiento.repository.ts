@@ -1,7 +1,10 @@
-const IEquipamientoRepository = require('../../../../domain/repositories/IEquipamientoRepository');
-const EquipamientoSchema = require('../schemas/Equipamiento');
+import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
+import EquipamientoSchema from '../schemas/Equipamiento';
 
-class EquipamientoRepository extends IEquipamientoRepository {
+export default class EquipamientoRepository extends IEquipamientoRepository {
+  equipamientosMap: {
+    [key: string]: any
+  }
 
   constructor() {
     super()
@@ -12,26 +15,27 @@ class EquipamientoRepository extends IEquipamientoRepository {
   async cargarEquipamientos() {
     const equipamientos = await EquipamientoSchema.find();
 
-    equipamientos.forEach(equipamiento => {
+    equipamientos.forEach((equipamiento: any) => {
       this.equipamientosMap[equipamiento.index] = {
         index: equipamiento.index,
         name: equipamiento.name,
         category: equipamiento.category,
-        weapon: equipamiento.weapon
+        weapon: equipamiento.weapon,
+        content: equipamiento.content
       };
     });
   }
 
-  obtenerEquipamientoPorIndice(index) {
+  obtenerEquipamientoPorIndice(index: string) {
     return this.equipamientosMap[index];
   }
 
-  obtenerEquipamientosPorIndices(indices) {
+  obtenerEquipamientosPorIndices(indices: string[]) {
     return indices.map(index => this.obtenerEquipamientoPorIndice(index));
   }
 
-  obtenerEquipamientosPorTipos(categoria, tipo, rango) {
-    const equipamientos = Object.values(this.equipamientosMap)
+  obtenerEquipamientosPorTipos(categoria: string, tipo: string, rango: string) {
+    const equipamientos:any[] = Object.values(this.equipamientosMap)
 
     return equipamientos
       .filter(eq => !categoria || eq?.category?.toLowerCase() === categoria)
@@ -39,5 +43,3 @@ class EquipamientoRepository extends IEquipamientoRepository {
       .filter(eq => !rango || eq?.weapon?.range?.toLowerCase() === rango)
   }
 }
-
-module.exports = EquipamientoRepository;

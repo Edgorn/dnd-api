@@ -40,7 +40,8 @@ export interface SubrazaMongo {
   resistances: string[],
   spells: string[],
   starting_proficiencies: ProficienciesMongo[],
-  options: OptionsMongo[]
+  options: OptionsMongo[],
+  traits_data: any
 }
 
 export interface RazaApi {
@@ -148,7 +149,8 @@ export interface HabilidadApi {
 export interface CompetenciaApi {
   index: string,
   name: string,
-  type: string
+  type: string,
+  desc: [string]
 }
 
 export interface OptionsMongo {

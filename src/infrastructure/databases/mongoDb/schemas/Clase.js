@@ -16,7 +16,8 @@ const claseSchema = new mongoose.Schema({
     subclasses: {},
     terrain_options: {},
     enemy_options: {},
-    traits_options: {}
+    traits_options: {},
+    traits_data: {}
   }],
   saving_throws: [String],
   options: [],

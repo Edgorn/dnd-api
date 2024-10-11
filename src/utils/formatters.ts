@@ -1,5 +1,6 @@
 import ICompetenciaRepository from "../domain/repositories/ICompetenciaRepository"
 import IConjuroRepository from "../domain/repositories/IConjuroRepository"
+import IEquipamientoRepository from "../domain/repositories/IEquipamientoRepository"
 import IHabilidadRepository from "../domain/repositories/IHabilidadRepository"
 import IIdiomaRepository from "../domain/repositories/IIdiomaRepository"
 import IRasgoRepository from "../domain/repositories/IRasgoRepository"
@@ -227,6 +228,113 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
       options
     }
   })
+}
+
+export const formatearSalvacion = (ability_bonuses: string[]) => {
+  const abilityBonuses = ability_bonuses?.map(ability => {
+    return {
+      index: ability,
+      name: caracteristicas[ability] ?? ability
+    }
+  })
+
+  return abilityBonuses
+}
+
+export const formatearEquipamiento = (equipamientosApi: any[], equipamientoRepository: IEquipamientoRepository) => {
+  return equipamientosApi.map(equipamientoApi => {
+    const equipamiento = equipamientoRepository.obtenerEquipamientoPorIndice(equipamientoApi.index)
+
+    const content = equipamiento.content.map((cont: any) => {
+      return {
+        name: equipamientoRepository.obtenerEquipamientoPorIndice(cont?.item)?.name ?? '',
+        quantity: cont.quantity
+      }
+    })
+
+    return {
+      index: equipamiento.index,
+      name: equipamiento.name,
+      quantity: equipamientoApi.quantity,
+      content
+    }
+  })
+}
+
+export const formatearEquipamientosOptions = (optionsApi: any[], equipamientoRepository: IEquipamientoRepository) => {
+  return optionsApi.map(optionApi => {
+    return optionApi?.map((opt: any) => {
+      const opcion: any = {}
+
+      if (opt?.items) {
+        const name = opt?.items?.map((item: any) => {
+          const equipamiento = equipamientoRepository.obtenerEquipamientoPorIndice(item.index)
+          return item?.quantity + 'x ' + equipamiento?.name
+        })
+
+        opcion.items = opt?.items
+        opcion.name = name.join(' - ')
+
+      }
+
+      if (opt?.api) {
+        const valoresApi = opt?.api?.split('-')
+        const equipamientoAux = equipamientoRepository.obtenerEquipamientosPorTipos(valoresApi[0], valoresApi[1], valoresApi[2])
+
+        const options: any[] = []
+  
+        equipamientoAux.forEach(equip => {
+          if (!options.map(op => op.index).includes(equip.index)) {
+            options.push({
+              index: equip?.index,
+              name: equip?.name
+            })
+          }
+        })
+
+        const nombre = 'Cualquier ' + valoresApi[0] + ' ' + (valoresApi[1] ?? '') + ' ' + (valoresApi[2] ?? '')
+
+        opcion.name = opcion.name ? opcion.name + ' - ' + nombre : nombre
+        opcion.choose = opt?.quantity
+        opcion.options = options
+      }
+
+      return opcion
+    })
+  })
+}
+
+export const formatearDinero = (money: any, equipamientoRepository: IEquipamientoRepository) => {
+  const data = 
+    equipamientoRepository
+      .obtenerEquipamientosPorIndices(money?.packs)
+      .map((equip: any) => {
+        const content = equip.content.map((cont: any) => {
+          return {
+            name: equipamientoRepository.obtenerEquipamientoPorIndice(cont?.item)?.name ?? '',
+            quantity: cont.quantity
+          }
+        })
+
+        return {
+          index: equip.index,
+          name: equip.name,
+          content
+        }
+      })
+
+  if (money?.money) {
+    const { quantity, dice, multiply, unit } = money?.money
+    const content = quantity + 'd' + dice + ' x ' + multiply + ' ' + unit
+
+    data.push({
+      index: 'money',
+      name: 'Monedas',
+      content 
+    })
+  }
+
+  return data
 }
 
 function isStringArray(arr: any[]): arr is string[] {

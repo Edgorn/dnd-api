@@ -1,24 +1,36 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
+import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
+import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
+import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
+import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
+import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
-const { formatearCompetencias, formatearOptions, formatearSalvacion, formatearEquipamiento, formatearEquipamientosOptions, formatearDinero } = require('../../../../utils/formatters-old');
+import { formatearEquipamientosOptions, formatearConjuros, formatearCompetencias, formatearOptions, formatearSalvacion, formatearEquipamiento, formatearDinero } from '../../../../utils/formatters';
 const ClaseSchema = require('../schemas/Clase');
 import CompetenciaRepository from './competencia.repository';
 import ConjuroRepository from './conjuros.repository';
-const EquipamientoRepository = require('./equipamiento.repository');
+import DañoRepository from './daño.repository';
+import EquipamientoRepository from './equipamiento.repository';
 import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
 import RasgoRepository from './rasgo.repository';
 
 export default class ClaseRepository extends IClaseRepository {
   rasgoRepository: IRasgoRepository
+  habilidadRepository: IHabilidadRepository
+  competenciaRepository: ICompetenciaRepository
+  equipamientoRepository: IEquipamientoRepository
+  idiomaRepository: IIdiomaRepository
+  conjuroRepository: IConjuroRepository
 
   constructor() {
     super()
-    /*this.habilidadRepository = new HabilidadRepository()
+    this.habilidadRepository = new HabilidadRepository()
     this.competenciaRepository = new CompetenciaRepository()
     this.idiomaRepository = new IdiomaRepository()
     this.conjuroRepository = new ConjuroRepository()
-    this.equipamientoRepository = new EquipamientoRepository()*/
+    this.equipamientoRepository = new EquipamientoRepository()
     this.rasgoRepository = new RasgoRepository()
   }
 
@@ -26,6 +38,12 @@ export default class ClaseRepository extends IClaseRepository {
     const clases = await ClaseSchema.find();
 
     return this.formatearClases(clases)
+  }
+
+  async getClase(index: string) {
+    const clase = await ClaseSchema.find({index});
+
+    return clase[0] ?? null
   }
 
   formatearClases(clases: any) {
@@ -85,19 +103,42 @@ export default class ClaseRepository extends IClaseRepository {
       )
     }
     */
+
+    const traits = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [])
+
+    const traitsData = traits?.map(trait => {
+      const data = dataLevel?.traits_data[trait.index]
+      if (data) {
+
+        let desc: string = trait?.desc ?? ''
+
+        Object.keys(data).forEach(d => {
+          desc = desc.replaceAll(d, data[d])
+        })
+
+        return {
+          ...trait,
+          desc
+        }
+        
+      } else {
+        return trait
+      }
+    })
+
     return {
       index: clase.index,
       name: clase.name,
       desc: clase?.desc ?? '',
-      //hit_die: clase.hit_die ?? 0,
+      hit_die: clase.hit_die ?? 0,
       img: clase.img,
-      /*proficiencies: formatearCompetencias(clase?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
+      proficiencies: formatearCompetencias(clase?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
       options: formatearOptions(clase?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       equipment: formatearEquipamiento(clase?.starting_equipment ?? [], this.equipamientoRepository),
-      equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),*/
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? []),/*
-      money: formatearDinero(clase.money, this.equipamientoRepository),
+      equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),
+      traits: traitsData,
+      /*money: formatearDinero(clase.money, this.equipamientoRepository),/*
       spellcasting_options: formatearOptions(dataLevel?.spellcasting?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       spells: dataSpells ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataSpells[0], dataSpells[1]) : [],
       traits_options: traitsOptions,

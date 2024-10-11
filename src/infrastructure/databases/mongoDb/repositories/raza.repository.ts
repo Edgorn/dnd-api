@@ -97,6 +97,32 @@ export default class RazaRepository extends IRazaRepository {
   }
 
   formatearSubraza(subraza: SubrazaMongo): SubrazaApi {
+    const traits = this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? [])
+
+    const traitsData = traits?.map(trait => {
+      if (subraza?.traits_data) {
+        const data = subraza?.traits_data[trait.index]
+
+        if (data) {
+          let desc: string = trait?.desc ?? ''
+  
+          Object.keys(data).forEach(d => {
+            desc = desc.replaceAll(d, data[d])
+          })
+  
+          return {
+            ...trait,
+            desc
+          }
+          
+        } else {
+          return trait
+        }
+      } else {
+        return trait
+      }
+    }) 
+
     return {
       index: subraza.index,
       name: subraza.name,
@@ -106,7 +132,7 @@ export default class RazaRepository extends IRazaRepository {
       types: subraza?.types,
       ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),
       proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? []),
+      traits: traitsData,
       options: formatearOptions(subraza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
       resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])

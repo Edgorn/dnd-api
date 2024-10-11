@@ -14,7 +14,7 @@ export default class PersonajeService {
       
     } catch (error) {
       console.error(error)
-      return { success: false, message: 'Error crear personaje' };
+      return { success: false, message: 'Error al crear personaje' };
     }
   }
 
@@ -24,7 +24,7 @@ export default class PersonajeService {
       return { success: true, data: result };
       
     } catch (error) {
-      return { success: false, message: 'Error crear personaje' };
+      return { success: false, message: 'Error al consultar personajes' };
     }
   }
 
@@ -34,7 +34,7 @@ export default class PersonajeService {
       return { success: true, data: result };
       
     } catch (error) {
-      return { success: false, message: 'Error crear personaje' };
+      return { success: false, message: 'Error al consultar personaje' };
     }
   }
 }

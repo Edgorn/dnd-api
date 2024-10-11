@@ -24,6 +24,7 @@ const razaSchema = new mongoose.Schema({
     }],
     starting_proficiencies: [],
     traits: [String],
+    traits_data: {},
     options: [],
     spells: [String],
     resistances: [String]

@@ -176,7 +176,7 @@ const formatearConjuros = (spellsApi, conjuroRepository, rasgoRepository) => {
   })
 
   return conjuros
-}*/
+}
 
 const formatearSalvacion = (ability_bonuses) => {
   const abilityBonuses = ability_bonuses?.map(ability => {
@@ -266,13 +266,9 @@ const formatearDinero = (money, equipamientoRepository) => {
   }
 
   return data
-}
+}*/
 
 
 module.exports = {
-  formatearCompetencias,
-  formatearSalvacion,
-  formatearEquipamiento,
-  formatearEquipamientosOptions,
-  formatearDinero
+  formatearCompetencias
 };

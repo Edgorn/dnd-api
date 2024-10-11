@@ -4,7 +4,6 @@ export default class ObtenerTodasLasClases {
   private claseService: ClaseService
 
   constructor(claseService: ClaseService) {
-    console.log('DENTRO')
     this.claseService = claseService;
   }
 
