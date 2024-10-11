@@ -95,7 +95,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       if (dataEquip?.content?.length > 0) {
         dataEquip?.content?.forEach((equip2: any) => {
-          console.log(equip2)
           equipmentData.push({
             index: equip2.item,
             quantity: equip2.quantity * equip1.quantity
