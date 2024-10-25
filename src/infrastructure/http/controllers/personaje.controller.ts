@@ -10,11 +10,22 @@ import ConsultarPersonajes from "../../../application/use-cases/consultarPersona
 import PersonajeService from "../../../domain/services/personaje.service";
 import PersonajeRepository from "../../databases/mongoDb/repositories/personaje.repository";
 import ConsultarPersonaje from "../../../application/use-cases/consultarPersonaje";
+import CambiarXp from "../../../application/use-cases/cambiarXp";
+import SubirNivelDatos from "../../../application/use-cases/subirNivelDatos";
+import SubirNivel from "../../../application/use-cases/subirNivel";
+import AñadirEquipo from "../../../application/use-cases/añadirEquipo";
+import EliminarEquipo from "../../../application/use-cases/eliminarEquipo";
 
 const personajeService = new PersonajeService(new PersonajeRepository())
+
 const crearPersonaje = new CrearPersonaje(personajeService);
 const consultarPersonajes = new ConsultarPersonajes(personajeService);
 const consultarPersonaje = new ConsultarPersonaje(personajeService);
+const cambiaXp = new CambiarXp(personajeService)
+const subirNivelDatos = new SubirNivelDatos(personajeService)
+const subirNivel = new SubirNivel(personajeService)
+const añadirEquipo = new AñadirEquipo(personajeService);
+const eliminarEquipo = new EliminarEquipo(personajeService);
 
 const createCharacter = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
@@ -90,4 +101,124 @@ const getCharacter = async (req: any, res: any) => {
   }
 };
 
-export default { createCharacter, getCharacters, getCharacter };
+const changeXp = async (req: any, res: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
+  try {
+    const validToken = await validarToken.execute(token)
+
+    if (validToken) {
+      const { success, data, message } = await cambiaXp.execute(req.body)
+
+      if (success) {
+        res.status(201).json(data);
+      } else {
+        res.status(404).json({ error: message });
+      }
+    } else {
+      res.status(401).json({ error: 'Token invalido' });
+    }
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al modificar experiencia' });
+  }
+};
+
+const levelUpData = async (req: any, res: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
+  try {
+    const validToken = await validarToken.execute(token)
+
+    if (validToken) {
+      const { success, data, message } = await subirNivelDatos.execute(req.body)
+
+      if (success) {
+        res.status(201).json(data);
+      } else {
+        res.status(404).json({ error: message });
+      }
+    } else {
+      res.status(401).json({ error: 'Token invalido' });
+    }
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al modificar experiencia' });
+  }
+};
+
+const levelUp = async (req: any, res: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
+  try {
+    const validToken = await validarToken.execute(token)
+
+    if (validToken) {
+      const { success, data, message } = await subirNivel.execute(req.body)
+
+      if (success) {
+        res.status(201).json(data);
+      } else {
+        res.status(404).json({ error: message });
+      }
+    } else {
+      res.status(401).json({ error: 'Token invalido' });
+    }
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al modificar experiencia' });
+  }
+};
+
+const añadirEquipamiento = async (req: any, res: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
+  try {
+    const validToken = await validarToken.execute(token)
+
+    if (validToken) {
+      const { success, data, message } = await añadirEquipo.execute(req.body)
+
+      if (success) {
+        res.status(200).json(data);
+      } else {
+        res.status(404).json({ error: message });
+      }
+    } else {
+      res.status(401).json({ error: 'Token invalido' });
+    }
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al añadir el equipamiento' });
+  }
+};
+
+const eliminarEquipamiento = async (req: any, res: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
+  try {
+    const validToken = await validarToken.execute(token)
+
+    if (validToken) {
+      const { success, data, message } = await eliminarEquipo.execute(req.body)
+
+      if (success) {
+        res.status(200).json(data);
+      } else {
+        res.status(404).json({ error: message });
+      }
+    } else {
+      res.status(401).json({ error: 'Token invalido' });
+    }
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al añadir el equipamiento' });
+  }
+};
+
+export default { createCharacter, getCharacters, getCharacter, changeXp, levelUpData, levelUp, añadirEquipamiento, eliminarEquipamiento };

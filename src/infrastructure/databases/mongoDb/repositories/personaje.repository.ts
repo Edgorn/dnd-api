@@ -1,4 +1,3 @@
-import { Console } from 'console';
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
 import Personaje from '../schemas/Personaje';
 import ClaseRepository from './clase.repository';
@@ -9,6 +8,7 @@ import RasgoRepository from './rasgo.repository';
 import RazaRepository from './raza.repository';
 import EquipamientoRepository from './equipamiento.repository';
 import DañoRepository from './daño.repository';
+import PropiedadArmaRepository from './propiedadesArmas.repository';
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 
@@ -21,6 +21,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   rasgoRepository: RasgoRepository
   equipamientoRepository: EquipamientoRepository
   dañoRepository: DañoRepository
+  propiedadArmaRepository: PropiedadArmaRepository
 
   constructor() {
     super()
@@ -32,6 +33,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     this.rasgoRepository = new RasgoRepository()
     this.equipamientoRepository = new EquipamientoRepository()
     this.dañoRepository = new DañoRepository()
+    this.propiedadArmaRepository = new PropiedadArmaRepository()
   }
 
   async crear(data: any): Promise<any> {
@@ -166,6 +168,153 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return this.formatearPersonaje(personaje)
   }
 
+  async cambiarXp(data: any): Promise<any> {
+    const { id, XP } = data
+    
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          XP
+        }
+      },
+      { new: true }
+    );
+
+    return resultado
+  }
+
+  async subirNivelDatos(data: any): Promise<any> {
+    const { id, clase } = data
+
+    const personaje = await Personaje.findById(id);
+    const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
+
+    const claseData = await this.claseRepository.getClase(clase)
+    const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
+    
+    const traits: any[] = []
+    
+    Object.keys(dataLevel.traits_data).forEach(t => {
+      const trait = this.rasgoRepository.obtenerRasgoPorIndice(t)
+      
+      const data = dataLevel.traits_data[t]
+
+      let desc: string = trait?.desc ?? ''
+
+      Object.keys(data).forEach(d => {
+        desc = desc.replaceAll(d, data[d])
+      })
+
+      traits.push({ ...trait, desc })
+    })
+
+    return {
+      hit_die: claseData?.hit_die,
+      prof_bonus: dataLevel.prof_bonus,
+      traits
+    }
+  }
+
+  async subirNivel(data: any): Promise<any> {
+    const id = data.id
+
+    const { hit, clase } = data.data
+
+    const personaje = await Personaje.findById(id);
+
+    //const claseData = await this.claseRepository.getClase(clase)
+
+    //console.log('Clase a actualizar:', clase);
+    //console.log('Personaje antes de la actualización:', personaje);
+
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          XP: 0
+        },
+        $inc: { 
+          'classes.$[elem].level': 1,
+          HPMax: hit,
+          HPActual: hit
+        }
+      },
+      {
+        arrayFilters: [{ 'elem.class': clase }],
+        new: true 
+      }
+    );
+
+    if (!resultado) {
+      console.log('No se encontró el personaje o no se realizó la actualización.');
+    } else {
+      console.log('Actualización exitosa:', resultado);
+    }
+
+    
+    //console.log(personaje?.classes)
+
+    return null
+  }
+
+  async añadirEquipamiento(data: any) {
+    const { id, equip, cantidad } = data
+    const personaje = await Personaje.findById(id);
+
+    const equipment = personaje?.equipment ?? []
+
+    const idx = equipment.findIndex(eq => eq.index === equip)
+
+    if (idx > -1) {
+      equipment[idx].quantity += cantidad 
+    } else {
+      equipment.push({ index: equip, quantity: cantidad })
+    }
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          equipment
+        }
+      },
+      { new: true }
+    );
+
+    return resultado
+  }
+
+  async eliminarEquipamiento(data: any) {
+    const { id, equip, cantidad } = data
+    const personaje = await Personaje.findById(id);
+
+    const equipment = personaje?.equipment ?? []
+
+    const idx = equipment.findIndex(eq => eq.index === equip)
+
+    if (idx > -1) {
+      if (equipment[idx].quantity === cantidad) {
+        equipment.splice(idx, 1)
+      } else {
+        equipment[idx].quantity -= cantidad 
+      }
+    }
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          equipment
+        }
+      },
+      { new: true }
+    );
+
+    return resultado
+  }
+
   formatearPersonajes(personajes: any[]): any[] {
     const formateadas = personajes.map(personaje => this.formatearPersonajeBasico(personaje))
 
@@ -260,11 +409,28 @@ export default class PersonajeRepository extends IPersonajeRepository {
       equipo[idx].quantity = equip.quantity
 
       if (equipo[idx]?.category === 'Arma') {
-        const daño = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.damage?.type)
-        equipo[idx].weapon.damage.name = daño?.name ?? ''
+        const daño = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.damage?.type ?? '')
+
+        if (equipo[idx].weapon.damage) {
+          equipo[idx].weapon.damage.name = daño?.name ?? ''
+        
+          if (equipo[idx].weapon.two_handed_damage) {
+            const daño_two = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.two_handed_damage?.type)
+            equipo[idx].weapon.two_handed_damage.name = daño_two?.name ?? ''
+          }
+        }
+        
+        equipo[idx].weapon.properties = this.propiedadArmaRepository.obtenerPropiedadesPorIndices(equipo[idx]?.weapon?.properties)
+
+        equipo[idx].weapon.properties.sort((a: any, b: any) => {
+          return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+        })
       }
     })
 
+    equipo.sort((a: any, b: any) => {
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    })
 
     return {
       id: personaje._id.toString(),

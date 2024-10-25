@@ -11,7 +11,10 @@ const equipamientoSchema = new mongoose.Schema({
   weapon: {
     category: String,
     range: String,
-    damage: {}
+    damage: {},
+    two_handed_damage: {},
+    properties: [],
+    range_throw: {}
   },
   armor: {},
   content: [{item: String, quantity: Number}]

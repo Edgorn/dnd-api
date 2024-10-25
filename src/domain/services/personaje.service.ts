@@ -37,4 +37,56 @@ export default class PersonajeService {
       return { success: false, message: 'Error al consultar personaje' };
     }
   }
+ 
+  async cambiarXp(data: any): Promise<{success: boolean, data?: any, message?: string}> {
+    try {
+      const result = await this.personajeRepository.cambiarXp(data);
+      return { success: true, data: result };
+      
+    } catch (error) {
+      console.error(error)
+      return { success: false, message: 'Error al crear personaje' };
+    }
+  }
+  
+  async subirNivelDatos(data: any): Promise<{success: boolean, data?: any, message?: string}> {
+    try {
+      const result = await this.personajeRepository.subirNivelDatos(data);
+      return { success: true, data: result };
+      
+    } catch (error) {
+      console.error(error)
+      return { success: false, message: 'Error al subir de nivel' };
+    }
+  }
+  
+  async subirNivel(data: any): Promise<{success: boolean, data?: any, message?: string}> {
+    try {
+      const result = await this.personajeRepository.subirNivel(data);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error(error)
+      return { success: false, message: 'Error al subir de nivel' };
+    }
+  }
+
+  async añadirEquipamiento(data: any) {
+    try {
+      const result = await this.personajeRepository.añadirEquipamiento(data);
+
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, message: 'Error al añadir equipamiento' };
+    }
+  }
+
+  async eliminarEquipamiento(data: any) {
+    try {
+      const result = await this.personajeRepository.eliminarEquipamiento(data);
+
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, message: 'Error al añadir equipamiento' };
+    }
+  }
 }

@@ -21,6 +21,7 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
         name: equipamiento.name,
         category: equipamiento.category,
         weapon: equipamiento.weapon,
+        armor: equipamiento.armor,
         content: equipamiento.content
       };
     });
@@ -41,5 +42,16 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
       .filter(eq => !categoria || eq?.category?.toLowerCase() === categoria)
       .filter(eq => !tipo || eq?.weapon?.category?.toLowerCase() === tipo)
       .filter(eq => !rango || eq?.weapon?.range?.toLowerCase() === rango)
+  }
+
+  async obtenerEquipamientosPorTipo(tipo: string) {
+    const equipamientos:any[] = Object.values(this.equipamientosMap)
+
+    equipamientos.sort((a: any, b: any) => {
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    })
+
+    return equipamientos
+      .filter(eq => !tipo || eq?.category?.toLowerCase() === tipo.toLowerCase())
   }
 }

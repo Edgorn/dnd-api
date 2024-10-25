@@ -8,6 +8,7 @@ const personajeRoutes = require('./routes/personaje.routes');
 const campañaRoutes = require('./routes/campaña.routes');
 const claseRoutes = require('./routes/clase.routes');
 const transfondoRoutes = require('./routes/transfondo.routes');
+const equipamientoRoutes = require('./routes/equipamiento.routes');
 const defaultApi = require('../defaultApi/index');
 
 const app = express();
@@ -21,6 +22,7 @@ app.use(razaRoutes)
 app.use(personajeRoutes)
 app.use(campañaRoutes)
 app.use(claseRoutes);
+app.use(equipamientoRoutes);
 app.use(transfondoRoutes);
 app.use('*', defaultApi)
 

@@ -10,4 +10,8 @@ export default class IEquipamientoRepository {
   obtenerEquipamientosPorTipos(categoria: string, tipo: string, rango: string): any[] {
     throw new Error('Método no implementado');
   }
+
+  obtenerEquipamientosPorTipo(tipo: string): any {
+    throw new Error('Método no implementado');
+  }
 }
