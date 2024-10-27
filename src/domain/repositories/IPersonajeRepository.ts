@@ -30,4 +30,8 @@ export default class IPersonajeRepository {
   async eliminarEquipamiento(data: any): Promise<any> {
     throw new Error('Método no implementado');
   }
+
+  async equiparArmadura(data: any): Promise<any> {
+    throw new Error('Método no implementado');
+  }
 }

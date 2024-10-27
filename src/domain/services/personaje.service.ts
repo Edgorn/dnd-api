@@ -89,4 +89,14 @@ export default class PersonajeService {
       return { success: false, message: 'Error al añadir equipamiento' };
     }
   }
+
+  async equiparArmadura(data: any) {
+    try {
+      const result = await this.personajeRepository.equiparArmadura(data);
+
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, message: 'Error al añadir equipamiento' };
+    }
+  }
 }

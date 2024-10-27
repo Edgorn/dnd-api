@@ -315,6 +315,76 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return resultado
   }
 
+  async equiparArmadura(data: any): Promise<any> {
+    
+    const { id, equip, nuevoEstado } = data
+    const personaje = await Personaje.findById(id);
+
+    const equipment = personaje?.equipment ?? []
+
+    const idx = equipment.findIndex(eq => eq.index === equip)
+    
+    let armadura = false
+    let CA = 10
+    let shield = 0
+
+    if (idx > -1) {
+      if (equip === 'shield') {
+        equipment.forEach(item => {
+          if (item.index === "shield") {
+            item.equipped = false;
+          }
+        });
+      } else {
+        equipment.forEach(item => {
+          if (item.index !== "shield") {
+            item.equipped = false;
+          }
+        });
+      }
+
+      equipment[idx].equipped = nuevoEstado
+
+      this.equipamientoRepository
+        .obtenerEquipamientosPorIndices(
+          equipment
+            .filter(eq => eq.equipped)
+            .map(eq => eq.index)
+        )
+        .forEach(armor => {
+          if (armor.armor.category === 'Escudo') {
+            shield += armor?.armor?.class?.base ?? 0
+          } else {
+            CA = armor?.armor?.class?.base ?? 10
+
+            if (armor?.armor?.class?.dex_bonus) {
+              CA += Math.floor((personaje?.abilities.dex/2) - 5)
+            }
+
+            armadura = true
+          }
+        })
+    }
+
+    if (!armadura && personaje?.traits.includes('barbarian-unarmored-defense')) {
+      CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+    }
+
+    
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          equipment,
+          CA: CA + shield
+        }
+      },
+      { new: true }
+    );
+
+    return resultado
+  }
+
   formatearPersonajes(personajes: any[]): any[] {
     const formateadas = personajes.map(personaje => this.formatearPersonajeBasico(personaje))
 
@@ -407,6 +477,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     personaje.equipment.forEach((equip: any) => {
       const idx = equipo.findIndex(eq => eq.index === equip.index)
       equipo[idx].quantity = equip.quantity
+      equipo[idx].equipped = equip.equipped
 
       if (equipo[idx]?.category === 'Arma') {
         const daño = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.damage?.type ?? '')
