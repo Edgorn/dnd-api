@@ -128,6 +128,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       prof_bonus: claseDataLevel?.prof_bonus,
       resistances: [...raza?.resistances ?? [], ...subraza?.resistances ?? []],
       speed: subraza?.speed ?? raza?.speed,
+      plusSpeed: 0,
       size: subraza?.size ?? raza?.size,
       languages: [...raza?.languages ?? [],...subraza?.languages ?? [],  ...languages ?? []],
       saving_throws: claseData?.saving_throws ?? [],
@@ -192,28 +193,50 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const claseData = await this.claseRepository.getClase(clase)
     const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
+    const dataLevelOld = claseData.levels.find((l:any)=> l.level === level)
     
     const traits: any[] = []
     
     Object.keys(dataLevel.traits_data).forEach(t => {
-      const trait = this.rasgoRepository.obtenerRasgoPorIndice(t)
-      
       const data = dataLevel.traits_data[t]
+      const dataOld = dataLevelOld.traits_data[t]
 
-      let desc: string = trait?.desc ?? ''
+      if (this.valoresNumericosDistintos(data, dataOld)) {
+        const trait = this.rasgoRepository.obtenerRasgoPorIndice(t)
+      
+        let desc: string = trait?.desc ?? ''
 
-      Object.keys(data).forEach(d => {
-        desc = desc.replaceAll(d, data[d])
-      })
+        Object.keys(data).forEach(d => {
+          desc = desc.replaceAll(d, data[d])
+        })
 
-      traits.push({ ...trait, desc })
+        traits.push({ ...trait, desc })
+      }
     })
+
+    traits.push(
+      ...this.rasgoRepository
+        .obtenerRasgosPorIndices(
+          dataLevel.traits?.filter((t: any) => !traits.map(trait => trait.index).includes(t))
+        )
+    )
 
     return {
       hit_die: claseData?.hit_die,
-      prof_bonus: dataLevel.prof_bonus,
+      prof_bonus: dataLevel.prof_bonus === dataLevelOld?.prof_bonus ? null : dataLevel.prof_bonus,
       traits
     }
+  }
+
+  valoresNumericosDistintos(obj1: any, obj2: any): boolean {
+    for (const key in obj1) {
+      if (!obj2) {
+        return true
+      } else if (obj1[key] !== obj2[key]) {
+        return true;
+      }
+    }
+    return false;
   }
 
   async subirNivel(data: any): Promise<any> {
@@ -222,18 +245,43 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const { hit, clase } = data.data
 
     const personaje = await Personaje.findById(id);
+    const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
-    //const claseData = await this.claseRepository.getClase(clase)
+    const claseData = await this.claseRepository.getClase(clase)
+    const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
 
-    //console.log('Clase a actualizar:', clase);
-    //console.log('Personaje antes de la actualización:', personaje);
+    let plusSpeed = personaje?.plusSpeed ?? 0
 
+    if (dataLevel?.traits?.includes('fast-movement')) {
+      if (personaje?.equipment?.filter(eq => eq.index !== 'shield')?.every(eq => !eq.equipped)) {
+        plusSpeed += 10
+      }
+    }
+
+    let abilities = personaje?.abilities
+
+    if (dataLevel?.traits?.includes('primal-champion')) {
+      abilities.str += 4
+      abilities.con += 4
+    }
+
+    let CA = personaje?.CA ?? 10
+
+    if (personaje?.equipment?.filter(eq => eq.index !== 'shield')?.every(eq => !eq.equipped) && personaje?.traits.includes('barbarian-unarmored-defense')) {
+      CA = 10 + Math.floor((abilities.con/2) - 5) + Math.floor((abilities.dex/2) - 5)
+    }
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
         $set: {
-          XP: 0
+          XP: 0,
+          traits_data: { ...personaje?.traits_data, ...dataLevel?.traits_data },
+          prof_bonus: dataLevel?.prof_bonus ?? personaje?.prof_bonus,
+          traits: [...personaje?.traits ?? [], ...dataLevel?.traits ?? []],
+          plusSpeed,
+          abilities,
+          CA
         },
         $inc: { 
           'classes.$[elem].level': 1,
@@ -246,17 +294,14 @@ export default class PersonajeRepository extends IPersonajeRepository {
         new: true 
       }
     );
-
+/*
     if (!resultado) {
       console.log('No se encontró el personaje o no se realizó la actualización.');
     } else {
       console.log('Actualización exitosa:', resultado);
-    }
+    }*/
 
-    
-    //console.log(personaje?.classes)
-
-    return null
+    return resultado
   }
 
   async añadirEquipamiento(data: any) {
@@ -370,13 +415,19 @@ export default class PersonajeRepository extends IPersonajeRepository {
       CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
     }
 
-    
+    let plusSpeed = 0
+
+    if (!armadura && personaje?.traits.includes('fast-movement')) {
+      plusSpeed += 10
+    }
+
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
         $set: {
           equipment,
-          CA: CA + shield
+          CA: CA + shield,
+          plusSpeed
         }
       },
       { new: true }
@@ -415,7 +466,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       HPMax: personaje.HPMax,
       HPActual: personaje.HPActual,
       XP: personaje.XP,
-      XPMax: nivel[level]
+      XPMax: nivel[level-1]
     }
   }
 
@@ -511,11 +562,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
       classes: personaje.classes,
       level,
       XP: personaje.XP,
-      XPMax: nivel[level],
+      XPMax: nivel[level-1],
       abilities: personaje?.abilities,
       HPMax: personaje?.HPMax,
       CA: personaje?.CA,
-      speed: personaje?.speed,
+      speed: personaje?.speed + personaje?.plusSpeed,
       skills: habilidades,
       languages: idiomas,
       weapons,
