@@ -224,7 +224,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return {
       hit_die: claseData?.hit_die,
       prof_bonus: dataLevel.prof_bonus === dataLevelOld?.prof_bonus ? null : dataLevel.prof_bonus,
-      traits
+      traits,
+      ability_score: dataLevel?.ability_score
     }
   }
 
@@ -242,7 +243,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   async subirNivel(data: any): Promise<any> {
     const id = data.id
 
-    const { hit, clase } = data.data
+    const { hit, clase, abilities } = data.data
 
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
@@ -257,8 +258,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
         plusSpeed += 10
       }
     }
-
-    let abilities = personaje?.abilities
 
     if (dataLevel?.traits?.includes('primal-champion')) {
       abilities.str += 4
