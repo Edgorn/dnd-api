@@ -122,6 +122,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       type,
       campaign,
       classes: [{ class: clase, name: claseData.name, level: 1 }],
+      subclasses: [],
       race: type ?? subraza?.name ?? raza?.name,
       traits,
       traits_data: {...claseDataLevel?.traits_data, ...subraza?.traits_data},
@@ -192,8 +193,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
     const claseData = await this.claseRepository.getClase(clase)
+
     const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
     const dataLevelOld = claseData.levels.find((l:any)=> l.level === level)
+
+    const subclasesData = await this.claseRepository.formatearSubclasesType(dataLevel.subclasses_options, dataLevel.subclasses)
     
     const traits: any[] = []
     
@@ -221,11 +225,23 @@ export default class PersonajeRepository extends IPersonajeRepository {
         )
     )
 
+    personaje?.subclasses?.forEach(s => {
+      if (dataLevel?.subclasses && dataLevel?.subclasses[s]?.traits) {
+        traits.push(
+          ...this.rasgoRepository
+            .obtenerRasgosPorIndices(
+              dataLevel?.subclasses[s]?.traits?.filter((t: any) => !traits.map(trait => trait.index).includes(t))
+            )
+        )
+      }
+    })
+
     return {
       hit_die: claseData?.hit_die,
       prof_bonus: dataLevel.prof_bonus === dataLevelOld?.prof_bonus ? null : dataLevel.prof_bonus,
       traits,
-      ability_score: dataLevel?.ability_score
+      ability_score: dataLevel?.ability_score,
+      subclasesData
     }
   }
 
@@ -243,7 +259,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   async subirNivel(data: any): Promise<any> {
     const id = data.id
 
-    const { hit, clase, abilities } = data.data
+    const { hit, clase, abilities, subclases } = data.data
 
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
@@ -270,6 +286,18 @@ export default class PersonajeRepository extends IPersonajeRepository {
       CA = 10 + Math.floor((abilities.con/2) - 5) + Math.floor((abilities.dex/2) - 5)
     }
 
+    if (dataLevel?.subclasses) {
+
+    }
+
+    const traitsSubclase = dataLevel?.subclasses
+    ? [...subclases ?? [], ...personaje?.subclasses ?? []].map((subclase: any) => {
+        return dataLevel?.subclasses[subclase]?.traits
+      })
+    .flat()
+    : []
+    
+
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
@@ -277,10 +305,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
           XP: 0,
           traits_data: { ...personaje?.traits_data, ...dataLevel?.traits_data },
           prof_bonus: dataLevel?.prof_bonus ?? personaje?.prof_bonus,
-          traits: [...personaje?.traits ?? [], ...dataLevel?.traits ?? []],
+          traits: [...personaje?.traits ?? [], ...dataLevel?.traits ?? [], ...traitsSubclase ?? []],
           plusSpeed,
           abilities,
-          CA
+          CA,
+          subclasses: [...personaje?.subclasses ?? [], ...subclases ?? []]
         },
         $inc: { 
           'classes.$[elem].level': 1,
@@ -293,6 +322,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
         new: true 
       }
     );
+
 /*
     if (!resultado) {
       console.log('No se encontró el personaje o no se realizó la actualización.');

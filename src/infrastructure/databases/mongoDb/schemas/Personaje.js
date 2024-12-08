@@ -31,6 +31,7 @@ const personajeSchema = new mongoose.Schema({
     level: Number,
     name: String
   }],
+  subclasses: [String],
   equipment: [{}],
   CA: Number,
   HPMax: Number,

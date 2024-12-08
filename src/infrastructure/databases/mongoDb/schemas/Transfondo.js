@@ -3,8 +3,11 @@ const mongoose = require('mongoose');
 const transfondoSchema = new mongoose.Schema({
   index: String,
   name: String,
+  desc: [String],
+  img: String,
   starting_proficiencies: [],
-  options: []
+  options: [],
+  starting_equipment: []
 
 }, { collection: 'Transfondos' });
 

@@ -64,8 +64,7 @@ export default class ClaseRepository extends IClaseRepository {
     return formateadas;
   }
 
-  formatearClase(clase: any) {
-    
+  formatearClase(clase: any) {  
     const dataLevel = clase?.levels?.find((level: any) => level.level === 1)/*
     const dataSpells = dataLevel?.spellcasting?.spells?.split('_')
     const traitsOptions = dataLevel?.traits_options
@@ -147,8 +146,8 @@ export default class ClaseRepository extends IClaseRepository {
       subclases_options: this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*/
     };
   }
-/*
-  formatearSubclasesType(subclasses_type, subclases) {
+
+  formatearSubclasesType(subclasses_type: any[], subclases: any) {
     const formateadas = subclasses_type.map(subclasse_type => this.formatearSubclaseType(subclasse_type, subclases))
 
     formateadas.sort((a, b) => {
@@ -164,7 +163,7 @@ export default class ClaseRepository extends IClaseRepository {
     return formateadas;
   }
 
-  formatearSubclaseType(subclase_type, subclases) {
+  formatearSubclaseType(subclase_type: any, subclases: any) {
     return {
       name: subclase_type.name,
       desc: subclase_type.desc,
@@ -172,10 +171,10 @@ export default class ClaseRepository extends IClaseRepository {
     }
   }
 
-  formatearSubclases(subclases_options, subclases) {
+  formatearSubclases(subclases_options: any[], subclases: any) {
     const formateadas = subclases_options.map(subclase_option => this.formatearSubclase(subclase_option, subclases))
 
-    formateadas.sort((a, b) => {
+    formateadas.sort((a: any, b: any) => {
       if (a.name < b.name) {
         return -1;
       }
@@ -188,25 +187,27 @@ export default class ClaseRepository extends IClaseRepository {
     return formateadas;
   }
 
-  formatearSubclase(subclase_option, subclases) {
+  formatearSubclase(subclase_option: any, subclases: any) {
     const subclaseData = subclases[subclase_option?.index]
-
+/*
     const traits_options_subclase = subclaseData?.traits_options
 
     if (traits_options_subclase) {
       traits_options_subclase.options = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits_options?.options ?? [])
     }
+*/
 
     return {
       index: subclase_option?.index,
       name: subclase_option?.name,
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits ?? []),
+      img: subclase_option?.img,
+      traits: this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits ?? []),/*
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),
       options: formatearOptions(subclaseData?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       proficiencies: formatearCompetencias(subclaseData?.proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
-      traits_options: traits_options_subclase
+      traits_options: traits_options_subclase*/
     }
-  }*/
+  }
 
 }
