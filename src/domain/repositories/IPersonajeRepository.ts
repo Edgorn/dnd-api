@@ -34,4 +34,8 @@ export default class IPersonajeRepository {
   async equiparArmadura(data: any): Promise<any> {
     throw new Error('Método no implementado');
   }
+
+  async crearPdf(idUser: string, idCharacter: string): Promise<any> {
+    throw new Error('Método no implementado');
+  }
 }

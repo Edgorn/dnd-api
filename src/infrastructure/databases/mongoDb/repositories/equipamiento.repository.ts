@@ -28,7 +28,14 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
   }
 
   obtenerEquipamientoPorIndice(index: string) {
-    return this.equipamientosMap[index];
+    return this.equipamientosMap[index] ?? {
+      index: index,
+      name: index,
+      category: 'personalizado',
+      weapon: {},
+      armor: {},
+      content: []
+    };
   }
 
   obtenerEquipamientosPorIndices(indices: string[]) {

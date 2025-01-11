@@ -99,4 +99,14 @@ export default class PersonajeService {
       return { success: false, message: 'Error al añadir equipamiento' };
     }
   }
+
+  async crearPdf(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
+    try {
+      const result = await this.personajeRepository.crearPdf(idUser, idCharacter);
+      return { success: true, data: result };
+      
+    } catch (error) {
+      return { success: false, message: 'Error al generar pdf' };
+    }
+  }
 }

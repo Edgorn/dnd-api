@@ -16,6 +16,7 @@ import SubirNivel from "../../../application/use-cases/subirNivel";
 import AñadirEquipo from "../../../application/use-cases/añadirEquipo";
 import EliminarEquipo from "../../../application/use-cases/eliminarEquipo";
 import EquipArmor from "../../../application/use-cases/equipArmor";
+import CrearPdf from "../../../application/use-cases/crearPdf";
 
 const personajeService = new PersonajeService(new PersonajeRepository())
 
@@ -28,6 +29,10 @@ const subirNivel = new SubirNivel(personajeService)
 const añadirEquipo = new AñadirEquipo(personajeService);
 const eliminarEquipo = new EliminarEquipo(personajeService);
 const equipArmor = new EquipArmor(personajeService);
+const crearPdf = new CrearPdf(personajeService);
+
+const path = require('path');
+const pdfPath = path.join(__dirname, '../../../utils/hoja-nueva.pdf');
 
 const createCharacter = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
@@ -247,4 +252,35 @@ const equiparArmadura = async (req: any, res: any) => {
   }
 };
 
-export default { createCharacter, getCharacters, getCharacter, changeXp, levelUpData, levelUp, añadirEquipamiento, eliminarEquipamiento, equiparArmadura };
+const generarPdf = async (req: any, res: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
+  try {
+    const validToken = await validarToken.execute(token)
+
+    const { id } = req.params;
+
+    if (validToken && id) {
+      const { success, data, message } = await crearPdf.execute(validToken, id)
+
+      if (success) {
+        res.setHeader('Content-Type', 'application/pdf');
+
+        // Enviar el PDF editado como respuesta
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename=edited.pdf');
+        res.status(200).send(Buffer.from(data));
+      } else {
+        res.status(404).json({ error: message });
+      }
+    } else {
+      res.status(401).json({ error: 'Token invalido' });
+    }
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al generar pdf de personaje' });
+  }
+};
+
+export default { createCharacter, getCharacters, getCharacter, changeXp, levelUpData, levelUp, añadirEquipamiento, eliminarEquipamiento, equiparArmadura, generarPdf };
