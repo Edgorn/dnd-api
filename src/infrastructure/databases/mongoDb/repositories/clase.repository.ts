@@ -189,13 +189,12 @@ export default class ClaseRepository extends IClaseRepository {
 
   formatearSubclase(subclase_option: any, subclases: any) {
     const subclaseData = subclases[subclase_option?.index]
-/*
+
     const traits_options_subclase = subclaseData?.traits_options
 
     if (traits_options_subclase) {
       traits_options_subclase.options = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits_options?.options ?? [])
     }
-*/
 
     return {
       index: subclase_option?.index,
@@ -205,8 +204,8 @@ export default class ClaseRepository extends IClaseRepository {
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),
       options: formatearOptions(subclaseData?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       proficiencies: formatearCompetencias(subclaseData?.proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
-      spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
-      traits_options: traits_options_subclase*/
+      spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),*/
+      traits_options: traits_options_subclase
     }
   }
 

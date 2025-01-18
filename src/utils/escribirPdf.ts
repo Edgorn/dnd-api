@@ -91,10 +91,12 @@ export async function escribirRasgos({ traits, pdfDoc, terrain }: any) {
 
   let textY1 = page1.getHeight() - 395;
   let textY2 = page2.getHeight() - 385;
-  let maxHeight = 44
+  let textY3 = page2.getHeight() - 385;
+  let maxHeight1 = 44
+  let maxHeight2 = 20
 
   traits?.forEach((trait: any) => {
-    const { textY, actualHeight } = escribirParrafo({ 
+    const { textY, actualHeight: actualHeight1 } = escribirParrafo({ 
       titulo: trait?.name, 
       descripcion: trait?.desc,
       fontTitle: fontBold,
@@ -103,11 +105,11 @@ export async function escribirRasgos({ traits, pdfDoc, terrain }: any) {
       page: page1,
       x: 412,
       y: textY1,
-      maxHeight
+      maxHeight: maxHeight1
     })
 
-    if (maxHeight === actualHeight) {
-      const { textY } = escribirParrafo({ 
+    if (maxHeight1 === actualHeight1) {
+      const { textY, actualHeight: actualHeight2 } = escribirParrafo({ 
         titulo: trait?.name, 
         descripcion: trait?.desc,
         fontTitle: fontBold,
@@ -115,14 +117,31 @@ export async function escribirRasgos({ traits, pdfDoc, terrain }: any) {
         maxWidth: 180,
         page: page2,
         x: 230,
-        y: textY2
+        y: textY2,
+        maxHeight: maxHeight2
       })
 
-      textY2 = textY
+      if (maxHeight2 === actualHeight2) {
+        const { textY } = escribirParrafo({ 
+          titulo: trait?.name, 
+          descripcion: trait?.desc,
+          fontTitle: fontBold,
+          fontText: fontRegular,
+          maxWidth: 180,
+          page: page2,
+          x: 405,
+          y: textY3
+        })
 
+        textY3 = textY
+
+      } else {
+        textY2 = textY
+        maxHeight2 = actualHeight2
+      }
     } else {
       textY1 = textY
-      maxHeight = actualHeight
+      maxHeight1 = actualHeight1
     }
     /*
     let rasgo = rasgos.find(r => r.index === trait)
@@ -375,7 +394,7 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
     descripcion: background?.history ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
-    maxWidth,
+    maxWidth: 180,
     page: page2,
     x: 33,
     y: page2.getHeight() - 392
@@ -395,7 +414,31 @@ export async function escribirEquipo({ pdfDoc, equipment }: any) {
 
   const equipo = equipment
     .filter((equip: any) => equip.category === "Arma" || equip.category === "Armadura")
-    .map((equip: any) => equip.quantity+'x ' + equip.name)
+    .map((equip: any) => {
+      let dataProperties = ''
+
+      if (equip.weapon.properties.length > 0) {
+        dataProperties = '(' + equip?.weapon?.properties
+          .map((prop: any) => {
+            if (prop?.name === 'Versátil') {
+              return prop?.name + ' ' + equip?.weapon?.two_handed_damage?.dice
+            }
+            
+            if (prop?.name === 'Arrojadiza') {
+              return prop?.name + ' ' + equip?.weapon?.range_throw?.normal + '/' + equip?.weapon?.range_throw?.long
+            }
+            
+            if (prop?.name === 'Munición') {
+              return prop?.name + ' ' + equip?.weapon?.range_throw?.normal + '/' + equip?.weapon?.range_throw?.long
+            }
+
+            return prop?.name
+          })
+          .join(', ') + ')'
+      }
+      
+      return equip.quantity+'x ' + equip.name + ' ' + dataProperties
+    })
 
   const tesoro = equipment
     .filter((equip: any) => equip.category !== "Arma" && equip.category !== "Armadura")
@@ -408,7 +451,7 @@ export async function escribirEquipo({ pdfDoc, equipment }: any) {
     fontText: fontRegular,
     maxWidth,
     page: page1,
-    x: 270,
+    x: 267,
     y: page1.getHeight() - 622
   })
   

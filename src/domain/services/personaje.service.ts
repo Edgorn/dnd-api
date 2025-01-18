@@ -100,7 +100,7 @@ export default class PersonajeService {
     }
   }
 
-  async crearPdf(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
+  async crearPdf(idUser: number, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
     try {
       const result = await this.personajeRepository.crearPdf(idUser, idCharacter);
       return { success: true, data: result };

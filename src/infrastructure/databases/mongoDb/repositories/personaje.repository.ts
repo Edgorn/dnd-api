@@ -13,6 +13,8 @@ import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRe
 import TransfondoRepository from './transfondo.repository';
 import { escribirCompetencias, escribirEquipo, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import axios from 'axios';
+import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
+import UsuarioRepository from './usuario.repository';
 
 const fs = require('fs');
 const path = require('path');
@@ -31,6 +33,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   dañoRepository: DañoRepository
   propiedadArmaRepository: PropiedadArmaRepository
   transfondoRepository: ITransfondoRepository
+  usuarioRepository: IUsuarioRepository
 
   constructor() {
     super()
@@ -44,6 +47,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     this.dañoRepository = new DañoRepository()
     this.propiedadArmaRepository = new PropiedadArmaRepository()
     this.transfondoRepository = new TransfondoRepository()
+    this.usuarioRepository = new UsuarioRepository()
   }
 
   async crear(data: any): Promise<any> {
@@ -255,6 +259,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
         )
     )
 
+    let traits_options = null
+
     personaje?.subclasses?.forEach(s => {
       if (dataLevel?.subclasses && dataLevel?.subclasses[s]?.traits) {
         traits.push(
@@ -264,12 +270,22 @@ export default class PersonajeRepository extends IPersonajeRepository {
             )
         )
       }
+
+      if (dataLevel?.subclasses && dataLevel?.subclasses[s]?.traits_options) {
+        traits_options = dataLevel?.subclasses[s]?.traits_options
+
+        if (traits_options) {
+          traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.subclasses[s]?.traits_options?.options ?? [])
+        }
+      }
     })
+    
 
     return {
       hit_die: claseData?.hit_die,
       prof_bonus: dataLevel.prof_bonus === dataLevelOld?.prof_bonus ? null : dataLevel.prof_bonus,
       traits,
+      traits_options,
       ability_score: dataLevel?.ability_score,
       subclasesData
     }
@@ -289,7 +305,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   async subirNivel(data: any): Promise<any> {
     const id = data.id
 
-    const { hit, clase, abilities, subclases } = data.data
+    const { hit, clase, abilities, subclases, trait } = data.data
 
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
@@ -297,36 +313,56 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const claseData = await this.claseRepository.getClase(clase)
     const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
 
-    let plusSpeed = personaje?.plusSpeed ?? 0
-
-    if (dataLevel?.traits?.includes('fast-movement')) {
-      if (personaje?.equipment?.filter(eq => eq.index !== 'shield')?.every(eq => !eq.equipped)) {
-        plusSpeed += 10
-      }
-    }
-
     if (dataLevel?.traits?.includes('primal-champion')) {
       abilities.str += 4
       abilities.con += 4
     }
 
-    let CA = personaje?.CA ?? 10
-
-    if (personaje?.equipment?.filter(eq => eq.index !== 'shield')?.every(eq => !eq.equipped) && personaje?.traits.includes('barbarian-unarmored-defense')) {
-      CA = 10 + Math.floor((abilities.con/2) - 5) + Math.floor((abilities.dex/2) - 5)
-    }
-
-    if (dataLevel?.subclasses) {
-
-    }
-
     const traitsSubclase = dataLevel?.subclasses
-    ? [...subclases ?? [], ...personaje?.subclasses ?? []].map((subclase: any) => {
-        return dataLevel?.subclasses[subclase]?.traits
+      ? [...subclases ?? [], ...personaje?.subclasses ?? []].map((subclase: any) => {
+          return dataLevel?.subclasses[subclase]?.traits
+        }).flat().filter(item => item !== undefined)
+      : []
+
+    if (trait) {
+      traitsSubclase.push(trait)
+    }
+
+    const traits = [...personaje?.traits ?? [], ...dataLevel?.traits ?? [], ...traitsSubclase ?? []]
+
+    let armadura = false
+    let CA = 10
+    let shield = 0
+
+    this.equipamientoRepository
+      .obtenerEquipamientosPorIndices(
+        personaje?.equipment
+          .filter(eq => eq.equipped)
+          .map(eq => eq.index) ?? []
+      )
+      .forEach(armor => {
+        if (armor.armor.category === 'Escudo') {
+          shield += armor?.armor?.class?.base ?? 0
+        } else {
+          CA = armor?.armor?.class?.base ?? 10
+
+          if (armor?.armor?.class?.dex_bonus) {
+            CA += Math.floor((personaje?.abilities.dex/2) - 5)
+          }
+
+          armadura = true
+        }
       })
-    .flat()
-    : []
-    
+
+    if (!armadura && traits.includes('barbarian-unarmored-defense')) {
+      CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+    }
+
+    let plusSpeed = 0
+
+    if (!armadura && traits.includes('fast-movement')) {
+      plusSpeed += 10
+    }
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
@@ -338,13 +374,13 @@ export default class PersonajeRepository extends IPersonajeRepository {
           traits: [...personaje?.traits ?? [], ...dataLevel?.traits ?? [], ...traitsSubclase ?? []],
           plusSpeed,
           abilities,
-          CA,
+          CA: CA + shield,
           subclasses: [...personaje?.subclasses ?? [], ...subclases ?? []]
         },
         $inc: { 
           'classes.$[elem].level': 1,
-          HPMax: hit,
-          HPActual: hit
+          HPMax: hit + Math.floor((personaje?.abilities?.con/2) - 5),
+          HPActual: hit + Math.floor((personaje?.abilities?.con/2) - 5)
         }
       },
       {
@@ -352,7 +388,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
         new: true 
       }
     );
-
+ 
 /*
     if (!resultado) {
       console.log('No se encontró el personaje o no se realizó la actualización.');
@@ -654,12 +690,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
     }
   }
 
-  async crearPdf(idUser: string, idCharacter: string): Promise<any> {
+  async crearPdf(idUser: number, idCharacter: string): Promise<any> {
     const personaje = await Personaje.findById(idCharacter);
 
     const personajeData = await this.formatearPersonaje(personaje)
 
-    return this.generarPdf(personajeData)
+    return this.generarPdf(personajeData, idUser)
   }
 
   sumaDaño(character: any, equip: any) {
@@ -690,8 +726,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return suma
   }
 
-
-  async generarPdf(personaje: any): Promise<any> {
+  async generarPdf(personaje: any, idUser: number): Promise<any> {
     const pdfPath = path.join(__dirname, '../../../../utils/hoja-nueva.pdf');
     const existingPdfBytes = fs.readFileSync(pdfPath);
 
@@ -732,12 +767,14 @@ export default class PersonajeRepository extends IPersonajeRepository {
         //}
       });
       //console.log('_________________');
+
+      const usuario = await this.usuarioRepository.nombreUsuario(idUser)
  
       form.getTextField('CharacterName').setText(personaje?.name);
       form.getTextField('ClassLevel').setText(personaje?.classes?.map((cl: any) => cl?.name + ' ' + cl?.level)?.join(', '));
       form.getDropdown('Background').addOptions([personaje?.background?.name + ' (' + personaje?.background?.type + ')']);
       form.getDropdown('Background').select(personaje?.background?.name + ' (' + personaje?.background?.type + ')');
-      form.getTextField('PlayerName').setText(personaje?.name);
+      form.getTextField('PlayerName').setText(usuario);
       form.getDropdown('Race').addOptions([personaje?.race]);
       form.getDropdown('Race').select(personaje?.race);
       form.getDropdown('Alignment').addOptions(['']);
@@ -810,8 +847,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
       form.getTextField('Init').setText(this.formatNumber(bonus.dex) + '');
       form.getTextField('Speed').setText(personaje?.speed + '');
 
-      console.log(personaje.classes?.map((clase: any) => clase.level)?.join(' / '))
-
       form.getTextField('HitDiceTotal').setText(personaje.classes?.map((clase: any) => clase.level)?.join(' / ') + '');
       form.getTextField('Text1').setText(personaje.classes?.map((clase: any) => 'd' + clase.hit_die)?.join(' / ') + '');
 
@@ -876,7 +911,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     nuevoPdf.addPage(pag1);
     nuevoPdf.addPage(pag2);
-    nuevoPdf.addPage(pag3);
+    //nuevoPdf.addPage(pag3);
 
     const pdfBytes = await nuevoPdf.save();
   

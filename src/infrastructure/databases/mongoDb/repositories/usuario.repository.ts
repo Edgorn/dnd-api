@@ -10,7 +10,6 @@ export default class UsuarioRepository extends IUsuarioRepository {
   async logearUsuario({ user, password }: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
     const usuario = await UsuarioSchema.find({ name: user, password: password })
 
-
     if (usuario[0]) {
       return { 
         token: usuario[0]?.token,
@@ -27,5 +26,11 @@ export default class UsuarioRepository extends IUsuarioRepository {
     const usuario = await UsuarioSchema.find({ token: token })
 
     return usuario[0]?.index
+  }
+
+  async nombreUsuario(id: number): Promise<string> {
+    const usuario = await UsuarioSchema.find({ index: id })
+
+    return usuario[0]?.name
   }
 }

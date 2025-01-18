@@ -164,8 +164,6 @@ function listSkills({ character, raza, subraza }) {
 function listProficiencies({ character, raza, subraza, clase, competencias }) {
   const { proficiencies } = character
 
-  console.log(proficiencies)
-
   const listProficiencies = [
     ...raza?.starting_proficiencies?.filter(prof => prof.type !== 'habilidad')?.map(prof => prof.index) ?? [],
     ...subraza?.starting_proficiencies?.filter(prof => prof.type !== 'habilidad')?.map(prof => prof.index) ?? [],

@@ -8,4 +8,8 @@ export default class IUsuarioRepository {
   async validarToken(token: string): Promise<boolean> {
     throw new Error('Método no implementado');
   }
+
+  async nombreUsuario(id: number): Promise<string> {
+    throw new Error('Método no implementado');
+  }
 }

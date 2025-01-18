@@ -35,7 +35,7 @@ export default class IPersonajeRepository {
     throw new Error('Método no implementado');
   }
 
-  async crearPdf(idUser: string, idCharacter: string): Promise<any> {
+  async crearPdf(idUser: number, idCharacter: string): Promise<any> {
     throw new Error('Método no implementado');
   }
 }
