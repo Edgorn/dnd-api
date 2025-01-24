@@ -6,7 +6,7 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
-import { formatearCompetencias, formatearEquipamiento, formatearOptions } from '../../../../utils/formatters';
+import { formatearCompetencias, formatearEquipamiento, formatearEquipamientosOptions, formatearOptions } from '../../../../utils/formatters';
 import CompetenciaRepository from './competencia.repository';
 import ConjuroRepository from './conjuros.repository';
 import EquipamientoRepository from './equipamiento.repository';
@@ -41,7 +41,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
 
   formatearTransfondos(transfondos: any[]): any[] {
     const formateadas = transfondos
-      .filter(transfondo => transfondo.index === 'wild')
+      .filter(transfondo => transfondo.index === 'wild' || transfondo.index === 'soldier')
       .map(transfondo => this.formatearTransfondo(transfondo))
 
     formateadas.sort((a, b) => {
@@ -73,6 +73,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
       proficiencies: formatearCompetencias(transfondo?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       options: formatearOptions(transfondo?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       equipment: formatearEquipamiento(transfondo?.starting_equipment ?? [], this.equipamientoRepository),
+      equipment_options: formatearEquipamientosOptions(transfondo?.starting_equipment_options ?? [], this.equipamientoRepository),
       personalized_equipment: transfondo.personalized_equipment,
       money: transfondo.money,
       options_name,

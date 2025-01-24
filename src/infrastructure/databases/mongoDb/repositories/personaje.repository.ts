@@ -279,7 +279,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
         }
       }
     })
-    
 
     return {
       hit_die: claseData?.hit_die,
@@ -731,7 +730,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const existingPdfBytes = fs.readFileSync(pdfPath);
 
     const datos: any = {
-      acrobatics: ["acroPDF", "Acrobatics"],
+      acrobatics: ["acroPROF", "Acrobatics"],
       athletics: ["athPROF", "Athletics"],
       arcana: ["arcanaPROF", "Arcana"],
       deception: ["decepPROF", "Deception"],

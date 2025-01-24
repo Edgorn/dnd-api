@@ -48,21 +48,15 @@ export default class ClaseRepository extends IClaseRepository {
 
   formatearClases(clases: any) {
     const formateadas = clases
-      .filter((clase: any) => clase.index === 'barbarian')
+      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock')
       .map((clase: any) => this.formatearClase(clase))
 
     formateadas.sort((a: any, b: any) => {
-      if (a.name < b.name) {
-        return -1;
-      }
-      if (a.name > b.name) {
-        return 1;
-      }
-      return 0;
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
 
     return formateadas;
-  }
+  } 
 
   formatearClase(clase: any) {  
     const dataLevel = clase?.levels?.find((level: any) => level.level === 1)/*
@@ -175,13 +169,7 @@ export default class ClaseRepository extends IClaseRepository {
     const formateadas = subclases_options.map(subclase_option => this.formatearSubclase(subclase_option, subclases))
 
     formateadas.sort((a: any, b: any) => {
-      if (a.name < b.name) {
-        return -1;
-      }
-      if (a.name > b.name) {
-        return 1;
-      }
-      return 0;
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
 
     return formateadas;

@@ -89,60 +89,66 @@ export async function escribirRasgos({ traits, pdfDoc, terrain }: any) {
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
+  // Rasgos y atributos
   let textY1 = page1.getHeight() - 395;
   let textY2 = page2.getHeight() - 385;
   let textY3 = page2.getHeight() - 385;
-  let maxHeight1 = 44
+  let maxHeight1 = 43
   let maxHeight2 = 20
 
-  traits?.forEach((trait: any) => {
-    const { textY, actualHeight: actualHeight1 } = escribirParrafo({ 
-      titulo: trait?.name, 
-      descripcion: trait?.desc,
-      fontTitle: fontBold,
-      fontText: fontRegular,
-      maxWidth: 170,
-      page: page1,
-      x: 412,
-      y: textY1,
-      maxHeight: maxHeight1
-    })
+  // Ataques y lanzamientos de conjuros
+  let textY4 = page1.getHeight() - 460;
 
-    if (maxHeight1 === actualHeight1) {
-      const { textY, actualHeight: actualHeight2 } = escribirParrafo({ 
+  traits
+    ?.filter((trait: any) => trait.type !== 'spell')
+    ?.forEach((trait: any) => {
+      const { textY, actualHeight: actualHeight1 } = escribirParrafo({ 
         titulo: trait?.name, 
         descripcion: trait?.desc,
         fontTitle: fontBold,
         fontText: fontRegular,
-        maxWidth: 180,
-        page: page2,
-        x: 230,
-        y: textY2,
-        maxHeight: maxHeight2
+        maxWidth: 178,  //174
+        page: page1,
+        x: 410, //412
+        y: textY1,
+        maxHeight: maxHeight1
       })
 
-      if (maxHeight2 === actualHeight2) {
-        const { textY } = escribirParrafo({ 
+      if (maxHeight1 === actualHeight1) {
+        const { textY, actualHeight: actualHeight2 } = escribirParrafo({ 
           titulo: trait?.name, 
           descripcion: trait?.desc,
           fontTitle: fontBold,
           fontText: fontRegular,
-          maxWidth: 180,
+          maxWidth: 182,
           page: page2,
-          x: 405,
-          y: textY3
+          x: 227,
+          y: textY2,
+          maxHeight: maxHeight2
         })
 
-        textY3 = textY
+        if (maxHeight2 === actualHeight2) {
+          const { textY } = escribirParrafo({ 
+            titulo: trait?.name, 
+            descripcion: trait?.desc,
+            fontTitle: fontBold,
+            fontText: fontRegular,
+            maxWidth: 182,
+            page: page2,
+            x: 405,
+            y: textY3
+          })
 
+          textY3 = textY
+
+        } else {
+          textY2 = textY
+          maxHeight2 = actualHeight2
+        }
       } else {
-        textY2 = textY
-        maxHeight2 = actualHeight2
+        textY1 = textY
+        maxHeight1 = actualHeight1
       }
-    } else {
-      textY1 = textY
-      maxHeight1 = actualHeight1
-    }
     /*
     let rasgo = rasgos.find(r => r.index === trait)
 
@@ -192,6 +198,23 @@ export async function escribirRasgos({ traits, pdfDoc, terrain }: any) {
 
     }*/
   })
+
+  traits
+    ?.filter((trait: any) => trait.type === 'spell')
+    ?.forEach((trait: any) => {
+      const { textY } = escribirParrafo({ 
+        titulo: trait?.name, 
+        descripcion: trait?.desc,
+        fontTitle: fontBold,
+        fontText: fontRegular,
+        maxWidth: 182,
+        page: page1,
+        x: 222,
+        y: textY4
+      })
+
+      textY4 = textY
+    })
 }
 
 export async function escribirCompetencias({ pdfDoc, languages, weapons, armors, proficiencies }: any) {
@@ -335,7 +358,6 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
 }
 
 export async function escribirTransfondo({ pdfDoc, background }: any) {
-
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -401,7 +423,6 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
   })
 }
 
-
 export async function escribirEquipo({ pdfDoc, equipment }: any) {
 
   const pages = pdfDoc.getPages();
@@ -409,8 +430,6 @@ export async function escribirEquipo({ pdfDoc, equipment }: any) {
   const page2 = pages[1]
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-  const maxWidth = 170;
 
   const equipo = equipment
     .filter((equip: any) => equip.category === "Arma" || equip.category === "Armadura")
@@ -449,7 +468,7 @@ export async function escribirEquipo({ pdfDoc, equipment }: any) {
     descripcion: equipo?.join('\n') ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
-    maxWidth,
+    maxWidth: 138,
     page: page1,
     x: 267,
     y: page1.getHeight() - 622
@@ -460,9 +479,9 @@ export async function escribirEquipo({ pdfDoc, equipment }: any) {
     descripcion: tesoro?.join('\n') ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
-    maxWidth,
+    maxWidth: 170,
     page: page2,
-    x: 230,
+    x: 227,
     y: page2.getHeight() - 613
   })
 }

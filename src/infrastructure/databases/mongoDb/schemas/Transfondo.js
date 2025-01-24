@@ -8,6 +8,7 @@ const transfondoSchema = new mongoose.Schema({
   starting_proficiencies: [],
   options: [],
   starting_equipment: [],
+  starting_equipment_options: [],
   personalized_equipment: [String],
   money: {
     quantity: Number,

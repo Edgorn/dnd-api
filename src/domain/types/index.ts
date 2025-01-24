@@ -101,7 +101,8 @@ export interface IdiomaApi {
 export interface RasgoMongo {
   index: string,
   name: string,
-  desc: string[]
+  desc: string[],
+  type?: string
 }
 
 export interface RasgoApi {

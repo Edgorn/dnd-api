@@ -8,7 +8,8 @@ export default class RasgoRepository extends IRasgoRepository {
     [key: string]: {
       index: string,
       name: string,
-      desc: string
+      desc: string,
+      type?: string
     }
   }
   constructor() {
@@ -25,6 +26,7 @@ export default class RasgoRepository extends IRasgoRepository {
         index: rasgo.index,
         name: rasgo.name,
         desc: rasgo?.desc?.join('\n'),
+        type: rasgo?.type
       };
     });
   }

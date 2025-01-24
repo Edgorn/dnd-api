@@ -87,7 +87,7 @@ export const formatearCompetencias = (proficiencies: ProficienciesMongo[], habil
   return [
     ...habilidades,
     ...competencias
-  ]
+  ] 
 }
 
 export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: IIdiomaRepository, competenciasRepository: ICompetenciaRepository, habilidadRepository: IHabilidadRepository, conjuroRepository: IConjuroRepository): OptionsApi[] => {
@@ -119,7 +119,7 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
             })
         )
       }
-    } else if (type === 'herramienta') {
+    } else if (type === 'herramienta' || type === 'juego') {
       if (optionApi?.api) {
         options.push(
           ...competenciasRepository
