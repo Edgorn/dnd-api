@@ -48,7 +48,7 @@ export default class ClaseRepository extends IClaseRepository {
 
   formatearClases(clases: any) {
     const formateadas = clases
-      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock')
+      .filter((clase: any) => clase.index === 'barbarian'/* || clase.index === 'warlock'*/)
       .map((clase: any) => this.formatearClase(clase))
 
     formateadas.sort((a: any, b: any) => {
