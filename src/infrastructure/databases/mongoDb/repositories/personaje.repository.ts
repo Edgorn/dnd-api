@@ -728,7 +728,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
   async generarPdf(personaje: any, idUser: number): Promise<any> {
     console.log('GENERAR 1')
     const pdfPath = path.join(__dirname, '../../../../utils/hoja-nueva.pdf');
+    console.log(pdfPath)
     const existingPdfBytes = fs.readFileSync(pdfPath);
+    console.log(existingPdfBytes)
     console.log('GENERAR 2')
 
     const datos: any = {
