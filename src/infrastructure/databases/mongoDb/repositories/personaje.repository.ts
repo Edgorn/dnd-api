@@ -726,11 +726,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
   }
 
   async generarPdf(personaje: any, idUser: number): Promise<any> {
-    console.log('GENERAR 1')
     //const pdfPath = path.join(__dirname, '../../../../utils/hoja-nueva.pdf');
     const pdfPath = path.join(process.cwd(), 'src/utils/hoja-nueva.pdf');
     const existingPdfBytes = fs.readFileSync(pdfPath);
-    console.log('GENERAR 2')
 
     const datos: any = {
       acrobatics: ["acroPROF", "Acrobatics"],
@@ -753,13 +751,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
       "animal-handling": ["anhanPROF", "AnHan"]
     }
 
-    console.log('GENERAR 3')
-
     // Cargar el documento PDF
     const originalPdf = await PDFDocument.load(existingPdfBytes);
 
     try {
-      console.log('GENERAR 4')
       // Obtener el formulario del PDF
       const form = originalPdf.getForm();
       
