@@ -1,6 +1,8 @@
 import { RasgoMongo } from "../../../../domain/types";
 
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
+import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
+import ConjuroRepository from "./conjuros.repository";
 const RasgoSchema = require('../schemas/Rasgo');
 
 export default class RasgoRepository extends IRasgoRepository {
@@ -9,12 +11,19 @@ export default class RasgoRepository extends IRasgoRepository {
       index: string,
       name: string,
       desc: string,
-      type?: string
+      type?: string,
+      spells?: any[],
+      skills?: string[],
+      hidden?: boolean
     }
   }
+
+  conjuroRepository: IConjuroRepository
+
   constructor() {
     super()
     this.rasgosMap = {}
+    this.conjuroRepository = new ConjuroRepository()
     this.cargarRasgos();
   }
 
@@ -26,7 +35,10 @@ export default class RasgoRepository extends IRasgoRepository {
         index: rasgo.index,
         name: rasgo.name,
         desc: rasgo?.desc?.join('\n'),
-        type: rasgo?.type
+        type: rasgo?.type,
+        spells: this.conjuroRepository.obtenerConjurosPorIndices(rasgo.spells ?? []),
+        skills: rasgo?.skills,
+        hidden: rasgo?.hidden
       };
     });
   }

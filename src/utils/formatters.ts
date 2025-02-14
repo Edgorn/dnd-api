@@ -48,8 +48,7 @@ export const formatearConjuros = (spellsApi: string[], conjuroRepository: IConju
     }
 
     return {
-      index: conjuro.index,
-      name: conjuro.name,
+      ...conjuro,
       type: arraySpell[1],
       typeName: tipo
     }
@@ -188,12 +187,28 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
         const level = dataApi[0]
         const clase = dataApi[1]
 
-        type = parseInt(level) === 0 ? 'truco' : 'conjuro'
+        type = parseInt(level) === 0 ? 'truco' : ('conjuro nivel ' + level)
+
 
         options.push(
           ...conjuroRepository
             .obtenerConjurosPorNivelClase(level, clase)
-            .map(conjuro => { return { index: conjuro.index, name: conjuro.name, type: (optionApi?.type?.split('_')[1] ?? undefined) } })
+            .map(conjuro => { 
+              return { 
+                index: conjuro.index, 
+                name: conjuro.name, 
+                type: (optionApi?.type?.split('_')[1] ?? undefined),
+                spell: {
+                  school: conjuro.school,
+                  casting_time: conjuro.casting_time,
+                  range: conjuro.range,
+                  components: conjuro.components,
+                  duration: conjuro.duration,
+                  desc: conjuro.desc,
+                  ritual: conjuro.ritual
+                }
+              } 
+            })
         )
 
       } else {
@@ -267,14 +282,23 @@ export const formatearEquipamientosOptions = (optionsApi: any[], equipamientoRep
       const opcion: any = {}
 
       if (opt?.items) {
+        let content: any[] = []
         const name = opt?.items?.map((item: any) => {
           const equipamiento = equipamientoRepository.obtenerEquipamientoPorIndice(item.index)
+          content = equipamiento?.content
+
+          content = equipamiento?.content?.map((item: any) => {
+            const equip = equipamientoRepository.obtenerEquipamientoPorIndice(item.item)
+
+            return item?.quantity + 'x ' + equip?.name
+          })
+
           return item?.quantity + 'x ' + equipamiento?.name
         })
 
         opcion.items = opt?.items
         opcion.name = name.join(' - ')
-
+        opcion.content = content
       }
 
       if (opt?.api) {

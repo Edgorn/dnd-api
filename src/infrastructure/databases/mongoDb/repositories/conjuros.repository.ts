@@ -9,24 +9,38 @@ export default class ConjuroRepository extends IConjuroRepository {
       name: string;
       level: number;
       classes: string[];
+      school: string;
+      casting_time: string;
+      range: string;
+      components: string[];
+      duration: string;
+      desc: string[];
+      ritual: boolean
     };
   }
 
   constructor() {
     super()
     this.conjurosMap = {}
-    this.cargarConjuros();
+    this.cargar();
   }
 
-  async cargarConjuros() {
+  async cargar() {
     const conjuros: ConjuroMongo[] = await ConjuroSchema.find();
-
+ 
     conjuros.forEach(conjuro => {
       this.conjurosMap[conjuro.index] = {
         index: conjuro.index,
         name: conjuro.name,
         level: conjuro.level,
-        classes: conjuro.classes
+        classes: conjuro.classes,
+        school: conjuro.school,
+        casting_time: conjuro.casting_time,
+        range: conjuro.range,
+        components: conjuro.components,
+        duration: conjuro.duration,
+        desc: conjuro.desc,
+        ritual: conjuro.ritual
       };
     });
   }
@@ -43,7 +57,6 @@ export default class ConjuroRepository extends IConjuroRepository {
     const conjuros = Object.values(this.conjurosMap)
       .filter(conjuro => conjuro.level === parseInt(nivel))
       .filter(conjuro => conjuro.classes.includes(clase))
-      .map(conjuro => { return { index: conjuro.index, name: conjuro.name } })
     
     conjuros.sort((a, b) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });

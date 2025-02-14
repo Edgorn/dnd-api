@@ -1,5 +1,27 @@
 import { rgb, StandardFonts } from "pdf-lib";
 
+const abilities: {[key: string]: string} = {
+  str: 'FUE',
+  dex: 'DES',
+  con: 'CON',
+  int: 'INT',
+  wis: 'SAB',
+  cha: 'CAR'
+}
+
+const spellsList = [
+  ['Spells1', 'Spells2', 'Spells3', 'Spells4', 'Spells5', 'Spells6', 'Spells7', 'Spells8'],
+  ['Spells9', 'Spells10','Spells11', 'Spells12', 'Spells13', 'Spells14', 'Spells15', 'Spells16', 'Spells17', 'Spells18', 'Spells19', 'Spells20'],
+  ['Spells21', 'Spells22', 'Spells23', 'Spells24', 'Spells25', 'Spells26', 'Spells27', 'Spells28', 'Spells29', 'Spells30', 'Spells31', 'Spells32', 'Spells33'],
+  ['Spells34', 'Spells35', 'Spells36', 'Spells37', 'Spells38', 'Spells39', 'Spells40', 'Spells41', 'Spells42', 'Spells43', 'Spells44', 'Spells45', 'Spells46'],
+  ['Spells47', 'Spells48', 'Spells49', 'Spells50', 'Spells51', 'Spells52', 'Spells53', 'Spells54', 'Spells55', 'Spells56', 'Spells57', 'Spells58', 'Spells59'],
+  ['Spells60', 'Spells61', 'Spells62', 'Spells63', 'Spells64', 'Spells65', 'Spells66', 'Spells67', 'Spells68'],
+  ['Spells69', 'Spells70', 'Spells71', 'Spells72', 'Spells73', 'Spells74', 'Spells75', 'Spells76', 'Spells77'],
+  ['Spells78', 'Spells79', 'Spells80', 'Spells81', 'Spells82', 'Spells83', 'Spells84', 'Spells85', 'Spells86'],
+  ['Spells87', 'Spells88', 'Spells89', 'Spells90', 'Spells91', 'Spells92', 'Spells93'],
+  ['Spells94', 'Spells95', 'Spells96', 'Spells97', 'Spells98', 'Spells99', 'Spells100']
+]
+
 const wrapText = (text: any, font: any, fontSize: any, maxWidth: any) => {
   const words = text.split(' ');
   const lines = [];
@@ -100,7 +122,7 @@ export async function escribirRasgos({ traits, pdfDoc, terrain }: any) {
   let textY4 = page1.getHeight() - 460;
 
   traits
-    ?.filter((trait: any) => trait.type !== 'spell')
+    ?.filter((trait: any) => trait.type !== 'spell' && !trait.hidden)
     ?.forEach((trait: any) => {
       const { textY, actualHeight: actualHeight1 } = escribirParrafo({ 
         titulo: trait?.name, 
@@ -485,3 +507,63 @@ export async function escribirEquipo({ pdfDoc, equipment }: any) {
     y: page2.getHeight() - 613
   })
 }
+
+const calcularAtaque = (character: any, spellcasting: string) => {
+  return (character.prof_bonus ?? 0) + (Math.floor((character.abilities[spellcasting]/2) - 5) ?? 0)
+}
+
+function formatNumber(num: any) {
+  return (num >= 0 ? "+" : "") + num.toString();
+}
+
+export async function escribirConjuros({ form, personaje }: any) {
+  const spells = personaje.spells
+  const checkSpells: any = []
+
+  spells?.race?.list?.forEach((spell: any) => {
+    if (!checkSpells[spell.level]) {
+      checkSpells[spell.level] = 0
+    }
+
+    form.getTextField(spellsList[spell.level][checkSpells[spell.level]]).setText(spell.name + ' (' + spells.race.type + ')');
+
+    checkSpells[spell.level]++
+  })
+
+  Object.keys(spells).forEach(clas => {
+    if (clas !== 'race') {
+      const name = personaje.classes.find((c: any) => c.class === clas).name ?? ''
+      form.getDropdown('SpellClass').addOptions([name]);
+      form.getDropdown('SpellClass').select(name);
+    
+      form.getDropdown('SpellAbility').addOptions([abilities[spells[clas].spellcasting]]);
+      form.getDropdown('SpellAbility').select(abilities[spells[clas].spellcasting]);
+      
+      form.getTextField('SpellSaveDC').setText((8 + calcularAtaque(personaje, spells[clas].spellcasting)) + '');
+      form.getTextField('SAB').setText(formatNumber(calcularAtaque(personaje, spells[clas].spellcasting)) + '');
+
+      Array.from({ length: 10 }).forEach((_, index) => {
+        if (!checkSpells[index]) {
+          checkSpells[index] = 0
+        }
+
+        spells[clas].list?.filter((spell: any) => spell.level === index).forEach((spell: any, index2: number) => {
+          form.getTextField(spellsList[index][checkSpells[index]]).setText(spell.name);
+          checkSpells[index]++ 
+        })
+      })
+
+      Array.from({ length: 9 }).forEach((_, index) => {
+        if (clas === 'warlock') {
+          if (index + 1 !== spells[clas].level) {
+            form.getTextField('SlotsTot' + (index + 1)).setText('0')
+          } else {
+            form.getTextField('SlotsTot' + (index + 1)).setText(spells[clas].slots + '')
+          }
+        }
+      })
+
+      form.getTextField('SlotsTot' + spells[clas].level).setText(spells[clas].slots + '')
+    }
+  })
+} 

@@ -59,7 +59,7 @@ export default class RazaRepository extends IRazaRepository {
     });
 
     return formateadas;
-  }
+  } 
 
   formatearRaza(raza: RazaMongo): RazaApi {
     return {
@@ -75,7 +75,6 @@ export default class RazaRepository extends IRazaRepository {
       proficiencies: formatearCompetencias(raza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       traits: this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
       options: formatearOptions(raza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      spells: formatearConjuros(raza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
       resistances: this.dañoRepository.obtenerDañosPorIndices(raza?.resistances ?? [])
     };
   }
@@ -121,8 +120,8 @@ export default class RazaRepository extends IRazaRepository {
       } else {
         return trait
       }
-    }) 
-
+    })
+    
     return {
       index: subraza.index,
       name: subraza.name,
@@ -134,8 +133,8 @@ export default class RazaRepository extends IRazaRepository {
       proficiencies: formatearCompetencias(subraza?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       traits: traitsData,
       options: formatearOptions(subraza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      spells: formatearConjuros(subraza?.spells ?? [], this.conjuroRepository, this.rasgoRepository),
-      resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? [])
+      resistances: this.dañoRepository.obtenerDañosPorIndices(subraza?.resistances ?? []),
+      spells: formatearConjuros(subraza.spells, this.conjuroRepository, this.rasgoRepository)
     }
   }
 }

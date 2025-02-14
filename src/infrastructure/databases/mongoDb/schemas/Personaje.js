@@ -13,6 +13,7 @@ const personajeSchema = new mongoose.Schema({
   campaign?: String,
   race: String,
   traits: [String],
+  invocations: [String],
   traits_data: {},
   resistances: [String],
   speed: Number,
@@ -24,7 +25,7 @@ const personajeSchema = new mongoose.Schema({
   proficiency_weapon: [String],
   proficiency_armor: [String],
   proficiencies: [String],
-  spells: [String],
+  spells: {},
   saving_throws: [String],
   classes: [{
     class: String,

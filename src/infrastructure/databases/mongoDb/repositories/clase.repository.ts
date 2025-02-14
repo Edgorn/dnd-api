@@ -48,7 +48,7 @@ export default class ClaseRepository extends IClaseRepository {
 
   formatearClases(clases: any) {
     const formateadas = clases
-      .filter((clase: any) => clase.index === 'barbarian'/* || clase.index === 'warlock'*/)
+      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock')
       .map((clase: any) => this.formatearClase(clase))
 
     formateadas.sort((a: any, b: any) => {
@@ -131,10 +131,10 @@ export default class ClaseRepository extends IClaseRepository {
       equipment: formatearEquipamiento(clase?.starting_equipment ?? [], this.equipamientoRepository),
       equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),
       traits: traitsData,
-      /*money: formatearDinero(clase.money, this.equipamientoRepository),/*
+      /*money: formatearDinero(clase.money, this.equipamientoRepository),*/
       spellcasting_options: formatearOptions(dataLevel?.spellcasting?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      spells: dataSpells ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataSpells[0], dataSpells[1]) : [],
-      traits_options: traitsOptions,
+      //spells: dataSpells ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataSpells[0], dataSpells[1]) : [],
+      /*traits_options: traitsOptions,
       terrain_options: terrainOptions,
       enemy_options: enemyOptions,
       subclases_options: this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*/

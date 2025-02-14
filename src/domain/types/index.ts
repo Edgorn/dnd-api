@@ -22,7 +22,6 @@ export interface RazaMongo {
   languages: string[],
   traits: string[],
   resistances: string[],
-  spells: string[],
   starting_proficiencies: ProficienciesMongo[],
   options: OptionsMongo[]
 }
@@ -56,7 +55,6 @@ export interface RazaApi {
   languages: IdiomaApi[],
   traits: RasgoApi[],
   resistances: DañoApi[],
-  spells: (ConjuroApi | null)[],
   proficiencies: ProficienciesApi[],
   options: OptionsApi[]
 }
@@ -71,9 +69,9 @@ export interface SubrazaApi {
   ability_bonuses: AbilityBonusesApi[],
   traits: RasgoApi[],
   resistances: DañoApi[],
-  spells: (ConjuroApi | null)[],
   proficiencies: ProficienciesApi[],
-  options: OptionsApi[]
+  options: OptionsApi[],
+  spells: any[]
 }
 
 export interface AbilityBonusesMongo {
@@ -102,13 +100,18 @@ export interface RasgoMongo {
   index: string,
   name: string,
   desc: string[],
-  type?: string
+  type?: string,
+  spells?: any[],
+  skills?: string[],
+  hidden?: boolean
 }
 
 export interface RasgoApi {
   index: string,
   name: string,
-  desc: string
+  desc: string,
+  skills?: string[],
+  hidden?: boolean
 }
 
 export interface DañoApi {
@@ -120,14 +123,28 @@ export interface ConjuroMongo {
   index: string,
   name: string,
   level: number,
-  classes: string[]
+  classes: string[],
+  school: string,
+  casting_time: string,
+  range: string,
+  components: string[],
+  duration: string,
+  desc: string[],
+  ritual: boolean 
 }
 
 export interface ConjuroApi {
   index: string,
   name: string,
   type: string,
-  typeName: string
+  typeName: string,
+  school: string,
+  casting_time: string,
+  range: string,
+  components: string[],
+  duration: string,
+  desc: string[],
+  ritual: boolean
 }
 
 export interface ProficienciesMongo {
@@ -164,5 +181,6 @@ export interface OptionsMongo {
 export interface OptionsApi {
   options: ({ index: string; name: string; } | OptionsApi)[],
   choose: number,
-  type: string
+  type: string,
+  spell?: any
 }
