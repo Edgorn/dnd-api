@@ -26,11 +26,11 @@ export default class RazaRepository extends IRazaRepository {
   constructor() {
     super()
     this.idiomaRepository = new IdiomaRepository()
-    this.rasgoRepository = new RasgoRepository()
+    this.conjuroRepository = new ConjuroRepository()
+    this.rasgoRepository = new RasgoRepository(this.conjuroRepository)
     this.dañoRepository = new DañoRepository()
     this.habilidadRepository = new HabilidadRepository()
     this.competenciaRepository = new CompetenciaRepository()
-    this.conjuroRepository = new ConjuroRepository()
   }
 
   async obtenerTodas() {

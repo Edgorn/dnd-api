@@ -223,9 +223,10 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
     } else if (type === 'choice' && !isStringArray(optionApi.options)) {
       options.push(...formatearOptions(optionApi?.options, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository))
     } else {
+      console.log('HOLA')
       console.log(optionApi)
       console.log('___________')
-    }
+    } 
 
     options.sort((a, b) => {
       if (isNameApi(a) && isNameApi(b)) {

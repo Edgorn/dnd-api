@@ -58,13 +58,13 @@ export default class PersonajeRepository extends IPersonajeRepository {
     this.habilidadRepository = new HabilidadRepository()
     this.idiomaRepository = new IdiomaRepository()
     this.competenciaRepository = new CompetenciaRepository()
-    this.rasgoRepository = new RasgoRepository()
+    this.conjuroRepository = new ConjuroRepository()
+    this.rasgoRepository = new RasgoRepository(this.conjuroRepository)
     this.equipamientoRepository = new EquipamientoRepository()
     this.dañoRepository = new DañoRepository()
     this.propiedadArmaRepository = new PropiedadArmaRepository()
     this.transfondoRepository = new TransfondoRepository()
     this.usuarioRepository = new UsuarioRepository()
-    this.conjuroRepository = new ConjuroRepository()
     this.invocacionRepository = new InvocacionRepository()
   }
 
@@ -325,7 +325,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
           options: dataInv
         } 
       } 
-    }
+    } 
 
     return {
       hit_die: claseData?.hit_die,
@@ -334,15 +334,16 @@ export default class PersonajeRepository extends IPersonajeRepository {
       traits_options,
       ability_score: dataLevel?.ability_score,
       spellcasting_options: formatearOptions(dataLevel?.spellcasting?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      spellcasting_changes: dataLevel?.spellcasting?.change?.map((change: any) => {
+      /*spellcasting_changes: dataLevel?.spellcasting?.change?.map((change: any) => {
         return {
           choose: change?.choose,
           options: formatearOptions(change?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository)
         }
-      }),
+      }),*/
+      spellcasting_changes: formatearOptions(dataLevel?.spellcasting?.change ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       invocations,
       invocations_change,
-      subclasesData 
+      subclasesData
     }
   }
 

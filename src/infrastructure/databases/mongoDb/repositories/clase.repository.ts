@@ -31,7 +31,7 @@ export default class ClaseRepository extends IClaseRepository {
     this.idiomaRepository = new IdiomaRepository()
     this.conjuroRepository = new ConjuroRepository()
     this.equipamientoRepository = new EquipamientoRepository()
-    this.rasgoRepository = new RasgoRepository()
+    this.rasgoRepository = new RasgoRepository(this.conjuroRepository)
   }
 
   async obtenerTodas() {

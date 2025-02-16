@@ -30,7 +30,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
     this.idiomaRepository = new IdiomaRepository()
     this.conjuroRepository = new ConjuroRepository()
     this.equipamientoRepository = new EquipamientoRepository()
-    this.rasgoRepository = new RasgoRepository()
+    this.rasgoRepository = new RasgoRepository(this.conjuroRepository)
   }
 
   async obtenerTodos() {

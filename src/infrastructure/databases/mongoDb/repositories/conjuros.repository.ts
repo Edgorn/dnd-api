@@ -3,6 +3,7 @@ import { ConjuroMongo } from '../../../../domain/types';
 const ConjuroSchema = require('../schemas/Conjuro');
 
 export default class ConjuroRepository extends IConjuroRepository {
+  private initialized = false;
   conjurosMap: {
     [key: string]: {
       index: string;
@@ -23,6 +24,13 @@ export default class ConjuroRepository extends IConjuroRepository {
     super()
     this.conjurosMap = {}
     this.cargar();
+  }
+
+  async init() {
+    if (!this.initialized) {
+      await this.cargar();
+      this.initialized = true;
+    }
   }
 
   async cargar() {
