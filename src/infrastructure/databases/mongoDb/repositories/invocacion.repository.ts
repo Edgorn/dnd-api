@@ -1,6 +1,8 @@
 import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
 import ConjuroRepository from "./conjuros.repository";
 import IInvocacionRepository from "../../../../domain/repositories/IInvocacionRepository";
+import IRasgoRepository from "../../../../domain/repositories/IRasgoRepository";
+import RasgoRepository from "./rasgo.repository";
 const InvocacionSchema = require('../schemas/Invocacion');
 
 export default class InvocacionRepository extends IInvocacionRepository {
@@ -16,22 +18,25 @@ export default class InvocacionRepository extends IInvocacionRepository {
   }
   
   conjuroRepository: IConjuroRepository
+  rasgoRepository: IRasgoRepository
 
   constructor() {
     super()
     this.invocacionesMap = {}
     this.conjuroRepository = new ConjuroRepository()
+    this.rasgoRepository = new RasgoRepository(this.conjuroRepository)
     //this.cargarInvocaciones();
   } 
 
   async inicializar() {
-    await this.conjuroRepository.cargar(); // Esperar a que los conjuros se carguen
+    await this.conjuroRepository.cargar();
+    await this.rasgoRepository.cargar()
     await this.cargarInvocaciones();
   } 
 
   async cargarInvocaciones() {
     const invocaciones = await InvocacionSchema.find(); 
-
+    
     invocaciones.forEach((invocacion: any) => {
       this.invocacionesMap[invocacion.index] = {
         index: invocacion.index,
@@ -46,6 +51,14 @@ export default class InvocacionRepository extends IInvocacionRepository {
               return {
                 index: spell.index,
                 name: spell.name
+              } 
+            }),
+          traits: this.rasgoRepository
+            .obtenerRasgosPorIndices(invocacion?.requirements?.traits ?? []) 
+            .map(trait => {
+              return {
+                index: trait.index,
+                name: trait.name
               } 
             }),
           level: invocacion?.requirements?.level ?? 0

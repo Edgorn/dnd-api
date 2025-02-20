@@ -83,6 +83,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       spells,
       skills,
       clase,
+      subclase,
       equipment
     } = data
 
@@ -92,7 +93,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const claseData = await this.claseRepository.getClase(clase)
     const claseDataLevel = claseData?.levels[0]
-    
+    const subclaseData = claseDataLevel?.subclasses[subclase]
+
     const dataBackground = { ...background }
 
     const transfondos = await this.transfondoRepository.obtenerTodos()
@@ -104,6 +106,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
        ...raza?.traits ?? [], 
        ...subraza?.traits ?? [], 
        ...claseDataLevel?.traits ?? [],
+       ...subclaseData?.traits ?? [],
        ...transfondo.traits?.map((tr: any) => tr.index) ?? []
       ]
     let HP = claseData?.hit_die ?? 1
@@ -165,6 +168,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
       spells.race.push(...subraza?.spells)
     }
 
+    if (subclaseData?.spells?.length > 0) {
+      spells[clase + '_' + subclase] = subclaseData?.spells ?? []
+    }
+
     const personaje = new Personaje({
       name,
       user,
@@ -177,7 +184,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       type,
       campaign,
       classes: [{ class: clase, name: claseData.name, level: 1 }],
-      subclasses: [],
+      subclasses: subclase ? [subclase] : [],
       race: type ?? subraza?.name ?? raza?.name,
       traits,
       traits_data: {...claseDataLevel?.traits_data, ...subraza?.traits_data},
@@ -286,24 +293,42 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     let traits_options = null
 
-    personaje?.subclasses?.forEach(s => {
-      if (dataLevel?.subclasses && dataLevel?.subclasses[s]?.traits) {
-        traits.push(
-          ...this.rasgoRepository
-            .obtenerRasgosPorIndices(
-              dataLevel?.subclasses[s]?.traits?.filter((t: any) => !traits.map(trait => trait.index).includes(t))
-            )
-        )
+    if (dataLevel?.traits_options) {
+      traits_options = dataLevel?.traits_options
+
+      if (traits_options) {
+        traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits_options?.options ?? [])
       }
+    }
 
-      if (dataLevel?.subclasses && dataLevel?.subclasses[s]?.traits_options) {
-        traits_options = dataLevel?.subclasses[s]?.traits_options
+    const spells: any[] = []
 
-        if (traits_options) {
-          traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.subclasses[s]?.traits_options?.options ?? [])
+    if (dataLevel?.subclasses) {
+      personaje?.subclasses?.forEach(s => {
+        if (dataLevel?.subclasses[s]?.traits) {
+          traits.push(
+            ...this.rasgoRepository
+              .obtenerRasgosPorIndices(
+                dataLevel?.subclasses[s]?.traits?.filter((t: any) => !traits.map(trait => trait.index).includes(t))
+              )
+          )
         }
-      }
-    })
+  
+        if (dataLevel?.subclasses[s]?.traits_options) {
+          traits_options = dataLevel?.subclasses[s]?.traits_options
+  
+          if (traits_options) {
+            traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.subclasses[s]?.traits_options?.options ?? [])
+          }
+        }
+
+        if (dataLevel?.subclasses[s]?.spells) {
+          this.conjuroRepository.init()
+          spells.push(...this.conjuroRepository.obtenerConjurosPorIndices(dataLevel?.subclasses[s]?.spells) ?? [])
+        }
+
+      })
+    }
 
     let invocations = null
     let invocations_change = null
@@ -334,16 +359,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
       traits_options,
       ability_score: dataLevel?.ability_score,
       spellcasting_options: formatearOptions(dataLevel?.spellcasting?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      /*spellcasting_changes: dataLevel?.spellcasting?.change?.map((change: any) => {
-        return {
-          choose: change?.choose,
-          options: formatearOptions(change?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository)
-        }
-      }),*/
       spellcasting_changes: formatearOptions(dataLevel?.spellcasting?.change ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       invocations,
       invocations_change,
-      subclasesData
+      subclasesData,
+      spells
     }
   }
 
@@ -425,6 +445,18 @@ export default class PersonajeRepository extends IPersonajeRepository {
     if (spells.length > 0) {
       spellsData[clase] = spells
     }
+ 
+    personaje?.subclasses?.forEach((subclase => {
+      if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]) {
+        const nameSpells = clase + '_' + subclase
+        dataLevel?.subclasses[subclase]?.spells?.forEach((spell: string) => {
+          if (!spellsData[nameSpells]) {
+            spellsData[nameSpells] = []
+          }
+          spellsData[nameSpells].push(spell)
+        })
+      }
+    }))
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
@@ -460,7 +492,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       console.log('Actualización exitosa:', resultado);
     }*/
 
-    return resultado
+   return resultado
   }
 
   async añadirEquipamiento(data: any) {
@@ -672,7 +704,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       })
       .sort((a, b) => {
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-      })
+      }) 
 
     const idiomas = this.idiomaRepository
       .obtenerIdiomasPorIndices(personaje?.languages)
@@ -789,6 +821,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       name: personaje.name,
       race: personaje.race,
       classes: clases,
+      subclasses: personaje.subclasses,
       appearance: personaje?.appearance,
       background: personaje?.background,
       level,

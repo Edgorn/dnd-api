@@ -136,8 +136,8 @@ export default class ClaseRepository extends IClaseRepository {
       //spells: dataSpells ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataSpells[0], dataSpells[1]) : [],
       /*traits_options: traitsOptions,
       terrain_options: terrainOptions,
-      enemy_options: enemyOptions,
-      subclases_options: this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*/
+      enemy_options: enemyOptions,*/
+      subclases_options: this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)
     };
   }
 
@@ -184,6 +184,8 @@ export default class ClaseRepository extends IClaseRepository {
       traits_options_subclase.options = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits_options?.options ?? [])
     }
 
+    this.conjuroRepository.init()
+ 
     return {
       index: subclase_option?.index,
       name: subclase_option?.name,
@@ -191,10 +193,9 @@ export default class ClaseRepository extends IClaseRepository {
       traits: this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits ?? []),/*
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),
       options: formatearOptions(subclaseData?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      proficiencies: formatearCompetencias(subclaseData?.proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
-      spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),*/
+      proficiencies: formatearCompetencias(subclaseData?.proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),*/
+      spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
       traits_options: traits_options_subclase
     }
   }
-
 }
