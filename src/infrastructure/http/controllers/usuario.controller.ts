@@ -18,6 +18,7 @@ const login = async (req: any, res: any) => {
       res.status(404).json({ error: message });
     }
   } catch (e) {
+    console.error(e)
     res.status(500).json({ error: 'Error al iniciar sesion' });
   }
 };

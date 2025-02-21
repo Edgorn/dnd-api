@@ -1,4 +1,4 @@
-const { StandardFonts, rgb } = require("pdf-lib")
+/*const { StandardFonts, rgb } = require("pdf-lib")
 const Idioma = require("../src/infrastructure/databases/mongoDb/schemas/Idioma")
 const Conjuro = require("../src/infrastructure/databases/mongoDb/schemas/Conjuro")
 const Rasgo = require("../src/infrastructure/databases/mongoDb/schemas/Rasgo")
@@ -654,7 +654,7 @@ async function escribirAtaques({ pdfDoc, rasgos, traits }) {
   })
 }
 */
-
+/*
 async function escribirTesoro({ pdfDoc, equipment }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[1]
@@ -828,4 +828,4 @@ module.exports = {
   //escribirAtaques,
   escribirTesoro,
   escribirEquipamiento
-};
+};*/
