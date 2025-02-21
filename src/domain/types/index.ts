@@ -100,6 +100,7 @@ export interface RasgoMongo {
   index: string,
   name: string,
   desc: string[],
+  discard?: string[],
   type?: string,
   spells?: any[],
   skills?: string[],
@@ -110,6 +111,7 @@ export interface RasgoApi {
   index: string,
   name: string,
   desc: string,
+  discard?: string[],
   skills?: string[],
   hidden?: boolean
 }

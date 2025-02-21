@@ -1,5 +1,5 @@
 export default class IInvocacionRepository {
-  inicializar() {
+  async inicializar() {
     throw new Error('Método no implementado');
   }
 

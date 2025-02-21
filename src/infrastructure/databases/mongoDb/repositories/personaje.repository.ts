@@ -171,7 +171,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     if (subclaseData?.spells?.length > 0) {
       spells[clase + '_' + subclase] = subclaseData?.spells ?? []
     }
-
+ 
     const personaje = new Personaje({
       name,
       user,
@@ -663,7 +663,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
   async formatearPersonaje(personaje: any): Promise<any> {
     const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
-
+ 
     const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
 
     const traitsData = traits?.map(trait => {
@@ -914,7 +914,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     try {
       // Obtener el formulario del PDF
       const form = originalPdf.getForm();
-      
+      /*
       const fields = form.getFields();
       fields.forEach((field: any) => {
         const fieldName = field.getName(); // Nombre del campo
@@ -922,7 +922,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
         //if (fieldName.includes('Dice')) {
           console.log(`Nombre: ${fieldName}, Tipo: ${fieldType}`);
         //}
-      });
+      });*/
       //console.log('_________________');
 
       const usuario = await this.usuarioRepository.nombreUsuario(idUser)
@@ -1015,6 +1015,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       escribirRasgos({
         traits: personaje?.traits,
+        invocations: personaje?.invocations,
         pdfDoc: originalPdf
       })
 
@@ -1033,7 +1034,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       escribirEquipo({
         pdfDoc: originalPdf,
-        equipment: personaje?.equipment
+        equipment: personaje?.equipment,
+        personaje,
+        form
       })
 
       escribirConjuros({
