@@ -104,6 +104,7 @@ export interface RasgoMongo {
   type?: string,
   spells?: any[],
   skills?: string[],
+  proficiencies?: string[],
   hidden?: boolean
 }
 

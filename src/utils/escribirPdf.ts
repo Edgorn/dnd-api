@@ -572,9 +572,9 @@ export async function escribirConjuros({ form, personaje }: any) {
   Object.keys(spells).forEach(clas => {
     if (clas !== 'race') {
       const claseName = personaje.classes.find((c: any) => c.class === clas)?.name ?? ''
+      const claseSpells = spells[clas]
 
-      if (claseName) {
-        const claseSpells = spells[clas]
+      if (claseName && claseSpells?.spellcasting) {
         const listSpellsAux = [...claseSpells?.list ?? []]
 
         personaje.subclasses?.forEach((sub: string) => {
@@ -584,8 +584,8 @@ export async function escribirConjuros({ form, personaje }: any) {
         form.getDropdown('SpellClass').addOptions([claseName]);
         form.getDropdown('SpellClass').select(claseName);
       
-        form.getDropdown('SpellAbility').addOptions([abilities[claseSpells.spellcasting]]);
-        form.getDropdown('SpellAbility').select(abilities[claseSpells.spellcasting]);
+        form.getDropdown('SpellAbility').addOptions([abilities[claseSpells.spellcasting] ?? '']);
+        form.getDropdown('SpellAbility').select(abilities[claseSpells.spellcasting] ?? '');
         
         form.getTextField('SpellSaveDC').setText((8 + calcularAtaque(personaje, claseSpells.spellcasting)) + '');
         form.getTextField('SAB').setText(formatNumber(calcularAtaque(personaje, claseSpells.spellcasting)) + '');
@@ -610,8 +610,17 @@ export async function escribirConjuros({ form, personaje }: any) {
             }
           }
         })
-  
-        form.getTextField('SlotsTot' + claseSpells.level).setText(claseSpells.slots + '')
+
+        if (claseSpells.level) {
+          const totalSlots = form.getTextField('SlotsTot' + claseSpells.level);
+          if (totalSlots) {
+            totalSlots.setText(String(claseSpells.slots));
+          } else {
+            console.warn(`No se encontró el campo de formulario: SlotsTot${claseSpells.level}`);
+          }
+        } else {
+          console.error("Error: 'claseSpells.level' es undefined o null");
+        }
       }
       /*
       const name = personaje.classes.find((c: any) => c.class === clas)?.name ?? ''

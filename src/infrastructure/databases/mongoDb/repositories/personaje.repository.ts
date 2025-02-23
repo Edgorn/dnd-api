@@ -93,7 +93,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const claseData = await this.claseRepository.getClase(clase)
     const claseDataLevel = claseData?.levels[0]
-    const subclaseData = claseDataLevel?.subclasses[subclase]
+    const subclaseData = subclase ? claseDataLevel?.subclasses[subclase] : null
 
     const dataBackground = { ...background }
 
@@ -687,10 +687,32 @@ export default class PersonajeRepository extends IPersonajeRepository {
     })
 
     const skills:string[] = personaje?.skills
+
+    const idiomas = this.idiomaRepository
+      .obtenerIdiomasPorIndices(personaje?.languages)
+      .map(idioma => idioma.name)
+
+    const weapons = this.competenciaRepository
+      .obtenerCompetenciasPorIndices(personaje?.proficiency_weapon)
+      .map(weapon => weapon.name)
+      
+    const armors = this.competenciaRepository
+      .obtenerCompetenciasPorIndices(personaje?.proficiency_armor)
+      .map(armor => armor.name)
+
+    const proficienciesId = personaje?.proficiencies ?? []
+      
+    /*const proficienciesId = this.competenciaRepository
+      .obtenerCompetenciasPorIndices(personaje?.proficiencies)
+      .map(proficiency => proficiency.name)*/
     
     traits.forEach(trait => {
       if (trait?.skills) {
         skills.push(...trait?.skills)
+      }
+
+      if (trait?.proficiencies) {
+        proficienciesId.push(...trait?.proficiencies)
       }
     })
 
@@ -706,21 +728,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
       }) 
 
-    const idiomas = this.idiomaRepository
-      .obtenerIdiomasPorIndices(personaje?.languages)
-      .map(idioma => idioma.name)
-
-    const weapons = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(personaje?.proficiency_weapon)
-      .map(weapon => weapon.name)
-      
-    const armors = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(personaje?.proficiency_armor)
-      .map(armor => armor.name)
-      
     const proficiencies = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(personaje?.proficiencies)
-      .map(proficiency => proficiency.name)
+      .obtenerCompetenciasPorIndices(proficienciesId)
+      .map(proficiency => proficiency.name) 
 
     const equipo = this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
 

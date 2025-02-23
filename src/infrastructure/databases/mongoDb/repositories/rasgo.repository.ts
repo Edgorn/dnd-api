@@ -15,6 +15,7 @@ export default class RasgoRepository extends IRasgoRepository {
       type?: string,
       spells?: any[],
       skills?: string[],
+      proficiencies?: string[],
       hidden?: boolean
     }
   }
@@ -41,6 +42,7 @@ export default class RasgoRepository extends IRasgoRepository {
         type: rasgo?.type,
         spells: this.conjuroRepository.obtenerConjurosPorIndices(rasgo.spells ?? []),
         skills: rasgo?.skills ?? [],
+        proficiencies: rasgo?.proficiencies ?? [],
         hidden: rasgo?.hidden
       };
     });
