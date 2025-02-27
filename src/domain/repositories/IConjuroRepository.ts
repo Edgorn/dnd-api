@@ -9,15 +9,15 @@ export default class IConjuroRepository {
     throw new Error('Método no implementado');
   }
 
-  obtenerConjurosPorIndices(params: string[]): ConjuroMongo[] {
+  obtenerConjurosPorIndices(params: string[]): any[] {
     throw new Error('Método no implementado');
   }
 
-  obtenerConjuroPorIndice(params: string): ConjuroMongo {
+  obtenerConjuroPorIndice(params: string): any {
     throw new Error('Método no implementado');
   }
 
-  obtenerConjurosPorNivelClase(nivel: string, clase: string): ConjuroApi[] {
+  obtenerConjurosPorNivelClase(nivel: string, clase: string): any[] {
     throw new Error('Método no implementado');
   }
 }

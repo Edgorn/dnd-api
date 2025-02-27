@@ -22,7 +22,8 @@ const transfondoSchema = new mongoose.Schema({
   ideals: [String],
   bonds: [String],
   flaws: [String],
-  traits: [String]
+  traits: [String],
+  god: Boolean
 }, { collection: 'Transfondos' });
 
 module.exports = mongoose.model('Transfondos', transfondoSchema);

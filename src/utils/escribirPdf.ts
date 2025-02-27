@@ -75,7 +75,7 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
             });
           }
     
-          page.drawText(wrappedLine.split(': ')[1], {
+          page.drawText(wrappedLine.split(': ')[1] ?? '', {
             x: x + textWidth,
             y: textY,
             size: fontSize,
@@ -83,7 +83,7 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
             color: rgb(0, 0, 0)
           });
         } else {
-          page.drawText(wrappedLine, {
+          page.drawText(wrappedLine ?? '', {
             x: x,
             y: textY,
             size: fontSize,
@@ -116,14 +116,14 @@ export async function escribirRasgos({ traits, invocations, pdfDoc, terrain }: a
   let textY2 = page2.getHeight() - 385;
   let textY3 = page2.getHeight() - 385;
   let maxHeight1 = 43
-  let maxHeight2 = 20
+  let maxHeight2 = 25
 
   // Ataques y lanzamientos de conjuros
   let textY4 = page1.getHeight() - 460;
 
   const rasgos = [ ...traits ?? [], ...invocations ?? []]
   const rasgosList = rasgos.map(rasg => rasg.index)
-
+  
   rasgos
     ?.filter((trait: any) => {
       let isDiscard = true
@@ -138,8 +138,6 @@ export async function escribirRasgos({ traits, invocations, pdfDoc, terrain }: a
       return trait.type !== 'spell' && !trait.hidden && isDiscard
       
     })?.forEach((trait: any) => {
-
-
       const { textY, actualHeight: actualHeight1 } = escribirParrafo({ 
         titulo: trait?.name, 
         descripcion: trait?.desc,
@@ -186,7 +184,7 @@ export async function escribirRasgos({ traits, invocations, pdfDoc, terrain }: a
       } else {
         textY1 = textY
         maxHeight1 = actualHeight1
-      }
+      } 
     /*
     let rasgo = rasgos.find(r => r.index === trait)
 
@@ -407,7 +405,7 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
 
   escribirParrafo({ 
     titulo: '', 
-    descripcion: background?.personality ?? '',
+    descripcion: background?.personality?.join('\n') ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth,
@@ -472,14 +470,13 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
   const equipo = equipment
     .filter((equip: any) => equip.category === "Arma" || equip.category === "Armadura")
     .map((equip: any) => {
-
-      if (equip.category === 'Armadura' && equip.equipped) {
+      if (equip.category === 'Armadura' && equip?.armor?.category !== 'Escudo' && equip.equipped) {
         let CA = equip?.armor?.class?.base ?? 10
 
         if (equip?.armor?.class?.dex_bonus) {
           CA += Math.floor((personaje?.abilities.dex/2) - 5)
         }
-
+  
         escribirParrafo({ 
           titulo: '', 
           descripcion: equip?.name ?? '',
@@ -537,7 +534,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
   
   escribirParrafo({ 
     titulo: '', 
-    descripcion: tesoro?.join('\n') ?? '',
+    descripcion: tesoro?.slice(0, 15)?.join('\n') ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth: 170,
@@ -545,7 +542,18 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
     x: 227,
     y: page2.getHeight() - 613
   })
-}
+ 
+  escribirParrafo({ 
+    titulo: '', 
+    descripcion: tesoro?.slice(15)?.join('\n') ?? '',
+    fontTitle: fontBold,
+    fontText: fontRegular,
+    maxWidth: 170,
+    page: page2,
+    x: 405,
+    y: page2.getHeight() - 613
+  })
+}  
 
 const calcularAtaque = (character: any, spellcasting: string) => {
   return (character.prof_bonus ?? 0) + (Math.floor((character.abilities[spellcasting]/2) - 5) ?? 0)
@@ -571,6 +579,7 @@ export async function escribirConjuros({ form, personaje }: any) {
 
   Object.keys(spells).forEach(clas => {
     if (clas !== 'race') {
+      
       const claseName = personaje.classes.find((c: any) => c.class === clas)?.name ?? ''
       const claseSpells = spells[clas]
 
@@ -589,18 +598,23 @@ export async function escribirConjuros({ form, personaje }: any) {
         
         form.getTextField('SpellSaveDC').setText((8 + calcularAtaque(personaje, claseSpells.spellcasting)) + '');
         form.getTextField('SAB').setText(formatNumber(calcularAtaque(personaje, claseSpells.spellcasting)) + '');
-  
+ 
         Array.from({ length: 10 }).forEach((_, index) => {
           if (!checkSpells[index]) {
             checkSpells[index] = 0
           }
   
           listSpellsAux?.filter((spell: any) => spell.level === index).forEach((spell: any, index2: number) => {
-            form.getTextField(spellsList[index][checkSpells[index]]).setText(spell.name);
+            if (!spellsList[index][checkSpells[index]]) {
+              checkSpells[index] = 0
+            }
+            const valor = form.getTextField(spellsList[index][checkSpells[index]]).getText() ?? ''
+
+            form.getTextField(spellsList[index][checkSpells[index]]).setText(valor ? (valor + ', ' + spell.name) : spell.name);
             checkSpells[index]++ 
           })
         })
-  
+ 
         Array.from({ length: 9 }).forEach((_, index) => {
           if (clas === 'warlock') {
             if (index + 1 !== claseSpells.level) {
@@ -608,9 +622,11 @@ export async function escribirConjuros({ form, personaje }: any) {
             } else {
               form.getTextField('SlotsTot' + (index + 1)).setText(claseSpells.slots + '')
             }
+          } else {
+            form.getTextField('SlotsTot' + (index + 1)).setText(claseSpells['slots_level_' + (index + 1)] + '')
           }
-        })
-
+        }) 
+      /*
         if (claseSpells.level) {
           const totalSlots = form.getTextField('SlotsTot' + claseSpells.level);
           if (totalSlots) {
@@ -620,41 +636,8 @@ export async function escribirConjuros({ form, personaje }: any) {
           }
         } else {
           console.error("Error: 'claseSpells.level' es undefined o null");
-        }
+        }*/
       }
-      /*
-      const name = personaje.classes.find((c: any) => c.class === clas)?.name ?? ''
-      form.getDropdown('SpellClass').addOptions([name]);
-      form.getDropdown('SpellClass').select(name);
-    
-      form.getDropdown('SpellAbility').addOptions([abilities[spells[clas].spellcasting]]);
-      form.getDropdown('SpellAbility').select(abilities[spells[clas].spellcasting]);
-      
-      form.getTextField('SpellSaveDC').setText((8 + calcularAtaque(personaje, spells[clas].spellcasting)) + '');
-      form.getTextField('SAB').setText(formatNumber(calcularAtaque(personaje, spells[clas].spellcasting)) + '');
-
-      Array.from({ length: 10 }).forEach((_, index) => {
-        if (!checkSpells[index]) {
-          checkSpells[index] = 0
-        }
-
-        spells[clas].list?.filter((spell: any) => spell.level === index).forEach((spell: any, index2: number) => {
-          form.getTextField(spellsList[index][checkSpells[index]]).setText(spell.name);
-          checkSpells[index]++ 
-        })
-      })
-
-      Array.from({ length: 9 }).forEach((_, index) => {
-        if (clas === 'warlock') {
-          if (index + 1 !== spells[clas].level) {
-            form.getTextField('SlotsTot' + (index + 1)).setText('0')
-          } else {
-            form.getTextField('SlotsTot' + (index + 1)).setText(spells[clas].slots + '')
-          }
-        }
-      })
-
-      form.getTextField('SlotsTot' + spells[clas].level).setText(spells[clas].slots + '')*/
     }
   })
 } 

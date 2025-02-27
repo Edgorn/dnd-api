@@ -82,6 +82,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       languages,
       spells,
       skills,
+      double_skills,
       clase,
       subclase,
       equipment
@@ -93,7 +94,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const claseData = await this.claseRepository.getClase(clase)
     const claseDataLevel = claseData?.levels[0]
-    const subclaseData = subclase ? claseDataLevel?.subclasses[subclase] : null
+    const subclaseData = subclase  ? claseDataLevel?.subclasses[subclase] : null
 
     const dataBackground = { ...background }
 
@@ -122,13 +123,15 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const proficiency_weapon = this.competenciaRepository.obtenerCompetenciasPorIndicesSinRep([
       ...raza?.starting_proficiencies?.filter((prof: any) => prof.type === 'arma')?.map((prof: any) => prof.index) ?? [],
       ...subraza?.starting_proficiencies?.filter((prof: any) => prof.type === 'arma')?.map((prof: any) => prof.index) ?? [],
-      ...claseData?.starting_proficiencies?.filter((prof: any) => prof.type === 'arma')?.map((prof: any) => prof.index) ?? []
+      ...claseData?.starting_proficiencies?.filter((prof: any) => prof.type === 'arma')?.map((prof: any) => prof.index) ?? [],
+      ...subclaseData?.proficiencies?.filter((prof: any) => prof.type === 'arma')?.map((prof: any) => prof.index) ?? []
     ])
 
     const proficiency_armor = this.competenciaRepository.obtenerCompetenciasPorIndicesSinRep([
       ...raza?.starting_proficiencies?.filter((prof: any) => prof.type === 'armadura')?.map((prof: any) => prof.index) ?? [],
       ...subraza?.starting_proficiencies?.filter((prof: any) => prof.type === 'armadura')?.map((prof: any) => prof.index) ?? [],
-      ...claseData?.starting_proficiencies?.filter((prof: any) => prof.type === 'armadura')?.map((prof: any) => prof.index) ?? []
+      ...claseData?.starting_proficiencies?.filter((prof: any) => prof.type === 'armadura')?.map((prof: any) => prof.index) ?? [],
+      ...subclaseData?.proficiencies?.filter((prof: any) => prof.type === 'armadura')?.map((prof: any) => prof.index) ?? []
     ])
 
     let CA = 10
@@ -145,16 +148,26 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       if (dataEquip?.content?.length > 0) {
         dataEquip?.content?.forEach((equip2: any) => {
-          equipmentData.push({
-            index: equip2.item,
-            quantity: equip2.quantity * equip1.quantity
-          })
+          const idx = equipmentData.findIndex((eq: any) => eq.index === equip2.index)
+          if (idx === -1) {
+            equipmentData.push({
+              index: equip2.item,
+              quantity: equip2.quantity * equip1.quantity
+            })
+          } else {
+            equipmentData[idx].quantity += equip2.quantity * equip1.quantity
+          }
         })
       } else {
-        equipmentData.push({
-          index: equip1.index,
-          quantity: equip1.quantity
-        })
+        const idx = equipmentData.findIndex((eq: any) => eq.index === equip1.index)
+        if (idx === -1) {
+          equipmentData.push({
+            index: equip1.index,
+            quantity: equip1.quantity
+          })
+        } else {
+          equipmentData[idx].quantity += equip1.quantity
+        }
       }
     })
 
@@ -164,14 +177,26 @@ export default class PersonajeRepository extends IPersonajeRepository {
       money += transfondo?.money?.quantity * 100
     }
 
+    const spellsClase = claseDataLevel?.spellcasting?.all_spells
+      ? this.conjuroRepository.obtenerConjurosPorNivelClase(claseDataLevel?.spellcasting?.all_spells, clase).map(conjuro => conjuro.index)
+      : []
+ 
+    if (spellsClase?.length > 0) {
+      spells[clase].push(...spellsClase)
+    }
+
     if (subraza?.spells) {
       spells.race.push(...subraza?.spells)
     }
 
     if (subclaseData?.spells?.length > 0) {
-      spells[clase + '_' + subclase] = subclaseData?.spells ?? []
+      if (!spells[clase + '_' + subclase]) {
+        spells[clase + '_' + subclase] = []
+      }
+
+      spells[clase + '_' + subclase].push(...subclaseData?.spells ?? [])
     }
- 
+
     const personaje = new Personaje({
       name,
       user,
@@ -201,6 +226,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
         ...subraza?.starting_proficiencies?.filter((prof: any) => prof.type === 'habilidad')?.map((prof: any) => prof.index) ?? [],
         ...transfondo?.proficiencies?.filter((prof: any) => prof.type === 'habilidad')?.map((prof: any) => prof.index) ?? []
       ],
+      double_skills,
       proficiency_weapon: proficiency_weapon.map((prof: any) => prof.index),
       proficiency_armor: proficiency_armor.map((prof: any) => prof.index),
       proficiencies: [
@@ -264,17 +290,17 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const subclasesData = await this.claseRepository.formatearSubclasesType(dataLevel.subclasses_options, dataLevel.subclasses)
     
     const traits: any[] = []
-
+    
     if (dataLevel?.traits_data) {
       Object.keys(dataLevel?.traits_data).forEach(t => {
         const data = dataLevel.traits_data[t]
-        const dataOld = dataLevelOld?.traits_data[t]
+        const dataOld = dataLevelOld?.traits_data ? dataLevelOld?.traits_data[t] : null
   
         if (this.valoresNumericosDistintos(data, dataOld)) {
           const trait = this.rasgoRepository.obtenerRasgoPorIndice(t)
         
           let desc: string = trait?.desc ?? ''
-  
+    
           Object.keys(data).forEach(d => {
             desc = desc.replaceAll(d, data[d])
           })
@@ -301,7 +327,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
       }
     }
 
-    const spells: any[] = []
+    const spells = dataLevel?.spellcasting?.all_spells
+      ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase)
+      : []
 
     if (dataLevel?.subclasses) {
       personaje?.subclasses?.forEach(s => {
@@ -313,10 +341,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
               )
           )
         }
-  
+
         if (dataLevel?.subclasses[s]?.traits_options) {
           traits_options = dataLevel?.subclasses[s]?.traits_options
-  
+     
           if (traits_options) {
             traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.subclasses[s]?.traits_options?.options ?? [])
           }
@@ -326,7 +354,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
           this.conjuroRepository.init()
           spells.push(...this.conjuroRepository.obtenerConjurosPorIndices(dataLevel?.subclasses[s]?.spells) ?? [])
         }
-
       })
     }
 
@@ -445,6 +472,14 @@ export default class PersonajeRepository extends IPersonajeRepository {
     if (spells.length > 0) {
       spellsData[clase] = spells
     }
+
+    if (dataLevel?.spellcasting?.all_spells) {
+      const spellsAux = dataLevel?.spellcasting?.all_spells
+        ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase)?.map((spell => spell.index))
+        : []
+
+      spellsData[clase].push(...spellsAux ?? [])
+    }
  
     personaje?.subclasses?.forEach((subclase => {
       if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]) {
@@ -485,13 +520,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
       }
     );
  
-/*
-    if (!resultado) {
+/*  if (!resultado) {
       console.log('No se encontró el personaje o no se realizó la actualización.');
     } else {
       console.log('Actualización exitosa:', resultado);
     }*/
-
+     
    return resultado
   }
 
@@ -660,10 +694,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
       XPMax: nivel[level-1]
     }
   }
-
+    
   async formatearPersonaje(personaje: any): Promise<any> {
     const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
- 
+  
     const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
 
     const traitsData = traits?.map(trait => {
@@ -701,10 +735,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
       .map(armor => armor.name)
 
     const proficienciesId = personaje?.proficiencies ?? []
-      
-    /*const proficienciesId = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(personaje?.proficiencies)
-      .map(proficiency => proficiency.name)*/
     
     traits.forEach(trait => {
       if (trait?.skills) {
@@ -721,12 +751,14 @@ export default class PersonajeRepository extends IPersonajeRepository {
       .map(habilidad => {
         return {
           ...habilidad,
-          competencia: skills?.includes(habilidad?.index) ? 1 : 0
+          competencia: personaje?.double_skills?.includes(habilidad?.index)
+            ? 2
+            : skills?.includes(habilidad?.index) ? 1 : 0
         }
       })
       .sort((a, b) => {
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-      }) 
+      })
 
     const proficiencies = this.competenciaRepository
       .obtenerCompetenciasPorIndices(proficienciesId)
@@ -814,6 +846,16 @@ export default class PersonajeRepository extends IPersonajeRepository {
           if (level) {
             spells[groupSpells].slots = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots
             spells[groupSpells].level = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_level
+            
+            spells[groupSpells].slots_level_1 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_1
+            spells[groupSpells].slots_level_2 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_2
+            spells[groupSpells].slots_level_3 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_3
+            spells[groupSpells].slots_level_4 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_4
+            spells[groupSpells].slots_level_5 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_5
+            spells[groupSpells].slots_level_6 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_6
+            spells[groupSpells].slots_level_7 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_7
+            spells[groupSpells].slots_level_8 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_8
+            spells[groupSpells].slots_level_9 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_9
           }
         }
 
@@ -936,11 +978,13 @@ export default class PersonajeRepository extends IPersonajeRepository {
       //console.log('_________________');
 
       const usuario = await this.usuarioRepository.nombreUsuario(idUser)
+
+      const background = personaje?.background?.name + ( personaje?.background?.type ? ' (' + personaje?.background?.type + ')' : '')
  
       form.getTextField('CharacterName').setText(personaje?.name);
       form.getTextField('ClassLevel').setText(personaje?.classes?.map((cl: any) => cl?.name + ' ' + cl?.level)?.join(', '));
-      form.getDropdown('Background').addOptions([personaje?.background?.name + ' (' + personaje?.background?.type + ')']);
-      form.getDropdown('Background').select(personaje?.background?.name + ' (' + personaje?.background?.type + ')');
+      form.getDropdown('Background').addOptions([background]);
+      form.getDropdown('Background').select(background);
       form.getTextField('PlayerName').setText(usuario);
       form.getDropdown('Race').addOptions([personaje?.race]);
       form.getDropdown('Race').select(personaje?.race);
@@ -982,7 +1026,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       personaje?.skills?.forEach((skill: any) => {
         if (skill?.competencia) {
           form.getCheckBox(datos[skill?.index][0]).check()
-          form.getTextField(datos[skill?.index][1]).setText(this.formatNumber(bonus[skill.ability_score] + personaje?.prof_bonus) + '');
+          form.getTextField(datos[skill?.index][1]).setText(this.formatNumber(bonus[skill.ability_score] + (personaje?.prof_bonus * skill?.competencia)) + '');
         } else {
           form.getTextField(datos[skill?.index][1]).setText(this.formatNumber(bonus[skill.ability_score]) + '');
         }

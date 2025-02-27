@@ -45,10 +45,10 @@ export default class ClaseRepository extends IClaseRepository {
 
     return clase[0] ?? null
   }
-
+ 
   formatearClases(clases: any) {
     const formateadas = clases
-      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock')
+      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock' || clase.index === 'cleric')
       .map((clase: any) => this.formatearClase(clase))
 
     formateadas.sort((a: any, b: any) => {
@@ -119,6 +119,10 @@ export default class ClaseRepository extends IClaseRepository {
       }
     })
 
+    const spells = dataLevel?.spellcasting?.all_spells
+      ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase.index) 
+      : []
+ 
     return {
       index: clase.index,
       name: clase.name,
@@ -133,7 +137,7 @@ export default class ClaseRepository extends IClaseRepository {
       traits: traitsData,
       /*money: formatearDinero(clase.money, this.equipamientoRepository),*/
       spellcasting_options: formatearOptions(dataLevel?.spellcasting?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      //spells: dataSpells ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataSpells[0], dataSpells[1]) : [],
+      spells ,
       /*traits_options: traitsOptions,
       terrain_options: terrainOptions,
       enemy_options: enemyOptions,*/
@@ -185,15 +189,15 @@ export default class ClaseRepository extends IClaseRepository {
     }
 
     this.conjuroRepository.init()
- 
+    
     return {
       index: subclase_option?.index,
       name: subclase_option?.name,
       img: subclase_option?.img,
       traits: this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits ?? []),/*
-      languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),
+      languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*/
       options: formatearOptions(subclaseData?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      proficiencies: formatearCompetencias(subclaseData?.proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),*/
+      proficiencies: formatearCompetencias(subclaseData?.proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
       traits_options: traits_options_subclase
     }

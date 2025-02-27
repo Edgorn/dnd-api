@@ -41,7 +41,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
 
   formatearTransfondos(transfondos: any[]): any[] {
     const formateadas = transfondos
-      .filter(transfondo => transfondo.index === 'wild' || transfondo.index === 'soldier'/* || transfondo.index === 'acolyte'*/)
+      .filter(transfondo => transfondo.index === 'wild' || transfondo.index === 'soldier' || transfondo.index === 'acolyte')
       .map(transfondo => this.formatearTransfondo(transfondo))
  
     formateadas.sort((a, b) => {
@@ -81,6 +81,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
       ideals: transfondo?.ideals?.map((opt: string) => { return { label: opt, value: opt } }),
       bonds: transfondo?.bonds?.map((opt: string) => { return { label: opt, value: opt } }),
       flaws: transfondo?.flaws?.map((opt: string) => { return { label: opt, value: opt } }),
+      god: transfondo?.god
     }
   }
 }
