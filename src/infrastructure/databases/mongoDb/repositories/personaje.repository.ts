@@ -20,6 +20,7 @@ import ConjuroRepository from './conjuros.repository';
 import { formatearOptions } from '../../../../utils/formatters';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import InvocacionRepository from './invocacion.repository';
+import { PersonajeBasico } from '../../../../domain/types/personajes';
 
 const fs = require('fs');
 const path = require('path');
@@ -248,7 +249,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return resultado
   }
 
-  async consultarPersonajes(id: number): Promise<any> {
+  async consultarPersonajes(id: number): Promise<PersonajeBasico[]> {
     const personajes = await Personaje.find({ user: id });
 
     return this.formatearPersonajes(personajes)
@@ -493,6 +494,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
       }
     }))
 
+    let HP = hit + Math.floor((personaje?.abilities?.con/2) - 5)
+
+    if (traits.includes('dwarven-toughness')) {
+      HP += 1
+    }
+  
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
@@ -510,8 +517,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
         },
         $inc: { 
           'classes.$[elem].level': 1,
-          HPMax: hit + Math.floor((personaje?.abilities?.con/2) - 5),
-          HPActual: hit + Math.floor((personaje?.abilities?.con/2) - 5)
+          HPMax: HP,
+          HPActual: HP
         }
       },
       {
@@ -519,7 +526,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
         new: true 
       }
     );
- 
+    
 /*  if (!resultado) {
       console.log('No se encontró el personaje o no se realizó la actualización.');
     } else {
@@ -661,7 +668,26 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return resultado
   }
 
-  formatearPersonajes(personajes: any[]): any[] {
+  async updateMoney(id: string, money: number): Promise<boolean> {
+    const personaje = await Personaje.findById(id);
+
+    if (personaje) {
+      await Personaje.findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            money
+          }
+        },
+        { new: true }
+      );
+      return true
+    } else {
+      return false
+    }
+  }
+
+  formatearPersonajes(personajes: any[]): PersonajeBasico[] {
     const formateadas = personajes.map(personaje => this.formatearPersonajeBasico(personaje))
 
     formateadas.sort((a, b) => {
@@ -677,9 +703,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
     return formateadas;
   }
 
-  formatearPersonajeBasico(personaje: any): any {
+  formatearPersonajeBasico(personaje: any): PersonajeBasico {
     const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
-
+    
     return {
       id: personaje._id.toString(),
       img: personaje.img,
@@ -693,7 +719,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       XP: personaje.XP,
       XPMax: nivel[level-1]
     }
-  }
+  } 
     
   async formatearPersonaje(personaje: any): Promise<any> {
     const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
@@ -714,27 +740,21 @@ export default class PersonajeRepository extends IPersonajeRepository {
           ...trait,
           desc
         }
-        
+
       } else {
         return trait
       }
     })
-
+ 
     const skills:string[] = personaje?.skills
 
     const idiomas = this.idiomaRepository
       .obtenerIdiomasPorIndices(personaje?.languages)
       .map(idioma => idioma.name)
 
-    const weapons = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(personaje?.proficiency_weapon)
-      .map(weapon => weapon.name)
-      
-    const armors = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(personaje?.proficiency_armor)
-      .map(armor => armor.name)
-
     const proficienciesId = personaje?.proficiencies ?? []
+    const weaponsId = personaje?.proficiency_weapon ?? []
+    const armorId = personaje?.proficiency_armor ?? []
     
     traits.forEach(trait => {
       if (trait?.skills) {
@@ -743,6 +763,14 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       if (trait?.proficiencies) {
         proficienciesId.push(...trait?.proficiencies)
+      }
+
+      if (trait?.proficiencies_weapon) {
+        weaponsId.push(...trait?.proficiencies_weapon)
+      }
+
+      if (trait?.proficiencies_armor) {
+        armorId.push(...trait?.proficiencies_armor)
       }
     })
 
@@ -760,9 +788,24 @@ export default class PersonajeRepository extends IPersonajeRepository {
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
       })
 
+
     const proficiencies = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(proficienciesId)
+      .obtenerCompetenciasPorIndices(proficienciesId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
       .map(proficiency => proficiency.name) 
+
+    
+    const indexSetWeapons = new Set(weaponsId);
+
+    const weapons = this.competenciaRepository
+      .obtenerCompetenciasPorIndices(weaponsId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
+      .filter(item => 
+        !item.desc.some(descItem => indexSetWeapons.has(descItem))
+      )
+      .map(weapon => weapon.name)
+
+    const armors = this.competenciaRepository
+      .obtenerCompetenciasPorIndices(armorId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
+      .map(armor => armor.name)
 
     const equipo = this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
 
@@ -1046,10 +1089,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
           }
         })
 
-      form.getTextField('Copper').setText(personaje?.money % 10 + '');
-      form.getTextField('Silver').setText((personaje?.money / 10) % 10 + '');
+      form.getTextField('Copper').setText(Math.floor(personaje?.money % 10) + '');
+      form.getTextField('Silver').setText(Math.floor((personaje?.money / 10)) % 10 + '');
       form.getTextField('Electrum').setText('0');
-      form.getTextField('Gold').setText(personaje?.money / 100 + '');
+      form.getTextField('Gold').setText(Math.floor(personaje?.money / 100) + '');
       form.getTextField('Platinum').setText('0');
       
       form.getTextField('HPMax').setText(personaje?.HPMax + '');

@@ -1,4 +1,5 @@
 import PersonajeService from "../../domain/services/personaje.service";
+import { PersonajeBasico } from "../../domain/types/personajes";
 
 export default class ConsultarPersonajes {
   private personajeService: PersonajeService
@@ -7,7 +8,7 @@ export default class ConsultarPersonajes {
     this.personajeService = personajeService;
   }
 
-  async execute(data: any): Promise<any> {
-    return await this.personajeService.consultarPersonajes(data)
+  async execute(id: number): Promise<{success: boolean, data?: PersonajeBasico[], message?: string}> {
+    return await this.personajeService.consultarPersonajes(id)
   }
 }

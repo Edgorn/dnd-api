@@ -134,7 +134,7 @@ export async function escribirRasgos({ traits, invocations, pdfDoc, terrain }: a
           isDiscard = false
         }
       })
-
+ 
       return trait.type !== 'spell' && !trait.hidden && isDiscard
       
     })?.forEach((trait: any) => {
@@ -401,7 +401,7 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   let x = 417
-  const maxWidth = 170;
+  const maxWidth = 168;
 
   escribirParrafo({ 
     titulo: '', 
@@ -415,8 +415,8 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
   })
 
   escribirParrafo({ 
-    titulo: background?.ideals?.split('.')[0] ?? '', 
-    descripcion: background?.ideals?.split('.')[1] ?? background?.ideals ?? '',
+    titulo: '',//background?.ideals[0]?.split('.')[0] ?? '', 
+    descripcion: background?.ideals?.join('\n') ?? '',//background?.ideals[0]?.split('.')[1] ?? background?.ideals ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth,
@@ -563,6 +563,13 @@ function formatNumber(num: any) {
   return (num >= 0 ? "+" : "") + num.toString();
 }
 
+const nombres:any = {
+  'Agarre electrizante': 'Controlar llamas',
+  Amistad: 'Saeta de fuego',
+  'Descarga de fuego': 'Soplo de viento',
+  'Zancada prodigiosa': 'Absorber elementos'
+}
+
 export async function escribirConjuros({ form, personaje }: any) {
   const spells = personaje.spells
   const checkSpells: any = []
@@ -610,7 +617,9 @@ export async function escribirConjuros({ form, personaje }: any) {
             }
             const valor = form.getTextField(spellsList[index][checkSpells[index]]).getText() ?? ''
 
-            form.getTextField(spellsList[index][checkSpells[index]]).setText(valor ? (valor + ', ' + spell.name) : spell.name);
+            const name = nombres[spell.name] ?? spell.name
+
+            form.getTextField(spellsList[index][checkSpells[index]]).setText(valor ? (valor + ', ' + name) : name);
             checkSpells[index]++ 
           })
         })
@@ -640,4 +649,4 @@ export async function escribirConjuros({ form, personaje }: any) {
       }
     }
   })
-} 
+}

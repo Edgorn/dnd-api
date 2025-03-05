@@ -1,4 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
+import { PersonajeBasico } from "../types/personajes";
 
 export default class PersonajeService {
   private personajeRepository: IPersonajeRepository;
@@ -18,9 +19,9 @@ export default class PersonajeService {
     }
   }
 
-  async consultarPersonajes(data: any): Promise<{success: boolean, data?: any, message?: string}> {
+  async consultarPersonajes(id: number): Promise<{success: boolean, data?: PersonajeBasico[], message?: string}> {
     try {
-      const result = await this.personajeRepository.consultarPersonajes(data);
+      const result = await this.personajeRepository.consultarPersonajes(id);
       return { success: true, data: result };
       
     } catch (error) {
@@ -97,6 +98,21 @@ export default class PersonajeService {
       return { success: true, data: result };
     } catch (error) {
       return { success: false, message: 'Error al añadir equipamiento' };
+    }
+  }
+
+  async updateMoney(id: string, money: number) {
+    try {
+      const result = await this.personajeRepository.updateMoney(id, money);
+
+      if (result) {
+        return { success: true };
+      } else {
+        return { success: false, message: 'Error al modificar dinero' };
+      }
+
+    } catch (error) {
+      return { success: false, message: 'Error al modificar dinero' };
     }
   }
 

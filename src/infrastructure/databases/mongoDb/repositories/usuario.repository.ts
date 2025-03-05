@@ -23,7 +23,7 @@ export default class UsuarioRepository extends IUsuarioRepository {
     }
   }
 
-  async validarToken(token: string): Promise<any> {
+  async validarToken(token: string): Promise<number | null> {
     if (!mongoose.Types.ObjectId.isValid(token)) {
       return null; // Si el token no es un ObjectId válido, retorna null
     }

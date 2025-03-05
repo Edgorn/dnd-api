@@ -38,10 +38,10 @@ export default class TransfondoRepository extends ITransfondoRepository {
 
     return this.formatearTransfondos(transfondos)
   }
-
+  
   formatearTransfondos(transfondos: any[]): any[] {
     const formateadas = transfondos
-      .filter(transfondo => transfondo.index === 'wild' || transfondo.index === 'soldier' || transfondo.index === 'acolyte')
+      .filter(transfondo => transfondo.index === 'wild' || transfondo.index === 'soldier' || transfondo.index === 'acolyte' || transfondo.index === 'scholar')
       .map(transfondo => this.formatearTransfondo(transfondo))
  
     formateadas.sort((a, b) => {

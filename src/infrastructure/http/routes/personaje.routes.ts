@@ -11,6 +11,7 @@ router.post('/character/levelUpData', personajeController.levelUpData);
 router.post('/character/levelUp', personajeController.levelUp);
 router.post('/character/addEquipment', personajeController.añadirEquipamiento);
 router.post('/character/deleteEquipment', personajeController.eliminarEquipamiento);
+router.post('/character/updateMoney', personajeController.modificarDinero);
 router.post('/character/equipArmor', personajeController.equiparArmadura);
 
 module.exports = router;

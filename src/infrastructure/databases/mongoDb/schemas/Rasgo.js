@@ -9,6 +9,8 @@ const rasgoSchema = new mongoose.Schema({
   spells: [],
   skills: [],
   proficiencies: [],
+  proficiencies_weapon: [],
+  proficiencies_armor: [],
   hidden: Boolean
 }, { collection: 'Rasgos' });
 

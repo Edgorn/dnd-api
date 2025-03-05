@@ -17,6 +17,7 @@ import AñadirEquipo from "../../../application/use-cases/añadirEquipo";
 import EliminarEquipo from "../../../application/use-cases/eliminarEquipo";
 import EquipArmor from "../../../application/use-cases/equipArmor";
 import CrearPdf from "../../../application/use-cases/crearPdf";
+import UpdateMoney from "../../../application/use-cases/updateMoney";
 
 const personajeService = new PersonajeService(new PersonajeRepository())
 
@@ -29,6 +30,7 @@ const subirNivel = new SubirNivel(personajeService)
 const añadirEquipo = new AñadirEquipo(personajeService);
 const eliminarEquipo = new EliminarEquipo(personajeService);
 const equipArmor = new EquipArmor(personajeService);
+const updateMoney = new UpdateMoney(personajeService);
 const crearPdf = new CrearPdf(personajeService);
 
 const path = require('path');
@@ -251,7 +253,33 @@ const equiparArmadura = async (req: any, res: any) => {
     res.status(500).json({ error: 'Error al añadir el equipamiento' });
   }
 };
+ 
+const modificarDinero = async (req: any, res: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
 
+  try {
+    const validToken = await validarToken.execute(token)
+
+    if (validToken) {
+      const { id, money } = req.body
+      
+      const { success, message } = await updateMoney.execute(id, money)
+
+      if (success) { 
+        res.status(200).json({});
+      } else {
+        res.status(404).json({ error: message });
+      }
+    } else {
+      res.status(401).json({ error: 'Token invalido' });
+    }
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al modificar el dinero' });
+  }
+};
+ 
 const generarPdf = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
@@ -283,4 +311,4 @@ const generarPdf = async (req: any, res: any) => {
   }
 };
 
-export default { createCharacter, getCharacters, getCharacter, changeXp, levelUpData, levelUp, añadirEquipamiento, eliminarEquipamiento, equiparArmadura, generarPdf };
+export default { createCharacter, getCharacters, getCharacter, changeXp, levelUpData, levelUp, añadirEquipamiento, eliminarEquipamiento, equiparArmadura, modificarDinero, generarPdf };

@@ -1,4 +1,3 @@
-import { AnyARecord } from "dns";
 import { LogearUsuarioParams, LogearUsuarioResult } from "../types";
 
 export default class IUsuarioRepository {
@@ -6,7 +5,7 @@ export default class IUsuarioRepository {
     throw new Error('Método no implementado');
   }
 
-  async validarToken(token: string): Promise<any> {
+  async validarToken(token: string): Promise<number | null> {
     throw new Error('Método no implementado');
   }
 

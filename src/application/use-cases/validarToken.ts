@@ -7,7 +7,7 @@ export default class ValidarToken {
     this.usuarioService = usuarioService;
   }
 
-  async execute(token: string): Promise<boolean> {
+  async execute(token: string): Promise<number | null> {
     return await this.usuarioService.validarToken(token);
   }
 }

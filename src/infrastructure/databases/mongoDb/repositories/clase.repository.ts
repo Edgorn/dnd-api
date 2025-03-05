@@ -1,16 +1,14 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
-import { formatearEquipamientosOptions, formatearConjuros, formatearCompetencias, formatearOptions, formatearSalvacion, formatearEquipamiento, formatearDinero } from '../../../../utils/formatters';
+import { formatearEquipamientosOptions, formatearCompetencias, formatearOptions, formatearSalvacion, formatearEquipamiento, formatearDinero } from '../../../../utils/formatters';
 const ClaseSchema = require('../schemas/Clase');
 import CompetenciaRepository from './competencia.repository';
 import ConjuroRepository from './conjuros.repository';
-import DañoRepository from './daño.repository';
 import EquipamientoRepository from './equipamiento.repository';
 import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
@@ -48,7 +46,7 @@ export default class ClaseRepository extends IClaseRepository {
  
   formatearClases(clases: any) {
     const formateadas = clases
-      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock' || clase.index === 'cleric')
+      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock' || clase.index === 'cleric' || clase.index === 'wizard') 
       .map((clase: any) => this.formatearClase(clase))
 
     formateadas.sort((a: any, b: any) => {
@@ -100,20 +98,23 @@ export default class ClaseRepository extends IClaseRepository {
     const traits = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [])
 
     const traitsData = traits?.map(trait => {
-      const data = dataLevel?.traits_data[trait.index]
-      if (data) {
-
-        let desc: string = trait?.desc ?? ''
-
-        Object.keys(data).forEach(d => {
-          desc = desc.replaceAll(d, data[d])
-        })
-
-        return {
-          ...trait,
-          desc
+      if (dataLevel?.traits_data) {
+        const data = dataLevel?.traits_data[trait.index]
+        if (data) {
+          let desc: string = trait?.desc ?? ''
+  
+          Object.keys(data).forEach(d => {
+            desc = desc.replaceAll(d, data[d])
+          })
+  
+          return {
+            ...trait,
+            desc
+          }
+          
+        } else {
+          return trait
         }
-        
       } else {
         return trait
       }
