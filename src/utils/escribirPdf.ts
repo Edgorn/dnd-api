@@ -116,8 +116,8 @@ export async function escribirRasgos({ traits, invocations, pdfDoc, terrain }: a
   let textY2 = page2.getHeight() - 385;
   let textY3 = page2.getHeight() - 385;
   let maxHeight1 = 43
-  let maxHeight2 = 25
-
+  let maxHeight2 = 23
+   
   // Ataques y lanzamientos de conjuros
   let textY4 = page1.getHeight() - 460;
 

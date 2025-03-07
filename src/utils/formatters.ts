@@ -324,6 +324,18 @@ export const formatearEquipamientosOptions = (optionsApi: any[], equipamientoRep
         opcion.options = options
       }
 
+      if (opcion.options) {
+        opcion.options.sort((a: any, b: any) => {
+          if (isNameApi(a) && isNameApi(b)) {
+            return a.name.localeCompare(b?.name, 'es', { sensitivity: 'base' });
+          } else if (isTypeApi(a) && isTypeApi(b)) {
+            return a.type.localeCompare(b.type, 'es', { sensitivity: 'base' });
+          } else {
+            return 0
+          }
+        });
+      }
+
       return opcion
     })
   })

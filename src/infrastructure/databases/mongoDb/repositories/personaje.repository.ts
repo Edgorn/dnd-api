@@ -139,6 +139,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     if (traits.includes('barbarian-unarmored-defense')) {
       CA += Math.floor((abilities.con/2) - 5) + Math.floor((abilities.dex/2) - 5)
+    } else if (traits.includes('monk-unarmored-defense')) {
+      CA += Math.floor((abilities.wis/2) - 5) + Math.floor((abilities.dex/2) - 5)
     }
 
     const equipmentData: any[] = []
@@ -245,7 +247,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     })
 
     const resultado = await personaje.save()
-
+  
     return resultado
   }
 
@@ -458,8 +460,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
         }
       })
 
-    if (!armadura && traits.includes('barbarian-unarmored-defense')) {
-      CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+    if (!armadura) {
+      if (traits.includes('barbarian-unarmored-defense')) {
+        CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+      } else if (traits.includes('monk-unarmored-defense')) {
+        CA += Math.floor((abilities.wis/2) - 5) + Math.floor((abilities.dex/2) - 5)
+      }
     }
 
     let plusSpeed = 0
@@ -643,8 +649,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
         })
     }
 
-    if (!armadura && personaje?.traits.includes('barbarian-unarmored-defense')) {
-      CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+    if (!armadura) {
+      if (!armadura && personaje?.traits.includes('barbarian-unarmored-defense')) {
+        CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+      } else if (personaje?.traits.includes('monk-unarmored-defense')) {
+        CA += Math.floor((personaje?.abilities.wis/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+      }
     }
 
     let plusSpeed = 0
@@ -909,7 +919,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     await this.invocacionRepository.inicializar()
 
     const invocationsData = await this.invocacionRepository.obtenerInvocacionesPorIndices(personaje?.invocations ?? [])
-
+ 
     return {
       id: personaje._id.toString(),
       img: personaje.img,

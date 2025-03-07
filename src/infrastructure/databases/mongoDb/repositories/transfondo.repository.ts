@@ -41,16 +41,15 @@ export default class TransfondoRepository extends ITransfondoRepository {
   
   formatearTransfondos(transfondos: any[]): any[] {
     const formateadas = transfondos
-      .filter(transfondo => transfondo.index === 'wild' || transfondo.index === 'soldier' || transfondo.index === 'acolyte' || transfondo.index === 'scholar')
+      .filter(transfondo => transfondo.index === 'wild' || transfondo.index === 'soldier' || transfondo.index === 'acolyte' || transfondo.index === 'scholar' || transfondo.index === 'animator')
       .map(transfondo => this.formatearTransfondo(transfondo))
  
     formateadas.sort((a, b) => {
       if (a.name < b.name) {
         return -1;
-      }
-      if (a.name > b.name) {
+      } else if (a.name > b.name) {
         return 1;
-      }
+      } 
       return 0;
     });
 
@@ -63,7 +62,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
     if (options_name) {
       options_name.options = transfondo?.options_name?.options?.map((opt: string) => { return { label: opt, value: opt } })
     }
-    
+     
     return {
       index: transfondo.index,
       name: transfondo.name,
