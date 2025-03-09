@@ -1,6 +1,7 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import IDisciplinaRepository from '../../../../domain/repositories/IDisciplinaRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
@@ -9,6 +10,7 @@ import { formatearEquipamientosOptions, formatearCompetencias, formatearOptions,
 const ClaseSchema = require('../schemas/Clase');
 import CompetenciaRepository from './competencia.repository';
 import ConjuroRepository from './conjuros.repository';
+import DisciplinaRepository from './disciplina.repository';
 import EquipamientoRepository from './equipamiento.repository';
 import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
@@ -21,6 +23,7 @@ export default class ClaseRepository extends IClaseRepository {
   equipamientoRepository: IEquipamientoRepository
   idiomaRepository: IIdiomaRepository
   conjuroRepository: IConjuroRepository
+  disciplinaRespository: IDisciplinaRepository
 
   constructor() {
     super()
@@ -30,6 +33,7 @@ export default class ClaseRepository extends IClaseRepository {
     this.conjuroRepository = new ConjuroRepository()
     this.equipamientoRepository = new EquipamientoRepository()
     this.rasgoRepository = new RasgoRepository(this.conjuroRepository)
+    this.disciplinaRespository = new DisciplinaRepository(this.conjuroRepository)
   }
 
   async obtenerTodas() {
@@ -190,17 +194,50 @@ export default class ClaseRepository extends IClaseRepository {
     }
 
     this.conjuroRepository.init()
+    this.disciplinaRespository.init()
     
+    const traits = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits ?? [])
+
+    const traitsData = traits?.map((trait: any) => {
+      if (subclaseData?.traits_data) {
+        const data = subclaseData?.traits_data[trait.index]
+        if (data) {
+          let desc: string = trait?.desc ?? ''
+  
+          Object.keys(data).forEach(d => {
+            desc = desc.replaceAll(d, data[d])
+          })
+  
+          return {
+            ...trait,
+            desc
+          }
+          
+        } else {
+          return trait
+        }
+      } else {
+        return trait
+      }
+    })
+  
     return {
       index: subclase_option?.index,
       name: subclase_option?.name,
       img: subclase_option?.img,
-      traits: this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits ?? []),/*
+      traits: traitsData,/*
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*/
       options: formatearOptions(subclaseData?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       proficiencies: formatearCompetencias(subclaseData?.proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
-      traits_options: traits_options_subclase
+      traits_options: traits_options_subclase,
+      disciplines: this.disciplinaRespository.obtenerDisciplinasPorIndices(subclaseData?.disciplines ?? []),
+      disciplines_new: {
+        choose: subclaseData?.disciplines_new ?? 0,
+        options: subclaseData?.disciplines_new
+          ? this.disciplinaRespository.obtenerTodos()
+          : []
+      }
     }
   }
 }

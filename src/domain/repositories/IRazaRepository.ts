@@ -1,5 +1,7 @@
+import { RaceApi } from "../types/razas";
+
 export default class IRazaRepository {
-  async obtenerTodas(): Promise<any[]> {
+  async obtenerTodas(): Promise<RaceApi[]> {
     throw new Error('Método no implementado');
   }
 

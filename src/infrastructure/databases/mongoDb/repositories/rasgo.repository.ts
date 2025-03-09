@@ -17,6 +17,7 @@ export default class RasgoRepository extends IRasgoRepository {
       proficiencies?: string[],
       proficiencies_weapon?: string[],
       proficiencies_armor?: string[],
+      speed?: number,
       hidden?: boolean
     }
   }
@@ -47,6 +48,7 @@ export default class RasgoRepository extends IRasgoRepository {
         proficiencies: rasgo?.proficiencies ?? [],
         proficiencies_weapon: rasgo?.proficiencies_weapon ?? [],
         proficiencies_armor: rasgo?.proficiencies_armor ?? [],
+        speed: rasgo?.speed ?? undefined,
         hidden: rasgo?.hidden
       };
     });

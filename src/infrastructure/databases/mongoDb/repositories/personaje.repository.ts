@@ -21,6 +21,8 @@ import { formatearOptions } from '../../../../utils/formatters';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import InvocacionRepository from './invocacion.repository';
 import { PersonajeBasico } from '../../../../domain/types/personajes';
+import DisciplinaRepository from './disciplina.repository';
+import IDisciplinaRepository from '../../../../domain/repositories/IDisciplinaRepository';
 
 const fs = require('fs');
 const path = require('path');
@@ -51,6 +53,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   usuarioRepository: IUsuarioRepository
   conjuroRepository: IConjuroRepository
   invocacionRepository: IInvocacionRepository
+  disciplinaRespository: IDisciplinaRepository
 
   constructor() {
     super()
@@ -67,7 +70,48 @@ export default class PersonajeRepository extends IPersonajeRepository {
     this.transfondoRepository = new TransfondoRepository()
     this.usuarioRepository = new UsuarioRepository()
     this.invocacionRepository = new InvocacionRepository()
+    this.disciplinaRespository = new DisciplinaRepository(this.conjuroRepository)
   }
+
+  async consultarPersonajes(id: number): Promise<PersonajeBasico[]> {
+    const personajes = await Personaje.find({ user: id });
+
+    return this.formatearPersonajes(personajes)
+  }
+
+  formatearPersonajes(personajes: any[]): PersonajeBasico[] {
+    const formateadas = personajes.map(personaje => this.formatearPersonajeBasico(personaje))
+
+    formateadas.sort((a, b) => {
+      if (a.name < b.name) {
+        return -1;
+      }
+      if (a.name > b.name) {
+        return 1;
+      }
+      return 0;
+    });
+
+    return formateadas;
+  }
+
+  formatearPersonajeBasico(personaje: any): PersonajeBasico {
+    const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
+    
+    return {
+      id: personaje._id.toString(),
+      img: personaje.img,
+      name: personaje.name,
+      race: personaje.race,
+      campaign: personaje.campaign,
+      classes: personaje.classes.map((clas: any) => { return { name: clas.name, level: clas.level }}),
+      CA: personaje.CA,
+      HPMax: personaje.HPMax,
+      HPActual: personaje.HPActual,
+      XP: personaje.XP,
+      XPMax: nivel[level-1]
+    }
+  } 
 
   async crear(data: any): Promise<any> {
     const {
@@ -247,14 +291,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
     })
 
     const resultado = await personaje.save()
-  
-    return resultado
-  }
 
-  async consultarPersonajes(id: number): Promise<PersonajeBasico[]> {
-    const personajes = await Personaje.find({ user: id });
-
-    return this.formatearPersonajes(personajes)
+    return this.formatearPersonajeBasico(resultado)
   }
   
   async consultarPersonaje(idUser: string, idCharacter: string): Promise<any> {
@@ -276,7 +314,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
       { new: true }
     );
 
-    return resultado
+    return {
+      basic: this.formatearPersonajeBasico(resultado)
+    }
   }
 
   async subirNivelDatos(data: any): Promise<any> {
@@ -334,8 +374,33 @@ export default class PersonajeRepository extends IPersonajeRepository {
       ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase)
       : []
 
+    let disciplines_new_number = 0
+    let disciplines_new = null
+
+    let disciplines_change_number = 0
+    let disciplines_change = null
+
     if (dataLevel?.subclasses) {
       personaje?.subclasses?.forEach(s => {
+        if (dataLevel?.subclasses[s]?.traits_data) {
+          Object.keys(dataLevel?.subclasses[s]?.traits_data).forEach(t => {
+            const data = dataLevel?.subclasses[s]?.traits_data[t]
+            const dataOld = dataLevelOld?.traits_data ? dataLevelOld?.traits_data[t] : null
+      
+            if (this.valoresNumericosDistintos(data, dataOld)) {
+              const trait = this.rasgoRepository.obtenerRasgoPorIndice(t)
+            
+              let desc: string = trait?.desc ?? ''
+        
+              Object.keys(data).forEach(d => {
+                desc = desc.replaceAll(d, data[d])
+              })
+      
+              traits.push({ ...trait, desc })
+            }
+          })
+        }
+
         if (dataLevel?.subclasses[s]?.traits) {
           traits.push(
             ...this.rasgoRepository
@@ -344,7 +409,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
               )
           )
         }
-
+  
         if (dataLevel?.subclasses[s]?.traits_options) {
           traits_options = dataLevel?.subclasses[s]?.traits_options
      
@@ -357,7 +422,34 @@ export default class PersonajeRepository extends IPersonajeRepository {
           this.conjuroRepository.init()
           spells.push(...this.conjuroRepository.obtenerConjurosPorIndices(dataLevel?.subclasses[s]?.spells) ?? [])
         }
+
+        if (dataLevel?.subclasses[s]?.disciplines_new) {
+          disciplines_new_number = dataLevel?.subclasses[s]?.disciplines_new
+        }
+
+        if (dataLevel?.subclasses[s]?.disciplines_change) {
+          disciplines_change_number = dataLevel?.subclasses[s]?.disciplines_change
+        }
       })
+    }
+
+    if (disciplines_new_number || disciplines_change_number) {
+      await this.disciplinaRespository.init()
+      const dataDis = await this.disciplinaRespository.obtenerTodos() 
+
+      if (disciplines_new_number) {
+        disciplines_new = {
+          choose: disciplines_new_number,
+          options: dataDis
+        } 
+      }
+      
+      if (disciplines_change_number) {
+        disciplines_change = {
+          choose: disciplines_change_number,
+          options: dataDis
+        } 
+      }
     }
 
     let invocations = null
@@ -381,7 +473,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
         } 
       } 
     } 
-
+ 
     return {
       hit_die: claseData?.hit_die,
       prof_bonus: dataLevel.prof_bonus === dataLevelOld?.prof_bonus ? null : dataLevel.prof_bonus,
@@ -392,6 +484,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
       spellcasting_changes: formatearOptions(dataLevel?.spellcasting?.change ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       invocations,
       invocations_change,
+      disciplines_new,
+      disciplines_change,
       subclasesData,
       spells
     }
@@ -411,13 +505,35 @@ export default class PersonajeRepository extends IPersonajeRepository {
   async subirNivel(data: any): Promise<any> {
     const id = data.id
 
-    const { hit, clase, abilities, subclases, trait, spells, invocations } = data.data
+    const { hit, clase, abilities, subclases, trait, spells, invocations, disciplines } = data.data
 
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
     const claseData = await this.claseRepository.getClase(clase)
     const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
+    
+    let dataTraitsSubclases = {}
+    let actualDisciplines = disciplines ?? []
+
+    const listSubclases = [ ...personaje?.subclasses ?? [], ...subclases ?? []]
+    
+    if (dataLevel?.subclasses) {
+      listSubclases?.forEach((subclase: any) => {
+        if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]?.traits_data) {
+          dataTraitsSubclases = {
+            ...dataTraitsSubclases,
+            ...dataLevel?.subclasses[subclase]?.traits_data
+          }
+        }
+  
+        if (dataLevel?.subclasses[subclase]?.disciplines) {
+          actualDisciplines.push(...dataLevel?.subclasses[subclase]?.disciplines ?? [])
+        }
+      })
+    }
+    
+    const traitsData = { ...personaje?.traits_data, ...dataLevel?.traits_data, ...dataTraitsSubclases }
 
     if (dataLevel?.traits?.includes('primal-champion')) {
       abilities.str += 4
@@ -460,18 +576,22 @@ export default class PersonajeRepository extends IPersonajeRepository {
         }
       })
 
+    let plusSpeed = 0
+
     if (!armadura) {
       if (traits.includes('barbarian-unarmored-defense')) {
         CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
       } else if (traits.includes('monk-unarmored-defense')) {
         CA += Math.floor((abilities.wis/2) - 5) + Math.floor((abilities.dex/2) - 5)
       }
-    }
 
-    let plusSpeed = 0
-
-    if (!armadura && traits.includes('fast-movement')) {
-      plusSpeed += 10
+      if (traits.includes('fast-movement')) {
+        plusSpeed += 10
+      }
+      
+      if (traits.includes('unarmored-movement')) {
+        plusSpeed += traitsData['unarmored-movement'].FEET ?? 0
+      }
     }
 
     const spellsData = { ...personaje?.spells }
@@ -505,16 +625,17 @@ export default class PersonajeRepository extends IPersonajeRepository {
     if (traits.includes('dwarven-toughness')) {
       HP += 1
     }
-  
+
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
         $set: {
           XP: 0,
-          traits_data: { ...personaje?.traits_data, ...dataLevel?.traits_data },
+          traits_data: traitsData,
           prof_bonus: dataLevel?.prof_bonus ?? personaje?.prof_bonus,
           traits: [...personaje?.traits ?? [], ...dataLevel?.traits ?? [], ...traitsSubclase ?? []],
           invocations,
+          disciplines: actualDisciplines,
           spells: spellsData,
           plusSpeed,
           abilities,
@@ -532,14 +653,16 @@ export default class PersonajeRepository extends IPersonajeRepository {
         new: true 
       }
     );
-    
+     
 /*  if (!resultado) {
       console.log('No se encontró el personaje o no se realizó la actualización.');
     } else {
       console.log('Actualización exitosa:', resultado);
     }*/
-     
-   return resultado
+    
+    return {
+      basic: this.formatearPersonajeBasico(resultado)
+    }
   }
 
   async añadirEquipamiento(data: any) {
@@ -649,18 +772,22 @@ export default class PersonajeRepository extends IPersonajeRepository {
         })
     }
 
+    let plusSpeed = 0
+
     if (!armadura) {
       if (!armadura && personaje?.traits.includes('barbarian-unarmored-defense')) {
         CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
       } else if (personaje?.traits.includes('monk-unarmored-defense')) {
         CA += Math.floor((personaje?.abilities.wis/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
       }
-    }
 
-    let plusSpeed = 0
+      if (personaje?.traits.includes('fast-movement')) {
+        plusSpeed += 10
+      }
 
-    if (!armadura && personaje?.traits.includes('fast-movement')) {
-      plusSpeed += 10
+      if (personaje?.traits.includes('unarmored-movement')) {
+        plusSpeed += personaje?.traits_data['unarmored-movement'].FEET ?? 0
+      }
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
@@ -675,7 +802,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
       { new: true }
     );
 
-    return resultado
+    return {
+      basic: this.formatearPersonajeBasico(resultado)
+    }
   }
 
   async updateMoney(id: string, money: number): Promise<boolean> {
@@ -696,40 +825,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
       return false
     }
   }
-
-  formatearPersonajes(personajes: any[]): PersonajeBasico[] {
-    const formateadas = personajes.map(personaje => this.formatearPersonajeBasico(personaje))
-
-    formateadas.sort((a, b) => {
-      if (a.name < b.name) {
-        return -1;
-      }
-      if (a.name > b.name) {
-        return 1;
-      }
-      return 0;
-    });
-
-    return formateadas;
-  }
-
-  formatearPersonajeBasico(personaje: any): PersonajeBasico {
-    const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
-    
-    return {
-      id: personaje._id.toString(),
-      img: personaje.img,
-      name: personaje.name,
-      race: personaje.race,
-      campaign: personaje.campaign,
-      classes: personaje.classes.map((clas: any) => { return { name: clas.name, level: clas.level }}),
-      CA: personaje.CA,
-      HPMax: personaje.HPMax,
-      HPActual: personaje.HPActual,
-      XP: personaje.XP,
-      XPMax: nivel[level-1]
-    }
-  } 
     
   async formatearPersonaje(personaje: any): Promise<any> {
     const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
@@ -765,6 +860,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const proficienciesId = personaje?.proficiencies ?? []
     const weaponsId = personaje?.proficiency_weapon ?? []
     const armorId = personaje?.proficiency_armor ?? []
+    let speed = personaje?.speed
     
     traits.forEach(trait => {
       if (trait?.skills) {
@@ -781,6 +877,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       if (trait?.proficiencies_armor) {
         armorId.push(...trait?.proficiencies_armor)
+      }
+
+      if (trait?.speed) {
+        speed = trait?.speed
       }
     })
 
@@ -917,8 +1017,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
     )
 
     await this.invocacionRepository.inicializar()
+    await this.disciplinaRespository.init()
 
     const invocationsData = await this.invocacionRepository.obtenerInvocacionesPorIndices(personaje?.invocations ?? [])
+    const disciplinesData = await this.disciplinaRespository.obtenerDisciplinasPorIndices(personaje?.disciplines ?? [])
  
     return {
       id: personaje._id.toString(),
@@ -935,7 +1037,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       abilities: personaje?.abilities,
       HPMax: personaje?.HPMax,
       CA: personaje?.CA,
-      speed: personaje?.speed + personaje?.plusSpeed,
+      speed: speed + personaje?.plusSpeed,
       skills: habilidades,
       languages: idiomas,
       weapons,
@@ -943,6 +1045,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       proficiencies,
       traits: traitsData,
       invocations: invocationsData,
+      disciplines: disciplinesData,
       prof_bonus: personaje.prof_bonus,
       saving_throws: personaje.saving_throws,
       equipment: equipo,

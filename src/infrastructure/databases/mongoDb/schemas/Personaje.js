@@ -14,6 +14,7 @@ const personajeSchema = new mongoose.Schema({
   race: String,
   traits: [String],
   invocations: [String],
+  disciplines: [String],
   traits_data: {},
   resistances: [String],
   speed: Number,

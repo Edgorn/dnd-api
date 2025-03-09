@@ -1,4 +1,5 @@
 import IRazaRepository from "../repositories/IRazaRepository";
+import { RaceApi } from "../types/razas";
 
 export default class RazaService {
   private razaRepository: IRazaRepository;
@@ -7,7 +8,7 @@ export default class RazaService {
     this.razaRepository = razaRepository;
   }
 
-  async obtenerTodasLasRazas(): Promise<{success: boolean, data?: any, message?: string}> {
+  async obtenerTodasLasRazas(): Promise<{success: boolean, data?: RaceApi[], message?: string}> {
     try {
       const razas = await this.razaRepository.obtenerTodas();
       return { success: true, data: razas };

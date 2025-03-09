@@ -33,9 +33,6 @@ const equipArmor = new EquipArmor(personajeService);
 const updateMoney = new UpdateMoney(personajeService);
 const crearPdf = new CrearPdf(personajeService);
 
-const path = require('path');
-const pdfPath = path.join(__dirname, '../../../utils/hoja-nueva.pdf');
-
 const createCharacter = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];

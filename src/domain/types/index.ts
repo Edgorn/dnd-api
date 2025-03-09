@@ -10,70 +10,6 @@ export interface LogearUsuarioResult {
   };
 }
 
-export interface RazaMongo {
-  index: string,
-  name: string,
-  img: string,
-  desc: string,
-  speed: string,
-  size: string,
-  subraces: SubrazaMongo[]
-  ability_bonuses: AbilityBonusesMongo[],
-  languages: string[],
-  traits: string[],
-  resistances: string[],
-  starting_proficiencies: ProficienciesMongo[],
-  options: OptionsMongo[]
-}
-
-export interface SubrazaMongo {
-  index: string,
-  name: string,
-  img: string,
-  desc: string,
-  speed: string,
-  types: razaType[],
-  ability_bonuses: AbilityBonusesMongo[],
-  languages: string[],
-  traits: string[],
-  resistances: string[],
-  spells: string[],
-  starting_proficiencies: ProficienciesMongo[],
-  options: OptionsMongo[],
-  traits_data: any
-}
-
-export interface RazaApi {
-  index: string,
-  name: string,
-  img: string,
-  desc: string,
-  speed: string,
-  size: string,
-  subraces: SubrazaApi[],
-  ability_bonuses: AbilityBonusesApi[],
-  languages: IdiomaApi[],
-  traits: RasgoApi[],
-  resistances: DañoApi[],
-  proficiencies: ProficienciesApi[],
-  options: OptionsApi[]
-}
-
-export interface SubrazaApi {
-  index: string,
-  name: string,
-  img: string,
-  desc: string,
-  speed: string,
-  types: razaType[],
-  ability_bonuses: AbilityBonusesApi[],
-  traits: RasgoApi[],
-  resistances: DañoApi[],
-  proficiencies: ProficienciesApi[],
-  options: OptionsApi[],
-  spells: any[]
-}
-
 export interface AbilityBonusesMongo {
   index: string,
   bonus: number
@@ -83,12 +19,6 @@ export interface AbilityBonusesApi {
   index: string,
   name: string,
   bonus: number
-}
-
-export interface razaType {
-  index: string,
-  name: string,
-  img: string
 }
 
 export interface IdiomaApi {
@@ -107,6 +37,7 @@ export interface RasgoMongo {
   proficiencies?: string[],
   proficiencies_weapon?: string[],
   proficiencies_armor?: string[],
+  speed?: number,
   hidden?: boolean
 }
 
@@ -187,5 +118,5 @@ export interface OptionsApi {
   options: ({ index: string; name: string; } | OptionsApi)[],
   choose: number,
   type: string,
-  spell?: any
+  //spell?: any
 }

@@ -11,6 +11,7 @@ const rasgoSchema = new mongoose.Schema({
   proficiencies: [],
   proficiencies_weapon: [],
   proficiencies_armor: [],
+  speed: Number,
   hidden: Boolean
 }, { collection: 'Rasgos' });
 

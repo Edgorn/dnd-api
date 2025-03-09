@@ -1,5 +1,3 @@
-import { ConjuroApi, ConjuroMongo } from "../types";
-
 export default class IConjuroRepository {
   init(): any {
     throw new Error('Método no implementado');
