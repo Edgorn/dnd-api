@@ -333,6 +333,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const subclasesData = await this.claseRepository.formatearSubclasesType(dataLevel.subclasses_options, dataLevel.subclasses)
     
     const traits: any[] = []
+
+    await this.rasgoRepository.init()
     
     if (dataLevel?.traits_data) {
       Object.keys(dataLevel?.traits_data).forEach(t => {
