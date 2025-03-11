@@ -67,6 +67,7 @@ export default class RasgoRepository extends IRasgoRepository {
   }
 
   obtenerRasgosPorIndices(indices: string[]) {
+    console.info('obtenerRasgosPorIndices...')
     return indices.map(index => this.obtenerRasgoPorIndice(index));
   }
 }
