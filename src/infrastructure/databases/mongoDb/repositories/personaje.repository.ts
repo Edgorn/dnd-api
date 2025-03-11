@@ -837,7 +837,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const traitsData = traits?.map(trait => {
       console.log(trait)
-      const data = personaje?.traits_data ? personaje?.traits_data[trait.index] : null
+      const index = trait?.index ?? ''
+      const data = personaje?.traits_data ? (personaje?.traits_data[index] ?? null) : null
 
       if (data) {
         let desc: string = trait?.desc ?? ''
