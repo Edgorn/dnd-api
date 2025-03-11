@@ -56,21 +56,10 @@ export default class RasgoRepository extends IRasgoRepository {
 
   obtenerRasgoPorIndice(index: string) {
     if (index) {
-      /*if (index === 'rogue-expertise') {
-        return {
-          index: 'rogue-expertise',
-          name: '',
-          desc: ''
-        }
-      } else {*/
-        console.info(index)
-        console.info(this.rasgosMap[index])
-        return this.rasgosMap[index];
-      //}
+      return this.rasgosMap[index];
     } else {
       return null
     }
-    
   }
 
   obtenerRasgosPorIndices(indices: string[]) {

@@ -827,29 +827,31 @@ export default class PersonajeRepository extends IPersonajeRepository {
   }
     
   async formatearPersonaje(personaje: any): Promise<any> {
-      const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
-    
-      const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
+    const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
   
-      const traitsData = traits?.map(trait => {
-        const data = personaje?.traits_data ? personaje?.traits_data[trait.index] : null
-  
-        if (data) {
-          let desc: string = trait?.desc ?? ''
-  
-          Object.keys(data).forEach(d => {
-            desc = desc.replaceAll(d, data[d])
-          })
-  
-          return {
-            ...trait,
-            desc
-          }
-  
-        } else {
-          return trait
+    const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
+
+    console.log('Fin obtenerRasgosPorIndices')
+
+    const traitsData = traits?.map(trait => {
+      const data = personaje?.traits_data ? personaje?.traits_data[trait.index] : null
+
+      if (data) {
+        let desc: string = trait?.desc ?? ''
+
+        Object.keys(data).forEach(d => {
+          desc = desc.replaceAll(d, data[d])
+        })
+
+        return {
+          ...trait,
+          desc
         }
-      })
+
+      } else {
+        return trait
+      }
+    })
    
       const skills:string[] = personaje?.skills
   
