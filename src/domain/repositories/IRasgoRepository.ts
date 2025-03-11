@@ -9,7 +9,7 @@ export default class IRasgoRepository {
     throw new Error('Método no implementado');
   }
 
-  obtenerRasgoPorIndice(params: string): RasgoApi {
+  obtenerRasgoPorIndice(params: string): RasgoApi | null {
     throw new Error('Método no implementado');
   }
 }

@@ -55,22 +55,29 @@ export default class RasgoRepository extends IRasgoRepository {
   }
 
   obtenerRasgoPorIndice(index: string) {
-    if (index === 'rogue-expertise') {
-      return {
-        index: 'rogue-expertise',
-        name: '',
-        desc: ''
-      }
+    if (index) {
+      /*if (index === 'rogue-expertise') {
+        return {
+          index: 'rogue-expertise',
+          name: '',
+          desc: ''
+        }
+      } else {*/
+        console.info(index)
+        console.info(this.rasgosMap[index])
+        return this.rasgosMap[index];
+      //}
     } else {
-      console.info(index)
-      console.info(this.rasgosMap[index])
-      return this.rasgosMap[index];
+      return null
     }
+    
   }
 
   obtenerRasgosPorIndices(indices: string[]) {
     console.info('obtenerRasgosPorIndices...')
     console.info(indices)
-    return indices.map(index => this.obtenerRasgoPorIndice(index));
+    return indices
+      .map(index => this.obtenerRasgoPorIndice(index))
+      .filter(index => index !== null);
   }
 }
