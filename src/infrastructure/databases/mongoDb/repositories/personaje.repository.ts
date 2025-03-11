@@ -827,12 +827,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
   }
     
   async formatearPersonaje(personaje: any): Promise<any> {
-    try {
       const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
-      console.log('Level')
     
       const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
-      console.log('Traits')
   
       const traitsData = traits?.map(trait => {
         const data = personaje?.traits_data ? personaje?.traits_data[trait.index] : null
@@ -853,15 +850,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
           return trait
         }
       })
-      console.log('TraitsData')
    
       const skills:string[] = personaje?.skills
   
       const idiomas = this.idiomaRepository
         .obtenerIdiomasPorIndices(personaje?.languages)
         .map(idioma => idioma.name)
-      
-      console.log('Idiomas')
   
       const proficienciesId = personaje?.proficiencies ?? []
       const weaponsId = personaje?.proficiency_weapon ?? []
@@ -890,8 +884,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
         }
       })
   
-      console.log(1)
-  
       const habilidades = this.habilidadRepository
         .obtenerHabilidades()
         .map(habilidad => {
@@ -906,8 +898,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
           return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
         })
   
-  
-        console.log(2)
       const proficiencies = this.competenciaRepository
         .obtenerCompetenciasPorIndices(proficienciesId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
         .map(proficiency => proficiency.name) 
@@ -928,8 +918,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
   
       const equipo = this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
   
-  
-      console.log(3)
       personaje.equipment.forEach((equip: any) => {
         const idx = equipo.findIndex(eq => eq.index === equip.index)
         equipo[idx].quantity = equip.quantity
@@ -958,8 +946,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
       equipo.sort((a: any, b: any) => {
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
       })
-  
-      console.log(4)
   
       const clases = await Promise.all(
         personaje.classes.map(async (clase: any) => {
@@ -1029,15 +1015,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
         })
       )
   
-      console.log(6)
-  
       await this.invocacionRepository.inicializar()
       await this.disciplinaRespository.init()
   
       const invocationsData = await this.invocacionRepository.obtenerInvocacionesPorIndices(personaje?.invocations ?? [])
       const disciplinesData = await this.disciplinaRespository.obtenerDisciplinasPorIndices(personaje?.disciplines ?? [])
    
-      console.log(7)
       return {
         id: personaje._id.toString(),
         img: personaje.img,
@@ -1068,11 +1051,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
         money: personaje?.money ?? 0,
         spells
       }
-    } catch (error) {
-      console.error(error)
-      return null
-    }
-    
   }
 
   async crearPdf(idUser: number, idCharacter: string): Promise<any> {

@@ -34,6 +34,8 @@ export default class IdiomaRepository extends IIdiomaRepository {
   }
 
   obtenerIdiomasPorIndices(indices: string[]): IdiomaApi[] {
+    console.log(indices)
+    console.log('obtenerIdiomasPorIndices...')
     return indices.map(index => this.obtenerIdiomaPorIndice(index));
   }
 

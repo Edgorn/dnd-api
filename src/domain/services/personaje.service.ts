@@ -35,6 +35,7 @@ export default class PersonajeService {
       return { success: true, data: result };
       
     } catch (error) {
+      console.error(error)
       return { success: false, message: 'Error al consultar personaje' };
     }
   }
