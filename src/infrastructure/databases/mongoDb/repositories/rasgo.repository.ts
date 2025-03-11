@@ -5,6 +5,7 @@ import IConjuroRepository from "../../../../domain/repositories/IConjuroReposito
 const RasgoSchema = require('../schemas/Rasgo');
 
 export default class RasgoRepository extends IRasgoRepository {
+  private initialized = false;
   rasgosMap: {
     [key: string]: {
       index: string,
@@ -30,13 +31,19 @@ export default class RasgoRepository extends IRasgoRepository {
     this.conjuroRepository = conjuroRepository
     this.init();
   }
-
+  
   async init() {
+    if (!this.initialized) {
+      await this.cargar();
+      this.initialized = true;
+    }
+  }
+
+  async cargar() {
     const rasgos = await RasgoSchema.find();
     await this.conjuroRepository.init() 
   
     rasgos.forEach((rasgo: RasgoMongo) => {
-      
       this.rasgosMap[rasgo.index] = {
         index: rasgo.index,
         name: rasgo.name,

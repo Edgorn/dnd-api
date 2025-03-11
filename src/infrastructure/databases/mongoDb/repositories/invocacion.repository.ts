@@ -29,8 +29,8 @@ export default class InvocacionRepository extends IInvocacionRepository {
   } 
 
   async inicializar() {
-    await this.conjuroRepository.cargar();
-    await this.rasgoRepository.cargar()
+    await this.conjuroRepository.init();
+    await this.rasgoRepository.init()
     await this.cargarInvocaciones();
   } 
 

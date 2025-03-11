@@ -1,7 +1,7 @@
 import { RasgoApi } from "../types";
 
 export default class IRasgoRepository {
-  async cargar() {
+  async init() {
     throw new Error('Método no implementado');
   }
 

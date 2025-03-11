@@ -23,7 +23,7 @@ export default class ConjuroRepository extends IConjuroRepository {
   constructor() {
     super()
     this.conjurosMap = {}
-    this.cargar();
+    this.init();
   }
 
   async init() {

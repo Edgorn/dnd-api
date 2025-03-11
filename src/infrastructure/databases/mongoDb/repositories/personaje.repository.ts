@@ -829,19 +829,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
   async formatearPersonaje(personaje: any): Promise<any> {
     const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
 
-    
-    console.log('Inicializas rasgoRepository')
     await this.rasgoRepository.init()
-    console.log('Fin inicializacion rasgoRepository')
 
     const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
 
-    console.log('Fin obtenerRasgosPorIndices')
-
-    console.log(traits)
-
     const traitsData = traits?.map(trait => {
-      console.log(trait)
       const index = trait?.index ?? ''
       const data = personaje?.traits_data ? (personaje?.traits_data[index] ?? null) : null
 
@@ -861,8 +853,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
         return trait
       }
     })
-
-    console.log('Fin traitsData')
    
     const skills:string[] = personaje?.skills
 
