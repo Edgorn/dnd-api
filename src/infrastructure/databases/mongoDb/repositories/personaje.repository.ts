@@ -828,7 +828,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
     
   async formatearPersonaje(personaje: any): Promise<any> {
     const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
-  
+
+    
+    console.log('Inicializas rasgoRepository')
+    await this.rasgoRepository.init()
+    console.log('Fin inicializacion rasgoRepository')
+
     const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
 
     console.log('Fin obtenerRasgosPorIndices')

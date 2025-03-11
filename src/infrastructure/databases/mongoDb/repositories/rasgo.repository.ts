@@ -28,10 +28,10 @@ export default class RasgoRepository extends IRasgoRepository {
     super()
     this.rasgosMap = {}
     this.conjuroRepository = conjuroRepository
-    this.cargar();
+    this.init();
   }
 
-  async cargar() {
+  async init() {
     const rasgos = await RasgoSchema.find();
     await this.conjuroRepository.init() 
   
