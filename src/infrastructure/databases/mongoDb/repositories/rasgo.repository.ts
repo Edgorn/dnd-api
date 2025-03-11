@@ -62,6 +62,8 @@ export default class RasgoRepository extends IRasgoRepository {
         desc: ''
       }
     } else {
+      console.info(index)
+      console.info(this.rasgosMap[index])
       return this.rasgosMap[index];
     }
   }
