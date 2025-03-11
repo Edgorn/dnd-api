@@ -25,9 +25,12 @@ export default class IdiomaRepository extends IIdiomaRepository {
       };
     });
   }
-
+ 
   obtenerIdiomaPorIndice(index: string): IdiomaApi {
-    return this.idiomasMap[index];
+    return this.idiomasMap[index] ?? {
+      index: index,
+      name: index
+    };
   }
 
   obtenerIdiomasPorIndices(indices: string[]): IdiomaApi[] {

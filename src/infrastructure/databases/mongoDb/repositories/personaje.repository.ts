@@ -11,7 +11,7 @@ import DañoRepository from './daño.repository';
 import PropiedadArmaRepository from './propiedadesArmas.repository';
 import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
 import TransfondoRepository from './transfondo.repository';
-import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
+import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import axios from 'axios';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
 import UsuarioRepository from './usuario.repository';
@@ -1192,13 +1192,27 @@ export default class PersonajeRepository extends IPersonajeRepository {
         form.getCheckBox('shieldyes').check();
       }
 
+      const monkTrait = personaje?.traits?.find((trait: any) => trait.index==='martial-arts')
+      let golpeCuerpo = 0
+
+      if (monkTrait) {
+        const dado = parseInt(monkTrait?.desc?.split('1d')[1][0])
+        const max = Math.max(personaje?.abilities?.str, personaje?.abilities?.dex)
+        const daño = Math.floor((max/2) - 5)
+
+        form.getTextField('Attack1').setText('Cuerpo a cuerpo');
+        form.getTextField('AtkBonus1').setText('+' + ((personaje?.prof_bonus ?? 0) + daño));
+        form.getTextField('Damage1').setText('1d' + dado + ' +' + daño);
+        golpeCuerpo = 1
+      }
+
       personaje?.equipment
         ?.filter((equi: any) => equi?.category === 'Arma')
         ?.forEach((equi: any, index: number) => {
-          if (index < 3) {
-            form.getTextField('Attack' + (index+1)).setText(equi.name);
-            form.getTextField('AtkBonus' + (index+1)).setText('+' + this.sumaGolpe(personaje, equi));
-            form.getTextField('Damage' + (index+1)).setText(equi?.weapon?.damage?.dice + ' +' + this.sumaDaño(personaje, equi) + ' ' + equi?.weapon?.damage?.name);
+          if (index+golpeCuerpo < 3) {
+            form.getTextField('Attack' + (index+golpeCuerpo+1)).setText(equi.name);
+            form.getTextField('AtkBonus' + (index+golpeCuerpo+1)).setText('+' + this.sumaGolpe(personaje, equi));
+            form.getTextField('Damage' + (index+golpeCuerpo+1)).setText(equi?.weapon?.damage?.dice + ' +' + this.sumaDaño(personaje, equi) + ' ' + equi?.weapon?.damage?.name);
           }
         })
 
@@ -1214,8 +1228,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
       form.getTextField('Init').setText(this.formatNumber(bonus.dex) + '');
       form.getTextField('Speed').setText(personaje?.speed + '');
 
-      form.getTextField('HitDiceTotal').setText(personaje.classes?.map((clase: any) => clase.level)?.join(' / ') + '');
-      form.getTextField('Text1').setText(personaje.classes?.map((clase: any) => 'd' + clase.hit_die)?.join(' / ') + '');
+      form.getTextField('HitDiceTotal').setText(personaje.classes?.map((clase: any) => clase.level + 'd' + clase.hit_die)?.join(' / ') + '');
+      //form.getTextField('Text1').setText(personaje.classes?.map((clase: any) => 'd' + clase.hit_die)?.join(' / ') + '');
 
       if (personaje?.skills?.find((skill: any) => skill?.index === 'perception' && skill?.competencia)) {
         form.getTextField('PWP').setText(10 + bonus.dex + personaje?.prof_bonus + '');
@@ -1245,6 +1259,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
       escribirEquipo({
         pdfDoc: originalPdf,
         equipment: personaje?.equipment,
+        personaje,
+        form
+      })
+
+      escribirOrganizaciones({
+        pdfDoc: originalPdf,
         personaje,
         form
       })
