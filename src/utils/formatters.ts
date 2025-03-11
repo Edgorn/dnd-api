@@ -44,7 +44,7 @@ export const formatearConjuros = (spellsApi: string[], conjuroRepository: IConju
       tipo = caracteristica
     } else {
       const rasgo = rasgoRepository.obtenerRasgoPorIndice(arraySpell[1])
-      tipo = rasgo.name
+      tipo = rasgo?.name ?? ''
     }
 
     return {
