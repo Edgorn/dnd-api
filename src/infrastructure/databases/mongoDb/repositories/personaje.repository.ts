@@ -852,17 +852,19 @@ export default class PersonajeRepository extends IPersonajeRepository {
         return trait
       }
     })
+
+    console.log('Fin traitsData')
    
-      const skills:string[] = personaje?.skills
-  
-      const idiomas = this.idiomaRepository
-        .obtenerIdiomasPorIndices(personaje?.languages)
-        .map(idioma => idioma.name)
-  
-      const proficienciesId = personaje?.proficiencies ?? []
-      const weaponsId = personaje?.proficiency_weapon ?? []
-      const armorId = personaje?.proficiency_armor ?? []
-      let speed = personaje?.speed
+    const skills:string[] = personaje?.skills
+
+    const idiomas = this.idiomaRepository
+      .obtenerIdiomasPorIndices(personaje?.languages)
+      .map(idioma => idioma.name)
+
+    const proficienciesId = personaje?.proficiencies ?? []
+    const weaponsId = personaje?.proficiency_weapon ?? []
+    const armorId = personaje?.proficiency_armor ?? []
+    let speed = personaje?.speed
       
       traits.forEach(trait => {
         if (trait?.skills) {
