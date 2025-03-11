@@ -41,12 +41,12 @@ const createCharacter = async (req: any, res: any) => {
     const validToken = await validarToken.execute(token)
 
     if (validToken) {
-      const { success, data, message } = await crearPersonaje.execute({ ...req.body, user: validToken })
+      const { success, data, message, error } = await crearPersonaje.execute({ ...req.body, user: validToken })
 
       if (success) {
         res.status(201).json(data);
       } else {
-        res.status(404).json({ error: message });
+        res.status(404).json({ error: message, errorData: error });
       }
     } else {
       res.status(401).json({ error: 'Token invalido' });

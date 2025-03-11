@@ -29,14 +29,14 @@ export default class PersonajeService {
     }
   }
 
-  async consultarPersonaje(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
+  async consultarPersonaje(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string, error?: any}> {
     try {
       const result = await this.personajeRepository.consultarPersonaje(idUser, idCharacter);
       return { success: true, data: result };
       
     } catch (error) {
       console.error(error)
-      return { success: false, message: 'Error al consultar personaje' };
+      return { success: false, message: 'Error al consultar personaje', error };
     }
   }
  
