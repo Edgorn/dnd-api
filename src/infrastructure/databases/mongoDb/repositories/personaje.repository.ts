@@ -827,246 +827,252 @@ export default class PersonajeRepository extends IPersonajeRepository {
   }
     
   async formatearPersonaje(personaje: any): Promise<any> {
-    const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
-    console.log('Level')
+    try {
+      const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
+      console.log('Level')
+    
+      const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
+      console.log('Traits')
   
-    const traits = this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits)
-    console.log('Traits')
-
-    const traitsData = traits?.map(trait => {
-      const data = personaje?.traits_data ? personaje?.traits_data[trait.index] : null
-
-      if (data) {
-        let desc: string = trait?.desc ?? ''
-
-        Object.keys(data).forEach(d => {
-          desc = desc.replaceAll(d, data[d])
-        })
-
-        return {
-          ...trait,
-          desc
-        }
-
-      } else {
-        return trait
-      }
-    })
-    console.log('TraitsData')
- 
-    const skills:string[] = personaje?.skills
-
-    const idiomas = this.idiomaRepository
-      .obtenerIdiomasPorIndices(personaje?.languages)
-      .map(idioma => idioma.name)
-    
-    console.log('Idiomas')
-
-    const proficienciesId = personaje?.proficiencies ?? []
-    const weaponsId = personaje?.proficiency_weapon ?? []
-    const armorId = personaje?.proficiency_armor ?? []
-    let speed = personaje?.speed
-    
-    traits.forEach(trait => {
-      if (trait?.skills) {
-        skills.push(...trait?.skills)
-      }
-
-      if (trait?.proficiencies) {
-        proficienciesId.push(...trait?.proficiencies)
-      }
-
-      if (trait?.proficiencies_weapon) {
-        weaponsId.push(...trait?.proficiencies_weapon)
-      }
-
-      if (trait?.proficiencies_armor) {
-        armorId.push(...trait?.proficiencies_armor)
-      }
-
-      if (trait?.speed) {
-        speed = trait?.speed
-      }
-    })
-
-    console.log(1)
-
-    const habilidades = this.habilidadRepository
-      .obtenerHabilidades()
-      .map(habilidad => {
-        return {
-          ...habilidad,
-          competencia: personaje?.double_skills?.includes(habilidad?.index)
-            ? 2
-            : skills?.includes(habilidad?.index) ? 1 : 0
-        }
-      })
-      .sort((a, b) => {
-        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-      })
-
-
-      console.log(2)
-    const proficiencies = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(proficienciesId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
-      .map(proficiency => proficiency.name) 
-
-    
-    const indexSetWeapons = new Set(weaponsId);
-
-    const weapons = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(weaponsId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
-      .filter(item => 
-        !item.desc.some(descItem => indexSetWeapons.has(descItem))
-      )
-      .map(weapon => weapon.name)
-
-    const armors = this.competenciaRepository
-      .obtenerCompetenciasPorIndices(armorId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
-      .map(armor => armor.name)
-
-    const equipo = this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
-
-
-    console.log(3)
-    personaje.equipment.forEach((equip: any) => {
-      const idx = equipo.findIndex(eq => eq.index === equip.index)
-      equipo[idx].quantity = equip.quantity
-      equipo[idx].equipped = equip.equipped
-
-      if (equipo[idx]?.category === 'Arma') {
-        const daño = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.damage?.type ?? '')
-
-        if (equipo[idx].weapon.damage) {
-          equipo[idx].weapon.damage.name = daño?.name ?? ''
-        
-          if (equipo[idx].weapon.two_handed_damage) {
-            const daño_two = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.two_handed_damage?.type)
-            equipo[idx].weapon.two_handed_damage.name = daño_two?.name ?? ''
+      const traitsData = traits?.map(trait => {
+        const data = personaje?.traits_data ? personaje?.traits_data[trait.index] : null
+  
+        if (data) {
+          let desc: string = trait?.desc ?? ''
+  
+          Object.keys(data).forEach(d => {
+            desc = desc.replaceAll(d, data[d])
+          })
+  
+          return {
+            ...trait,
+            desc
           }
+  
+        } else {
+          return trait
         }
-        
-        equipo[idx].weapon.properties = this.propiedadArmaRepository.obtenerPropiedadesPorIndices(equipo[idx]?.weapon?.properties)
-
-        equipo[idx].weapon.properties.sort((a: any, b: any) => {
+      })
+      console.log('TraitsData')
+   
+      const skills:string[] = personaje?.skills
+  
+      const idiomas = this.idiomaRepository
+        .obtenerIdiomasPorIndices(personaje?.languages)
+        .map(idioma => idioma.name)
+      
+      console.log('Idiomas')
+  
+      const proficienciesId = personaje?.proficiencies ?? []
+      const weaponsId = personaje?.proficiency_weapon ?? []
+      const armorId = personaje?.proficiency_armor ?? []
+      let speed = personaje?.speed
+      
+      traits.forEach(trait => {
+        if (trait?.skills) {
+          skills.push(...trait?.skills)
+        }
+  
+        if (trait?.proficiencies) {
+          proficienciesId.push(...trait?.proficiencies)
+        }
+  
+        if (trait?.proficiencies_weapon) {
+          weaponsId.push(...trait?.proficiencies_weapon)
+        }
+  
+        if (trait?.proficiencies_armor) {
+          armorId.push(...trait?.proficiencies_armor)
+        }
+  
+        if (trait?.speed) {
+          speed = trait?.speed
+        }
+      })
+  
+      console.log(1)
+  
+      const habilidades = this.habilidadRepository
+        .obtenerHabilidades()
+        .map(habilidad => {
+          return {
+            ...habilidad,
+            competencia: personaje?.double_skills?.includes(habilidad?.index)
+              ? 2
+              : skills?.includes(habilidad?.index) ? 1 : 0
+          }
+        })
+        .sort((a, b) => {
           return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
         })
-      }
-    })
-
-    equipo.sort((a: any, b: any) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    })
-
-    console.log(4)
-
-    const clases = await Promise.all(
-      personaje.classes.map(async (clase: any) => {
-        const claseData = await this.claseRepository.getClase(clase.class)
   
-        return {
-          class: clase.class,
-          level: clase.level,
-          name: clase.name,
-          hit_die: claseData?.hit_die
-        }
-      })
-    )
-
-    const spells = { ...personaje.spells }
-
-    await Promise.all(
-      Object.keys(spells).map(async groupSpells => {
-        const dataSpells = [...spells[groupSpells]]
-        let type = ''
-        const list = dataSpells.map((spell: string) => {
-          const spellArray = spell.split('_')
-          type = spellArray[1]
-
-          return spellArray[0]
-        })
-
-        const dataList = this.conjuroRepository.obtenerConjurosPorIndices(list)
-
-        spells[groupSpells] = {
-          list: [],
-          type: caracteristicas[type] ?? ''
-        }
-
-        dataList
-          .sort((a: any, b: any) => {
+  
+        console.log(2)
+      const proficiencies = this.competenciaRepository
+        .obtenerCompetenciasPorIndices(proficienciesId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
+        .map(proficiency => proficiency.name) 
+  
+      
+      const indexSetWeapons = new Set(weaponsId);
+  
+      const weapons = this.competenciaRepository
+        .obtenerCompetenciasPorIndices(weaponsId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
+        .filter(item => 
+          !item.desc.some(descItem => indexSetWeapons.has(descItem))
+        )
+        .map(weapon => weapon.name)
+  
+      const armors = this.competenciaRepository
+        .obtenerCompetenciasPorIndices(armorId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
+        .map(armor => armor.name)
+  
+      const equipo = this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
+  
+  
+      console.log(3)
+      personaje.equipment.forEach((equip: any) => {
+        const idx = equipo.findIndex(eq => eq.index === equip.index)
+        equipo[idx].quantity = equip.quantity
+        equipo[idx].equipped = equip.equipped
+  
+        if (equipo[idx]?.category === 'Arma') {
+          const daño = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.damage?.type ?? '')
+  
+          if (equipo[idx].weapon.damage) {
+            equipo[idx].weapon.damage.name = daño?.name ?? ''
+          
+            if (equipo[idx].weapon.two_handed_damage) {
+              const daño_two = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.two_handed_damage?.type)
+              equipo[idx].weapon.two_handed_damage.name = daño_two?.name ?? ''
+            }
+          }
+          
+          equipo[idx].weapon.properties = this.propiedadArmaRepository.obtenerPropiedadesPorIndices(equipo[idx]?.weapon?.properties)
+  
+          equipo[idx].weapon.properties.sort((a: any, b: any) => {
             return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
           })
-          .forEach(spell => {
-            spells[groupSpells].list.push(spell)
-          })
-
-        const claseData = await this.claseRepository.getClase(groupSpells)
-
-        if (claseData) {
-          spells[groupSpells].spellcasting = claseData.spellcasting
-
-          const level = personaje.classes.find((clas: any) => clas.class === groupSpells).level
-
-          if (level) {
-            spells[groupSpells].slots = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots
-            spells[groupSpells].level = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_level
-            
-            spells[groupSpells].slots_level_1 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_1
-            spells[groupSpells].slots_level_2 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_2
-            spells[groupSpells].slots_level_3 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_3
-            spells[groupSpells].slots_level_4 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_4
-            spells[groupSpells].slots_level_5 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_5
-            spells[groupSpells].slots_level_6 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_6
-            spells[groupSpells].slots_level_7 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_7
-            spells[groupSpells].slots_level_8 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_8
-            spells[groupSpells].slots_level_9 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_9
-          }
         }
-
-        return null
       })
-    )
-
-    console.log(6)
-
-    await this.invocacionRepository.inicializar()
-    await this.disciplinaRespository.init()
-
-    const invocationsData = await this.invocacionRepository.obtenerInvocacionesPorIndices(personaje?.invocations ?? [])
-    const disciplinesData = await this.disciplinaRespository.obtenerDisciplinasPorIndices(personaje?.disciplines ?? [])
- 
-    console.log(7)
-    return {
-      id: personaje._id.toString(),
-      img: personaje.img,
-      name: personaje.name,
-      race: personaje.race,
-      classes: clases,
-      subclasses: personaje.subclasses,
-      appearance: personaje?.appearance,
-      background: personaje?.background,
-      level,
-      XP: personaje.XP,
-      XPMax: nivel[level-1],
-      abilities: personaje?.abilities,
-      HPMax: personaje?.HPMax,
-      CA: personaje?.CA,
-      speed: speed + personaje?.plusSpeed,
-      skills: habilidades,
-      languages: idiomas,
-      weapons,
-      armors,
-      proficiencies,
-      traits: traitsData,
-      invocations: invocationsData,
-      disciplines: disciplinesData,
-      prof_bonus: personaje.prof_bonus,
-      saving_throws: personaje.saving_throws,
-      equipment: equipo,
-      money: personaje?.money ?? 0,
-      spells
+  
+      equipo.sort((a: any, b: any) => {
+        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+      })
+  
+      console.log(4)
+  
+      const clases = await Promise.all(
+        personaje.classes.map(async (clase: any) => {
+          const claseData = await this.claseRepository.getClase(clase.class)
+    
+          return {
+            class: clase.class,
+            level: clase.level,
+            name: clase.name,
+            hit_die: claseData?.hit_die
+          }
+        })
+      )
+  
+      const spells = { ...personaje.spells }
+  
+      await Promise.all(
+        Object.keys(spells).map(async groupSpells => {
+          const dataSpells = [...spells[groupSpells]]
+          let type = ''
+          const list = dataSpells.map((spell: string) => {
+            const spellArray = spell.split('_')
+            type = spellArray[1]
+  
+            return spellArray[0]
+          })
+  
+          const dataList = this.conjuroRepository.obtenerConjurosPorIndices(list)
+  
+          spells[groupSpells] = {
+            list: [],
+            type: caracteristicas[type] ?? ''
+          }
+  
+          dataList
+            .sort((a: any, b: any) => {
+              return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+            })
+            .forEach(spell => {
+              spells[groupSpells].list.push(spell)
+            })
+  
+          const claseData = await this.claseRepository.getClase(groupSpells)
+  
+          if (claseData) {
+            spells[groupSpells].spellcasting = claseData.spellcasting
+  
+            const level = personaje.classes.find((clas: any) => clas.class === groupSpells).level
+  
+            if (level) {
+              spells[groupSpells].slots = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots
+              spells[groupSpells].level = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_level
+              
+              spells[groupSpells].slots_level_1 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_1
+              spells[groupSpells].slots_level_2 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_2
+              spells[groupSpells].slots_level_3 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_3
+              spells[groupSpells].slots_level_4 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_4
+              spells[groupSpells].slots_level_5 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_5
+              spells[groupSpells].slots_level_6 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_6
+              spells[groupSpells].slots_level_7 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_7
+              spells[groupSpells].slots_level_8 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_8
+              spells[groupSpells].slots_level_9 = claseData?.levels?.find((l: any) => l.level === level)?.spellcasting?.spell_slots_level_9
+            }
+          }
+  
+          return null
+        })
+      )
+  
+      console.log(6)
+  
+      await this.invocacionRepository.inicializar()
+      await this.disciplinaRespository.init()
+  
+      const invocationsData = await this.invocacionRepository.obtenerInvocacionesPorIndices(personaje?.invocations ?? [])
+      const disciplinesData = await this.disciplinaRespository.obtenerDisciplinasPorIndices(personaje?.disciplines ?? [])
+   
+      console.log(7)
+      return {
+        id: personaje._id.toString(),
+        img: personaje.img,
+        name: personaje.name,
+        race: personaje.race,
+        classes: clases,
+        subclasses: personaje.subclasses,
+        appearance: personaje?.appearance,
+        background: personaje?.background,
+        level,
+        XP: personaje.XP,
+        XPMax: nivel[level-1],
+        abilities: personaje?.abilities,
+        HPMax: personaje?.HPMax,
+        CA: personaje?.CA,
+        speed: speed + personaje?.plusSpeed,
+        skills: habilidades,
+        languages: idiomas,
+        weapons,
+        armors,
+        proficiencies,
+        traits: traitsData,
+        invocations: invocationsData,
+        disciplines: disciplinesData,
+        prof_bonus: personaje.prof_bonus,
+        saving_throws: personaje.saving_throws,
+        equipment: equipo,
+        money: personaje?.money ?? 0,
+        spells
+      }
+    } catch (error) {
+      console.error(error)
+      return null
     }
+    
   }
 
   async crearPdf(idUser: number, idCharacter: string): Promise<any> {
