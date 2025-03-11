@@ -38,6 +38,7 @@ export default class ClaseRepository extends IClaseRepository {
 
   async obtenerTodas() {
     const clases = await ClaseSchema.find();
+    await this.rasgoRepository.init()
 
     return this.formatearClases(clases)
   }
@@ -61,7 +62,8 @@ export default class ClaseRepository extends IClaseRepository {
   } 
 
   formatearClase(clase: any) {  
-    const dataLevel = clase?.levels?.find((level: any) => level.level === 1)/*
+    const dataLevel = clase?.levels?.find((level: any) => level.level === 1)
+    /*
     const dataSpells = dataLevel?.spellcasting?.spells?.split('_')
     const traitsOptions = dataLevel?.traits_options
     const terrainOptions = dataLevel?.terrain_options

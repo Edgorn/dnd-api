@@ -35,7 +35,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
 
   async obtenerTodos() {
     const transfondos = await TransfondoSchema.find();
-
+    await this.rasgoRepository.init()
     return this.formatearTransfondos(transfondos)
   }
   

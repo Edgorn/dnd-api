@@ -91,12 +91,12 @@ const getCharacter = async (req: any, res: any) => {
     const { id } = req.params;
 
     if (validToken && id) {
-      const { success, data, message, error } = await consultarPersonaje.execute(validToken, id)
+      const { success, data, message } = await consultarPersonaje.execute(validToken, id)
 
       if (success) {
         res.status(201).json(data);
       } else {
-        res.status(404).json({ error: message, errorData: error });
+        res.status(404).json({ error: message });
       }
     } else {
       res.status(401).json({ error: 'Token invalido' });
