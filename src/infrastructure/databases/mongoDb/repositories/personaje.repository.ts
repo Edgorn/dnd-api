@@ -833,7 +833,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     console.log('Fin obtenerRasgosPorIndices')
 
+    console.log(traits)
+
     const traitsData = traits?.map(trait => {
+      console.log(trait)
       const data = personaje?.traits_data ? personaje?.traits_data[trait.index] : null
 
       if (data) {
