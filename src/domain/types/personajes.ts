@@ -3,6 +3,7 @@ export interface PersonajeBasico {
   img: string,
   name: string,
   race: string,
+  user: string,
   campaign: string | null,
   classes: {
     name: string,

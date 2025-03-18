@@ -36,6 +36,7 @@ export default class RazaRepository extends IRazaRepository {
   async obtenerTodas(): Promise<RaceApi[]> {
     const razas = await RazaSchema.find();
     
+    await this.idiomaRepository.init()
     await this.rasgoRepository.init()
 
     return this.formatearRazas(razas)

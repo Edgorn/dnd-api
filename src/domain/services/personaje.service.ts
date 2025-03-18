@@ -19,9 +19,9 @@ export default class PersonajeService {
     }
   }
 
-  async consultarPersonajes(id: number): Promise<{success: boolean, data?: PersonajeBasico[], message?: string}> {
+  async consultarPersonajes(id: string): Promise<{success: boolean, data?: PersonajeBasico[], message?: string}> {
     try {
-      const result = await this.personajeRepository.consultarPersonajes(id);
+      const result = await this.personajeRepository.consultarPersonajesUser(id);
       return { success: true, data: result };
       
     } catch (error) {
@@ -34,9 +34,9 @@ export default class PersonajeService {
       const result = await this.personajeRepository.consultarPersonaje(idUser, idCharacter);
       return { success: true, data: result };
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      return { success: false, message: 'Error al consultar personaje' };
+      return { success: false, message: error?.message ?? 'Error al consultar personaje' };
     }
   }
  
@@ -117,7 +117,7 @@ export default class PersonajeService {
     }
   }
 
-  async crearPdf(idUser: number, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
+  async crearPdf(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
     try {
       const result = await this.personajeRepository.crearPdf(idUser, idCharacter);
       return { success: true, data: result };

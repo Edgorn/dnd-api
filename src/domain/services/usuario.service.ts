@@ -22,7 +22,7 @@ export default class UsuarioService {
     }
   }
 
-  async validarToken(token: string): Promise<number | null> {
+  async validarToken(token: string): Promise<string | null> {
     const result = await this.usuarioRepository.validarToken(token);
     return result
   }

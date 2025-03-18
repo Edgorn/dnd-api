@@ -7,7 +7,7 @@ export default class ConsultarCampaña {
     this.campañaService = campañaService;
   }
 
-  async execute(data: any, id: string | undefined): Promise<any> {
-    return await this.campañaService.consultarCampaña(data, id)
+  async execute(idUser: string, idCampaign: string): Promise<any> {
+    return await this.campañaService.consultarCampaña(idUser, idCampaign)
   }
 }

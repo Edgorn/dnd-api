@@ -23,6 +23,9 @@ import InvocacionRepository from './invocacion.repository';
 import { PersonajeBasico } from '../../../../domain/types/personajes';
 import DisciplinaRepository from './disciplina.repository';
 import IDisciplinaRepository from '../../../../domain/repositories/IDisciplinaRepository';
+import IMetamagiaRepository from '../../../../domain/repositories/IMetamagiaRepository';
+import MetamagiaRepository from './metamagia.repository';
+import Campaña from '../schemas/Campaña';
 
 const fs = require('fs');
 const path = require('path');
@@ -54,6 +57,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   conjuroRepository: IConjuroRepository
   invocacionRepository: IInvocacionRepository
   disciplinaRespository: IDisciplinaRepository
+  metamagiaRepository: IMetamagiaRepository
 
   constructor() {
     super()
@@ -71,18 +75,23 @@ export default class PersonajeRepository extends IPersonajeRepository {
     this.usuarioRepository = new UsuarioRepository()
     this.invocacionRepository = new InvocacionRepository()
     this.disciplinaRespository = new DisciplinaRepository(this.conjuroRepository)
+    this.metamagiaRepository = new MetamagiaRepository()
   }
 
-  async consultarPersonajes(id: number): Promise<PersonajeBasico[]> {
+  async consultarPersonajesUser(id: string): Promise<PersonajeBasico[]> {
     const personajes = await Personaje.find({ user: id });
 
     return this.formatearPersonajes(personajes)
   }
 
-  formatearPersonajes(personajes: any[]): PersonajeBasico[] {
-    const formateadas = personajes.map(personaje => this.formatearPersonajeBasico(personaje))
+  async consultarPersonajes(indexList: string[]): Promise<PersonajeBasico[]> {
+    const personajes = await Promise.all(indexList.map(index => {
+      return this.consultarPersonajeBasico(index)
+    }))
 
-    formateadas.sort((a, b) => {
+    const personajesAux = personajes.filter(personaje => personaje !== null)
+
+    personajesAux.sort((a, b) => {
       if (a.name < b.name) {
         return -1;
       }
@@ -92,24 +101,56 @@ export default class PersonajeRepository extends IPersonajeRepository {
       return 0;
     });
 
-    return formateadas;
+    return personajesAux
   }
 
-  formatearPersonajeBasico(personaje: any): PersonajeBasico {
-    const level = personaje.classes.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
-    
-    return {
-      id: personaje._id.toString(),
-      img: personaje.img,
-      name: personaje.name,
-      race: personaje.race,
-      campaign: personaje.campaign,
-      classes: personaje.classes.map((clas: any) => { return { name: clas.name, level: clas.level }}),
-      CA: personaje.CA,
-      HPMax: personaje.HPMax,
-      HPActual: personaje.HPActual,
-      XP: personaje.XP,
-      XPMax: nivel[level-1]
+  async consultarPersonajeBasico(id: string): Promise<PersonajeBasico | null> {
+    const personaje = await Personaje.findById(id);
+
+    return await this.formatearPersonajeBasico(personaje)
+  }
+
+  async formatearPersonajes(personajes: any[]): Promise<PersonajeBasico[]> {
+    const formateadas = await Promise.all(personajes.map(personaje => this.formatearPersonajeBasico(personaje)))
+    const formateadasAux = formateadas.filter(personaje => personaje !== null)
+
+    formateadasAux
+      .sort((a, b) => {
+        if (a.name < b.name) {
+          return -1;
+        }
+        if (a.name > b.name) {
+          return 1;
+        }
+        return 0;
+      });
+
+    return formateadasAux;
+  }
+
+  async formatearPersonajeBasico(personaje: any): Promise<PersonajeBasico | null> {
+    if (personaje) {
+      const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
+
+      const user = await this.usuarioRepository.nombreUsuario(personaje?.user ?? null)
+      const campaña = await Campaña.findById(personaje?.campaign)
+  
+      return {
+        id: personaje?._id?.toString() ?? '',
+        img: personaje.img,
+        name: personaje.name,
+        user,
+        race: personaje.race,
+        campaign: campaña?.name ?? '',
+        classes: personaje?.classes?.map((clas: any) => { return { name: clas.name, level: clas.level }}) ?? [],
+        CA: personaje.CA,
+        HPMax: personaje.HPMax,
+        HPActual: personaje.HPActual,
+        XP: personaje.XP,
+        XPMax: nivel[level-1]
+      }
+    } else {
+      return null
     }
   } 
 
@@ -130,7 +171,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
       double_skills,
       clase,
       subclase,
-      equipment
+      equipment,
+      trait
     } = data
 
     const raza = await this.razaRepository.getRaza(race)
@@ -149,15 +191,20 @@ export default class PersonajeRepository extends IPersonajeRepository {
     dataBackground.name = transfondo?.name ?? ''
 
     const traits = [
-       ...raza?.traits ?? [], 
-       ...subraza?.traits ?? [], 
-       ...claseDataLevel?.traits ?? [],
-       ...subclaseData?.traits ?? [],
-       ...transfondo.traits?.map((tr: any) => tr.index) ?? []
-      ]
+      ...raza?.traits ?? [], 
+      ...subraza?.traits ?? [], 
+      ...claseDataLevel?.traits ?? [],
+      ...subclaseData?.traits ?? [],
+      ...transfondo.traits?.map((tr: any) => tr.index) ?? [],
+    ]
+
+    if (trait) {
+      traits.push(trait)
+    }
+
     let HP = claseData?.hit_die ?? 1
 
-    if (traits.includes('dwarven-toughness')) {
+    if (traits.includes('dwarven-toughness') || traits.includes('draconid-resistance')) {
       HP += 1
     }
 
@@ -185,6 +232,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
       CA += Math.floor((abilities.con/2) - 5) + Math.floor((abilities.dex/2) - 5)
     } else if (traits.includes('monk-unarmored-defense')) {
       CA += Math.floor((abilities.wis/2) - 5) + Math.floor((abilities.dex/2) - 5)
+    } else if (traits.includes('draconid-resistance')) {
+      CA += 3 + Math.floor((abilities.dex/2) - 5)
     }
 
     const equipmentData: any[] = []
@@ -292,17 +341,31 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const resultado = await personaje.save()
 
-    return this.formatearPersonajeBasico(resultado)
+    return await this.formatearPersonajeBasico(resultado)
   }
   
   async consultarPersonaje(idUser: string, idCharacter: string): Promise<any> {
     const personaje = await Personaje.findById(idCharacter);
 
-    return this.formatearPersonaje(personaje)
+    if (personaje?.user === idUser) {
+      return this.formatearPersonaje(personaje)
+    } else if (personaje?.campaign) {
+      const campaña = await Campaña.findById(personaje?.campaign)
+
+      if (campaña?.master === idUser) {
+        return this.formatearPersonaje(personaje)
+      } else {
+        throw new Error('No tienes permiso para consultar este personaje');
+      }
+    } else {
+      throw new Error('No tienes permiso para consultar este personaje');
+    }
   }
 
   async cambiarXp(data: any): Promise<any> {
     const { id, XP } = data
+
+    console.log(data)
     
     const resultado = await Personaje.findByIdAndUpdate(
       id,
@@ -314,8 +377,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
       { new: true }
     );
 
+    console.log(resultado)
+
+    const personaje = await this.formatearPersonajeBasico(resultado)
+
     return {
-      basic: this.formatearPersonajeBasico(resultado)
+      basic: personaje
     }
   }
 
@@ -474,7 +541,20 @@ export default class PersonajeRepository extends IPersonajeRepository {
           options: dataInv
         } 
       } 
-    } 
+    }
+
+    let metamagic = null
+
+    if (dataLevel.metamagic_new) {
+      await this.metamagiaRepository.init()
+
+      metamagic = {
+          choose: dataLevel.metamagic_new,
+          options: this.metamagiaRepository.obtenerTodos()
+        } 
+    }
+
+    await this.idiomaRepository.init()
  
     return {
       hit_die: claseData?.hit_die,
@@ -488,6 +568,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       invocations_change,
       disciplines_new,
       disciplines_change,
+      metamagic,
       subclasesData,
       spells
     }
@@ -507,7 +588,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   async subirNivel(data: any): Promise<any> {
     const id = data.id
 
-    const { hit, clase, abilities, subclases, trait, spells, invocations, disciplines } = data.data
+    const { hit, clase, abilities, subclases, trait, spells, invocations, disciplines, metamagic } = data.data
 
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
@@ -571,7 +652,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
           CA = armor?.armor?.class?.base ?? 10
 
           if (armor?.armor?.class?.dex_bonus) {
-            CA += Math.floor((personaje?.abilities.dex/2) - 5)
+            CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex/2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
           }
 
           armadura = true
@@ -585,6 +666,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
         CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
       } else if (traits.includes('monk-unarmored-defense')) {
         CA += Math.floor((abilities.wis/2) - 5) + Math.floor((abilities.dex/2) - 5)
+      } else if (traits.includes('draconid-resistance')) {
+        CA += 3 + Math.floor((abilities.dex/2) - 5)
       }
 
       if (traits.includes('fast-movement')) {
@@ -628,6 +711,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
       HP += 1
     }
 
+    if (clase === 'sorcerer' && traits.includes('draconid-resistance')) {
+      HP += 1
+    }
+      
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
@@ -638,6 +725,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
           traits: [...personaje?.traits ?? [], ...dataLevel?.traits ?? [], ...traitsSubclase ?? []],
           invocations,
           disciplines: actualDisciplines,
+          metamagic: [...personaje?.metamagic ?? [], ...metamagic ?? []],
           spells: spellsData,
           plusSpeed,
           abilities,
@@ -661,9 +749,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
     } else {
       console.log('Actualización exitosa:', resultado);
     }*/
+    const personajeFormateado = await this.formatearPersonajeBasico(resultado)
     
     return {
-      basic: this.formatearPersonajeBasico(resultado)
+      basic: personajeFormateado
     }
   }
 
@@ -766,7 +855,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
             CA = armor?.armor?.class?.base ?? 10
 
             if (armor?.armor?.class?.dex_bonus) {
-              CA += Math.floor((personaje?.abilities.dex/2) - 5)
+              CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex/2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
             }
 
             armadura = true
@@ -777,10 +866,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
     let plusSpeed = 0
 
     if (!armadura) {
-      if (!armadura && personaje?.traits.includes('barbarian-unarmored-defense')) {
+      if (personaje?.traits.includes('barbarian-unarmored-defense')) {
         CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
       } else if (personaje?.traits.includes('monk-unarmored-defense')) {
         CA += Math.floor((personaje?.abilities.wis/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+      } else if (personaje?.traits.includes('draconid-resistance')) {
+        CA += 3 + Math.floor((personaje?.abilities.dex/2) - 5)
       }
 
       if (personaje?.traits.includes('fast-movement')) {
@@ -804,8 +895,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
       { new: true }
     );
 
+    const personajeFormateado = await this.formatearPersonajeBasico(resultado)
+    
     return {
-      basic: this.formatearPersonajeBasico(resultado)
+      basic: personajeFormateado
     }
   }
 
@@ -858,10 +951,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
    
     const skills:string[] = personaje?.skills
 
-    const idiomas = this.idiomaRepository
-      .obtenerIdiomasPorIndices(personaje?.languages)
-      .map(idioma => idioma.name)
-
+    await this.idiomaRepository.init()
+    
+    const idiomasId = personaje?.languages ?? []
     const proficienciesId = personaje?.proficiencies ?? []
     const weaponsId = personaje?.proficiency_weapon ?? []
     const armorId = personaje?.proficiency_armor ?? []
@@ -880,6 +972,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
         weaponsId.push(...trait?.proficiencies_weapon)
       }
 
+      if (trait?.languages) {
+        idiomasId.push(...trait?.languages ?? [])
+      }
+
       if (trait?.proficiencies_armor) {
         armorId.push(...trait?.proficiencies_armor)
       }
@@ -888,6 +984,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
         speed = trait?.speed
       }
     })
+
+    const idiomas = this.idiomaRepository
+      .obtenerIdiomasPorIndices(idiomasId)
+      .map(idioma => idioma.name)
 
     const habilidades = this.habilidadRepository
       .obtenerHabilidades()
@@ -915,8 +1015,13 @@ export default class PersonajeRepository extends IPersonajeRepository {
       .filter(item => 
         !item.desc.some(descItem => indexSetWeapons.has(descItem))
       )
-      .map(weapon => weapon.name)
-
+      .map(weapon => {
+        return {
+          index: weapon.index,
+          name: weapon.name
+        }
+      })
+  
     const armors = this.competenciaRepository
       .obtenerCompetenciasPorIndices(armorId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
       .map(armor => armor.name)
@@ -1022,9 +1127,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     await this.invocacionRepository.inicializar()
     await this.disciplinaRespository.init()
+    await this.metamagiaRepository.init()
 
     const invocationsData = await this.invocacionRepository.obtenerInvocacionesPorIndices(personaje?.invocations ?? [])
     const disciplinesData = await this.disciplinaRespository.obtenerDisciplinasPorIndices(personaje?.disciplines ?? [])
+    const metamagicData = await this.metamagiaRepository.obtenerMetamagiasPorIndices(personaje?.metamagic ?? [])
+    const campaign = await Campaña.findById(personaje?.campaign)
   
     return {
       id: personaje._id.toString(),
@@ -1033,6 +1141,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       race: personaje.race,
       classes: clases,
       subclasses: personaje.subclasses,
+      campaign: personaje?.campaign ? { index: personaje?.campaign, name: campaign?.name } : null,
       appearance: personaje?.appearance,
       background: personaje?.background,
       level,
@@ -1050,6 +1159,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       traits: traitsData,
       invocations: invocationsData,
       disciplines: disciplinesData,
+      metamagic: metamagicData,
       prof_bonus: personaje.prof_bonus,
       saving_throws: personaje.saving_throws,
       equipment: equipo,
@@ -1058,7 +1168,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     }
   }
 
-  async crearPdf(idUser: number, idCharacter: string): Promise<any> {
+  async crearPdf(idUser: string, idCharacter: string): Promise<any> {
     const personaje = await Personaje.findById(idCharacter);
 
     const personajeData = await this.formatearPersonaje(personaje)
@@ -1087,14 +1197,28 @@ export default class PersonajeRepository extends IPersonajeRepository {
     
     suma += this.sumaDaño(character, equip)
 
-    if (character?.weapons?.some((arma: any) => arma.includes(equip?.weapon?.category?.toLowerCase()))) {
+    if (character?.weapons?.some((arma: any) => equip?.weapon?.competency?.includes(arma?.index))) {
       suma += character?.prof_bonus ?? 0
     }
 
     return suma
   }
 
-  async generarPdf(personaje: any, idUser: number): Promise<any> {
+  async entrarPersonajeCampaña(idUser: string, idCharacter: string, idCampaign: string) {
+    const personaje = await Personaje.findById(idCharacter);
+
+    if (personaje?.user !== idUser) {
+      throw new Error('El personaje no existe o no pertenece al usuario');
+    }
+    
+    personaje.campaign = idCampaign
+
+    personaje.save()
+
+    return await this.formatearPersonajeBasico(personaje)
+  }
+
+  async generarPdf(personaje: any, idUser: string): Promise<any> {
     //const pdfPath = path.join(__dirname, '../../../../utils/hoja-nueva.pdf');
     const pdfPath = path.join(process.cwd(), 'src/utils/hoja-nueva.pdf');
     const existingPdfBytes = fs.readFileSync(pdfPath);
@@ -1139,7 +1263,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       const usuario = await this.usuarioRepository.nombreUsuario(idUser)
 
-      const background = personaje?.background?.name + ( personaje?.background?.type ? ' (' + personaje?.background?.type + ')' : '')
+      const background = personaje?.background?.name + ( (personaje?.background?.type && personaje?.background?.index !== 'charlatan') ? ' (' + personaje?.background?.type + ')' : '')
  
       form.getTextField('CharacterName').setText(personaje?.name);
       form.getTextField('ClassLevel').setText(personaje?.classes?.map((cl: any) => cl?.name + ' ' + cl?.level)?.join(', '));
@@ -1219,7 +1343,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
             form.getTextField('Damage' + (index+golpeCuerpo+1)).setText(equi?.weapon?.damage?.dice + ' +' + this.sumaDaño(personaje, equi) + ' ' + equi?.weapon?.damage?.name);
           }
         })
-
+  
       form.getTextField('Copper').setText(Math.floor(personaje?.money % 10) + '');
       form.getTextField('Silver').setText(Math.floor((personaje?.money / 10)) % 10 + '');
       form.getTextField('Electrum').setText('0');
@@ -1236,17 +1360,19 @@ export default class PersonajeRepository extends IPersonajeRepository {
       //form.getTextField('Text1').setText(personaje.classes?.map((clase: any) => 'd' + clase.hit_die)?.join(' / ') + '');
 
       if (personaje?.skills?.find((skill: any) => skill?.index === 'perception' && skill?.competencia)) {
-        form.getTextField('PWP').setText(10 + bonus.dex + personaje?.prof_bonus + '');
+        form.getTextField('PWP').setText(10 + bonus.wis + personaje?.prof_bonus + '');
       } else {
-        form.getTextField('PWP').setText(10 + bonus.dex + '');
+        form.getTextField('PWP').setText(10 + bonus.wis + '');
       }
 
       escribirRasgos({
         traits: personaje?.traits,
         invocations: personaje?.invocations,
+        disciplines: personaje?.disciplines,
+        metamagic: personaje?.metamagic,
         pdfDoc: originalPdf
       })
-
+     
       escribirCompetencias({
         pdfDoc: originalPdf,
         languages: personaje?.languages, 
@@ -1299,7 +1425,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       form.flatten();
  
     } catch (e) {
-      console.log(e)
+      console.error(e)
     }
 
     // Crear un nuevo documento
@@ -1310,7 +1436,18 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     nuevoPdf.addPage(pag1);
     nuevoPdf.addPage(pag2);
-    nuevoPdf.addPage(pag3);
+
+    let conjuros = false
+
+    personaje.classes.forEach((clase: any) => {
+      if (clase.class !== 'monk' && clase.class !== 'barbarian') {
+        conjuros = true
+      }
+    })
+
+    if (conjuros) {
+      nuevoPdf.addPage(pag3);
+    }
 
     const pdfBytes = await nuevoPdf.save();
   

@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
 import { LogearUsuarioParams, LogearUsuarioResult } from '../../../../domain/types';
 const UsuarioSchema = require('../schemas/Usuario');
+const jwt = require('jsonwebtoken')
 
 export default class UsuarioRepository extends IUsuarioRepository {
   constructor() {
@@ -12,8 +13,13 @@ export default class UsuarioRepository extends IUsuarioRepository {
     const usuario = await UsuarioSchema.findOne({ name: user, password: password })
 
     if (usuario) {
+      const token = jwt.sign(
+        { id: usuario._id, name: usuario.name }, // Datos que guardas en el token
+        process.env.JWT_SECRET, // Clave secreta (almácenala en variables de entorno)
+      )
+
       return { 
-        token: usuario?._id,
+        token,
         user: {
           name: usuario?.name
         }
@@ -23,19 +29,57 @@ export default class UsuarioRepository extends IUsuarioRepository {
     }
   }
 
-  async validarToken(token: string): Promise<number | null> {
-    if (!mongoose.Types.ObjectId.isValid(token)) {
-      return null; // Si el token no es un ObjectId válido, retorna null
+  async validarToken(token: string): Promise<string | null> {
+    if (!token) {
+      return null
     }
-  
-    const usuario = await UsuarioSchema.findById(token);
-  
-    return usuario ? usuario.index : null;
+
+    try {
+      // Verificar que el token sea válido y firmado correctamente
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+      // Opcional: Verificar si el token está registrado en la base de datos
+      const usuario = await UsuarioSchema.findById(decoded.id)
+
+      if (!usuario) {
+        return null
+      }
+
+      return usuario._id.toString()
+
+    } catch (error) {
+      return null
+    }
   }
 
-  async nombreUsuario(id: number): Promise<string> {
-    const usuario = await UsuarioSchema.find({ index: id })
+  async nombreUsuario(id: string): Promise<string> {
+    const usuario = await UsuarioSchema.findById(id)
 
-    return usuario[0]?.name
+    return usuario?.name
+  }
+
+  async consultarUsuarios(indexList: string[]) {
+    const usuarios = await Promise.all(
+      indexList.map(index => this.consultarUsuario(index))
+    )
+    
+    return usuarios
+  }
+
+  async consultarUsuario(index: string) {
+    if (index) {
+      const usuario = await UsuarioSchema.findById(index)
+
+      if (usuario) {
+        return {
+          index: usuario?._id?.toString(),
+          name: usuario.name
+        }
+      } else {
+        return null
+      }
+    } else {
+      return null
+    }
   }
 }

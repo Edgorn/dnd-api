@@ -6,13 +6,21 @@ const rasgoSchema = new mongoose.Schema({
   desc: [String],
   discard: [String],
   type: String,
+  languages: [String],
   spells: [],
   skills: [],
   proficiencies: [],
   proficiencies_weapon: [],
   proficiencies_armor: [],
   speed: Number,
-  hidden: Boolean
+  hidden: Boolean,
+  tables?: [{
+    title: String,
+    data: {
+      titles: [String],
+      rows: [[String]]
+    }
+  }]
 }, { collection: 'Rasgos' });
 
 module.exports = mongoose.model('Rasgos', rasgoSchema);;

@@ -14,7 +14,8 @@ const equipamientoSchema = new mongoose.Schema({
     damage: {},
     two_handed_damage: {},
     properties: [],
-    range_throw: {}
+    range_throw: {},
+    competency: [String]
   },
   armor: {},
   content: [{item: String, quantity: Number}]

@@ -3,6 +3,8 @@ import ConjuroRepository from "./conjuros.repository";
 import IInvocacionRepository from "../../../../domain/repositories/IInvocacionRepository";
 import IRasgoRepository from "../../../../domain/repositories/IRasgoRepository";
 import RasgoRepository from "./rasgo.repository";
+import IdiomaRepository from "./idioma.repository";
+import IIdiomaRepository from "../../../../domain/repositories/IIdiomaRepository";
 const InvocacionSchema = require('../schemas/Invocacion');
 
 export default class InvocacionRepository extends IInvocacionRepository {
@@ -19,11 +21,13 @@ export default class InvocacionRepository extends IInvocacionRepository {
   
   conjuroRepository: IConjuroRepository
   rasgoRepository: IRasgoRepository
+  idiomaRepository: IIdiomaRepository
 
   constructor() {
     super()
     this.invocacionesMap = {}
     this.conjuroRepository = new ConjuroRepository()
+    this.idiomaRepository = new IdiomaRepository()
     this.rasgoRepository = new RasgoRepository(this.conjuroRepository)
     //this.cargarInvocaciones();
   } 

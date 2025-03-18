@@ -5,8 +5,16 @@ export default class IPersonajeRepository {
     throw new Error('Método no implementado');
   }
 
-  async consultarPersonajes(id: number): Promise<PersonajeBasico[]> {
+  async consultarPersonajesUser(id: string): Promise<PersonajeBasico[]> {
     throw new Error('Método no implementado');
+  }
+
+  async consultarPersonajes(indexList: string[]): Promise<PersonajeBasico[]> {
+    throw new Error('Método no implementado');
+  }
+
+  async consultarPersonajeBasico(id: string): Promise<PersonajeBasico | null> {
+    throw new Error('Método no implementado')
   }
 
   async consultarPersonaje(idUser: string, idCharacter: string): Promise<any> {
@@ -41,7 +49,11 @@ export default class IPersonajeRepository {
     throw new Error('Método no implementado');
   }
 
-  async crearPdf(idUser: number, idCharacter: string): Promise<any> {
+  async crearPdf(idUser: string, idCharacter: string): Promise<any> {
+    throw new Error('Método no implementado');
+  }
+
+  async entrarPersonajeCampaña(idUser: string, idCharacter: string, idCampaign: string): Promise<PersonajeBasico | null> {
     throw new Error('Método no implementado');
   }
 }

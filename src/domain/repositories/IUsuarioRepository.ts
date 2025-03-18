@@ -5,11 +5,15 @@ export default class IUsuarioRepository {
     throw new Error('Método no implementado');
   }
 
-  async validarToken(token: string): Promise<number | null> {
+  async validarToken(token: string): Promise<string | null> {
     throw new Error('Método no implementado');
   }
 
-  async nombreUsuario(id: number): Promise<string> {
+  async nombreUsuario(id: string): Promise<string> {
+    throw new Error('Método no implementado');
+  }
+
+  async consultarUsuarios(indexList: string[]): Promise<any> {
     throw new Error('Método no implementado');
   }
 }

@@ -104,7 +104,7 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
   return { textY: textY-1, actualHeight }
 }
 
-export async function escribirRasgos({ traits, invocations, pdfDoc, terrain }: any) {
+export async function escribirRasgos({ traits, invocations, disciplines, metamagic, pdfDoc, terrain }: any) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -121,9 +121,9 @@ export async function escribirRasgos({ traits, invocations, pdfDoc, terrain }: a
   // Ataques y lanzamientos de conjuros
   let textY4 = page1.getHeight() - 460;
 
-  const rasgos = [ ...traits ?? [], ...invocations ?? []]
+  const rasgos = [ ...traits ?? [], ...invocations ?? [], ...disciplines ?? [], ...metamagic ?? [] ]
   const rasgosList = rasgos.map(rasg => rasg.index)
-  
+    
   rasgos
     ?.filter((trait: any) => {
       let isDiscard = true
@@ -414,7 +414,7 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
   if (weapons.length > 0) {
     const { textY: actualY } = escribirParrafo({ 
       titulo: 'Armas', 
-      descripcion: weapons?.join(', ')+'.',
+      descripcion: weapons?.map((weapon: any) => weapon.name)?.join(', ')+'.',
       fontTitle: fontBold,
       fontText: fontRegular,
       maxWidth,
@@ -606,6 +606,24 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
   })
 }
 
+const equipoPersonalizadoUno = (equip: any) => {
+  return equip.index === "Sombrero de hechicería (carta)" 
+    || equip.index === "Pértiga contraíble (carta)" 
+    || equip.index === "Piedras Mensajeras (carta)" 
+    || equip.index === "Amuleto de oso (Furia +1CA y ventaja pruebas para resistir ser derribado/empujado)" 
+    || equip.index === "Amuleto de relojería (carta)"
+    || equip.index === "Varita de pirotecnia (carta)"
+}
+   
+const equipoPersonalizadoDos = (equip: any) => {
+  return equip.index !== "Sombrero de hechicería (carta)" 
+    && equip.index !== "Pértiga contraíble (carta)" 
+    && equip.index !== "Piedras Mensajeras (carta)"
+    && equip.index !== "Amuleto de oso (Furia +1CA y ventaja pruebas para resistir ser derribado/empujado)" 
+    && equip.index !== "Amuleto de relojería (carta)"
+    && equip.index !== "Varita de pirotecnia (carta)"
+}
+ 
 export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any) {
 
   const pages = pdfDoc.getPages();
@@ -615,13 +633,13 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   const equipo = equipment
-    .filter((equip: any) => equip.category === "Arma" || equip.category === "Armadura")
+    .filter((equip: any) => equip.category === "Arma" || equip.category === "Armadura" || equip.category === "Munición" || equipoPersonalizadoUno(equip))
     .map((equip: any) => {
       if (equip.category === 'Armadura' && equip?.armor?.category !== 'Escudo' && equip.equipped) {
         let CA = equip?.armor?.class?.base ?? 10
 
         if (equip?.armor?.class?.dex_bonus) {
-          CA += Math.floor((personaje?.abilities.dex/2) - 5)
+          CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex/2) - 5), equip?.armor?.class?.max_bonus ?? 99), 0)
         }
   
         escribirParrafo({ 
@@ -641,7 +659,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
 
       let dataProperties = ''
 
-      if (equip.weapon.properties.length > 0) {
+      if (equip?.weapon?.properties?.length > 0) {
         dataProperties = '(' + equip?.weapon?.properties
           .map((prop: any) => {
             if (prop?.name === 'Versátil') {
@@ -665,7 +683,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
     })
 
   const tesoro = equipment
-    .filter((equip: any) => equip.category !== "Arma" && equip.category !== "Armadura")
+    .filter((equip: any) => equip.category !== "Arma" && equip.category !== "Armadura" && equip.category !== "Munición" && equipoPersonalizadoDos(equip))
     .map((equip: any) => equip.quantity+'x ' + equip.name)
 
   escribirParrafo({ 
@@ -733,12 +751,11 @@ export async function escribirConjuros({ form, personaje }: any) {
 
   Object.keys(spells).forEach(clas => {
     if (clas !== 'race') {
-      
       const claseName = personaje.classes.find((c: any) => c.class === clas)?.name ?? ''
       const claseSpells = spells[clas]
+      const listSpellsAux = [...claseSpells?.list ?? []]
 
       if (claseName && claseSpells?.spellcasting) {
-        const listSpellsAux = [...claseSpells?.list ?? []]
 
         personaje.subclasses?.forEach((sub: string) => {
           listSpellsAux?.push(...spells[clas + '_' + sub]?.list ?? [])
@@ -757,14 +774,23 @@ export async function escribirConjuros({ form, personaje }: any) {
           if (!checkSpells[index]) {
             checkSpells[index] = 0
           }
+
+          const listSpells = listSpellsAux
+            ?.sort((a: any, b: any) => {
+              return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+            })
+            ?.filter((spell: any) => spell.level === index)
+            ?.filter((obj, idx, self) =>
+              idx === self.findIndex((item) => item.index === obj.index)
+            );
   
-          listSpellsAux?.filter((spell: any) => spell.level === index).forEach((spell: any, index2: number) => {
+          listSpells?.filter((spell: any) => spell.level === index).forEach((spell: any, index2: number) => {
             if (!spellsList[index][checkSpells[index]]) {
               checkSpells[index] = 0
             }
             const valor = form.getTextField(spellsList[index][checkSpells[index]]).getText() ?? ''
-
-            const name = nombres[spell.name] ?? spell.name
+    
+            const name = personaje?.name === 'Kohlembart Holimion' ? (nombres[spell.name] ?? spell.name) : spell.name
 
             form.getTextField(spellsList[index][checkSpells[index]]).setText(valor ? (valor + ', ' + name) : name);
             checkSpells[index]++ 

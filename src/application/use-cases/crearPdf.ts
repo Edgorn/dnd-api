@@ -7,7 +7,7 @@ export default class CrearPdf {
     this.personajeService = personajeService;
   }
 
-  async execute(idUser: any, idCharacter: string): Promise<any> {
+  async execute(idUser: string, idCharacter: string): Promise<any> {
     return await this.personajeService.crearPdf(idUser, idCharacter)
   }
 }

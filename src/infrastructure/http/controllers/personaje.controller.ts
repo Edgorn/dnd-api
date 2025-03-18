@@ -282,12 +282,12 @@ const generarPdf = async (req: any, res: any) => {
   const token = authHeader?.split(' ')[1];
 
   try {
-    const validToken = await validarToken.execute(token)
+    const idUser = await validarToken.execute(token)
 
     const { id } = req.params;
 
-    if (validToken && id) {
-      const { success, data, message } = await crearPdf.execute(validToken, id)
+    if (idUser && id) {
+      const { success, data, message } = await crearPdf.execute(idUser, id)
 
       if (success) {
         res.setHeader('Content-Type', 'application/pdf');

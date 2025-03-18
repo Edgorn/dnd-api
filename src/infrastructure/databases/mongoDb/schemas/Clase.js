@@ -20,7 +20,8 @@ const claseSchema = new mongoose.Schema({
     traits_data: {},
     ability_score: Boolean,
     invocations: Number,
-    invocations_change: Number
+    invocations_change: Number,
+    metamagic_new: Number
   }],
   saving_throws: [String],
   options: [],

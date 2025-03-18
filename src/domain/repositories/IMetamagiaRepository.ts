@@ -1,19 +1,17 @@
-import { IdiomaApi } from "../types";
-
-export default class IIdiomaRepository {
+export default class IMetamagiaRepository {
   async init() {
     throw new Error('Método no implementado');
   }
 
-  obtenerIdiomasPorIndices(params: string[]): IdiomaApi[] {
+  obtenerMetamagiasPorIndices(params: string[]): any[] {
     throw new Error('Método no implementado');
   }
 
-  obtenerIdiomaPorIndice(params: string): IdiomaApi {
+  obtenerMetamagiaPorIndice(params: string): any {
     throw new Error('Método no implementado');
   }
 
-  obtenerIdiomas(): IdiomaApi[] {
+  obtenerTodos(): any {
     throw new Error('Método no implementado');
   }
 }

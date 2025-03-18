@@ -35,13 +35,16 @@ export default class TransfondoRepository extends ITransfondoRepository {
 
   async obtenerTodos() {
     const transfondos = await TransfondoSchema.find();
+
+    await this.idiomaRepository.init()
     await this.rasgoRepository.init()
+
     return this.formatearTransfondos(transfondos)
   }
   
   formatearTransfondos(transfondos: any[]): any[] {
     const formateadas = transfondos
-      .filter(transfondo => transfondo.index === 'wild' || transfondo.index === 'soldier' || transfondo.index === 'acolyte' || transfondo.index === 'scholar' || transfondo.index === 'animator')
+      .filter(transfondo => transfondo.index !== 'criminal' && transfondo.index !== 'hermit' && transfondo.index !== 'people-hero' && transfondo.index !== 'orphan' && transfondo.index !== 'sailor' && transfondo.index !== 'noble')
       .map(transfondo => this.formatearTransfondo(transfondo))
  
     formateadas.sort((a, b) => {

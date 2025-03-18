@@ -15,6 +15,7 @@ const personajeSchema = new mongoose.Schema({
   traits: [String],
   invocations: [String],
   disciplines: [String],
+  metamagic: [String],
   traits_data: {},
   resistances: [String],
   speed: Number,

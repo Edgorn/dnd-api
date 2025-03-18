@@ -6,5 +6,8 @@ router.post('/campaign', campañaController.createCampaign);
 router.post('/entryCampaign', campañaController.entryCampaign);
 router.get('/campaign', campañaController.getCampaign);
 router.get('/campaign/:id', campañaController.getCampaign);
+router.post('/campaign/acceptUserRequest', campañaController.acceptUserRequest);
+router.post('/campaign/denyUserRequest', campañaController.denyUserRequest);
+router.post('/campaign/entryCharacter', campañaController.entryCharacter);
 
 module.exports = router;

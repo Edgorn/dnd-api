@@ -223,7 +223,7 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
     } else if (type === 'choice' && !isStringArray(optionApi.options)) {
       options.push(...formatearOptions(optionApi?.options, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository))
     } else {
-      console.log('HOLA')
+      console.log('Opcion no contemplada')
       console.log(optionApi)
       console.log('___________')
     } 

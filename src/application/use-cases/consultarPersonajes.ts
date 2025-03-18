@@ -8,7 +8,7 @@ export default class ConsultarPersonajes {
     this.personajeService = personajeService;
   }
 
-  async execute(id: number): Promise<{success: boolean, data?: PersonajeBasico[], message?: string}> {
+  async execute(id: string): Promise<{success: boolean, data?: PersonajeBasico[], message?: string}> {
     return await this.personajeService.consultarPersonajes(id)
   }
 }

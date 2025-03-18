@@ -38,6 +38,8 @@ export default class ClaseRepository extends IClaseRepository {
 
   async obtenerTodas() {
     const clases = await ClaseSchema.find();
+    
+    await this.idiomaRepository.init()
     await this.rasgoRepository.init()
 
     return this.formatearClases(clases)
@@ -51,7 +53,7 @@ export default class ClaseRepository extends IClaseRepository {
  
   formatearClases(clases: any) {
     const formateadas = clases
-      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock' || clase.index === 'cleric' || clase.index === 'wizard' || clase.index === 'monk') 
+      .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock' || clase.index === 'cleric' || clase.index === 'wizard' || clase.index === 'monk' || clase.index === 'sorcerer') 
       .map((clase: any) => this.formatearClase(clase))
 
     formateadas.sort((a: any, b: any) => {
@@ -60,7 +62,7 @@ export default class ClaseRepository extends IClaseRepository {
 
     return formateadas;
   } 
-
+ 
   formatearClase(clase: any) {  
     const dataLevel = clase?.levels?.find((level: any) => level.level === 1)
     /*
@@ -197,6 +199,7 @@ export default class ClaseRepository extends IClaseRepository {
 
     this.conjuroRepository.init()
     this.disciplinaRespository.init()
+    this.rasgoRepository.init()
     
     const traits = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits ?? [])
 
@@ -222,7 +225,7 @@ export default class ClaseRepository extends IClaseRepository {
         return trait
       }
     })
-  
+    
     return {
       index: subclase_option?.index,
       name: subclase_option?.name,

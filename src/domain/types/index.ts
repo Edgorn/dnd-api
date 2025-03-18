@@ -4,9 +4,9 @@ export interface LogearUsuarioParams {
 }
 
 export interface LogearUsuarioResult {
-  token: any;
+  token: string;
   user: {
-    name: any;
+    name: string;
   };
 }
 
@@ -32,13 +32,21 @@ export interface RasgoMongo {
   desc: string[],
   discard?: string[],
   type?: string,
+  languages?: string[],
   spells?: any[],
   skills?: string[],
   proficiencies?: string[],
   proficiencies_weapon?: string[],
   proficiencies_armor?: string[],
   speed?: number,
-  hidden?: boolean
+  hidden?: boolean,
+  tables?: {
+    title: string,
+    data: {
+      titles: string[],
+      rows: string[][]
+    }
+  }[]
 }
 
 export interface RasgoApi {
@@ -47,7 +55,15 @@ export interface RasgoApi {
   desc: string,
   discard?: string[],
   skills?: string[],
-  hidden?: boolean
+  languages?: any[],
+  hidden?: boolean,
+  tables?: {
+    title: string,
+    data: {
+      titles: string[],
+      rows: string[][]
+    }
+  }[]
 }
 
 export interface DañoApi {
