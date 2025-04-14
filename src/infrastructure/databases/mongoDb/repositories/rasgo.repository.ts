@@ -70,6 +70,7 @@ export default class RasgoRepository extends IRasgoRepository {
         tables: rasgo?.tables ?? []
       };
     });
+    
     this.initialized = true;
     console.log('Rasgos cargados')
   }

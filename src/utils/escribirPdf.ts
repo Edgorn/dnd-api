@@ -54,9 +54,11 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
   let actualHeight = maxHeight
 
   texto.split('\n').forEach((text, ind) => {
-    const parrafo = wrapText(text, fontTitle, fontSize, maxWidth)
-    textoFilas.push(parrafo)
-    lineasTexto += parrafo.length
+    if (text !== '') {
+      const parrafo = wrapText(text, fontTitle, fontSize, maxWidth)
+      textoFilas.push(parrafo)
+      lineasTexto += parrafo.length
+    }
   })
 
   if (lineasTexto <= maxHeight) {
@@ -115,7 +117,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
   let textY1 = page1.getHeight() - 395;
   let textY2 = page2.getHeight() - 385;
   let textY3 = page2.getHeight() - 385;
-  let maxHeight1 = 43
+  let maxHeight1 = 42
   let maxHeight2 = 23
    
   // Ataques y lanzamientos de conjuros
@@ -623,6 +625,10 @@ const equipoPersonalizadoDos = (equip: any) => {
     && equip.index !== "Amuleto de relojería (carta)"
     && equip.index !== "Varita de pirotecnia (carta)"
 }
+
+const armaduras: any = {
+  'Armadura de cuero tachonado': 'Cuero tachonado'
+}
  
 export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any) {
 
@@ -644,7 +650,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
   
         escribirParrafo({ 
           titulo: '', 
-          descripcion: equip?.name ?? '',
+          descripcion: equip?.name ? (armaduras[equip.name] ?? equip.name) : '',
           fontTitle: fontBold,
           fontText: fontRegular,
           maxWidth: 131,

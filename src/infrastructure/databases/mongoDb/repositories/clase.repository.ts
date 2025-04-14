@@ -154,8 +154,8 @@ export default class ClaseRepository extends IClaseRepository {
     };
   }
 
-  formatearSubclasesType(subclasses_type: any[], subclases: any) {
-    const formateadas = subclasses_type.map(subclasse_type => this.formatearSubclaseType(subclasse_type, subclases))
+  async formatearSubclasesType(subclasses_type: any[], subclases: any) {
+    const formateadas = await Promise.all(subclasses_type.map(subclasse_type => this.formatearSubclaseType(subclasse_type, subclases)))
 
     formateadas.sort((a, b) => {
       if (a.name < b.name) {
@@ -170,16 +170,17 @@ export default class ClaseRepository extends IClaseRepository {
     return formateadas;
   }
 
-  formatearSubclaseType(subclase_type: any, subclases: any) {
+  async formatearSubclaseType(subclase_type: any, subclases: any) {
+    const options = await this.formatearSubclases(subclase_type?.options, subclases)
     return {
       name: subclase_type.name,
       desc: subclase_type.desc,
-      options: this.formatearSubclases(subclase_type?.options, subclases)
+      options
     }
   }
 
-  formatearSubclases(subclases_options: any[], subclases: any) {
-    const formateadas = subclases_options.map(subclase_option => this.formatearSubclase(subclase_option, subclases))
+  async formatearSubclases(subclases_options: any[], subclases: any) {
+    const formateadas = await Promise.all(subclases_options.map(subclase_option => this.formatearSubclase(subclase_option, subclases)))
 
     formateadas.sort((a: any, b: any) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
@@ -188,19 +189,19 @@ export default class ClaseRepository extends IClaseRepository {
     return formateadas;
   }
 
-  formatearSubclase(subclase_option: any, subclases: any) {
+  async formatearSubclase(subclase_option: any, subclases: any) {
     const subclaseData = subclases[subclase_option?.index]
 
     const traits_options_subclase = subclaseData?.traits_options
 
+    await this.rasgoRepository.init()
+    await this.conjuroRepository.init()
+    await this.disciplinaRespository.init()
+
     if (traits_options_subclase) {
       traits_options_subclase.options = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits_options?.options ?? [])
     }
-
-    this.conjuroRepository.init()
-    this.disciplinaRespository.init()
-    this.rasgoRepository.init()
-    
+  
     const traits = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits ?? [])
 
     const traitsData = traits?.map((trait: any) => {
@@ -225,17 +226,18 @@ export default class ClaseRepository extends IClaseRepository {
         return trait
       }
     })
-    
+
     return {
       index: subclase_option?.index,
       name: subclase_option?.name,
       img: subclase_option?.img,
-      traits: traitsData,/*
+      traits: traitsData,
+      traits_options: traits_options_subclase,
+      traits_data_options: subclaseData.traits_data_options,/*
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*/
       options: formatearOptions(subclaseData?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       proficiencies: formatearCompetencias(subclaseData?.proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
-      traits_options: traits_options_subclase,
       disciplines: this.disciplinaRespository.obtenerDisciplinasPorIndices(subclaseData?.disciplines ?? []),
       disciplines_new: {
         choose: subclaseData?.disciplines_new ?? 0,

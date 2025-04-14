@@ -364,8 +364,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
   async cambiarXp(data: any): Promise<any> {
     const { id, XP } = data
-
-    console.log(data)
     
     const resultado = await Personaje.findByIdAndUpdate(
       id,
@@ -376,8 +374,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
       },
       { new: true }
     );
-
-    console.log(resultado)
 
     const personaje = await this.formatearPersonajeBasico(resultado)
 
@@ -402,7 +398,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const traits: any[] = []
 
     await this.rasgoRepository.init()
-    
+     
     if (dataLevel?.traits_data) {
       Object.keys(dataLevel?.traits_data).forEach(t => {
         const data = dataLevel.traits_data[t]
@@ -588,7 +584,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   async subirNivel(data: any): Promise<any> {
     const id = data.id
 
-    const { hit, clase, abilities, subclases, trait, spells, invocations, disciplines, metamagic } = data.data
+    const { hit, clase, abilities, subclases, trait, traits_data, spells, invocations, disciplines, metamagic } = data.data
 
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
@@ -616,7 +612,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
       })
     }
     
-    const traitsData = { ...personaje?.traits_data, ...dataLevel?.traits_data, ...dataTraitsSubclases }
+    let traitsData = { ...personaje?.traits_data, ...dataLevel?.traits_data, ...dataTraitsSubclases }
+
+    traits_data?.forEach((traitData: any) => {
+      traitsData = { ...traitsData, ...traitData }
+    })
 
     if (dataLevel?.traits?.includes('primal-champion')) {
       abilities.str += 4
@@ -714,7 +714,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     if (clase === 'sorcerer' && traits.includes('draconid-resistance')) {
       HP += 1
     }
-      
+
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
@@ -1263,7 +1263,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       const usuario = await this.usuarioRepository.nombreUsuario(idUser)
 
-      const background = personaje?.background?.name + ( (personaje?.background?.type && personaje?.background?.index !== 'charlatan') ? ' (' + personaje?.background?.type + ')' : '')
+      const background = personaje?.background?.name + ( (personaje?.background?.type && personaje?.background?.index !== 'charlatan' && personaje?.background?.index !== 'hermit') ? ' (' + personaje?.background?.type + ')' : '')
  
       form.getTextField('CharacterName').setText(personaje?.name);
       form.getTextField('ClassLevel').setText(personaje?.classes?.map((cl: any) => cl?.name + ' ' + cl?.level)?.join(', '));
