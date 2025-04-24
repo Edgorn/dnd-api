@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
 import { LogearUsuarioParams, LogearUsuarioResult } from '../../../../domain/types';
 const UsuarioSchema = require('../schemas/Usuario');
@@ -14,8 +13,8 @@ export default class UsuarioRepository extends IUsuarioRepository {
 
     if (usuario) {
       const token = jwt.sign(
-        { id: usuario._id, name: usuario.name }, // Datos que guardas en el token
-        process.env.JWT_SECRET, // Clave secreta (almácenala en variables de entorno)
+        { id: usuario._id, name: usuario.name },
+        process.env.JWT_SECRET,
       )
 
       return { 

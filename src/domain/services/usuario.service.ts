@@ -18,6 +18,11 @@ export default class UsuarioService {
         return { success: false, message: 'Usuario incorrecto' };
       }
     } catch (error) {
+
+      if (error instanceof Error) {
+        console.error(error.message)
+      }
+
       return { success: false, message: 'Error al logearse' };
     }
   }
