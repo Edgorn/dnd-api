@@ -42,7 +42,9 @@ export default class ClaseRepository extends IClaseRepository {
     await this.idiomaRepository.init()
     await this.rasgoRepository.init()
 
-    return this.formatearClases(clases)
+    const clasesFormateadas = await this.formatearClases(clases)
+
+    return clasesFormateadas
   }
 
   async getClase(index: string) {
@@ -51,10 +53,10 @@ export default class ClaseRepository extends IClaseRepository {
     return clase[0] ?? null
   }
  
-  formatearClases(clases: any) {
-    const formateadas = clases
+  async formatearClases(clases: any) {
+    const formateadas = await Promise.all(clases
       .filter((clase: any) => clase.index === 'barbarian' || clase.index === 'warlock' || clase.index === 'cleric' || clase.index === 'wizard' || clase.index === 'monk' || clase.index === 'sorcerer') 
-      .map((clase: any) => this.formatearClase(clase))
+      .map((clase: any) => this.formatearClase(clase)))
 
     formateadas.sort((a: any, b: any) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
@@ -63,7 +65,7 @@ export default class ClaseRepository extends IClaseRepository {
     return formateadas;
   } 
  
-  formatearClase(clase: any) {  
+  async formatearClase(clase: any) {  
     const dataLevel = clase?.levels?.find((level: any) => level.level === 1)
     /*
     const dataSpells = dataLevel?.spellcasting?.spells?.split('_')
@@ -131,7 +133,9 @@ export default class ClaseRepository extends IClaseRepository {
     const spells = dataLevel?.spellcasting?.all_spells
       ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase.index) 
       : []
- 
+
+    const subclasesOptions = await this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)
+
     return {
       index: clase.index,
       name: clase.name,
@@ -150,7 +154,7 @@ export default class ClaseRepository extends IClaseRepository {
       /*traits_options: traitsOptions,
       terrain_options: terrainOptions,
       enemy_options: enemyOptions,*/
-      subclases_options: this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)
+      subclases_options: subclasesOptions
     };
   }
 

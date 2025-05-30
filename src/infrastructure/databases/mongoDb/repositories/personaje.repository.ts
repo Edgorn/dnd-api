@@ -1263,7 +1263,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
       const usuario = await this.usuarioRepository.nombreUsuario(idUser)
 
-      const background = personaje?.background?.name + ( (personaje?.background?.type && personaje?.background?.index !== 'charlatan' && personaje?.background?.index !== 'hermit') ? ' (' + personaje?.background?.type + ')' : '')
+      const background = personaje?.background?.name + ( (personaje?.background?.type && personaje?.background?.index !== 'charlatan' && personaje?.background?.index !== 'hermit' && personaje?.background?.index !== 'people-hero') ? ' (' + personaje?.background?.type + ')' : '')
  
       form.getTextField('CharacterName').setText(personaje?.name);
       form.getTextField('ClassLevel').setText(personaje?.classes?.map((cl: any) => cl?.name + ' ' + cl?.level)?.join(', '));

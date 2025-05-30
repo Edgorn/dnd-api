@@ -1,5 +1,5 @@
 export default class IClaseRepository {
-  async obtenerTodas() {
+  async obtenerTodas(): Promise<any[]> {
     throw new Error('Método no implementado');
   }
 }
