@@ -44,16 +44,11 @@ export default class TransfondoRepository extends ITransfondoRepository {
   
   formatearTransfondos(transfondos: any[]): any[] {
     const formateadas = transfondos
-      .filter(transfondo => transfondo.index !== 'orphan' && transfondo.index !== 'sailor' && transfondo.index !== 'noble')
+      .filter(transfondo => transfondo.index !== 'sailor' && transfondo.index !== 'noble')
       .map(transfondo => this.formatearTransfondo(transfondo)) 
 
-    formateadas.sort((a, b) => {
-      if (a.name < b.name) {
-        return -1;
-      } else if (a.name > b.name) {
-        return 1;
-      } 
-      return 0;
+    formateadas.sort((a: any, b: any) => {
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
 
     return formateadas;
