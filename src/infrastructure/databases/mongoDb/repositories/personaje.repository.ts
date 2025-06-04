@@ -1344,11 +1344,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
           }
         })
   
-      form.getTextField('Copper').setText(Math.floor(personaje?.money % 10) + '');
-      form.getTextField('Silver').setText(Math.floor((personaje?.money / 10)) % 10 + '');
-      form.getTextField('Electrum').setText('0');
-      form.getTextField('Gold').setText(Math.floor(personaje?.money / 100) + '');
-      form.getTextField('Platinum').setText('0');
+      form.getTextField('Copper').setText(personaje?.money?.pc + '');
+      form.getTextField('Silver').setText(personaje?.money?.pp + '');
+      form.getTextField('Electrum').setText(personaje?.money?.pe + '');
+      form.getTextField('Gold').setText(personaje?.money?.po + '');
+      form.getTextField('Platinum').setText(personaje?.money?.ppt + '');
       
       form.getTextField('HPMax').setText(personaje?.HPMax + '');
       form.getTextField('ProfBonus').setText('+' + personaje?.prof_bonus);
