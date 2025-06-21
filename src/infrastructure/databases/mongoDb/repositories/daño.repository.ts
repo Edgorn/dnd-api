@@ -28,10 +28,16 @@ export default class DañoRepository extends IDañoRepository {
   }
 
   obtenerDañoPorIndice(index: string) {
-    return this.dañosMap[index];
+    return this.dañosMap[index] ?? {index, name: index};
   }
 
   obtenerDañosPorIndices(indices: string[]) {
-    return indices.map(index => this.obtenerDañoPorIndice(index));
+    const daños = indices.map(index => this.obtenerDañoPorIndice(index))
+    
+    daños.sort((a: any, b: any) => {
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    });
+
+    return daños;
   }
 }
