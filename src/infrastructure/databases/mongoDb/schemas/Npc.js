@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const criaturaSchema = new mongoose.Schema({
+const npcSchema = new mongoose.Schema({
   index: String,
   name: String,
   type: String,
@@ -25,6 +25,6 @@ const criaturaSchema = new mongoose.Schema({
   special_abilities: [],
   actions: [],
   reactions: [] 
-}, { collection: 'Criaturas' });
+}, { collection: 'NPCs' });
 
-module.exports = mongoose.model('Criaturas', criaturaSchema);
+module.exports = mongoose.model('NPCs', npcSchema);

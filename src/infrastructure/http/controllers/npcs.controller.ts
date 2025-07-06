@@ -5,14 +5,14 @@ import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repo
 const usuarioService = new UsuarioService(new UsuarioRepository())
 const validarToken = new ValidarToken(usuarioService)
 
-import ConsultarCriaturas from "../../../application/use-cases/consultarCriaturas";
-import CriaturaService from "../../../domain/services/criatura.service";
-import CriaturaRepository from "../../databases/mongoDb/repositories/criaturas.repository";
+import ConsultarNpcs from "../../../application/use-cases/consultarNpcs";
+import NpcService from "../../../domain/services/npc.service";
+import NpcRepository from "../../databases/mongoDb/repositories/npc.repository";
 
-const criaturaService = new CriaturaService(new CriaturaRepository())
-const consultarCriaturas = new ConsultarCriaturas(criaturaService)
+const npcService = new NpcService(new NpcRepository())
+const consultarNpcs = new ConsultarNpcs(npcService)
 
-const getMonsters = async (req: any, res: any) => {
+const getNpcs = async (req: any, res: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
 
@@ -20,7 +20,7 @@ const getMonsters = async (req: any, res: any) => {
     const idUser = await validarToken.execute(token)
 
     if (idUser) {
-      const { success, data, message } = await consultarCriaturas.execute()
+      const { success, data, message } = await consultarNpcs.execute()
 
       if (success) {
         res.status(201).json(data);
@@ -32,8 +32,8 @@ const getMonsters = async (req: any, res: any) => {
     }
   } catch (e) {
     console.error(e)
-    res.status(500).json({ error: 'Error al crear campaña' });
+    res.status(500).json({ error: 'Error al consultar pnjs unicos' });
   }
 };
 
-export default { getMonsters };
+export default { getNpcs };
