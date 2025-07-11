@@ -631,7 +631,6 @@ const armaduras: any = {
 }
  
 export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any) {
-
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -644,13 +643,17 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
       if (equip.category === 'Armadura' && equip?.armor?.category !== 'Escudo' && equip.equipped) {
         let CA = equip?.armor?.class?.base ?? 10
 
+        if (equip.isMagic) {
+          CA+=1
+        }
+
         if (equip?.armor?.class?.dex_bonus) {
           CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex/2) - 5), equip?.armor?.class?.max_bonus ?? 99), 0)
         }
   
         escribirParrafo({ 
           titulo: '', 
-          descripcion: equip?.name ? (armaduras[equip.name] ?? equip.name) : '',
+          descripcion: (equip?.name ? (armaduras[equip.name] ?? equip.name) : '') + (equip.isMagic ? ' +1' : '') ,
           fontTitle: fontBold,
           fontText: fontRegular,
           maxWidth: 131,
@@ -685,7 +688,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
           .join(', ') + ')'
       }
       
-      return equip.quantity+'x ' + equip.name + ' ' + dataProperties
+      return equip.quantity+'x ' + equip.name + (equip.isMagic ? ' +1' : '') + ' ' + dataProperties
     })
 
   const tesoro = equipment
@@ -702,27 +705,43 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
     x: 267,
     y: page1.getHeight() - 622
   })
+
+  let actualYIzq = page2.getHeight() - 613
+  let maxHeightIzq = 14
   
-  escribirParrafo({ 
-    titulo: '', 
-    descripcion: tesoro?.slice(0, 15)?.join('\n') ?? '',
-    fontTitle: fontBold,
-    fontText: fontRegular,
-    maxWidth: 170,
-    page: page2,
-    x: 227,
-    y: page2.getHeight() - 613
-  })
- 
-  escribirParrafo({ 
-    titulo: '', 
-    descripcion: tesoro?.slice(15)?.join('\n') ?? '',
-    fontTitle: fontBold,
-    fontText: fontRegular,
-    maxWidth: 170,
-    page: page2,
-    x: 405,
-    y: page2.getHeight() - 613
+  let actualYDer = page2.getHeight() - 613
+  let maxHeightDer = 14
+
+  tesoro.forEach((tes: any) => {
+    const { textY, actualHeight } = escribirParrafo({ 
+      titulo: '', 
+      descripcion: tes ?? '',
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth: 170,
+      page: page2,
+      x: 227,
+      y: actualYIzq,
+      maxHeight: maxHeightIzq
+    })
+
+    if (maxHeightIzq === actualHeight) {
+      const { textY: textYDer } = escribirParrafo({ 
+        titulo: '', 
+        descripcion: tes ?? '',
+        fontTitle: fontBold,
+        fontText: fontRegular,
+        maxWidth: 170,
+        page: page2,
+        x: 405,
+        y: actualYDer
+      })
+
+      actualYDer = textYDer
+    } else {
+      maxHeightIzq = actualHeight
+      actualYIzq = textY
+    }
   })
 }  
 

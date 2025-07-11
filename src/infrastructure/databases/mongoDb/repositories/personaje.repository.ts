@@ -645,17 +645,27 @@ export default class PersonajeRepository extends IPersonajeRepository {
           .filter(eq => eq.equipped)
           .map(eq => eq.index) ?? []
       )
-      .forEach(armor => {
+      .forEach(armorAux => {
+        const armor = { ...armorAux, ...personaje?.equipment.find(eq => eq.equipped && eq.index===armorAux.index) }
         if (armor.armor.category === 'Escudo') {
           shield += armor?.armor?.class?.base ?? 0
+          
+          if (armor.isMagic) {
+            shield += 1
+          }
+
         } else {
           CA = armor?.armor?.class?.base ?? 10
+
+          if (armor.isMagic) {
+            CA += 1
+          }
 
           if (armor?.armor?.class?.dex_bonus) {
             CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex/2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
           }
 
-          armadura = true
+        armadura = true
         }
       })
 
@@ -757,17 +767,17 @@ export default class PersonajeRepository extends IPersonajeRepository {
   }
 
   async añadirEquipamiento(data: any) {
-    const { id, equip, cantidad } = data
+    const { id, equip, cantidad, isMagic } = data
     const personaje = await Personaje.findById(id);
 
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip)
+    const idx = equipment.findIndex(eq => eq.index === equip && eq.isMagic === isMagic)
 
     if (idx > -1) {
       equipment[idx].quantity += cantidad 
     } else {
-      equipment.push({ index: equip, quantity: cantidad })
+      equipment.push({ index: equip, quantity: cantidad, isMagic })
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
@@ -784,12 +794,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
   }
 
   async eliminarEquipamiento(data: any) {
-    const { id, equip, cantidad } = data
+    const { id, equip, cantidad, isMagic } = data
     const personaje = await Personaje.findById(id);
 
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip)
+    const idx = equipment.findIndex(eq => eq.index === equip && eq.isMagic === isMagic)
 
     if (idx > -1) {
       if (equipment[idx].quantity === cantidad) {
@@ -813,13 +823,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
   }
 
   async equiparArmadura(data: any): Promise<any> {
-    
-    const { id, equip, nuevoEstado } = data
+    const { id, equip, nuevoEstado, isMagic } = data
     const personaje = await Personaje.findById(id);
 
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip)
+    const idx = equipment.findIndex(eq => eq.index === equip && eq.isMagic === isMagic)
     
     let armadura = false
     let CA = 10
@@ -848,11 +857,20 @@ export default class PersonajeRepository extends IPersonajeRepository {
             .filter(eq => eq.equipped)
             .map(eq => eq.index)
         )
-        .forEach(armor => {
+        .forEach(armorAux => {
+          const armor = { ...armorAux, ...equipment.find(eq => eq.equipped && eq.index===armorAux.index) }
           if (armor.armor.category === 'Escudo') {
             shield += armor?.armor?.class?.base ?? 0
+            
+            if (armor.isMagic) {
+              shield += 1
+            }
           } else {
             CA = armor?.armor?.class?.base ?? 10
+
+            if (armor.isMagic) {
+              CA += 1
+            }
 
             if (armor?.armor?.class?.dex_bonus) {
               CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex/2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
@@ -1027,6 +1045,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       .map(armor => armor.name)
 
     const equipo = this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
+    const equipoPersonaje:any[] = []
 
     personaje.equipment.forEach((equip: any) => {
       const idx = equipo.findIndex(eq => eq.index === equip.index)
@@ -1051,9 +1070,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
           return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
         })
       }
+
+      equipoPersonaje.push({ ...equipo[idx], isMagic: equip.isMagic })
     })
 
-    equipo.sort((a: any, b: any) => {
+    equipoPersonaje.sort((a: any, b: any) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     })
 
@@ -1162,7 +1183,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       metamagic: metamagicData,
       prof_bonus: personaje.prof_bonus,
       saving_throws: personaje.saving_throws,
-      equipment: equipo,
+      equipment: equipoPersonaje,
       money: personaje?.money ?? 0,
       spells
     }
@@ -1177,7 +1198,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
   }
 
   sumaDaño(character: any, equip: any) {
-    let suma = 0
+    let suma = equip?.isMagic ? 1 : 0
 
     if (equip.weapon.properties.find((prop: any) => prop.index === 'finesse')) {
       const max = Math.max(character?.abilities?.str, character?.abilities?.dex)
@@ -1260,9 +1281,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
         //}
       });*/
       //console.log('_________________');
-
+ 
       const usuario = await this.usuarioRepository.nombreUsuario(idUser)
-
+ 
       const background = personaje?.background?.name + ( (personaje?.background?.type && personaje?.background?.index !== 'charlatan' && personaje?.background?.index !== 'hermit' && personaje?.background?.index !== 'people-hero') ? ' (' + personaje?.background?.type + ')' : '')
  
       form.getTextField('CharacterName').setText(personaje?.name);
@@ -1338,7 +1359,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
         ?.filter((equi: any) => equi?.category === 'Arma')
         ?.forEach((equi: any, index: number) => {
           if (index+golpeCuerpo < 3) {
-            form.getTextField('Attack' + (index+golpeCuerpo+1)).setText(equi.name);
+            form.getTextField('Attack' + (index+golpeCuerpo+1)).setText(equi.name + " " + (equi.isMagic ? " +1" : ""));
             form.getTextField('AtkBonus' + (index+golpeCuerpo+1)).setText('+' + this.sumaGolpe(personaje, equi));
             form.getTextField('Damage' + (index+golpeCuerpo+1)).setText(equi?.weapon?.damage?.dice + ' +' + this.sumaDaño(personaje, equi) + ' ' + equi?.weapon?.damage?.name);
           }

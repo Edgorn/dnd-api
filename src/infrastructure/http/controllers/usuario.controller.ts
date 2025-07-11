@@ -9,10 +9,6 @@ const login = async (req: any, res: any) => {
 
   try {
     const { user, password } = req.body
-    
-    console.log(user)
-    console.log(password)
-
     const { success, data, message } = await logearUsuario.execute({ user, password })
 
     if (success) {

@@ -22,7 +22,8 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
         category: equipamiento.category,
         weapon: equipamiento.weapon,
         armor: equipamiento.armor,
-        content: equipamiento.content
+        content: equipamiento.content,
+        weight: equipamiento.weight
       };
     });
   }
@@ -34,9 +35,10 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
       category: 'personalizado',
       weapon: {},
       armor: {},
-      content: []
+      content: [],
+      weight: 0
     };
-  }
+  } 
 
   obtenerEquipamientosPorIndices(indices: string[]) {
     return indices.map(index => this.obtenerEquipamientoPorIndice(index));

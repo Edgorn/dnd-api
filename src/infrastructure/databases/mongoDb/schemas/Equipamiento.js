@@ -18,6 +18,7 @@ const equipamientoSchema = new mongoose.Schema({
     competency: [String]
   },
   armor: {},
+  weight: Number,
   content: [{item: String, quantity: Number}]
 }, { collection: 'Equipamientos' });
 
