@@ -38,7 +38,7 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
       content: [],
       weight: 0
     };
-  } 
+  }  
 
   obtenerEquipamientosPorIndices(indices: string[]) {
     return indices.map(index => this.obtenerEquipamientoPorIndice(index));

@@ -43,16 +43,14 @@ export default class TransfondoRepository extends ITransfondoRepository {
   }
   
   formatearTransfondos(transfondos: any[]): any[] {
-    const formateadas = transfondos 
-      .filter(transfondo => transfondo.index !== 'noble')
-      .map(transfondo => this.formatearTransfondo(transfondo)) 
+    const formateadas = transfondos.map(transfondo => this.formatearTransfondo(transfondo)) 
 
     formateadas.sort((a: any, b: any) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
 
     return formateadas;
-  }
+  }  
 
   formatearTransfondo(transfondo: any): any {
     let options_name = {...transfondo.options_name}

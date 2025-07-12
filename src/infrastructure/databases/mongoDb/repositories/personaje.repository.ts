@@ -176,8 +176,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
     } = data
 
     const raza = await this.razaRepository.getRaza(race)
-    const { subraces, ...razaSinSubrazas } = raza
-    const subraza = subraces.find((s: any) => s.index === subrace)
+    const { subraces, ...razaSinSubrazas } = raza || {}
+    const subraza = subraces?.find((s: any) => s.index === subrace) ?? null
 
     const claseData = await this.claseRepository.getClase(clase)
     const claseDataLevel = claseData?.levels[0]
@@ -304,7 +304,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       subraceId: subrace,
       type,
       campaign,
-      classes: [{ class: clase, name: claseData.name, level: 1 }],
+      classes: [{ class: clase, name: claseData?.name, level: 1 }],
       subclasses: subclase ? [subclase] : [],
       race: type ?? subraza?.name ?? raza?.name,
       traits,
