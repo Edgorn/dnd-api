@@ -1,5 +1,3 @@
-//const transfondoController = require('../../../../controllers/transfondoController');
-
 import TransfondoRepository from "../../databases/mongoDb/repositories/transfondo.repository";
 import TransfondoService from "../../../domain/services/transfondo.service";
 import ObtenerTodosLosTransfondos from "../../../application/use-cases/obtenerTodosLosTransfondos";

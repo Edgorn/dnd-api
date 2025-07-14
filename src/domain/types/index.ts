@@ -136,3 +136,40 @@ export interface OptionsApi {
   type: string,
   //spell?: any
 }
+
+export interface EquipamientoMongo {
+  index: string,
+  quantity: number
+}
+
+export interface EquipamientoApi {
+  index: string,
+  name: string,
+  quantity: number,
+  content: {
+    name: string,
+    quantity: number,
+    item?: string
+  }[],
+  equipped?: boolean,
+  category?: string,
+  weapon?: {
+    damage: {
+      name: string,
+      type: string
+    },
+    two_handed_damage: {
+      name: string,
+      type: string
+    },
+    properties: (string | any)[]
+  }
+}
+
+export interface EquipamientoOpcionesMongo {
+
+}
+
+export interface EquipamientoOpcionesApi {
+
+}

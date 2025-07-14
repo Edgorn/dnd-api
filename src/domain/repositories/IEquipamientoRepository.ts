@@ -1,17 +1,19 @@
+import { EquipamientoApi } from "../types";
+
 export default class IEquipamientoRepository {
-  obtenerEquipamientosPorIndices(index: string[]): any[] {
+  obtenerEquipamientosPorIndices(index: string[]): EquipamientoApi[] {
     throw new Error('Método no implementado');
   }
 
-  obtenerEquipamientoPorIndice(index: string): any {
+  obtenerEquipamientoPorIndice(index: string): EquipamientoApi {
     throw new Error('Método no implementado');
   }
   
-  obtenerEquipamientosPorTipos(categoria: string, tipo: string, rango: string): any[] {
+  obtenerEquipamientosPorTipos(categoria: string, tipo: string, rango: string): EquipamientoApi[] {
     throw new Error('Método no implementado');
   }
 
-  obtenerEquipamientosPorTipo(tipo: string): any {
+  obtenerEquipamientosPorTipo(tipo: string): EquipamientoApi[] {
     throw new Error('Método no implementado');
   }
 }

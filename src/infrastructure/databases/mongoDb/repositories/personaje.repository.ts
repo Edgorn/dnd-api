@@ -159,6 +159,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       name,
       user,
       background,
+      img,
       appearance,
       abilities,
       race,
@@ -172,7 +173,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
       clase,
       subclase,
       equipment,
-      trait
+      traits,
+      money
     } = data
 
     const raza = await this.razaRepository.getRaza(race)
@@ -185,22 +187,20 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const dataBackground = { ...background }
 
-    const transfondos = await this.transfondoRepository.obtenerTodos()
-    const transfondo = transfondos.find(tra => tra.index === background.index)
-    
-    dataBackground.name = transfondo?.name ?? ''
+    //const transfondos = await this.transfondoRepository.obtenerTodos()
+    //const transfondo = transfondos.find(tra => tra.index === background.index)
+    //const variante = transfondo.variants.find((variant: any) => variant.name === background.variant)
 
-    const traits = [
+    //dataBackground.name = variante?.name ?? transfondo?.name ?? ''
+ 
+    let traitsAux = [
       ...raza?.traits ?? [], 
       ...subraza?.traits ?? [], 
       ...claseDataLevel?.traits ?? [],
       ...subclaseData?.traits ?? [],
-      ...transfondo.traits?.map((tr: any) => tr.index) ?? [],
+      ...traits ?? []
+      //...(variante?.traits ?? transfondo.traits ?? [])?.map((tr: any) => tr.index) ?? [],
     ]
-
-    if (trait) {
-      traits.push(trait)
-    }
 
     let HP = claseData?.hit_die ?? 1
 
@@ -267,10 +267,16 @@ export default class PersonajeRepository extends IPersonajeRepository {
       }
     })
 
-    let money = 0
+    const moneyAux: any = {
+      pc: 0,
+      pp: 0,
+      pe: 0,
+      po: 0,
+      ppt: 0
+    }
 
-    if (transfondo?.money?.unit === 'po') {
-      money += transfondo?.money?.quantity * 100
+    if (moneyAux[money?.unit] !== undefined) {
+      moneyAux[money.unit] = money?.quantity ?? 0
     }
 
     const spellsClase = claseDataLevel?.spellcasting?.all_spells
@@ -296,7 +302,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const personaje = new Personaje({
       name,
       user,
-      img: dataType?.img ?? subraza?.img ?? raza?.img,
+      img: dataType?.img ?? subraza?.img ?? raza?.img ?? img,
       background: dataBackground,
       appearance,
       abilities,
@@ -307,7 +313,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       classes: [{ class: clase, name: claseData?.name, level: 1 }],
       subclasses: subclase ? [subclase] : [],
       race: type ?? subraza?.name ?? raza?.name,
-      traits,
+      traits: traitsAux,
       traits_data: {...claseDataLevel?.traits_data, ...subraza?.traits_data},
       prof_bonus: claseDataLevel?.prof_bonus,
       resistances: [...raza?.resistances ?? [], ...subraza?.resistances ?? []],
@@ -319,8 +325,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       skills: [
         ...skills ?? [],
         ...raza?.starting_proficiencies?.filter((prof: any) => prof.type === 'habilidad')?.map((prof: any) => prof.index) ?? [],
-        ...subraza?.starting_proficiencies?.filter((prof: any) => prof.type === 'habilidad')?.map((prof: any) => prof.index) ?? [],
-        ...transfondo?.proficiencies?.filter((prof: any) => prof.type === 'habilidad')?.map((prof: any) => prof.index) ?? []
+        ...subraza?.starting_proficiencies?.filter((prof: any) => prof.type === 'habilidad')?.map((prof: any) => prof.index) ?? []
       ],
       double_skills,
       proficiency_weapon: proficiency_weapon.map((prof: any) => prof.index),
@@ -332,12 +337,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
       ],
       spells,
       equipment: equipmentData,
-      money,
+      money: moneyAux,
       CA,
       HPMax: HP,
       HPActual: HP,
-      XP: 0
-    })
+      XP: 0 
+    })    
 
     const resultado = await personaje.save()
 
@@ -1019,7 +1024,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       })
       .sort((a, b) => {
         return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-      })
+      }) 
 
     const proficiencies = this.competenciaRepository
       .obtenerCompetenciasPorIndices(proficienciesId.filter((valor: any, indice: any, self: any) => self.indexOf(valor) === indice))
@@ -1055,20 +1060,22 @@ export default class PersonajeRepository extends IPersonajeRepository {
       if (equipo[idx]?.category === 'Arma') {
         const daño = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.damage?.type ?? '')
 
-        if (equipo[idx].weapon.damage) {
-          equipo[idx].weapon.damage.name = daño?.name ?? ''
-        
-          if (equipo[idx].weapon.two_handed_damage) {
-            const daño_two = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.two_handed_damage?.type)
-            equipo[idx].weapon.two_handed_damage.name = daño_two?.name ?? ''
+        if (equipo[idx].weapon) {
+          if (equipo[idx]?.weapon?.damage) {
+            equipo[idx].weapon.damage.name = daño?.name ?? ''
+          
+            if (equipo[idx].weapon.two_handed_damage) {
+              const daño_two = this.dañoRepository.obtenerDañoPorIndice(equipo[idx]?.weapon?.two_handed_damage?.type)
+              equipo[idx].weapon.two_handed_damage.name = daño_two?.name ?? ''
+            }
           }
-        }
-        
-        equipo[idx].weapon.properties = this.propiedadArmaRepository.obtenerPropiedadesPorIndices(equipo[idx]?.weapon?.properties)
+          
+          equipo[idx].weapon.properties = this.propiedadArmaRepository.obtenerPropiedadesPorIndices(equipo[idx]?.weapon?.properties)
 
-        equipo[idx].weapon.properties.sort((a: any, b: any) => {
-          return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-        })
+          equipo[idx].weapon.properties.sort((a: any, b: any) => {
+            return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+          })
+        }
       }
 
       equipoPersonaje.push({ ...equipo[idx], isMagic: equip.isMagic })
@@ -1284,15 +1291,15 @@ export default class PersonajeRepository extends IPersonajeRepository {
  
       const usuario = await this.usuarioRepository.nombreUsuario(idUser)
  
-      const background = personaje?.background?.name + ( (personaje?.background?.type && personaje?.background?.index !== 'charlatan' && personaje?.background?.index !== 'hermit' && personaje?.background?.index !== 'people-hero') ? ' (' + personaje?.background?.type + ')' : '')
+      const background = personaje?.background?.name
  
       form.getTextField('CharacterName').setText(personaje?.name);
       form.getTextField('ClassLevel').setText(personaje?.classes?.map((cl: any) => cl?.name + ' ' + cl?.level)?.join(', '));
       form.getDropdown('Background').addOptions([background]);
       form.getDropdown('Background').select(background);
       form.getTextField('PlayerName').setText(usuario);
-      form.getDropdown('Race').addOptions([personaje?.race]);
-      form.getDropdown('Race').select(personaje?.race);
+      form.getDropdown('Race').addOptions([personaje?.race ?? ""]);
+      form.getDropdown('Race').select(personaje?.race ?? "");
       form.getDropdown('Alignment').addOptions(['']);
       form.getDropdown('Alignment').select('');
       form.getTextField('ExperiencePoints').setText(personaje?.XP + '/' + personaje?.XPMax);
@@ -1426,21 +1433,23 @@ export default class PersonajeRepository extends IPersonajeRepository {
       })
 
       // Descargar la imagen usando axios
-      const imageResponse = await axios.get(personaje?.img, { responseType: 'arraybuffer' });
-      const imageBytes = imageResponse.data; // Obtener los bytes de la imagen
+      if (personaje?.img) {
+        const imageResponse = await axios.get(personaje?.img, { responseType: 'arraybuffer' });
+        const imageBytes = imageResponse.data; // Obtener los bytes de la imagen
 
-      // Insertar la imagen (soporta PNG y JPG)
-      const image = await originalPdf.embedJpg(imageBytes);
+        // Insertar la imagen (soporta PNG y JPG)
+        const image = await originalPdf.embedJpg(imageBytes);
 
-      // Obtener la posición y tamaño del botón
-      const page = originalPdf.getPage(1); // Página donde está el botón
+        // Obtener la posición y tamaño del botón
+        const page = originalPdf.getPage(1); // Página donde está el botón
 
-      page.drawImage(image, {
-        x: 39,
-        y: 490,
-        width: 155,
-        height: 155,
-      });
+        page.drawImage(image, {
+          x: 39,
+          y: 490,
+          width: 155,
+          height: 155,
+        });
+      }
       
       // También puedes desactivar la edición si quieres bloquear el PDF después de llenarlo
       form.flatten();

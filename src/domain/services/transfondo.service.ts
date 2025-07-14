@@ -1,4 +1,5 @@
 import ITransfondoRepository from "../repositories/ITransfondoRepository";
+import { TransfondoApi } from "../types/transfondos";
 
 export default class TransfondoService {
   private transfondoRepository: ITransfondoRepository;
@@ -7,7 +8,7 @@ export default class TransfondoService {
     this.transfondoRepository = transfondoRepository;
   }
 
-  async obtenerTodosLosTransfondos(): Promise<{success: boolean, data?: any, message?: string}> {
+  async obtenerTodosLosTransfondos(): Promise<{success: boolean, data?: TransfondoApi[], message?: string}> {
     try {
       const transfondos = await this.transfondoRepository.obtenerTodos();
       return { success: true, data: transfondos };

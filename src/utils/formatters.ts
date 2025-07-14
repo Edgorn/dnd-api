@@ -4,7 +4,7 @@ import IEquipamientoRepository from "../domain/repositories/IEquipamientoReposit
 import IHabilidadRepository from "../domain/repositories/IHabilidadRepository"
 import IIdiomaRepository from "../domain/repositories/IIdiomaRepository"
 import IRasgoRepository from "../domain/repositories/IRasgoRepository"
-import { AbilityBonusesApi, AbilityBonusesMongo, OptionsApi, OptionsMongo, ProficienciesApi, ProficienciesMongo } from "../domain/types"
+import { AbilityBonusesApi, AbilityBonusesMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionsMongo, ProficienciesApi, ProficienciesMongo } from "../domain/types"
 
 const caracteristicas: {[key: string]: string} = {
   str: 'Fuerza',
@@ -93,7 +93,7 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
   return optionsApi.map(optionApi => {
     const options = []
     let type = optionApi?.type
-
+  
     if (type === 'idioma') {
       if (optionApi.api === 'all') {
         options.push(
@@ -118,7 +118,7 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
             })
         )
       }
-    } else if (type === 'herramienta' || type === 'juego') {
+    } else if (type === 'herramienta' || type === 'juego' || type === 'arma') {
       if (optionApi?.api) {
         options.push(
           ...competenciasRepository
@@ -257,13 +257,13 @@ export const formatearSalvacion = (ability_bonuses: string[]) => {
   return abilityBonuses
 }
 
-export const formatearEquipamiento = (equipamientosApi: any[], equipamientoRepository: IEquipamientoRepository) => {
-  return equipamientosApi.map(equipamientoApi => {
+export const formatearEquipamiento = (equipamientosMongo: EquipamientoMongo[], equipamientoRepository: IEquipamientoRepository): EquipamientoApi[] => {
+  return equipamientosMongo.map(equipamientoApi => {
     const equipamiento = equipamientoRepository.obtenerEquipamientoPorIndice(equipamientoApi.index)
 
-    const content = equipamiento.content.map((cont: any) => {
+    const content = equipamiento.content.map(cont => {
       return {
-        name: equipamientoRepository.obtenerEquipamientoPorIndice(cont?.item)?.name ?? '',
+        name: equipamientoRepository.obtenerEquipamientoPorIndice(cont?.item ?? '')?.name ?? '',
         quantity: cont.quantity
       }
     })
@@ -277,7 +277,7 @@ export const formatearEquipamiento = (equipamientosApi: any[], equipamientoRepos
   })
 }
 
-export const formatearEquipamientosOptions = (optionsApi: any[], equipamientoRepository: IEquipamientoRepository) => {
+export const formatearEquipamientosOptions = (optionsApi: EquipamientoOpcionesMongo[][], equipamientoRepository: IEquipamientoRepository): EquipamientoOpcionesApi[] => {
   return optionsApi.map(optionApi => {
     return optionApi?.map((opt: any) => {
       const opcion: any = {}

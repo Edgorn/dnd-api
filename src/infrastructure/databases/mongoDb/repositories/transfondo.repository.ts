@@ -13,7 +13,8 @@ import EquipamientoRepository from './equipamiento.repository';
 import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
 import RasgoRepository from './rasgo.repository';
-const TransfondoSchema = require('../schemas/Transfondo');
+import TransfondoSchema from '../schemas/Transfondo';
+import { TransfondoApi, TransfondoMongo } from '../../../../domain/types/transfondos';
 
 export default class TransfondoRepository extends ITransfondoRepository {
   idiomaRepository: IIdiomaRepository
@@ -33,16 +34,20 @@ export default class TransfondoRepository extends ITransfondoRepository {
     this.rasgoRepository = new RasgoRepository(this.conjuroRepository)
   }
 
-  async obtenerTodos() {
+  async obtenerTodos(): Promise<TransfondoApi[]> {
     const transfondos = await TransfondoSchema.find();
 
     await this.idiomaRepository.init()
     await this.rasgoRepository.init()
 
-    return this.formatearTransfondos(transfondos)
+    return this.formatearTransfondos(
+      transfondos.filter(transfondo => 
+        transfondo.index === "acolyte"
+      )
+    )
   }
   
-  formatearTransfondos(transfondos: any[]): any[] {
+  formatearTransfondos(transfondos: TransfondoMongo[]): TransfondoApi[] {
     const formateadas = transfondos.map(transfondo => this.formatearTransfondo(transfondo)) 
 
     formateadas.sort((a: any, b: any) => {
@@ -52,31 +57,72 @@ export default class TransfondoRepository extends ITransfondoRepository {
     return formateadas;
   }  
 
-  formatearTransfondo(transfondo: any): any {
-    let options_name = {...transfondo.options_name}
+  formatearTransfondo(transfondo: TransfondoMongo): TransfondoApi {
+    /*let options_name = {...transfondo.options_name}
 
     if (options_name) {
       options_name.options = transfondo?.options_name?.options?.map((opt: string) => { return { label: opt, value: opt } })
     }
-     
+
+    const variantes:any[] = []
+    
+    transfondo?.variants?.forEach((variant: any) => {
+      let traits_options = null
+
+      if (variant?.traits_options) {
+        traits_options = variant?.traits_options
+
+        if (traits_options) {
+          traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(variant?.traits_options?.options ?? [])
+        }
+      }
+ 
+      variantes.push({
+        name: variant?.name,
+        desc: variant?.desc,
+        traits: variant?.traits ? this.rasgoRepository.obtenerRasgosPorIndices(variant?.traits ?? []) : undefined,
+        traits_options,
+        equipment: variant?.starting_equipment ? formatearEquipamiento(variant?.starting_equipment ?? [], this.equipamientoRepository) : undefined,
+        personalized_equipment: variant.personalized_equipment,
+        options: variant?.options ? formatearOptions(variant?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository) : undefined,
+        equipment_options: variant?.starting_equipment_options ? formatearEquipamientosOptions(variant?.starting_equipment_options ?? [], this.equipamientoRepository) : undefined,
+        options_name: variant?.options_name ? {
+          ...variant?.options_name,
+          options: variant?.options_name?.options?.map((opt: string) => { return { label: opt, value: opt } })
+        } : undefined
+      })  
+    })   
+
+    let traits_options = null
+
+    if (transfondo?.traits_options) {
+      traits_options = transfondo?.traits_options
+
+      if (traits_options) {
+        traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits_options?.options ?? [])
+      }
+    }*/
+    
     return {
       index: transfondo.index,
       name: transfondo.name,
       img: transfondo.img,
       desc: transfondo.desc,
       traits: this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits ?? []),
+      /*traits_options,*/
       proficiencies: formatearCompetencias(transfondo?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
       options: formatearOptions(transfondo?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       equipment: formatearEquipamiento(transfondo?.starting_equipment ?? [], this.equipamientoRepository),
       equipment_options: formatearEquipamientosOptions(transfondo?.starting_equipment_options ?? [], this.equipamientoRepository),
-      personalized_equipment: transfondo.personalized_equipment,
+      /*personalized_equipment: transfondo.personalized_equipment,*/
       money: transfondo.money,
-      options_name,
-      personality_traits: transfondo?.personality_traits?.map((opt: string) => { return { label: opt, value: opt } }),
-      ideals: transfondo?.ideals?.map((opt: string) => { return { label: opt, value: opt } }),
-      bonds: transfondo?.bonds?.map((opt: string) => { return { label: opt, value: opt } }),
-      flaws: transfondo?.flaws?.map((opt: string) => { return { label: opt, value: opt } }),
-      god: transfondo?.god
-    }
+      god: transfondo?.god,
+      /*options_name,*/
+      personality_traits: transfondo?.personality_traits?.map(opt => { return { label: opt, value: opt } }),
+      ideals: transfondo?.ideals?.map(opt => { return { label: opt, value: opt } }),
+      bonds: transfondo?.bonds?.map(opt => { return { label: opt, value: opt } }),
+      flaws: transfondo?.flaws?.map(opt => { return { label: opt, value: opt } }),
+      /*variants: variantes*/
+    } 
   }
 }

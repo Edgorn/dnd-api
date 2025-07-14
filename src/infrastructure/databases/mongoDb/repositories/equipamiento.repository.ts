@@ -1,4 +1,5 @@
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
+import { EquipamientoApi } from '../../../../domain/types';
 import EquipamientoSchema from '../schemas/Equipamiento';
 
 export default class EquipamientoRepository extends IEquipamientoRepository {
@@ -28,7 +29,7 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
     });
   }
 
-  obtenerEquipamientoPorIndice(index: string) {
+  obtenerEquipamientoPorIndice(index: string): EquipamientoApi {
     return this.equipamientosMap[index] ?? {
       index: index,
       name: index,
@@ -45,7 +46,7 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
   }
 
   obtenerEquipamientosPorTipos(categoria: string, tipo: string, rango: string) {
-    const equipamientos:any[] = Object.values(this.equipamientosMap)
+    const equipamientos = Object.values(this.equipamientosMap)
 
     return equipamientos
       .filter(eq => !categoria || eq?.category?.toLowerCase() === categoria)
@@ -53,8 +54,8 @@ export default class EquipamientoRepository extends IEquipamientoRepository {
       .filter(eq => !rango || eq?.weapon?.range?.toLowerCase() === rango)
   }
 
-  async obtenerEquipamientosPorTipo(tipo: string) {
-    const equipamientos:any[] = Object.values(this.equipamientosMap)
+  obtenerEquipamientosPorTipo(tipo: string): EquipamientoApi[] {
+    const equipamientos = Object.values(this.equipamientosMap)
 
     equipamientos.sort((a: any, b: any) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
