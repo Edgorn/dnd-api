@@ -277,10 +277,10 @@ export const formatearEquipamiento = (equipamientosMongo: EquipamientoMongo[], e
   })
 }
 
-export const formatearEquipamientosOptions = (optionsApi: EquipamientoOpcionesMongo[][], equipamientoRepository: IEquipamientoRepository): EquipamientoOpcionesApi[] => {
+export function formatearEquipamientosOptions(optionsApi: EquipamientoOpcionesMongo[][], equipamientoRepository: IEquipamientoRepository): EquipamientoOpcionesApi[][] {
   return optionsApi.map(optionApi => {
-    return optionApi?.map((opt: any) => {
-      const opcion: any = {}
+    return optionApi?.map(opt => {
+      const opcion:any = {}
 
       if (opt?.items) {
         let content: any[] = []
@@ -320,7 +320,7 @@ export const formatearEquipamientosOptions = (optionsApi: EquipamientoOpcionesMo
         const nombre = 'Cualquier ' + valoresApi[0] + ' ' + (valoresApi[1] ?? '') + ' ' + (valoresApi[2] ?? '')
 
         opcion.name = opcion.name ? opcion.name + ' - ' + nombre : nombre
-        opcion.choose = opt?.quantity
+        opcion.choose = opt?.quantity ?? 1
         opcion.options = options
       }
 

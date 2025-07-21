@@ -185,7 +185,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
     const claseDataLevel = claseData?.levels[0]
     const subclaseData = subclase  ? claseDataLevel?.subclasses[subclase] : null
 
-    const dataBackground = { ...background }
+    const dataBackground = { 
+      ...background,
+      history: background?.history?.split(/\r?\n/) ?? []
+    }
 
     //const transfondos = await this.transfondoRepository.obtenerTodos()
     //const transfondo = transfondos.find(tra => tra.index === background.index)
@@ -310,14 +313,14 @@ export default class PersonajeRepository extends IPersonajeRepository {
       subraceId: subrace,
       type,
       campaign,
-      classes: [{ class: clase, name: claseData?.name, level: 1 }],
+      classes: [{ class: clase, name: claseData?.name ?? "Ninguna", level: 1 }],
       subclasses: subclase ? [subclase] : [],
       race: type ?? subraza?.name ?? raza?.name,
       traits: traitsAux,
       traits_data: {...claseDataLevel?.traits_data, ...subraza?.traits_data},
-      prof_bonus: claseDataLevel?.prof_bonus,
+      prof_bonus: claseDataLevel?.prof_bonus ?? 0,
       resistances: [...raza?.resistances ?? [], ...subraza?.resistances ?? []],
-      speed: subraza?.speed ?? raza?.speed,
+      speed: subraza?.speed ?? raza?.speed ?? 0,
       plusSpeed: 0,
       size: subraza?.size ?? raza?.size,
       languages: [...raza?.languages ?? [],...subraza?.languages ?? [],  ...languages ?? []],
@@ -1305,11 +1308,11 @@ export default class PersonajeRepository extends IPersonajeRepository {
       form.getTextField('ExperiencePoints').setText(personaje?.XP + '/' + personaje?.XPMax);
 
       form.getTextField('CharacterName 2').setText(personaje?.name);
-      form.getTextField('Age').setText(personaje?.appearance?.age + ' años');
+      form.getTextField('Age').setText((personaje?.appearance?.age ?? 0) + ' años');
       form.getTextField('Eyes').setText(personaje?.appearance?.eyes);
-      form.getTextField('Height').setText(personaje?.appearance?.height + ' cm');
+      form.getTextField('Height').setText((personaje?.appearance?.height ?? 0) + ' cm');
       form.getTextField('Skin').setText(personaje?.appearance?.skin);
-      form.getTextField('Weight').setText(personaje?.appearance?.weight + ' kg');
+      form.getTextField('Weight').setText((personaje?.appearance?.weight ?? 0) + ' kg');
       form.getTextField('Hair').setText(personaje?.appearance?.hair);
 
       const abilities = ['str', 'dex', 'con', 'int', 'wis', 'cha']
@@ -1384,8 +1387,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       form.getTextField('Init').setText(this.formatNumber(bonus.dex) + '');
       form.getTextField('Speed').setText(personaje?.speed + '');
 
-      form.getTextField('HitDiceTotal').setText(personaje.classes?.map((clase: any) => clase.level + 'd' + clase.hit_die)?.join(' / ') + '');
-      //form.getTextField('Text1').setText(personaje.classes?.map((clase: any) => 'd' + clase.hit_die)?.join(' / ') + '');
+      form.getTextField('HitDiceTotal').setText(personaje.classes?.map((clase: any) => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');
 
       if (personaje?.skills?.find((skill: any) => skill?.index === 'perception' && skill?.competencia)) {
         form.getTextField('PWP').setText(10 + bonus.wis + personaje?.prof_bonus + '');
@@ -1436,9 +1438,17 @@ export default class PersonajeRepository extends IPersonajeRepository {
       if (personaje?.img) {
         const imageResponse = await axios.get(personaje?.img, { responseType: 'arraybuffer' });
         const imageBytes = imageResponse.data; // Obtener los bytes de la imagen
+        const contentType = imageResponse.headers['content-type'];
 
-        // Insertar la imagen (soporta PNG y JPG)
-        const image = await originalPdf.embedJpg(imageBytes);
+        let image;
+
+        if (contentType.includes('png')) {
+          image = await originalPdf.embedPng(imageBytes);
+        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+          image = await originalPdf.embedJpg(imageBytes);
+        } else {
+          throw new Error(`Formato de imagen no soportado: ${contentType}`);
+        }
 
         // Obtener la posición y tamaño del botón
         const page = originalPdf.getPage(1); // Página donde está el botón

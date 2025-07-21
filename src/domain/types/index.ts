@@ -167,9 +167,18 @@ export interface EquipamientoApi {
 }
 
 export interface EquipamientoOpcionesMongo {
-
+  items: {
+    index: String,
+    quantity: Number
+  }[],
+  api: String,
+  quantity: number
 }
 
 export interface EquipamientoOpcionesApi {
-
+  items: {
+    index: String,
+    quantity: Number
+  }[],
+  name: String
 }

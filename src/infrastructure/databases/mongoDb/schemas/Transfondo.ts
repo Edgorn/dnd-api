@@ -16,18 +16,18 @@ const transfondoSchema: Schema = new Schema<TransfondoMongo>({
     unit: String
   },
   god: Boolean,
-  /*personalized_equipment: [String],
+  personalized_equipment: [String],
   options_name: {
     name: String,
     options: [String],
     choose: Number
-  },*/
+  },
   personality_traits: [String],
   ideals: [String],
   bonds: [String],
-  flaws: [String],/*
+  flaws: [String],
   traits_options: {},
-  variants: [{}]*/
+  variants: [{}]
 }, { collection: 'Transfondos' });
 
 const TransfondoModel = mongoose.model<TransfondoMongo>("Transfondo", transfondoSchema);

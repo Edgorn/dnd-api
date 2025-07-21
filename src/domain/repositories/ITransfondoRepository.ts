@@ -1,4 +1,4 @@
-import { TransfondoApi, TransfondoMongo } from "../types/transfondos";
+import { TransfondoApi, TransfondoMongo, VarianteApi, VarianteMongo } from "../types/transfondos";
 
 export default class ITransfondoRepository {
   async obtenerTodos(): Promise<TransfondoApi[]> {
@@ -10,6 +10,14 @@ export default class ITransfondoRepository {
   }
 
   formatearTransfondo(transfondo: TransfondoMongo): TransfondoApi {
+    throw new Error('Método no implementado');
+  }
+
+  formatearVariantes(variantes: VarianteMongo[]): VarianteApi[] {
+    throw new Error('Método no implementado');
+  }
+
+  formatearVariante(variante: VarianteMongo): VarianteApi {
     throw new Error('Método no implementado');
   }
 }
