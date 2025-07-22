@@ -32,4 +32,3 @@ const transfondoSchema: Schema = new Schema<TransfondoMongo>({
 
 const TransfondoModel = mongoose.model<TransfondoMongo>("Transfondo", transfondoSchema);
 export default TransfondoModel;
-//module.exports = mongoose.model('Transfondos', transfondoSchema);

@@ -132,5 +132,3 @@ export default class TransfondoRepository extends ITransfondoRepository {
     }
   }
 }
-
-

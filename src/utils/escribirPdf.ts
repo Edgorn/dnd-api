@@ -472,74 +472,6 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
 
     textY = actualY
   }
-  /*
-  // COMPETENCIAS
-  const listaCompetencias = []
-
-  proficiencies?.forEach(proficiency => {
-    const competencia = competencias.find(i => i.index === proficiency)
-
-    if (competencia?.name) {
-      listaCompetencias.push(competencia.name)
-    }
-  })
-
-  if (listaCompetencias.length > 0) {
-    const { textY: actualY } = escribirParrafo({ 
-      titulo: 'Competencias', 
-      descripcion: listaCompetencias?.join(', ')+'.',
-      fontTitle: fontBold,
-      fontText: fontRegular,
-      maxWidth,
-      page: page1,
-      x,
-      y: textY
-    })
-
-    textY = actualY
-  }
-
-  //  IDIOMAS
-  const idiomas = await Idioma.find();
-  const listaIdiomas = []
-
-  languages?.forEach(language => {
-    const idioma = idiomas.find(i => i.index === language)
-    listaIdiomas.push(idioma.name)
-  })
-
-  const { textY: actualY } = escribirParrafo({ 
-    titulo: 'Idiomas', 
-    descripcion: listaIdiomas?.join(', ')+'.',
-    fontTitle: fontBold,
-    fontText: fontRegular,
-    maxWidth,
-    page: page1,
-    x,
-    y: textY
-  })
-
-  textY = actualY
-
-  // RASGOS
-  traits?.forEach(trait => {
-    const rasgo = rasgos.find(r => r.index === trait)
-
-    if (rasgo?.type === 'proficiency') {
-      const { textY: actualY } = escribirParrafo({ 
-        titulo: rasgo?.name, 
-        descripcion: rasgo?.desc?.join('|'),
-        fontTitle: fontBold,
-        fontText: fontRegular,
-        maxWidth,
-        page: page1,
-        x,
-        y: textY
-      })
-
-      textY = actualY
-    }
-  })*/
 }
 
 export async function escribirTransfondo({ pdfDoc, background }: any) {
@@ -564,8 +496,8 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
   })
 
   escribirParrafo({ 
-    titulo: '',//background?.ideals[0]?.split('.')[0] ?? '', 
-    descripcion: background?.ideals?.join('\n') ?? '',//background?.ideals[0]?.split('.')[1] ?? background?.ideals ?? '',
+    titulo: background?.ideals[0]?.split('.')[0] ?? '', 
+    descripcion: (background?.ideals[0]?.replace(/^[^.]*\./, '') ?? background?.ideals[0] ?? '').replace(/\s*\([^)]*\)/g, ''),
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth,

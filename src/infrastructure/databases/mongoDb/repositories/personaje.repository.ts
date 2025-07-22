@@ -9,8 +9,6 @@ import RazaRepository from './raza.repository';
 import EquipamientoRepository from './equipamiento.repository';
 import DañoRepository from './daño.repository';
 import PropiedadArmaRepository from './propiedadesArmas.repository';
-import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
-import TransfondoRepository from './transfondo.repository';
 import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import axios from 'axios';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
@@ -52,7 +50,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
   equipamientoRepository: EquipamientoRepository
   dañoRepository: DañoRepository
   propiedadArmaRepository: PropiedadArmaRepository
-  transfondoRepository: ITransfondoRepository
   usuarioRepository: IUsuarioRepository
   conjuroRepository: IConjuroRepository
   invocacionRepository: IInvocacionRepository
@@ -71,7 +68,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
     this.equipamientoRepository = new EquipamientoRepository()
     this.dañoRepository = new DañoRepository()
     this.propiedadArmaRepository = new PropiedadArmaRepository()
-    this.transfondoRepository = new TransfondoRepository()
     this.usuarioRepository = new UsuarioRepository()
     this.invocacionRepository = new InvocacionRepository()
     this.disciplinaRespository = new DisciplinaRepository(this.conjuroRepository)
@@ -190,19 +186,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
       history: background?.history?.split(/\r?\n/) ?? []
     }
 
-    //const transfondos = await this.transfondoRepository.obtenerTodos()
-    //const transfondo = transfondos.find(tra => tra.index === background.index)
-    //const variante = transfondo.variants.find((variant: any) => variant.name === background.variant)
-
-    //dataBackground.name = variante?.name ?? transfondo?.name ?? ''
- 
     let traitsAux = [
       ...raza?.traits ?? [], 
       ...subraza?.traits ?? [], 
       ...claseDataLevel?.traits ?? [],
       ...subclaseData?.traits ?? [],
       ...traits ?? []
-      //...(variante?.traits ?? transfondo.traits ?? [])?.map((tr: any) => tr.index) ?? [],
     ]
 
     let HP = claseData?.hit_die ?? 1
@@ -1303,8 +1292,8 @@ export default class PersonajeRepository extends IPersonajeRepository {
       form.getTextField('PlayerName').setText(usuario);
       form.getDropdown('Race').addOptions([personaje?.race ?? ""]);
       form.getDropdown('Race').select(personaje?.race ?? "");
-      form.getDropdown('Alignment').addOptions(['']);
-      form.getDropdown('Alignment').select('');
+      form.getDropdown('Alignment').addOptions([personaje?.background?.alignment ?? ""]);
+      form.getDropdown('Alignment').select(personaje?.background?.alignment ?? "");
       form.getTextField('ExperiencePoints').setText(personaje?.XP + '/' + personaje?.XPMax);
 
       form.getTextField('CharacterName 2').setText(personaje?.name);
