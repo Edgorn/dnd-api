@@ -5,19 +5,19 @@ export default class ITransfondoRepository {
     throw new Error('Método no implementado');
   }
 
-  formatearTransfondos(transfondos: TransfondoMongo[]): TransfondoApi[] {
+  async formatearTransfondos(transfondos: TransfondoMongo[]): Promise<TransfondoApi[]> {
     throw new Error('Método no implementado');
   }
 
-  formatearTransfondo(transfondo: TransfondoMongo): TransfondoApi {
+  async formatearTransfondo(transfondo: TransfondoMongo): Promise<TransfondoApi> {
     throw new Error('Método no implementado');
   }
 
-  formatearVariantes(variantes: VarianteMongo[]): VarianteApi[] {
+  async formatearVariantes(variantes: VarianteMongo[]): Promise<VarianteApi[]> {
     throw new Error('Método no implementado');
   }
 
-  formatearVariante(variante: VarianteMongo): VarianteApi {
+  async formatearVariante(variante: VarianteMongo): Promise<VarianteApi> {
     throw new Error('Método no implementado');
   }
 }

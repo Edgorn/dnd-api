@@ -1,5 +1,6 @@
 import ICompetenciaRepository from "../domain/repositories/ICompetenciaRepository"
 import IConjuroRepository from "../domain/repositories/IConjuroRepository"
+import IDoteRepository from "../domain/repositories/IDoteRepository"
 import IEquipamientoRepository from "../domain/repositories/IEquipamientoRepository"
 import IHabilidadRepository from "../domain/repositories/IHabilidadRepository"
 import IIdiomaRepository from "../domain/repositories/IIdiomaRepository"
@@ -27,8 +28,8 @@ export const formatearAbilityBonuses = (ability_bonuses: AbilityBonusesMongo[]):
   return abilityBonuses
 }
 
-export const formatearConjuros = (spellsApi: string[], conjuroRepository: IConjuroRepository, rasgoRepository: IRasgoRepository) => {
-  const conjuros = spellsApi.map(spell => {
+export const formatearConjuros = async (spellsApi: string[], conjuroRepository: IConjuroRepository, rasgoRepository: IRasgoRepository) => {
+  const conjuros = spellsApi.map(async spell => {
     const arraySpell = spell.split('_')
     const conjuro = conjuroRepository.obtenerConjuroPorIndice(arraySpell[0])
 
@@ -43,7 +44,7 @@ export const formatearConjuros = (spellsApi: string[], conjuroRepository: IConju
     if (caracteristica) {
       tipo = caracteristica
     } else {
-      const rasgo = rasgoRepository.obtenerRasgoPorIndice(arraySpell[1])
+      const rasgo = await rasgoRepository.obtenerRasgoPorIndice(arraySpell[1] ?? null)
       tipo = rasgo?.name ?? ''
     }
 
@@ -58,7 +59,7 @@ export const formatearConjuros = (spellsApi: string[], conjuroRepository: IConju
   return conjuros
 }
 
-export const formatearCompetencias = (proficiencies: ProficienciesMongo[], habilidadRepository: IHabilidadRepository, competenciaRepository: ICompetenciaRepository): ProficienciesApi[] => {
+export async function formatearCompetencias (proficiencies: ProficienciesMongo[], habilidadRepository: IHabilidadRepository, competenciaRepository: ICompetenciaRepository): Promise<ProficienciesApi[]> {
   const indicesHabilidades = 
     proficiencies
       .filter(proficiency => proficiency.type === 'habilidad')
@@ -80,8 +81,7 @@ export const formatearCompetencias = (proficiencies: ProficienciesMongo[], habil
       .filter(proficiency => proficiency.type !== 'habilidad')
       .map(proficiency => proficiency.index)
 
-  const competencias = competenciaRepository
-    .obtenerCompetenciasPorIndices(indicesCompetencias)
+  const competencias = await competenciaRepository.obtenerCompetenciasPorIndices(indicesCompetencias)
 
   return [
     ...habilidades,
@@ -89,8 +89,8 @@ export const formatearCompetencias = (proficiencies: ProficienciesMongo[], habil
   ] 
 }
 
-export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: IIdiomaRepository, competenciasRepository: ICompetenciaRepository, habilidadRepository: IHabilidadRepository, conjuroRepository: IConjuroRepository): OptionsApi[] => {
-  return optionsApi.map(optionApi => {
+export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaRepository: IIdiomaRepository, competenciasRepository: ICompetenciaRepository, habilidadRepository: IHabilidadRepository, conjuroRepository: IConjuroRepository): Promise<OptionsApi[]> => {
+  return await Promise.all(optionsApi.map(async optionApi => {
     const options = []
     let type = optionApi?.type
   
@@ -120,9 +120,10 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
       }
     } else if (type === 'herramienta' || type === 'juego' || type === 'arma') {
       if (optionApi?.api) {
+        const optionsData = await competenciasRepository.obtenerCompetenciasPorType(optionApi?.api)
+
         options.push(
-          ...competenciasRepository
-            .obtenerCompetenciasPorType(optionApi?.api)
+          ...optionsData
             .map(competencia => {
               return {
                 index: competencia.index,
@@ -134,9 +135,10 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
         type = optionApi?.api
       } else {
         if (isStringArray(optionApi.options)) {
+          const competencias = await competenciasRepository.obtenerCompetenciasPorIndices(optionApi.options)
+          
           options.push(
-            ...competenciasRepository
-              .obtenerCompetenciasPorIndices(optionApi.options)
+            ...competencias
               .map(competencia => {
                 return {
                   index: competencia.index,
@@ -189,10 +191,10 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
 
         type = parseInt(level) === 0 ? 'truco' : ('conjuro nivel ' + level)
 
+        const conjuros = await conjuroRepository.obtenerConjurosPorNivelClase(level, clase)
 
         options.push(
-          ...conjuroRepository
-            .obtenerConjurosPorNivelClase(level, clase)
+          ...conjuros
             .map(conjuro => { 
               return { 
                 index: conjuro.index, 
@@ -213,15 +215,16 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
 
       } else {
         if (isStringArray(optionApi.options))  {
+          const conjuros = await conjuroRepository.obtenerConjurosPorIndices(optionApi.options)
           options.push(
-            ...conjuroRepository
-              .obtenerConjurosPorIndices(optionApi.options)
+            ...conjuros
               .map(conjuro => { return { index: conjuro.index, name: conjuro.name, type: (optionApi?.type?.split('_')[1] ?? undefined) } })
           )
         }
       }
     } else if (type === 'choice' && !isStringArray(optionApi.options)) {
-      options.push(...formatearOptions(optionApi?.options, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository))
+      const newOptions = await formatearOptions(optionApi?.options, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository)
+      options.push(...newOptions)
     } else {
       console.log('Opcion no contemplada')
       console.log(optionApi)
@@ -243,7 +246,7 @@ export const formatearOptions = (optionsApi: OptionsMongo[], idiomaRepository: I
       type,
       options
     }
-  })
+  }))
 }
 
 export const formatearSalvacion = (ability_bonuses: string[]) => {

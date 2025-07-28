@@ -32,7 +32,6 @@ export default class DisciplinaRepository extends IDisciplinaRepository {
  
   async cargar() {
     const disciplinas = await DisciplinaSchema.find();
-    await this.conjuroRepository.init() 
     
     disciplinas.forEach((disciplina: any) => {
       this.disciplinasMap[disciplina.index] = {

@@ -1,11 +1,23 @@
-import { PersonajeBasico } from "../types/personajes";
+import { TypeCrearPersonaje, PersonajeBasico, PersonajeMongo } from "../types/personajes";
 
 export default class IPersonajeRepository {
-  async crear(data: any): Promise<any> {
+  async crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> {
     throw new Error('Método no implementado');
   }
 
   async consultarPersonajesUser(id: string): Promise<PersonajeBasico[]> {
+    throw new Error('Método no implementado');
+  }
+
+  async formatearPersonajes(personajes: PersonajeMongo[]): Promise<PersonajeBasico[]> {
+    throw new Error('Método no implementado');
+  }
+
+  async formatearPersonajeBasico(personaje: PersonajeMongo): Promise<PersonajeBasico | null> {
+    throw new Error('Método no implementado');
+  }
+
+  async calcularCA(personaje: PersonajeMongo): Promise<{CA: number, plusSpeed: number}> {
     throw new Error('Método no implementado');
   }
 

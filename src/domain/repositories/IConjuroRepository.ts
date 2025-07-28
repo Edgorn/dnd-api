@@ -1,21 +1,23 @@
+import { ConjuroApi } from "../types";
+
 export default class IConjuroRepository {
-  init(): any {
+  /*init(): any {
     throw new Error('Método no implementado');
   }
 
   cargar(): any {
     throw new Error('Método no implementado');
-  }
+  }*/
 
-  obtenerConjurosPorIndices(params: string[]): any[] {
+  async obtenerConjurosPorIndices(params: string[]): Promise<ConjuroApi[]> {
     throw new Error('Método no implementado');
   }
 
-  obtenerConjuroPorIndice(params: string): any {
+  async obtenerConjuroPorIndice(params: string):  Promise<ConjuroApi | null> {
     throw new Error('Método no implementado');
   }
 
-  obtenerConjurosPorNivelClase(nivel: string, clase: string): any[] {
+  async obtenerConjurosPorNivelClase(nivel: string, clase: string): Promise<ConjuroApi[]> {
     throw new Error('Método no implementado');
   }
 }

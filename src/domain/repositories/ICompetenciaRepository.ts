@@ -1,15 +1,15 @@
 import { CompetenciaApi } from "../types";
 
 export default class ICompetenciaRepository {
-  obtenerCompetenciasPorIndices(params: string[]): CompetenciaApi[] {
+  async obtenerCompetenciasPorIndices(params: string[]): Promise<CompetenciaApi[]> {
     throw new Error('Método no implementado');
   }
 
-  obtenerCompetenciaPorIndice(params: string): CompetenciaApi {
+  async obtenerCompetenciaPorIndice(params: string): Promise<CompetenciaApi | null> {
     throw new Error('Método no implementado');
   }
 
-  obtenerCompetenciasPorType(params: string): CompetenciaApi[] {
+  async obtenerCompetenciasPorType(params: string): Promise<CompetenciaApi[]> {
     throw new Error('Método no implementado');
   }
 }

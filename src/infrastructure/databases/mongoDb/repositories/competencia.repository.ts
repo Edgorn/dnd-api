@@ -1,54 +1,58 @@
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import { CompetenciaApi } from '../../../../domain/types';
-const CompetenciaSchema = require('../schemas/Competencia');
+import CompetenciaSchema from '../schemas/Competencia';
 
 export default class CompetenciaRepository extends ICompetenciaRepository {
   competenciasMap: {
-    [key: string]: {
-      index: string,
-      name: string,
-      type: string,
-      desc: [string]
-    }
+    [key: string]: CompetenciaApi
   }
 
   constructor() {
     super()
     this.competenciasMap = {}
-    this.cargarCompetencias();
   }
 
-  async cargarCompetencias() {
-    const competencias: CompetenciaApi[] = await CompetenciaSchema.find();
+  async obtenerCompetenciasPorIndices(indices: string[]) {
+    const competencias = await Promise.all(indices.map(index => this.obtenerCompetenciaPorIndice(index)))
 
-    competencias.forEach(competencia => {
-      this.competenciasMap[competencia.index] = {
-        index: competencia.index,
-        name: competencia.name,
-        type: competencia.type,
-        desc: competencia?.desc ?? []
-      };
-    });
+    return competencias.filter(index => index !== null && index !== undefined);
   }
 
-  obtenerCompetenciaPorIndice(index: string) {
-    return this.competenciasMap[index];
-  }
+  async obtenerCompetenciaPorIndice(index: string) {
+    if (index) {
+      if (this.competenciasMap[index]) {
+        return this.competenciasMap[index]
+      } else {
+        const competencia = await CompetenciaSchema.findOne({index});
+        if (!competencia) return null;
 
-  obtenerCompetenciasPorIndices(indices: string[]) {
-    return indices.map(index => this.obtenerCompetenciaPorIndice(index));
+        this.competenciasMap[index] = competencia
+
+        return competencia
+      }
+    } else {
+      return null
+    }
   }
 
   obtenerCompetencias() {
     return Object.values(this.competenciasMap)
   }
 
-  obtenerCompetenciasPorType(type: string) {
-    return this.obtenerCompetencias().filter(competencia => competencia.type === type)
+  async obtenerCompetenciasPorType(type: string) {
+    const competencias = await CompetenciaSchema.find({ type })
+
+    competencias.forEach(competencia => {
+      if (this.competenciasMap[competencia._id.toString()]) {
+        this.competenciasMap[competencia._id.toString()] = competencia
+      }
+    })
+
+    return competencias
   }
 
   obtenerCompetenciasPorIndicesSinRep(indices: string[]) {
-    const indicesSinRep = [...new Set(indices)]
+    /*const indicesSinRep = [...new Set(indices)]
     const competencias_aux = indicesSinRep.map(index => this.obtenerCompetenciaPorIndice(index))
     const indices_aux = competencias_aux.map(comp => comp.index)
 
@@ -60,6 +64,7 @@ export default class CompetenciaRepository extends ICompetenciaRepository {
       }
     })
 
-    return competencias;
+    return competencias;*/
+
   }
 }

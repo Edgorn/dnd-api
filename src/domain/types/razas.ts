@@ -1,4 +1,4 @@
-import { AbilityBonusesApi, AbilityBonusesMongo, DañoApi, IdiomaApi, OptionsApi, OptionsMongo, RasgoApi } from "."
+import { AbilityBonusesApi, AbilityBonusesMongo, DoteApi, IdiomaApi, OptionsApi, OptionsMongo, RasgoApi, RasgoDataMongo } from "."
 
 export interface RaceMongo {
   index: string,
@@ -11,30 +11,33 @@ export interface RaceMongo {
   languages: string[],
   traits: string[],
   options: OptionsMongo[],
-  subraces: SubraceMongo[]
+  subraces: SubraceMongo[],
+  variants: VarianteMongo[]
 }
 
 export interface SubraceMongo {
   index: string,
   name: string,
+  desc: string,
   img: string,
   ability_bonuses: AbilityBonusesMongo[],
   traits: string[],
-  traits_data: {
-    [key: string]: {
-      [key: string]: string
-    }
-  },
+  traits_data: RasgoDataMongo,
   options: OptionsMongo[],
-  resistances: string[],
   types: TypeMongo[],
-  desc?: string
 }
 
 export interface TypeMongo {
   name: string,
   desc: string,
   img: string
+}
+
+export interface VarianteMongo {
+  name: String,
+  ability_bonuses: AbilityBonusesMongo[],
+  options: OptionsMongo[],
+  dotes?: number
 }
 
 export interface RaceApi {
@@ -54,17 +57,28 @@ export interface RaceApi {
 export interface SubraceApi {
   index: string,
   name: string,
+  desc: String,
   img: string,
   ability_bonuses: AbilityBonusesApi[],
   traits: RasgoApi[],
   options: OptionsApi[],
-  resistances: DañoApi[],
+  traits_data: RasgoDataMongo,
+  /*resistances: DañoApi[],*/
   types: TypeApi[],
-  desc?: String
 }
 
 export interface TypeApi {
   name: string,
   desc: string,
   img: string
+}
+
+export interface VarianteApi {
+  name: String,
+  ability_bonuses: AbilityBonusesApi[],
+  options: OptionsApi[],
+  dotes: {
+    choose: number,
+    options: DoteApi[]
+  } | null
 }

@@ -1,11 +1,11 @@
 import { DañoApi } from "../types";
 
 export default class IDañoRepository {
-  obtenerDañosPorIndices(params: string[]): DañoApi[] {
+  async obtenerDañosPorIndices(params: string[]): Promise<DañoApi[]> {
     throw new Error('Método no implementado');
   }
 
-  obtenerDañoPorIndice(params: string): DañoApi {
+  async obtenerDañoPorIndice(params: string): Promise<DañoApi | null> {
     throw new Error('Método no implementado');
   }
 }

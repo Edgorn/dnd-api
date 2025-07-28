@@ -1,74 +1,50 @@
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import { ConjuroMongo } from '../../../../domain/types';
-const ConjuroSchema = require('../schemas/Conjuro');
+import { ConjuroApi, ConjuroMongo } from '../../../../domain/types';
+import ConjuroSchema from '../schemas/Conjuro';
 
 export default class ConjuroRepository extends IConjuroRepository {
-  private initialized = false;
-  conjurosMap: {
-    [key: string]: {
-      index: string;
-      name: string;
-      level: number;
-      classes: string[];
-      school: string;
-      casting_time: string;
-      range: string;
-      components: string[];
-      duration: string;
-      desc: string[];
-      ritual: boolean
-    };
-  }
+  conjurosMap: {[key: string]: ConjuroApi}
 
   constructor() {
     super()
     this.conjurosMap = {}
-    this.init();
   }
 
-  async init() {
-    if (!this.initialized) {
-      await this.cargar();
-      this.initialized = true;
+  async obtenerConjurosPorIndices(indices: string[]) {
+    const conjuros = await Promise.all(indices.map(index => this.obtenerConjuroPorIndice(index)))
+    return conjuros.filter(index => index !== null && index !== undefined);
+  }
+
+  async obtenerConjuroPorIndice(index: string) {
+    if (index) {
+      if (this.conjurosMap[index]) {
+        return this.conjurosMap[index];
+      } else {
+        const conjuro = await ConjuroSchema.findOne({index});
+        if (!conjuro) return null;
+
+        this.conjurosMap[index] = conjuro
+
+        return conjuro
+      }
+    } else {
+      return null
     }
   }
 
-  async cargar() {
-    const conjuros: ConjuroMongo[] = await ConjuroSchema.find();
- 
-    conjuros.forEach(conjuro => {
-      this.conjurosMap[conjuro.index] = {
-        index: conjuro.index,
-        name: conjuro.name,
-        level: conjuro.level,
-        classes: conjuro.classes,
-        school: conjuro.school,
-        casting_time: conjuro.casting_time,
-        range: conjuro.range,
-        components: conjuro.components,
-        duration: conjuro.duration,
-        desc: conjuro.desc,
-        ritual: conjuro.ritual
-      };
+  async obtenerConjurosPorNivelClase(nivel: string, clase: string) {
+    const conjuros = await ConjuroSchema.find({
+      level: parseInt(nivel),
+      classes: clase
     });
-  }
 
-  obtenerConjuroPorIndice(index: string) {
-    return this.conjurosMap[index];
-  }
-
-  obtenerConjurosPorIndices(indices: string[]) {
-    return indices.map(index => this.obtenerConjuroPorIndice(index));
-  }
-
-  obtenerConjurosPorNivelClase(nivel: string, clase: string): any {
-    const conjuros = Object.values(this.conjurosMap)
-      .filter(conjuro => conjuro.level === parseInt(nivel))
-      .filter(conjuro => conjuro.classes.includes(clase))
-    
     conjuros.sort((a, b) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
+
+    conjuros.forEach(conjuro => {
+      this.conjurosMap[conjuro.index] = conjuro
+    })
 
     return conjuros
   }

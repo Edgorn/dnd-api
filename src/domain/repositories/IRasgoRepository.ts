@@ -1,15 +1,15 @@
-import { RasgoApi } from "../types";
+import { RasgoApi, RasgoDataMongo, RasgoMongo } from "../types";
 
 export default class IRasgoRepository {
-  async init() {
+  async obtenerRasgoPorIndice(params: string, data?: RasgoDataMongo): Promise<RasgoApi | null> {
     throw new Error('Método no implementado');
   }
 
-  obtenerRasgosPorIndices(params: string[]): RasgoApi[] {
+  async obtenerRasgosPorIndices(params: string[], data?: RasgoDataMongo): Promise<RasgoApi[]> {
     throw new Error('Método no implementado');
   }
 
-  obtenerRasgoPorIndice(params: string): RasgoApi | null {
+  async formatearRasgo(params: RasgoMongo, data?: RasgoDataMongo): Promise<RasgoApi> {
     throw new Error('Método no implementado');
   }
 }

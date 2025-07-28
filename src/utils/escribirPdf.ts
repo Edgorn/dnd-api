@@ -73,7 +73,7 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
               y: textY,
               size: fontSize,
               font: fontTitle,
-              color: rgb(0, 0, 0)
+              color: rgb(0, 0, 0) 
             });
           }
     
@@ -431,7 +431,7 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
   if (armors.length > 0) {
     const { textY: actualY } = escribirParrafo({ 
       titulo: 'Armaduras', 
-      descripcion: armors?.join(', ')+'.',
+      descripcion: armors?.map((armor: any) => armor.name)?.join(', ')+'.',
       fontTitle: fontBold,
       fontText: fontRegular,
       maxWidth,
@@ -446,7 +446,7 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
   if (proficiencies.length > 0) {
     const { textY: actualY } = escribirParrafo({ 
       titulo: 'Competencias', 
-      descripcion: proficiencies?.join(', ')+'.',
+      descripcion: proficiencies?.map((proficiency: any) => proficiency.name)?.join(', ')+'.',
       fontTitle: fontBold,
       fontText: fontRegular,
       maxWidth,
@@ -496,8 +496,8 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
   })
 
   escribirParrafo({ 
-    titulo: background?.ideals[0]?.split('.')[0] ?? '', 
-    descripcion: (background?.ideals[0]?.replace(/^[^.]*\./, '') ?? background?.ideals[0] ?? '').replace(/\s*\([^)]*\)/g, ''),
+    titulo: background?.ideals?.[0]?.split('.')?.[0] ?? '', 
+    descripcion: (background?.ideals?.[0]?.replace(/^[^.]*\./, '') ?? background?.ideals?.[0] ?? '').replace(/\s*\([^)]*\)/g, ''),
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth,
@@ -530,7 +530,7 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
 
   escribirParrafo({ 
     titulo: '', 
-    descripcion: background?.history ?? '',
+    descripcion: background?.history?.join('\n') ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth: 180,
@@ -639,10 +639,10 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
   })
 
   let actualYIzq = page2.getHeight() - 613
-  let maxHeightIzq = 14
+  let maxHeightIzq = 13
   
   let actualYDer = page2.getHeight() - 613
-  let maxHeightDer = 14
+  let maxHeightDer = 20
 
   tesoro.forEach((tes: any) => {
     const { textY, actualHeight } = escribirParrafo({ 
