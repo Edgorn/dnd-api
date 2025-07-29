@@ -1,8 +1,11 @@
+
+import usuarioRoutes from "./routes/usuario.routes";
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require('../databases/mongoDb/mongodb');
-const usuarioRoutes = require('./routes/usuario.routes');
+
 const razaRoutes = require('./routes/raza.routes');
 const personajeRoutes = require('./routes/personaje.routes');
 const campañaRoutes = require('./routes/campaña.routes');

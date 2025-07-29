@@ -1,5 +1,5 @@
 import UsuarioService from '../../domain/services/usuario.service';
-import { LogearUsuarioParams, LogearUsuarioResult } from '../../domain/types';
+import { LogearUsuarioParams, LogearUsuarioResult } from '../../domain/types/usuarios';
 
 export default class LogearUsuario {
   private usuarioService: UsuarioService;
@@ -8,7 +8,7 @@ export default class LogearUsuario {
     this.usuarioService = usuarioService;
   }
 
-  async execute({ user, password }: LogearUsuarioParams): Promise<{ success: boolean; data?: LogearUsuarioResult; message?: string }> {
-    return await this.usuarioService.logearUsuario({ user, password });
+  async execute({ user, password }: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
+    return this.usuarioService.logearUsuario({ user, password });
   }
 }

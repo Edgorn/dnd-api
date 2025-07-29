@@ -1,7 +1,8 @@
-import { LogearUsuarioParams, LogearUsuarioResult } from "../types";
+import { UsuarioMongo } from "../types/usuarios";
 
-export default class IUsuarioRepository {
-  async logearUsuario(params: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
+export default interface IUsuarioRepository {
+  buscarUsuarioPorNombre(user: string): Promise<UsuarioMongo | null>
+  /*async logearUsuario(params: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
     throw new Error('Método no implementado');
   }
 
@@ -15,5 +16,5 @@ export default class IUsuarioRepository {
 
   async consultarUsuarios(indexList: string[]): Promise<any> {
     throw new Error('Método no implementado');
-  }
+  }*/
 }

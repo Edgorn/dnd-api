@@ -1,5 +1,6 @@
 import IUsuarioRepository from "../repositories/IUsuarioRepository";
-import { LogearUsuarioParams, LogearUsuarioResult } from "../types";
+import { LogearUsuarioParams, LogearUsuarioResult, UsuarioMongo } from "../types/usuarios";
+const jwt = require('jsonwebtoken')
 
 export default class UsuarioService {
   private usuarioRepository: IUsuarioRepository;
@@ -8,23 +9,29 @@ export default class UsuarioService {
     this.usuarioRepository = usuarioRepository;
   }
 
-  async logearUsuario({ user, password }: LogearUsuarioParams): Promise<{ success: boolean; data?: LogearUsuarioResult; message?: string }> {
-    try {
-      const data = await this.usuarioRepository.logearUsuario({ user, password });
+  async logearUsuario({ user, password }: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
+    const usuario = await this.usuarioRepository.buscarUsuarioPorNombre(user);
+    
+    if (!usuario) return null;
 
-      if (data) {
-        return { success: true, data };
-      } else {
-        return { success: false, message: 'Usuario incorrecto' };
+    // Aquí iría bcrypt.compare(password, usuario.passwordHash)
+    if (usuario.password !== password) return null;
+
+    const token = this.generarToken(usuario);
+
+    return { 
+      token,
+      user: {
+        name: usuario?.name
       }
-    } catch (error) {
-
-      if (error instanceof Error) {
-        console.error(error.message)
-      }
-
-      return { success: false, message: 'Error al logearse' };
     }
+  }
+
+  private generarToken(usuario: UsuarioMongo): string {
+    return jwt.sign(
+      { id: usuario._id, name: usuario.name },
+      process.env.JWT_SECRET!
+    );
   }
 
   async validarToken(token: string): Promise<string | null> {

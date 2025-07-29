@@ -1,17 +1,5 @@
 import { ObjectId } from "mongoose";
 
-export interface LogearUsuarioParams {
-  user: string;
-  password: string;
-}
-
-export interface LogearUsuarioResult {
-  token: string;
-  user: {
-    name: string;
-  };
-}
-
 export interface AbilityBonusesMongo {
   index: string,
   bonus: number

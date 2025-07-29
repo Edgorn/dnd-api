@@ -1,13 +1,24 @@
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
-import { LogearUsuarioParams, LogearUsuarioResult } from '../../../../domain/types';
-const UsuarioSchema = require('../schemas/Usuario');
+import { UsuarioMongo } from '../../../../domain/types/usuarios';
+import UsuarioSchema from '../schemas/Usuario';
 const jwt = require('jsonwebtoken')
 
-export default class UsuarioRepository extends IUsuarioRepository {
+export default class UsuarioRepository implements IUsuarioRepository {
   constructor() {
-    super()
   }
 
+  async buscarUsuarioPorNombre(user: string): Promise<UsuarioMongo | null> {
+    try {
+      return await UsuarioSchema.findOne({ name: user });
+    } catch (error) {
+      console.error(`Error al buscar usuario: ${user}`, error);
+      throw new Error("Error en la base de datos");
+    }
+  }
+
+
+
+  /*
   async logearUsuario({ user, password }: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
     const usuario = await UsuarioSchema.findOne({ name: user, password: password })
 
@@ -26,7 +37,7 @@ export default class UsuarioRepository extends IUsuarioRepository {
     } else { 
       return null
     }
-  }
+  }*/
 
   async validarToken(token: string): Promise<string | null> {
     if (!token) {
@@ -54,7 +65,7 @@ export default class UsuarioRepository extends IUsuarioRepository {
   async nombreUsuario(id: string): Promise<string> {
     const usuario = await UsuarioSchema.findById(id)
 
-    return usuario?.name
+    return usuario?.name ?? ''
   }
 
   async consultarUsuarios(indexList: string[]) {

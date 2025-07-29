@@ -1,7 +1,9 @@
-const express = require('express');
-const router = express.Router();
+import express from "express";
 import usuarioController from '../controllers/usuario.controller';
+import { validateFields } from "../middlewares/validateFields";
 
-router.post('/login', usuarioController.login);
+const router = express.Router();
 
-module.exports = router;
+router.post('/login', validateFields(["user", "password"]), usuarioController.login);
+
+export default router;
