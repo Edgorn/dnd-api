@@ -1,19 +1,9 @@
 import { IdiomaApi } from "../types";
 
-export default class IIdiomaRepository {
-  async init() {
-    throw new Error('Método no implementado');
-  }
+export default interface IIdiomaRepository {
+  obtenerTodos(): Promise<IdiomaApi[]>
 
-  obtenerIdiomasPorIndices(params: string[]): IdiomaApi[] {
-    throw new Error('Método no implementado');
-  }
+  obtenerIdiomasPorIndices(indices: string[]): Promise<IdiomaApi[]>
 
-  obtenerIdiomaPorIndice(params: string): IdiomaApi {
-    throw new Error('Método no implementado');
-  }
-
-  obtenerIdiomas(): IdiomaApi[] {
-    throw new Error('Método no implementado');
-  }
+  obtenerIdiomaPorIndice(indice: string): Promise<IdiomaApi>
 }

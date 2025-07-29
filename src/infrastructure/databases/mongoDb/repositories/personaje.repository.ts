@@ -625,7 +625,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
         } 
     }
 */
-    await this.idiomaRepository.init()
  
     return {
       hit_die: dataLevel?.hit_die ?? 0,
@@ -968,8 +967,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const traits = await this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits, personaje?.traits_data)
     const skills = personaje?.skills ?? []
-
-    await this.idiomaRepository.init()
     
     const idiomasId = personaje?.languages ?? []
     const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(personaje?.proficiencies ?? [])
@@ -1039,9 +1036,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       !item.desc.some(d => indices.has(d))
     );
 
-    const idiomas = this.idiomaRepository
-      .obtenerIdiomasPorIndices(idiomasId)
-      .map(idioma => idioma.name)
+    const idiomas = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId)
 
     const habilidades = this.habilidadRepository
       .obtenerHabilidades()
@@ -1092,8 +1087,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
     equipoPersonaje.sort((a: any, b: any) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     })
-
-    console.log(equipoPersonaje)
 
     const clases = personaje.classes.map((clase: any) => {
       return {
@@ -1176,8 +1169,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
     if (traits?.map(trait => trait.index === "semblance-beast-bear")) {
       cargaMaxima *= 2
     }
-
-    console.log(equipoPersonaje)
      
     return {
       id: personaje._id.toString(),

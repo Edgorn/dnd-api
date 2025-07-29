@@ -14,7 +14,7 @@ import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
 import RasgoRepository from './rasgo.repository';
 import TransfondoSchema from '../schemas/Transfondo';
-import { TransfondoApi, TransfondoMongo, VarianteMongo } from '../../../../domain/types/transfondos';
+import { TransfondoApi, TransfondoMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/transfondos';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import DoteRepository from './dote.repository';
 
@@ -38,16 +38,15 @@ export default class TransfondoRepository extends ITransfondoRepository {
     this.doteRepository = new DoteRepository()
   }
 
-  async obtenerTodos() {
+  async obtenerTodos(): Promise<TransfondoApi[]> {
     const transfondos = await TransfondoSchema.find();
 
-    await this.idiomaRepository.init()
     const transfondosFormateados = await this.formatearTransfondos(transfondos)
 
     return transfondosFormateados
   }
   
-  async formatearTransfondos(transfondos: TransfondoMongo[]) {
+  async formatearTransfondos(transfondos: TransfondoMongo[]): Promise<TransfondoApi[]> {
     const formateadas = await Promise.all(transfondos.map(transfondo => this.formatearTransfondo(transfondo)))
 
     formateadas.sort((a: any, b: any) => {
@@ -106,7 +105,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
     } 
   }
 
-  async formatearVariantes(variantes: VarianteMongo[]) {
+  async formatearVariantes(variantes: VarianteMongo[]): Promise<VarianteApi[]> {
     const formateadas = await Promise.all(variantes.map(variante => this.formatearVariante(variante)))
 
     formateadas.sort((a: any, b: any) => {
@@ -116,7 +115,7 @@ export default class TransfondoRepository extends ITransfondoRepository {
     return formateadas;
   }
 
-  async formatearVariante(variante: VarianteMongo) {
+  async formatearVariante(variante: VarianteMongo): Promise<VarianteApi> {
     let traits_options = undefined
 
     if (variante?.traits_options) {

@@ -47,8 +47,6 @@ export default class ClaseRepository extends IClaseRepository {
 
   async obtenerTodas() {
     const clases = await ClaseSchema.find();
-    
-    await this.idiomaRepository.init()
 
     const clasesFormateadas = await this.formatearClases(clases)
 

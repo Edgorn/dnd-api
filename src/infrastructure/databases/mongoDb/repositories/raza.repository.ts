@@ -39,8 +39,6 @@ export default class RazaRepository extends IRazaRepository {
 
   async obtenerTodas() {
     const razas = await RazaSchema.find();
-    
-    await this.idiomaRepository.init()
 
     const razasFormateadas = await this.formatearRazas(razas)
 
@@ -66,6 +64,7 @@ export default class RazaRepository extends IRazaRepository {
   async formatearRaza(raza: RaceMongo) {
     const traits = await this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? [])
     const options = await formatearOptions(raza?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository)
+    const languages = await this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? [])
 
     const subraces = await this.formatearSubrazas(raza?.subraces ?? [])
     const variants = await this.formatearVariantes(raza?.variants ?? [])
@@ -78,7 +77,7 @@ export default class RazaRepository extends IRazaRepository {
       speed: raza.speed,
       size: raza.size,
       ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
-      languages: this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
+      languages,
       traits,
       options,
       subraces,

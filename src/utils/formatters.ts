@@ -96,27 +96,12 @@ export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaReposit
   
     if (type === 'idioma') {
       if (optionApi.api === 'all') {
-        options.push(
-          ...idiomaRepository
-            .obtenerIdiomas()
-            .map(idioma => {
-              return {
-                index: idioma.index,
-                name: idioma.name
-              }
-            })
-        )
+        const idiomas = await idiomaRepository.obtenerTodos()
+
+        options.push(...idiomas)
       } else if (isStringArray(optionApi.options)) {
-        options.push(
-          ...idiomaRepository
-            .obtenerIdiomasPorIndices(optionApi.options)
-            .map(idioma => {
-              return {
-                index: idioma.index,
-                name: idioma.name
-              }
-            })
-        )
+        const idiomas = await idiomaRepository.obtenerIdiomasPorIndices(optionApi.options)
+        options.push(...idiomas)
       }
     } else if (type === 'herramienta' || type === 'juego' || type === 'arma') {
       if (optionApi?.api) {

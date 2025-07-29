@@ -461,7 +461,7 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
   if (weapons.length > 0) {
     const { textY: actualY } = escribirParrafo({ 
       titulo: 'Idiomas', 
-      descripcion: languages?.join(', ')+'.',
+      descripcion: languages?.map((language: any) => language.name)?.join(', ')+'.',
       fontTitle: fontBold,
       fontText: fontRegular,
       maxWidth,
