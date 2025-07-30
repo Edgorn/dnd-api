@@ -1,5 +1,5 @@
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
-import { IdiomaApi, IdiomaMongo } from '../../../../domain/types';
+import { IdiomaApi, IdiomaMongo } from '../../../../domain/types/idiomas.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import IdiomaSchema from '../schemas/Idioma';
 

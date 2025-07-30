@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IdiomaMongo } from "../../../../domain/types";
+import { IdiomaMongo } from "../../../../domain/types/idiomas.types";
 
 const idiomaSchema: Schema = new Schema<IdiomaMongo>({
   index: String,

@@ -1,4 +1,5 @@
-import { AbilityBonusesApi, AbilityBonusesMongo, DoteApi, IdiomaApi, OptionsApi, OptionsMongo, RasgoApi, RasgoDataMongo } from "."
+import { AbilityBonusesApi, AbilityBonusesMongo, DoteApi, OptionsApi, OptionsMongo, RasgoApi, RasgoDataMongo } from "."
+import { IdiomaApi } from "./idiomas.types"
 
 export interface RaceMongo {
   index: string,
