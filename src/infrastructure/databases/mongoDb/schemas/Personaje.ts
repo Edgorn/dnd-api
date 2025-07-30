@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { TransfondoMongo } from "../../../../domain/types/transfondos";
+import { TransfondoMongo } from "../../../../domain/types/transfondos.types";
 import { PersonajeMongo } from "../../../../domain/types/personajes";
 
 

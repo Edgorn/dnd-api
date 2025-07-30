@@ -1,7 +1,9 @@
-const express = require('express');
-const router = express.Router();
-import transfondoController from '../controllers/transfondo.controller';
+import { Router } from "express";
+import transfondoController from "../controllers/transfondo.controller";
+import { authMiddleware } from "../middlewares/auth.middleware";
 
-router.get('/transfondos', transfondoController.getTransfondos);
+const router = Router();
 
-module.exports = router;
+router.get('/transfondos', authMiddleware, transfondoController.getTransfondos);
+
+export default router;

@@ -5,7 +5,7 @@ import IEquipamientoRepository from "../domain/repositories/IEquipamientoReposit
 import IHabilidadRepository from "../domain/repositories/IHabilidadRepository"
 import IIdiomaRepository from "../domain/repositories/IIdiomaRepository"
 import IRasgoRepository from "../domain/repositories/IRasgoRepository"
-import { AbilityBonusesApi, AbilityBonusesMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionsMongo, ProficienciesApi, ProficienciesMongo } from "../domain/types"
+import { AbilityBonusesApi, AbilityBonusesMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo, ProficienciesApi, ProficienciesMongo } from "../domain/types"
 
 const caracteristicas: {[key: string]: string} = {
   str: 'Fuerza',
@@ -14,6 +14,16 @@ const caracteristicas: {[key: string]: string} = {
   int: 'Inteligencia',
   wis: 'Sabiduria',
   cha: 'Carisma'
+}
+
+export const mapStringArrayToLabelValue = (arr?: string[]): OptionSelectApi[] => {
+  return arr?.map(opt => ({ label: opt, value: opt })) ?? [];
+}
+
+export const ordenarPorNombre = <T extends { name: string }>(items: T[]): T[] => {
+  return [...items].sort((a, b) => 
+    a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+  );
 }
 
 export const formatearAbilityBonuses = (ability_bonuses: AbilityBonusesMongo[]): AbilityBonusesApi[] => {

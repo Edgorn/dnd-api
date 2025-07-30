@@ -1,5 +1,10 @@
 import { ObjectId } from "mongoose";
 
+export interface OptionSelectApi {
+  label: string,
+  value: string
+}
+
 export interface AbilityBonusesMongo {
   index: string,
   bonus: number

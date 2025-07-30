@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { TransfondoMongo } from "../../../../domain/types/transfondos";
+import { TransfondoMongo } from "../../../../domain/types/transfondos.types";
 
 const transfondoSchema: Schema = new Schema<TransfondoMongo>({
   index: String,

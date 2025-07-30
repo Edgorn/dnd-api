@@ -11,6 +11,7 @@ import CompetenciaRepository from "./competencia.repository";
 import ConjuroRepository from "./conjuros.repository";
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
 import EstadoRepository from "./estado.repository";
+import { TraitsOptionsApi, TraitsOptionsMongo } from "../../../../domain/types/rasgos";
 
 export default class RasgoRepository extends IRasgoRepository {
   rasgosMap: {
@@ -136,5 +137,15 @@ export default class RasgoRepository extends IRasgoRepository {
       //proficiencies: rasgo?.proficiencies ?? [],
       //tables: rasgo?.tables ?? []
     }
+  }
+
+  async formatearTraitsOptions(traitsOptions: TraitsOptionsMongo | undefined): Promise<TraitsOptionsApi | undefined> {
+    if (!traitsOptions) return undefined;
+
+    const options = await this.obtenerRasgosPorIndices(traitsOptions.options ?? []);
+    return {
+      ...traitsOptions,
+      options
+    };
   }
 }
