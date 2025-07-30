@@ -1,4 +1,4 @@
-import ValidarToken from "../../../application/use-cases/validarToken";
+import ValidarToken from "../../../application/use-cases/usuario/validarToken.use-case";
 import UsuarioService from "../../../domain/services/usuario.service";
 import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repository";
 

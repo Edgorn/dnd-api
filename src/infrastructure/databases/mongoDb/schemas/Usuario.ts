@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { UsuarioMongo } from "../../../../domain/types/usuarios";
+import { UsuarioMongo } from "../../../../domain/types/usuarios.types";
 
 const usuarioSchema: Schema = new Schema<UsuarioMongo>({
   index: Number,

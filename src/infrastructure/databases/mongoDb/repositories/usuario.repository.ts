@@ -1,10 +1,18 @@
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
-import { UsuarioMongo } from '../../../../domain/types/usuarios';
+import { UsuarioMongo } from '../../../../domain/types/usuarios.types';
 import UsuarioSchema from '../schemas/Usuario';
-const jwt = require('jsonwebtoken')
 
 export default class UsuarioRepository implements IUsuarioRepository {
   constructor() {
+  }
+
+  async buscarUsuarioPorId(id: string): Promise<UsuarioMongo | null> {
+    try {
+      return await UsuarioSchema.findById(id);
+    } catch (error) {
+      console.error(`Error al buscar usuario: ${id}`, error);
+      throw new Error("Error en la base de datos");
+    }
   }
 
   async buscarUsuarioPorNombre(user: string): Promise<UsuarioMongo | null> {
@@ -13,52 +21,6 @@ export default class UsuarioRepository implements IUsuarioRepository {
     } catch (error) {
       console.error(`Error al buscar usuario: ${user}`, error);
       throw new Error("Error en la base de datos");
-    }
-  }
-
-
-
-  /*
-  async logearUsuario({ user, password }: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
-    const usuario = await UsuarioSchema.findOne({ name: user, password: password })
-
-    if (usuario) {
-      const token = jwt.sign(
-        { id: usuario._id, name: usuario.name },
-        process.env.JWT_SECRET,
-      )
-
-      return { 
-        token,
-        user: {
-          name: usuario?.name
-        }
-      }
-    } else { 
-      return null
-    }
-  }*/
-
-  async validarToken(token: string): Promise<string | null> {
-    if (!token) {
-      return null
-    }
-
-    try {
-      // Verificar que el token sea válido y firmado correctamente
-      const decoded = jwt.verify(token, process.env.JWT_SECRET)
-
-      // Opcional: Verificar si el token está registrado en la base de datos
-      const usuario = await UsuarioSchema.findById(decoded.id)
-
-      if (!usuario) {
-        return null
-      }
-
-      return usuario._id.toString()
-
-    } catch (error) {
-      return null
     }
   }
 

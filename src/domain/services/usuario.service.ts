@@ -1,5 +1,5 @@
 import IUsuarioRepository from "../repositories/IUsuarioRepository";
-import { LogearUsuarioParams, LogearUsuarioResult, UsuarioMongo } from "../types/usuarios";
+import { LoginParams, LoginResult, UsuarioMongo } from "../types/usuarios.types";
 const jwt = require('jsonwebtoken')
 
 export default class UsuarioService {
@@ -9,7 +9,7 @@ export default class UsuarioService {
     this.usuarioRepository = usuarioRepository;
   }
 
-  async logearUsuario({ user, password }: LogearUsuarioParams): Promise<LogearUsuarioResult | null> {
+  async logearUsuario({ user, password }: LoginParams): Promise<LoginResult | null> {
     const usuario = await this.usuarioRepository.buscarUsuarioPorNombre(user);
     
     if (!usuario) return null;
@@ -35,7 +35,16 @@ export default class UsuarioService {
   }
 
   async validarToken(token: string): Promise<string | null> {
-    const result = await this.usuarioRepository.validarToken(token);
-    return result
+    if (!token) return null;
+
+    try {
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
+  
+      const usuario = await this.usuarioRepository.buscarUsuarioPorId(decoded.id);
+      return usuario ? usuario._id.toString() : null;
+    } catch (error) {
+      console.warn("Token inválido:", error);
+      return null;
+    }
   }
 }

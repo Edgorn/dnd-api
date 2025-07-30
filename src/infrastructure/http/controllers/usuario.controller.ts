@@ -1,16 +1,16 @@
 import { Request, Response } from "express";
-import LogearUsuario from "../../../application/use-cases/logearUsuario";
+import Logear from "../../../application/use-cases/usuario/logear.use-case";
 import UsuarioService from "../../../domain/services/usuario.service";
 import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repository";
 
 const usuarioService = new UsuarioService(new UsuarioRepository())
-const logearUsuario = new LogearUsuario(usuarioService)
+const logear = new Logear(usuarioService)
 
 const login = async (req: Request, res: Response) => {
   try {
     const { user, password } = req.body
 
-    const data = await logearUsuario.execute({ user, password })
+    const data = await logear.execute({ user, password })
 
     if (!data) {
       console.warn(`Intento de login fallido para el usuario: ${user}`);

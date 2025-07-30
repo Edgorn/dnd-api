@@ -5,7 +5,7 @@ import RazaRepository from '../../databases/mongoDb/repositories/raza.repository
 const razaService = new RazaService(new RazaRepository())
 const obtenerTodasLasRazas = new ObtenerTodasLasRazas(razaService);
 
-import ValidarToken from "../../../application/use-cases/validarToken";
+import ValidarToken from "../../../application/use-cases/usuario/validarToken.use-case";
 import UsuarioService from "../../../domain/services/usuario.service";
 import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repository";
 

@@ -12,14 +12,12 @@ export interface UsuarioApi {
   name: string
 }
 
-export interface LogearUsuarioParams {
+export interface LoginParams {
   user: string;
   password: string;
 }
 
-export interface LogearUsuarioResult {
+export interface LoginResult {
   token: string;
-  user: {
-    name: string;
-  };
+  user: UsuarioApi;
 }

@@ -1,4 +1,4 @@
-import UsuarioService from '../../domain/services/usuario.service';
+import UsuarioService from '../../../domain/services/usuario.service';
 
 export default class ValidarToken {
   private usuarioService: UsuarioService;
