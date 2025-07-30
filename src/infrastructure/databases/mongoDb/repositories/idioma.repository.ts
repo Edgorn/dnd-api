@@ -1,4 +1,5 @@
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import { ChoiceMongo, ChoiceApi } from '../../../../domain/types';
 import { IdiomaApi, IdiomaMongo } from '../../../../domain/types/idiomas.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import IdiomaSchema from '../schemas/Idioma';
@@ -11,7 +12,7 @@ export default class IdiomaRepository implements IIdiomaRepository {
     this.idiomasMap = {}
   }
 
-  public async obtenerTodos(): Promise<IdiomaApi[]> {
+  async obtenerTodos(): Promise<IdiomaApi[]> {
     if (!this.todosConsultados) {
       const idiomas = await IdiomaSchema.find()
         .collation({ locale: 'es', strength: 1 })
@@ -24,7 +25,7 @@ export default class IdiomaRepository implements IIdiomaRepository {
     return this.formatearIdiomas(Object.values(this.idiomasMap))
   }
 
-  public async obtenerIdiomasPorIndices(indices: string[]): Promise<IdiomaApi[]> {
+  async obtenerIdiomasPorIndices(indices: string[]): Promise<IdiomaApi[]> {
     if (!indices.length) return [];
     
     const result: IdiomaApi[] = [];
@@ -46,6 +47,31 @@ export default class IdiomaRepository implements IIdiomaRepository {
     }
 
     return ordenarPorNombre(result);
+  }
+  
+  async formatearOpcionesDeIdioma(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<IdiomaApi> | undefined> {
+    if (!opciones) return undefined
+
+    if (Array.isArray(opciones.options)) {
+      const idiomas = await this.obtenerIdiomasPorIndices(opciones.options);
+      
+      return {
+        choose: opciones.choose,
+        options: idiomas
+      };
+    }
+
+    if (opciones.options === 'all') {
+      const idiomas = await this.obtenerTodos()
+
+      return {
+        choose: opciones.choose,
+        options: idiomas
+      }
+    }
+
+    console.warn("Opciones de idioma no reconocidas:", opciones.options);
+    return undefined;
   }
 
   private formatearIdiomas(idiomas: IdiomaMongo[]): IdiomaApi[] {

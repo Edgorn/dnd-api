@@ -6,6 +6,5 @@ export default interface IUsuarioRepository {
 
   
   nombreUsuario(id: string): Promise<string> 
-  
   consultarUsuarios(indexList: string[]): Promise<any>
 }

@@ -40,17 +40,19 @@ export default class TransfondoRepository implements ITransfondoRepository {
 
     const [
       traits,
+      traits_options,
+      language_choices,
       options,
       variantes,
-      proficiencies,
-      traits_options
+      proficiencies
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits ?? []),
+      this.rasgoRepository.formatearTraitsOptions(transfondo?.traits_options),
+      this.idiomaRepository.formatearOpcionesDeIdioma(transfondo?.language_choices),
       formatearOptions(transfondo?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       this.formatearVariantes(transfondo?.variants),
-      formatearCompetencias(transfondo?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository),
-      this.rasgoRepository.formatearTraitsOptions(transfondo?.traits_options)
-    ])
+      formatearCompetencias(transfondo?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository)
+    ]) 
 
     return {
       index: transfondo.index,
@@ -60,6 +62,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
       traits,
       traits_options,
       proficiencies,
+      language_choices,
       options,
       equipment: formatearEquipamiento(transfondo?.starting_equipment ?? [], this.equipamientoRepository),
       equipment_options: formatearEquipamientosOptions(transfondo?.starting_equipment_options ?? [], this.equipamientoRepository),

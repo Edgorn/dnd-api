@@ -1,4 +1,5 @@
-import { EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo, ProficienciesApi, ProficienciesMongo, RasgoApi } from ".";
+import { ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo, ProficienciesApi, ProficienciesMongo, RasgoApi } from ".";
+import { IdiomaApi } from "./idiomas.types";
 import { TraitsOptionsApi, TraitsOptionsMongo } from "./rasgos";
 
 export interface TransfondoMongo {
@@ -7,7 +8,8 @@ export interface TransfondoMongo {
   desc: string[];
   img: string;
   traits: string[];
-  starting_proficiencies: ProficienciesMongo[];
+  starting_proficiencies: ProficienciesMongo[],
+  language_choices?: ChoiceMongo,
   options: OptionsMongo[];
   starting_equipment: EquipamientoMongo[];
   starting_equipment_options: EquipamientoOpcionesMongo[][];
@@ -45,12 +47,13 @@ export interface OptionsNameMongo {
 }
 
 export interface TransfondoApi {
-  index: string;
-  name: string;
-  desc: string[];
-  img: string;
-  traits: RasgoApi[]
-  proficiencies: ProficienciesApi[]
+  index: string,
+  name: string,
+  desc: string[],
+  img: string,
+  traits: RasgoApi[],
+  proficiencies: ProficienciesApi[],
+  language_choices?: ChoiceApi<IdiomaApi>,
   options: OptionsApi[];
   equipment: EquipamientoApi[];
   equipment_options: EquipamientoOpcionesApi[][];

@@ -1,5 +1,15 @@
 import { ObjectId } from "mongoose";
 
+export interface ChoiceMongo {
+  choose: number;
+  options: string[] | string;
+}
+
+export interface ChoiceApi<T> {
+  choose: number;
+  options: T[];
+}
+
 export interface OptionSelectApi {
   label: string,
   value: string
