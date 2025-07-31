@@ -54,8 +54,9 @@ export const formatearConjuros = async (spellsApi: string[], conjuroRepository: 
     if (caracteristica) {
       tipo = caracteristica
     } else {
-      const rasgo = await rasgoRepository.obtenerRasgoPorIndice(arraySpell[1] ?? null)
-      tipo = rasgo?.name ?? ''
+      /*const rasgo = await rasgoRepository.obtenerRasgoPorIndice(arraySpell[1] ?? null)
+      tipo = rasgo?.name ?? ''*/
+      tipo = "MIRAR FORMATEAR CONJUROS"
     }
 
     return {

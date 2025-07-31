@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { RasgoMongo } from "../../../../domain/types";
+import { RasgoMongo } from "../../../../domain/types/rasgos.types";
 
 const rasgoSchema: Schema =  new Schema<RasgoMongo>({
   index: String,

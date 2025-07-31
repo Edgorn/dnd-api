@@ -1,6 +1,6 @@
-import { ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo, ProficienciesApi, ProficienciesMongo, RasgoApi } from ".";
+import { ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo, ProficienciesApi, ProficienciesMongo } from ".";
 import { IdiomaApi } from "./idiomas.types";
-import { TraitsOptionsApi, TraitsOptionsMongo } from "./rasgos";
+import { RasgoApi, TraitsOptionsApi, TraitsOptionsMongo } from "./rasgos.types";
 
 export interface TransfondoMongo {
   index: string;

@@ -47,7 +47,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
       proficiencies
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits ?? []),
-      this.rasgoRepository.formatearTraitsOptions(transfondo?.traits_options),
+      this.rasgoRepository.obtenerRasgosOptions(transfondo?.traits_options),
       this.idiomaRepository.formatearOpcionesDeIdioma(transfondo?.language_choices),
       formatearOptions(transfondo?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
       this.formatearVariantes(transfondo?.variants),
@@ -93,7 +93,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
       variante?.traits 
         ? this.rasgoRepository.obtenerRasgosPorIndices(variante?.traits ?? [])
         : Promise.resolve(undefined),
-      this.rasgoRepository.formatearTraitsOptions(variante?.traits_options),
+      this.rasgoRepository.obtenerRasgosOptions(variante?.traits_options),
       variante?.options
         ? formatearOptions(
             variante?.options ?? [],

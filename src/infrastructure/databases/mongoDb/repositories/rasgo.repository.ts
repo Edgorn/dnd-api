@@ -1,5 +1,3 @@
-import { DañoApi, RasgoApi, RasgoDataMongo, RasgoMongo } from "../../../../domain/types";
-
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
 import IIdiomaRepository from "../../../../domain/repositories/IIdiomaRepository";
@@ -11,47 +9,23 @@ import CompetenciaRepository from "./competencia.repository";
 import ConjuroRepository from "./conjuros.repository";
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
 import EstadoRepository from "./estado.repository";
-import { TraitsOptionsApi, TraitsOptionsMongo } from "../../../../domain/types/rasgos";
+import { RasgoApi, RasgoDataMongo, RasgoMongo, TraitsOptionsApi, TraitsOptionsMongo } from "../../../../domain/types/rasgos.types";
+import { ordenarPorNombre } from "../../../../utils/formatters";
 
-export default class RasgoRepository extends IRasgoRepository {
-  rasgosMap: {
-    [key: string]: RasgoMongo/*{
-      index: string,
-      name: string,
-      desc: string,
-      discard?: string[],
-      type?: string,
-      languages: string[],
-      resistances: DañoApi[],
-      spells?: any[],
-      skills?: string[],
-      proficiencies?: string[],
-      proficiencies_weapon?: string[],
-      proficiencies_armor?: string[],
-      speed?: number,
-      hidden?: boolean,
-      tables?: {
-        title: string,
-        data: {
-          titles: string[],
-          rows: string[][]
-        }
-      }[]
-    }*/
-  }
+export default class RasgoRepository implements IRasgoRepository {
+  rasgosMap: { [key: string]: RasgoMongo }
 
   dañoRepository: IDañoRepository
   competenciaRepository: ICompetenciaRepository
   conjuroRepository: IConjuroRepository
   estadoRepository: IEstadoRepository
 
-  constructor(dañoRepository?: IDañoRepository, competenciaRepository?: ICompetenciaRepository, conjuroRepository?: IConjuroRepository) {
-    super()
+  constructor(dañoRepository?: IDañoRepository, competenciaRepository?: ICompetenciaRepository, conjuroRepository?: IConjuroRepository, estadoRepository?: IEstadoRepository) {
     this.rasgosMap = {}
     this.dañoRepository = dañoRepository ?? this.crearDañoRepositorioPorDefecto()
     this.competenciaRepository = competenciaRepository ?? this.crearCompetenciaRepositorioPorDefecto()
     this.conjuroRepository = conjuroRepository ?? this.crearConjuroRepositorioPorDefecto()
-    this.estadoRepository = new EstadoRepository()
+    this.estadoRepository = estadoRepository ?? this.crearEstadoRepositorioPorDefecto()
   }
 
   private crearDañoRepositorioPorDefecto(): IDañoRepository {
@@ -66,34 +40,53 @@ export default class RasgoRepository extends IRasgoRepository {
     return new ConjuroRepository();
   }
 
-  async obtenerRasgosPorIndices(indices: string[], data: RasgoDataMongo = {}) {
-    const resultados = await Promise.all(
-      indices.map(index => this.obtenerRasgoPorIndice(index, data))
-    )
-
-    return resultados.filter(index => index !== null && index !== undefined);
+  private crearEstadoRepositorioPorDefecto(): IEstadoRepository {
+    return new EstadoRepository();
   }
 
-  async obtenerRasgoPorIndice(index: string, data: RasgoDataMongo = {}) {
-    if (index) {
-      if (this.rasgosMap[index]) {
-        const rasgo = this.rasgosMap[index];
-        const rasgoFormateado = await this.formatearRasgo(rasgo, data)
+  async obtenerRasgosPorIndices(indices: string[], data: RasgoDataMongo = {}) {
+    if (!indices.length) return [];
 
-        return rasgoFormateado
+    const procesados = await Promise.all(indices.map(async (indice) => {
+      if (this.rasgosMap[indice]) {
+        const rasgo = await this.formatearRasgo(this.rasgosMap[indice], data);
+        return { encontrado: rasgo };
       } else {
-        const rasgo = await RasgoSchema.findOne({index});
-        if (!rasgo) return null;
-
-        const rasgoFormateado = await this.formatearRasgo(rasgo, data)
-
-        this.rasgosMap[index] = rasgo
-
-        return rasgoFormateado
+        return { faltante: indice };
       }
-    } else {
-      return null
+    }));
+
+    const result = procesados
+      .filter(p => p.encontrado)
+      .map(p => p.encontrado!);
+    
+    const missing = procesados
+      .filter(p => p.faltante)
+      .map(p => p.faltante!);
+
+    if (missing.length > 0) {
+      const rasgos = await RasgoSchema.find({ index: { $in: missing } })
+      rasgos.forEach(rasgo => (this.rasgosMap[rasgo.index] = rasgo));
+
+      const rasgosFormateados = await this.formatearRasgos(rasgos)
+      result.push(...rasgosFormateados);
     }
+
+    return ordenarPorNombre(result);
+  }
+
+  async obtenerRasgosOptions(traitsOptions: TraitsOptionsMongo | undefined): Promise<TraitsOptionsApi | undefined> {
+    if (!traitsOptions) return undefined;
+
+    const options = await this.obtenerRasgosPorIndices(traitsOptions.options ?? []);
+    return {
+      ...traitsOptions,
+      options
+    };
+  }
+
+  formatearRasgos(rasgos: RasgoMongo[], data: RasgoDataMongo = {}): Promise<RasgoApi[]> {
+    return Promise.all(rasgos.map(rasgo => this.formatearRasgo(rasgo, data)))
   }
 
   async formatearRasgo(rasgo: RasgoMongo, data: RasgoDataMongo = {}): Promise<RasgoApi> {
@@ -137,15 +130,5 @@ export default class RasgoRepository extends IRasgoRepository {
       //proficiencies: rasgo?.proficiencies ?? [],
       //tables: rasgo?.tables ?? []
     }
-  }
-
-  async formatearTraitsOptions(traitsOptions: TraitsOptionsMongo | undefined): Promise<TraitsOptionsApi | undefined> {
-    if (!traitsOptions) return undefined;
-
-    const options = await this.obtenerRasgosPorIndices(traitsOptions.options ?? []);
-    return {
-      ...traitsOptions,
-      options
-    };
   }
 }

@@ -1,5 +1,6 @@
 import { ObjectId } from "mongoose"
-import { AbilityBonusesApi, RasgoDataMongo } from "."
+import { AbilityBonusesApi } from "."
+import { RasgoDataMongo } from "./rasgos.types"
 
 export interface TypeCrearPersonaje {
   name: string,

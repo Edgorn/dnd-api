@@ -1,4 +1,5 @@
-import { EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionsMongo, ProficienciesApi, ProficienciesMongo, RasgoApi, RasgoDataMongo } from "."
+import { EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionsMongo, ProficienciesApi, ProficienciesMongo } from "."
+import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 
 export interface ClaseMongo {
   index: string,
