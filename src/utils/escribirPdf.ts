@@ -402,7 +402,7 @@ export async function escribirOrganizaciones({ pdfDoc, personaje, form }: any) {
   })*/
 }
 
-export async function escribirCompetencias({ pdfDoc, languages, weapons, armors, proficiencies }: any) {
+export async function escribirCompetencias({ pdfDoc, languages, proficiencies }: any) {
 
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
@@ -412,6 +412,8 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
   let textY = page1.getHeight() - 635;
   let x = 35
   const maxWidth = 170;
+
+  const weapons = proficiencies?.filter((proficiency: any) => proficiency.type === "Armas")
 
   if (weapons.length > 0) {
     const { textY: actualY } = escribirParrafo({ 
@@ -424,9 +426,11 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
       x,
       y: textY
     })
-
+ 
     textY = actualY
   }
+
+  const armors = proficiencies?.filter((proficiency: any) => proficiency.type === "Armaduras")
 
   if (armors.length > 0) {
     const { textY: actualY } = escribirParrafo({ 
@@ -443,10 +447,12 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
     textY = actualY
   }
 
-  if (proficiencies.length > 0) {
+  const proficiencies_others = proficiencies?.filter((proficiency: any) => proficiency.type !== "Armas" && proficiency.type !== "Armaduras")
+
+  if (proficiencies_others.length > 0) {
     const { textY: actualY } = escribirParrafo({ 
       titulo: 'Competencias', 
-      descripcion: proficiencies?.map((proficiency: any) => proficiency.name)?.join(', ')+'.',
+      descripcion: proficiencies_others?.map((proficiency: any) => proficiency.name)?.join(', ')+'.',
       fontTitle: fontBold,
       fontText: fontRegular,
       maxWidth,
@@ -458,7 +464,7 @@ export async function escribirCompetencias({ pdfDoc, languages, weapons, armors,
     textY = actualY
   }
 
-  if (weapons.length > 0) {
+  if (languages.length > 0) {
     const { textY: actualY } = escribirParrafo({ 
       titulo: 'Idiomas', 
       descripcion: languages?.map((language: any) => language.name)?.join(', ')+'.',

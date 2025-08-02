@@ -1,15 +1,8 @@
-import { HabilidadApi } from "../types";
+import { ChoiceApi, ChoiceMongo } from "../types";
+import { HabilidadApi, HabilidadPersonajeApi } from "../types/habilidades.types";
 
-export default class IHabilidadRepository {
-  obtenerHabilidadesPorIndices(params: string[]): HabilidadApi[] {
-    throw new Error('Método no implementado');
-  }
-
-  obtenerHabilidadPorIndice(params: string): HabilidadApi {
-    throw new Error('Método no implementado');
-  }
-
-  obtenerHabilidades(): HabilidadApi[] {
-    throw new Error('Método no implementado');
-  }
+export default interface IHabilidadRepository {
+  obtenerHabilidadesPorIndices(indices: string[]): Promise<HabilidadApi[]>
+  obtenerHabilidadesPersonaje(skills: string[]): Promise<HabilidadPersonajeApi[]>
+  formatearOpcionesDeHabilidad(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<HabilidadApi> | undefined>
 }

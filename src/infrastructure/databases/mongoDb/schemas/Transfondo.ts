@@ -7,9 +7,10 @@ const transfondoSchema: Schema = new Schema<TransfondoMongo>({
   desc: [String],
   img: String,
   traits: [String],
-  starting_proficiencies: [],
-  options: [],
+  skills: [String],
   language_choices: {},
+  proficiencies: [],
+  proficiencies_choices: [],
   starting_equipment: [],
   starting_equipment_options: [],
   money: {

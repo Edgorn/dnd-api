@@ -1,12 +1,12 @@
 import mongoose, { Schema } from "mongoose";
-import { CompetenciaApi, DañoApi } from "../../../../domain/types";
+import { CompetenciaMongo } from "../../../../domain/types/competencias.types";
 
-const competenciaSchema: Schema = new Schema<CompetenciaApi>({
+const competenciaSchema: Schema = new Schema<CompetenciaMongo>({
   index: String,
   name: String,
   type: String,
   desc: [String]
 }, { collection: 'Competencias' });
 
-const CompetenciaModel = mongoose.model<CompetenciaApi>("Competencias", competenciaSchema);
+const CompetenciaModel = mongoose.model<CompetenciaMongo>("Competencias", competenciaSchema);
 export default CompetenciaModel;

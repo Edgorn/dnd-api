@@ -1,70 +1,103 @@
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
-import { CompetenciaApi } from '../../../../domain/types';
+import { ChoiceMongo, ChoiceApi } from '../../../../domain/types';
+import { CompetenciaApi, CompetenciaMongo } from '../../../../domain/types/competencias.types';
+import { ordenarPorNombre } from '../../../../utils/formatters';
 import CompetenciaSchema from '../schemas/Competencia';
 
-export default class CompetenciaRepository extends ICompetenciaRepository {
-  competenciasMap: {
-    [key: string]: CompetenciaApi
-  }
+export default class CompetenciaRepository implements ICompetenciaRepository {
+  private competenciasMap: Record<string, CompetenciaMongo>
 
   constructor() {
-    super()
     this.competenciasMap = {}
   }
 
-  async obtenerCompetenciasPorIndices(indices: string[]) {
-    const competencias = await Promise.all(indices.map(index => this.obtenerCompetenciaPorIndice(index)))
+  async obtenerCompetenciasPorIndices(indices: string[]): Promise<CompetenciaApi[]> {
+    if (!indices.length) return [];
+    
+    const result: CompetenciaMongo[] = [];
+    const missing: string[] = [];
 
-    return competencias.filter(index => index !== null && index !== undefined);
+    indices.forEach(indice => {
+      if (this.competenciasMap[indice]) {
+        result.push(this.competenciasMap[indice]);
+      } else {
+        missing.push(indice);
+      }
+    })
+
+    if (missing.length > 0) {
+      const competencias = await CompetenciaSchema.find({ index: { $in: missing } })
+        
+      competencias.forEach(competencia => (this.competenciasMap[competencia.index] = competencia));
+      result.push(...competencias);
+    }
+
+    return ordenarPorNombre(this.formatearCompetencias(result));
   }
 
-  async obtenerCompetenciaPorIndice(index: string) {
-    if (index) {
-      if (this.competenciasMap[index]) {
-        return this.competenciasMap[index]
-      } else {
-        const competencia = await CompetenciaSchema.findOne({index});
-        if (!competencia) return null;
+  async formatearOpcionesDeCompetencias(opciones: ChoiceMongo[] | undefined): Promise<ChoiceApi<CompetenciaApi>[]> {
+    if (!opciones) return []
 
-        this.competenciasMap[index] = competencia
+    const opcionesDeCompetencias = await Promise.all(
+      opciones.map(opc => this.formatearOpcionesDeCompetencia(opc))
+    );
 
-        return competencia
-      }
+    return opcionesDeCompetencias.filter((item): item is ChoiceApi<CompetenciaApi> => item !== undefined);
+  }
+
+  async obtenerCompetenciaPorIndice(index: string): Promise<CompetenciaApi | null> {
+    if (this.competenciasMap[index]) {
+      return this.formatearCompetencia(this.competenciasMap[index])
     } else {
-      return null
+      const competencia = await CompetenciaSchema.findOne({ index })
+
+      if (competencia) {
+        return this.formatearCompetencia(competencia)
+      } else {
+        return null
+      }
     }
   }
 
-  obtenerCompetencias() {
-    return Object.values(this.competenciasMap)
+  private async formatearOpcionesDeCompetencia(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<CompetenciaApi> | undefined> {
+    if (!opciones) return undefined
+
+    if (Array.isArray(opciones.options)) {
+      const competencias = await this.obtenerCompetenciasPorIndices(opciones.options);
+      
+      return {
+        choose: opciones.choose,
+        options: competencias
+      };
+    }
+
+    const competencias = await this.obtenerCompetenciasPorTipo(opciones.options);
+      
+    return {
+      choose: opciones.choose,
+      options: competencias
+    };
   }
 
-  async obtenerCompetenciasPorType(type: string) {
+  private async obtenerCompetenciasPorTipo(type: string): Promise<CompetenciaApi[]> {
     const competencias = await CompetenciaSchema.find({ type })
+      .collation({ locale: 'es', strength: 1 })
+      .sort({ name: 1 });
 
-    competencias.forEach(competencia => {
-      if (this.competenciasMap[competencia._id.toString()]) {
-        this.competenciasMap[competencia._id.toString()] = competencia
-      }
-    })
-
-    return competencias
+    competencias.forEach(competencia => (this.competenciasMap[competencia.index] = competencia))
+    
+    return this.formatearCompetencias(competencias)
   }
-
-  obtenerCompetenciasPorIndicesSinRep(indices: string[]) {
-    /*const indicesSinRep = [...new Set(indices)]
-    const competencias_aux = indicesSinRep.map(index => this.obtenerCompetenciaPorIndice(index))
-    const indices_aux = competencias_aux.map(comp => comp.index)
-
-    const competencias:any[] = []
-
-    competencias_aux.forEach(competencia => {
-      if(!competencia.desc.some(elemento => indices_aux.includes(elemento))) {
-        competencias.push(competencia)
-      }
-    })
-
-    return competencias;*/
-
+  
+  private formatearCompetencias(competencias: CompetenciaMongo[]): CompetenciaApi[] {
+    return competencias.map(competencia => this.formatearCompetencia(competencia));
+  }
+  
+  private formatearCompetencia(competencia: CompetenciaMongo): CompetenciaApi {
+    return {
+      index: competencia.index,
+      name: competencia.name,
+      type: competencia.type
+    }
   }
 }

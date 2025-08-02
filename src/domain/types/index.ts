@@ -1,4 +1,6 @@
 import { ObjectId } from "mongoose";
+import { CompetenciaApi } from "./competencias.types";
+import { IdiomaApi } from "./idiomas.types";
 
 export interface ChoiceMongo {
   choose: number;
@@ -14,6 +16,27 @@ export interface OptionSelectApi {
   label: string,
   value: string
 }
+
+export type MixedChoicesMongo =
+  | MixedChoiceOptionProficiency
+  | MixedChoiceOptionNested;
+
+export interface MixedChoiceOptionProficiency {
+  type: "proficiency";
+  value: string;
+}
+
+export interface MixedChoiceOptionNested {
+  type: "choice";
+  value: "language_choices" | "proficiencies_choices"; // podrías añadir más en el futuro
+  language_choices?: ChoiceMongo; // si value = "language_choices"
+  proficiencies_choices?: ChoiceMongo[]; // si value = "proficiencies_choices"
+}
+
+export type MixedChoicesApi =
+  | { type: "proficiency"; value: CompetenciaApi }
+  | { type: "choice"; value: "language_choices"; language_choices: ChoiceApi<IdiomaApi> }
+  | { type: "choice"; value: "proficiencies_choices"; proficiencies_choices: ChoiceApi<CompetenciaApi>[] };
 
 export interface AbilityBonusesMongo {
   index: string,
@@ -62,31 +85,6 @@ export interface ConjuroApi {
   duration: string,
   desc: string[],
   ritual: boolean
-}
-
-export interface ProficienciesMongo {
-  index: string,
-  type: string
-}
-
-export interface ProficienciesApi {
-  index: string,
-  name: string,
-  type: string
-}
-
-export interface HabilidadApi {
-  index: string,
-  name: string,
-  ability_score: string
-}
-
-export interface CompetenciaApi {
-  _id: ObjectId,
-  index: string,
-  name: string,
-  type: string,
-  desc: [string]
 }
 
 export interface OptionsMongo {

@@ -85,11 +85,11 @@ export default class RasgoRepository implements IRasgoRepository {
     };
   }
 
-  formatearRasgos(rasgos: RasgoMongo[], data: RasgoDataMongo = {}): Promise<RasgoApi[]> {
+  private formatearRasgos(rasgos: RasgoMongo[], data: RasgoDataMongo = {}): Promise<RasgoApi[]> {
     return Promise.all(rasgos.map(rasgo => this.formatearRasgo(rasgo, data)))
   }
 
-  async formatearRasgo(rasgo: RasgoMongo, data: RasgoDataMongo = {}): Promise<RasgoApi> {
+  private async formatearRasgo(rasgo: RasgoMongo, data: RasgoDataMongo = {}): Promise<RasgoApi> {
     const resistances = await this.dañoRepository.obtenerDañosPorIndices(rasgo.resistances ?? [])
     const conditional_resistances = await this.dañoRepository.obtenerDañosPorIndices(rasgo.conditional_resistances ?? [])
     const proficiencies_weapon = await this.competenciaRepository.obtenerCompetenciasPorIndices(rasgo?.proficiencies_weapon ?? [])

@@ -5,7 +5,8 @@ import IEquipamientoRepository from "../domain/repositories/IEquipamientoReposit
 import IHabilidadRepository from "../domain/repositories/IHabilidadRepository"
 import IIdiomaRepository from "../domain/repositories/IIdiomaRepository"
 import IRasgoRepository from "../domain/repositories/IRasgoRepository"
-import { AbilityBonusesApi, AbilityBonusesMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo, ProficienciesApi, ProficienciesMongo } from "../domain/types"
+import { AbilityBonusesApi, AbilityBonusesMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo } from "../domain/types"
+import { HabilidadApi } from "../domain/types/habilidades.types"
 
 const caracteristicas: {[key: string]: string} = {
   str: 'Fuerza',
@@ -70,27 +71,22 @@ export const formatearConjuros = async (spellsApi: string[], conjuroRepository: 
   return conjuros
 }
 
-export async function formatearCompetencias (proficiencies: ProficienciesMongo[], habilidadRepository: IHabilidadRepository, competenciaRepository: ICompetenciaRepository): Promise<ProficienciesApi[]> {
+export async function formatearCompetencias (proficiencies: any[], habilidadRepository: IHabilidadRepository, competenciaRepository: ICompetenciaRepository): Promise<any[]> {
   const indicesHabilidades = 
     proficiencies
       .filter(proficiency => proficiency.type === 'habilidad')
       .map(proficiency => proficiency.index)
 
-  const habilidades = 
-    habilidadRepository
-      .obtenerHabilidadesPorIndices(indicesHabilidades)
-      .map(habilidad => {
-        return {
-          index: habilidad?.index,
-          name: habilidad?.name,
-          type: 'habilidad'
-        }
-      })
+  if (indicesHabilidades.length > 0) console.log("formatearHabilidades", indicesHabilidades)
 
+  const habilidades = await habilidadRepository.obtenerHabilidadesPorIndices(indicesHabilidades)
+      
   const indicesCompetencias =
     proficiencies
       .filter(proficiency => proficiency.type !== 'habilidad')
       .map(proficiency => proficiency.index)
+  
+  if (indicesCompetencias.length > 0) console.log("formatearCompetencias", indicesCompetencias)
 
   const competencias = await competenciaRepository.obtenerCompetenciasPorIndices(indicesCompetencias)
 
@@ -106,6 +102,9 @@ export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaReposit
     let type = optionApi?.type
   
     if (type === 'idioma') {
+      console.log("OPCIONES IDIOMA")
+      console.log(optionApi)
+/* 
       if (optionApi.api === 'all') {
         const idiomas = await idiomaRepository.obtenerTodos()
 
@@ -113,8 +112,11 @@ export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaReposit
       } else if (isStringArray(optionApi.options)) {
         const idiomas = await idiomaRepository.obtenerIdiomasPorIndices(optionApi.options)
         options.push(...idiomas)
-      }
+      }*/
     } else if (type === 'herramienta' || type === 'juego' || type === 'arma') {
+      console.log("OPCIONES COMPETENCIA")
+      console.log(optionApi?.api)
+      /*
       if (optionApi?.api) {
         const optionsData = await competenciasRepository.obtenerCompetenciasPorType(optionApi?.api)
 
@@ -143,8 +145,11 @@ export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaReposit
               })
           )
         }
-      }
+      }*/
     } else if (type === 'habilidad' || type === 'habilidad (doble bonus)') {
+     console.log("OPCIONES HABILIDAD | OPCIONES HABILIDAD (DOBLE BONUS)")
+     console.log(optionApi)
+      /*
       if (optionApi.api === 'all') {
         options.push(
           ...habilidadRepository
@@ -167,7 +172,7 @@ export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaReposit
               }
             })
         )
-      }
+      }*/
     } else if (type === 'caracteristica') {
       if (isStringArray(optionApi.options))  {
         options.push(

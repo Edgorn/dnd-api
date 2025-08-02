@@ -6,9 +6,10 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
-import { formatearCompetencias, formatearEquipamiento, formatearEquipamientosOptions, formatearOptions, mapStringArrayToLabelValue } from '../../../../utils/formatters';
+import { formatearEquipamiento, formatearEquipamientosOptions, formatearOptions, mapStringArrayToLabelValue } from '../../../../utils/formatters';
 import TransfondoSchema from '../schemas/Transfondo';
 import { OptionsNameApi, OptionsNameMongo, TransfondoApi, TransfondoMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/transfondos.types';
+import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
 
 export default class TransfondoRepository implements ITransfondoRepository {
   constructor(
@@ -41,19 +42,21 @@ export default class TransfondoRepository implements ITransfondoRepository {
     const [
       traits,
       traits_options,
+      skills,
       language_choices,
-      options,
-      variantes,
-      proficiencies
+      proficiencies,
+      proficiencies_choices,
+      variantes
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits ?? []),
       this.rasgoRepository.obtenerRasgosOptions(transfondo?.traits_options),
+      this.habilidadRepository.obtenerHabilidadesPorIndices(transfondo?.skills ?? []),
       this.idiomaRepository.formatearOpcionesDeIdioma(transfondo?.language_choices),
-      formatearOptions(transfondo?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      this.formatearVariantes(transfondo?.variants),
-      formatearCompetencias(transfondo?.starting_proficiencies ?? [], this.habilidadRepository, this.competenciaRepository)
-    ]) 
-
+      this.competenciaRepository.obtenerCompetenciasPorIndices(transfondo?.proficiencies ?? []),
+      this.competenciaRepository.formatearOpcionesDeCompetencias(transfondo?.proficiencies_choices),
+      this.formatearVariantes(transfondo?.variants)
+    ])
+       
     return {
       index: transfondo.index,
       name: transfondo.name,
@@ -61,9 +64,10 @@ export default class TransfondoRepository implements ITransfondoRepository {
       desc: transfondo.desc,
       traits,
       traits_options,
-      proficiencies,
+      skills,
       language_choices,
-      options,
+      proficiencies,
+      proficiencies_choices,
       equipment: formatearEquipamiento(transfondo?.starting_equipment ?? [], this.equipamientoRepository),
       equipment_options: formatearEquipamientosOptions(transfondo?.starting_equipment_options ?? [], this.equipamientoRepository),
       personalized_equipment: transfondo.personalized_equipment,
@@ -89,20 +93,13 @@ export default class TransfondoRepository implements ITransfondoRepository {
   private async formatearVariante(variante: VarianteMongo): Promise<VarianteApi> {
     const options_name = this.formatearOptionsName(variante?.options_name)
 
-    const [traits, traits_options, options] = await Promise.all([
+    const [traits, traits_options, proficiencies_choices, mixed_choices] = await Promise.all([
       variante?.traits 
         ? this.rasgoRepository.obtenerRasgosPorIndices(variante?.traits ?? [])
         : Promise.resolve(undefined),
       this.rasgoRepository.obtenerRasgosOptions(variante?.traits_options),
-      variante?.options
-        ? formatearOptions(
-            variante?.options ?? [],
-            this.idiomaRepository,
-            this.competenciaRepository,
-            this.habilidadRepository,
-            this.conjuroRepository
-          )
-        : Promise.resolve(undefined)
+      this.competenciaRepository.formatearOpcionesDeCompetencias(variante?.proficiencies_choices),
+      this.formatearMixedChoices(variante.mixed_choices)
     ])
 
     return {
@@ -110,13 +107,14 @@ export default class TransfondoRepository implements ITransfondoRepository {
       desc: variante.desc,
       traits,
       traits_options,
-      equipment: variante?.starting_equipment ? formatearEquipamiento(variante?.starting_equipment ?? [], this.equipamientoRepository) : undefined,
+      proficiencies_choices,
+      mixed_choices,
       personalized_equipment: variante.personalized_equipment,
-      options,
+      equipment: variante?.starting_equipment ? formatearEquipamiento(variante?.starting_equipment ?? [], this.equipamientoRepository) : undefined,
       equipment_options: variante?.starting_equipment_options ? formatearEquipamientosOptions(variante?.starting_equipment_options ?? [], this.equipamientoRepository) : undefined,
       options_name
     }
-  }
+  } 
 
   private formatearOptionsName(options_name: OptionsNameMongo | undefined): OptionsNameApi | undefined {
     return options_name ? {
@@ -124,5 +122,55 @@ export default class TransfondoRepository implements ITransfondoRepository {
       choose: options_name.choose ?? 1,
       options: options_name.options?.map(opt => ({ label: opt, value: opt })) ?? []
     } : undefined;
+  }
+
+  private async formatearMixedChoices(mixedChoices: MixedChoicesMongo[][] | undefined): Promise<MixedChoicesApi[][] | undefined> {
+    if (!mixedChoices) return undefined;
+
+    const results = await Promise.all(mixedChoices.map(mixedChoice => this.formatearMixedChoice(mixedChoice)))  
+    
+    return results.filter((r): r is MixedChoicesApi[] => r !== undefined);
+  }
+
+  private async formatearMixedChoice(mixedChoices: MixedChoicesMongo[] | undefined): Promise<MixedChoicesApi[] | undefined> {
+    if (!mixedChoices) return undefined;
+
+    const results = await Promise.all(mixedChoices.map(async (mixedChoice) => {
+      if (mixedChoice.type === "proficiency") {
+        const competencia = await this.competenciaRepository.obtenerCompetenciaPorIndice(mixedChoice.value);
+        if (competencia) {
+          return {
+            type: "proficiency",
+            value: competencia
+          }
+        }
+      } else if (mixedChoice.type === "choice") {
+        if (mixedChoice.value === "language_choices" && mixedChoice.language_choices) {
+          // Resolver idiomas
+          const idiomas = await this.idiomaRepository.formatearOpcionesDeIdioma(mixedChoice.language_choices);
+          if (idiomas) {
+            return {
+              type: "choice",
+              value: "language_choices",
+              language_choices: idiomas
+            };
+          }
+        } else if (mixedChoice.value === "proficiencies_choices" && mixedChoice.proficiencies_choices) {
+          // Resolver elección de competencias
+          const competenciasChoices = await this.competenciaRepository.formatearOpcionesDeCompetencias(mixedChoice.proficiencies_choices);
+          if (competenciasChoices) {
+            return {
+              type: "choice",
+              value: "proficiencies_choices",
+              proficiencies_choices: competenciasChoices
+            }
+          }
+        }
+      }
+      
+      return undefined
+    }))
+
+    return results.filter((r): r is MixedChoicesApi => r !== undefined);
   }
 }

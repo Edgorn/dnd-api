@@ -1,4 +1,5 @@
-import { CompetenciaApi, ConjuroApi, DañoApi } from "."
+import { ConjuroApi, DañoApi } from "."
+import { CompetenciaApi } from "./competencias.types"
 
 export interface RasgoMongo {
   index: string,

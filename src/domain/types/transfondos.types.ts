@@ -1,16 +1,20 @@
-import { ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo, ProficienciesApi, ProficienciesMongo } from ".";
+import { ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, MixedChoicesApi, MixedChoicesMongo, OptionsApi, OptionSelectApi, OptionsMongo } from ".";
+import { CompetenciaApi } from "./competencias.types";
+import { HabilidadApi } from "./habilidades.types";
 import { IdiomaApi } from "./idiomas.types";
 import { RasgoApi, TraitsOptionsApi, TraitsOptionsMongo } from "./rasgos.types";
 
 export interface TransfondoMongo {
-  index: string;
-  name: string;
-  desc: string[];
-  img: string;
-  traits: string[];
-  starting_proficiencies: ProficienciesMongo[],
+  index: string,
+  name: string,
+  desc: string[],
+  img: string,
+  traits: string[],
+  traits_options?: TraitsOptionsMongo,
+  skills: string[],
   language_choices?: ChoiceMongo,
-  options: OptionsMongo[];
+  proficiencies: string[],
+  proficiencies_choices?: ChoiceMongo[],
   starting_equipment: EquipamientoMongo[];
   starting_equipment_options: EquipamientoOpcionesMongo[][];
   personalized_equipment: string[],
@@ -19,7 +23,6 @@ export interface TransfondoMongo {
     unit: string
   },
   options_name?: OptionsNameMongo,
-  traits_options?: TraitsOptionsMongo,
   god: boolean,
   personality_traits: string[],
   ideals: string[],
@@ -32,12 +35,13 @@ export interface VarianteMongo {
   name: string,
   desc: string[],
   traits?: string[],
-  options?: OptionsMongo[],
+  traits_options?: TraitsOptionsMongo,
+  proficiencies_choices?: ChoiceMongo[],
+  mixed_choices?: MixedChoicesMongo[][],
   starting_equipment: EquipamientoMongo[],
   starting_equipment_options?: EquipamientoOpcionesMongo[][],
   personalized_equipment: string[],
-  options_name?: OptionsNameMongo,
-  traits_options?: TraitsOptionsMongo
+  options_name?: OptionsNameMongo
 }
 
 export interface OptionsNameMongo {
@@ -52,9 +56,11 @@ export interface TransfondoApi {
   desc: string[],
   img: string,
   traits: RasgoApi[],
-  proficiencies: ProficienciesApi[],
+  traits_options?: TraitsOptionsApi,
+  skills?: HabilidadApi[],
   language_choices?: ChoiceApi<IdiomaApi>,
-  options: OptionsApi[];
+  proficiencies: CompetenciaApi[],
+  proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
   equipment: EquipamientoApi[];
   equipment_options: EquipamientoOpcionesApi[][];
   personalized_equipment: string[],
@@ -63,7 +69,6 @@ export interface TransfondoApi {
     unit: string
   },
   options_name?: OptionsNameApi,
-  traits_options?: TraitsOptionsApi,
   god: boolean,
   personality_traits: OptionSelectApi[],
   ideals: OptionSelectApi[],
@@ -76,12 +81,13 @@ export interface VarianteApi {
   name: string,
   desc?: string[],
   traits?: RasgoApi[],
-  options?: OptionsApi[],
+  traits_options?: TraitsOptionsApi,
+  proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
+  mixed_choices?: MixedChoicesApi[][],
   equipment?: EquipamientoApi[],
   equipment_options?: EquipamientoOpcionesApi[][],
   personalized_equipment: string[],
-  options_name?: OptionsNameApi,
-  traits_options?: TraitsOptionsApi
+  options_name?: OptionsNameApi   
 }
 
 export interface OptionsNameApi {

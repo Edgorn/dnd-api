@@ -4,6 +4,7 @@ import { RaceMongo, SubraceMongo, TypeMongo, VarianteMongo } from "../../../../d
 const varianteSchema = new Schema<VarianteMongo>({
   name: String,
   ability_bonuses: [],
+  skill_choices: {},
   options: [],
   dotes: Number
 });
@@ -21,6 +22,7 @@ const subrazaSchema = new Schema<SubraceMongo>({
   ability_bonuses: [],
   traits: [String],
   traits_data: {},
+  language_choices: {},
   options: [],
   /*resistances: [String],*/
   types: [tipoSchema],
@@ -34,9 +36,11 @@ const razaSchema: Schema = new Schema<RaceMongo>({
   img: String,
   speed: Number,
   size: String,
+  traits: [String],
   ability_bonuses: [],
   languages: [String],
-  traits: [String],
+  language_choices: {},
+  skill_choices: {},
   options: [],
   subraces: [subrazaSchema],
   variants: [varianteSchema]

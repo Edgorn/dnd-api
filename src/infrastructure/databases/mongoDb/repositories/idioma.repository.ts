@@ -12,28 +12,15 @@ export default class IdiomaRepository implements IIdiomaRepository {
     this.idiomasMap = {}
   }
 
-  async obtenerTodos(): Promise<IdiomaApi[]> {
-    if (!this.todosConsultados) {
-      const idiomas = await IdiomaSchema.find()
-        .collation({ locale: 'es', strength: 1 })
-        .sort({ name: 1 });
-
-      idiomas.forEach(idioma => (this.idiomasMap[idioma.index] = idioma))
-      this.todosConsultados = true
-    }
-    
-    return this.formatearIdiomas(Object.values(this.idiomasMap))
-  }
-
   async obtenerIdiomasPorIndices(indices: string[]): Promise<IdiomaApi[]> {
     if (!indices.length) return [];
     
-    const result: IdiomaApi[] = [];
+    const result: IdiomaMongo[] = [];
     const missing: string[] = [];
 
     indices.forEach(indice => {
       if (this.idiomasMap[indice]) {
-        result.push(this.formatearIdioma(this.idiomasMap[indice]));
+        result.push(this.idiomasMap[indice]);
       } else {
         missing.push(indice);
       }
@@ -42,11 +29,11 @@ export default class IdiomaRepository implements IIdiomaRepository {
     if (missing.length > 0) {
       const idiomas = await IdiomaSchema.find({ index: { $in: missing } })
         
-      idiomas.forEach(i => (this.idiomasMap[i.index] = i));
-      result.push(...this.formatearIdiomas(idiomas));
+      idiomas.forEach(idioma => (this.idiomasMap[idioma.index] = idioma));
+      result.push(...idiomas);
     }
 
-    return ordenarPorNombre(result);
+    return ordenarPorNombre(this.formatearIdiomas(result));
   }
   
   async formatearOpcionesDeIdioma(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<IdiomaApi> | undefined> {
@@ -72,6 +59,19 @@ export default class IdiomaRepository implements IIdiomaRepository {
 
     console.warn("Opciones de idioma no reconocidas:", opciones.options);
     return undefined;
+  }
+
+  private async obtenerTodos(): Promise<IdiomaApi[]> {
+    if (!this.todosConsultados) {
+      const idiomas = await IdiomaSchema.find()
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+
+      idiomas.forEach(idioma => (this.idiomasMap[idioma.index] = idioma))
+      this.todosConsultados = true
+    }
+    
+    return this.formatearIdiomas(Object.values(this.idiomasMap))
   }
 
   private formatearIdiomas(idiomas: IdiomaMongo[]): IdiomaApi[] {

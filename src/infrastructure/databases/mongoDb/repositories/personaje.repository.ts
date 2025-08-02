@@ -24,7 +24,7 @@ import IDisciplinaRepository from '../../../../domain/repositories/IDisciplinaRe
 import IMetamagiaRepository from '../../../../domain/repositories/IMetamagiaRepository';
 import MetamagiaRepository from './metamagia.repository';
 import Campaña from '../schemas/Campaña';
-import { CompetenciaApi, DañoApi } from '../../../../domain/types';
+import { DañoApi } from '../../../../domain/types';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import DoteRepository from './dote.repository';
 import ICampañaRepository from '../../../../domain/repositories/ICampañaRepository';
@@ -132,12 +132,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     HP += Math.floor((abilities.con/2) - 5)
 
-    const competencias = await this.competenciaRepository.obtenerCompetenciasPorIndices(proficiencies)
-
-    const proficiency_weapon:CompetenciaApi[] = competencias.filter((prof: any) => prof.type === 'Armas') ?? []
-    const proficiency_armor:CompetenciaApi[] = competencias.filter((prof: any) => prof.type === 'Armaduras') ?? []
-    const proficiency_others:CompetenciaApi[] = competencias.filter((prof: any) => prof.type !== 'Armas' && prof.type !== 'Armaduras') ?? []
-
 /*
     let CA = 10
 
@@ -234,9 +228,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       saving_throws: saving_throws ?? [],
       skills: [...skills ?? []],
       double_skills,
-      proficiency_weapon: proficiency_weapon.map((prof: any) => prof.index) ?? [],
-      proficiency_armor: proficiency_armor.map((prof: any) => prof.index) ?? [],
-      proficiencies: proficiency_others.map((prof: any) => prof.index) ?? [],
+      proficiencies,
       spells,
       equipment: equipmentData,
       dotes,
@@ -970,8 +962,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
     
     const idiomasId = personaje?.languages ?? []
     const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(personaje?.proficiencies ?? [])
-    const weapons = await this.competenciaRepository.obtenerCompetenciasPorIndices(personaje?.proficiency_weapon ?? [])
-    const armors = await this.competenciaRepository.obtenerCompetenciasPorIndices(personaje?.proficiency_armor ?? [])
 
     const resistances:DañoApi[] = []
 
@@ -1013,7 +1003,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       }*/
 
       if (trait?.proficiencies_weapon) {
-        weapons.push(...trait?.proficiencies_weapon)
+        proficiencies.push(...trait?.proficiencies_weapon)
       }
 /*
       if (trait?.languages) {
@@ -1021,7 +1011,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       }
 */
       if (trait?.proficiencies_armor) {
-        armors.push(...trait?.proficiencies_armor)
+        proficiencies.push(...trait?.proficiencies_armor)
       }
 
       if (trait?.speed) {
@@ -1029,28 +1019,15 @@ export default class PersonajeRepository extends IPersonajeRepository {
       }
     })
 
-    const indices = new Set(weapons.map(item => item.index));
+    const indices = new Set(proficiencies.map(item => item.index));
 
     // Paso 2: filtrar los que tengan en `desc` un index presente en la lista
-    const filteredWeapons = weapons.filter(item =>
-      !item.desc.some(d => indices.has(d))
-    );
+    /**const filteredProficiencies = proficiencies.filter(item =>
+      !item?.desc.some(d => indices.has(d))
+    );*/
 
     const idiomas = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId)
-
-    const habilidades = this.habilidadRepository
-      .obtenerHabilidades()
-      .map(habilidad => {
-        return {
-          ...habilidad,
-          competencia: personaje?.double_skills?.includes(habilidad?.index)
-            ? 2
-            : skills?.includes(habilidad?.index) ? 1 : 0
-        }
-      })
-      .sort((a, b) => {
-        return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-      })
+    const habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills)
 
     const equipo = this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
     const equipoPersonaje:any[] = []
@@ -1124,7 +1101,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
           .forEach(spell => {
             spells[groupSpells].list.push(spell)
           })
-
+   
         //const claseData = await this.claseRepository.getClase(groupSpells)
 /*
         if (claseData) {
@@ -1189,8 +1166,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
       speed: speed + plusSpeed,
       skills: habilidades,
       languages: idiomas,
-      weapons: filteredWeapons,
-      armors,
       proficiencies,
       traits,
       traits_data: personaje.traits_data,
@@ -1416,9 +1391,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
      
       escribirCompetencias({
         pdfDoc: originalPdf,
-        languages: personaje?.languages, 
-        weapons: personaje?.weapons, 
-        armors: personaje?.armors, 
+        languages: personaje?.languages,
         proficiencies: personaje?.proficiencies
       })
 
