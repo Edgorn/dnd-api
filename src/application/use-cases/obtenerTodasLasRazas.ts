@@ -1,5 +1,5 @@
 import RazaService from "../../domain/services/raza.service";
-import { RaceApi } from "../../domain/types/razas";
+import { RaceApi } from "../../domain/types/razas.types";
 
 export default class ObtenerTodasLasRazas {
   private razaService: RazaService

@@ -1,5 +1,5 @@
 import IRazaRepository from "../repositories/IRazaRepository";
-import { RaceApi } from "../types/razas";
+import { RaceApi } from "../types/razas.types";
 
 export default class RazaService {
   private razaRepository: IRazaRepository;

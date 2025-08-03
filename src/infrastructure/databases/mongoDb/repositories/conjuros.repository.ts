@@ -1,51 +1,83 @@
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import { ConjuroApi, ConjuroMongo } from '../../../../domain/types';
+import { ChoiceApi } from '../../../../domain/types';
+import { ChoiceSpell, ConjuroApi, ConjuroMongo } from '../../../../domain/types/conjuros.types';
+import { ordenarPorNombre } from '../../../../utils/formatters';
 import ConjuroSchema from '../schemas/Conjuro';
 
-export default class ConjuroRepository extends IConjuroRepository {
-  conjurosMap: {[key: string]: ConjuroApi}
+export default class ConjuroRepository implements IConjuroRepository {
+  private conjurosMap: Record<string, ConjuroMongo>
 
   constructor() {
-    super()
     this.conjurosMap = {}
   }
 
-  async obtenerConjurosPorIndices(indices: string[]) {
-    const conjuros = await Promise.all(indices.map(index => this.obtenerConjuroPorIndice(index)))
-    return conjuros.filter(index => index !== null && index !== undefined);
-  }
+  async formatearOpcionesDeConjuros(opciones: ChoiceSpell | undefined): Promise<ChoiceApi<ConjuroApi> | undefined> {
+    if (!opciones) return undefined
 
-  async obtenerConjuroPorIndice(index: string) {
-    if (index) {
-      if (this.conjurosMap[index]) {
-        return this.conjurosMap[index];
+    const conjuros = await this.obtenerConjurosPorNivelClase(opciones.level, opciones.class)
+
+    return {
+      choose: opciones.choose,
+      options: conjuros
+    };
+  } 
+
+  async obtenerConjurosPorIndices(indices: string[]): Promise<ConjuroApi[]> {
+    if (!indices.length) return [];
+        
+    const result: ConjuroMongo[] = [];
+    const missing: string[] = [];
+
+    indices.forEach(indice => {
+      if (this.conjurosMap[indice]) {
+        result.push(this.conjurosMap[indice]);
       } else {
-        const conjuro = await ConjuroSchema.findOne({index});
-        if (!conjuro) return null;
-
-        this.conjurosMap[index] = conjuro
-
-        return conjuro
+        missing.push(indice);
       }
-    } else {
-      return null
-    }
-  }
-
-  async obtenerConjurosPorNivelClase(nivel: string, clase: string) {
-    const conjuros = await ConjuroSchema.find({
-      level: parseInt(nivel),
-      classes: clase
-    });
-
-    conjuros.sort((a, b) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
-
-    conjuros.forEach(conjuro => {
-      this.conjurosMap[conjuro.index] = conjuro
     })
 
-    return conjuros
+    if (missing.length > 0) {
+      const conjuros = await ConjuroSchema.find({ index: { $in: missing } })
+        
+      conjuros.forEach(conjuro => (this.conjurosMap[conjuro.index] = conjuro));
+      result.push(...conjuros);
+    }
+
+    return ordenarPorNombre(this.formatearConjuros(result));
+  }
+
+  async obtenerConjurosPorNivelClase(nivel: number, clase: string): Promise<ConjuroApi[]> {
+    const conjuros = await ConjuroSchema.find({
+        level: nivel,
+        classes: clase
+      }) 
+      .collation({ locale: 'es', strength: 1 })
+      .sort({ name: 1 });
+    
+    conjuros.forEach(conjuro => (this.conjurosMap[conjuro.index] = conjuro));
+
+    return this.formatearConjuros(conjuros)
+  }
+   
+  formatearConjuros(conjuros: ConjuroMongo[]): ConjuroApi[] {
+    return conjuros.map(conjuro => this.formatearConjuro(conjuro));
+  }
+  
+  formatearConjuro(conjuro: ConjuroMongo): ConjuroApi {
+    return {
+      index: conjuro.index,
+      name: conjuro.name,
+      type: conjuro.type,
+      level: conjuro.level,
+      classes: conjuro.classes,
+      typeName: conjuro.typeName,
+      school: conjuro.school,
+      casting_time: conjuro.casting_time,
+      range: conjuro.range,
+      components: conjuro.components,
+      duration: conjuro.duration,
+      desc: conjuro.desc.join("\n"),
+      ritual: conjuro.ritual
+    }
   }
 }

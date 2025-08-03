@@ -5,7 +5,7 @@ import IEquipamientoRepository from "../domain/repositories/IEquipamientoReposit
 import IHabilidadRepository from "../domain/repositories/IHabilidadRepository"
 import IIdiomaRepository from "../domain/repositories/IIdiomaRepository"
 import IRasgoRepository from "../domain/repositories/IRasgoRepository"
-import { AbilityBonusesApi, AbilityBonusesMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo } from "../domain/types"
+import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo } from "../domain/types"
 import { HabilidadApi } from "../domain/types/habilidades.types"
 
 const caracteristicas: {[key: string]: string} = {
@@ -27,6 +27,27 @@ export const ordenarPorNombre = <T extends { name: string }>(items: T[]): T[] =>
   );
 }
 
+export const formatearAbilityBonusChoices = (ability_bonus_choices: ChoiceMongo): ChoiceApi<AbilityBonusesApi> | undefined => {
+  if (!ability_bonus_choices) return undefined;
+
+  if (Array.isArray(ability_bonus_choices.options)) {
+    const options = ability_bonus_choices.options.map(option => {
+      return {
+        index: option,
+        name: caracteristicas[option] ?? option,
+        bonus: 1
+      }
+    })
+    
+    return {
+      ...ability_bonus_choices,
+      options
+    };
+  }
+
+  return undefined
+}
+
 export const formatearAbilityBonuses = (ability_bonuses: AbilityBonusesMongo[]): AbilityBonusesApi[] => {
   const abilityBonuses = ability_bonuses?.map(ability => {
     return {
@@ -42,12 +63,12 @@ export const formatearAbilityBonuses = (ability_bonuses: AbilityBonusesMongo[]):
 export const formatearConjuros = async (spellsApi: string[], conjuroRepository: IConjuroRepository, rasgoRepository: IRasgoRepository) => {
   const conjuros = spellsApi.map(async spell => {
     const arraySpell = spell.split('_')
-    const conjuro = conjuroRepository.obtenerConjuroPorIndice(arraySpell[0])
+    //const conjuro = conjuroRepository.obtenerConjuroPorIndice(arraySpell[0])
 
-    if (!conjuro) {
+    //if (!conjuro) {
       return null;
-    }
-
+    //}
+/*
     const caracteristica = caracteristicas[arraySpell[1]] 
 
     let tipo = ''
@@ -56,7 +77,7 @@ export const formatearConjuros = async (spellsApi: string[], conjuroRepository: 
       tipo = caracteristica
     } else {
       /*const rasgo = await rasgoRepository.obtenerRasgoPorIndice(arraySpell[1] ?? null)
-      tipo = rasgo?.name ?? ''*/
+      tipo = rasgo?.name ?? ''*//*
       tipo = "MIRAR FORMATEAR CONJUROS"
     }
 
@@ -64,7 +85,7 @@ export const formatearConjuros = async (spellsApi: string[], conjuroRepository: 
       ...conjuro,
       type: arraySpell[1],
       typeName: tipo
-    }
+    }*/
   })
   .filter(conjuro => conjuro !== null);
 
@@ -174,6 +195,9 @@ export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaReposit
         )
       }*/
     } else if (type === 'caracteristica') {
+     console.log("CARACTERISTICA2")
+     console.log(optionApi)
+      /*
       if (isStringArray(optionApi.options))  {
         options.push(
           ...optionApi.options.map(option => {
@@ -183,8 +207,11 @@ export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaReposit
             }
           })
         )
-      }
+      }*/
     } else if (type?.split('_')[0] === 'conjuro') {
+     console.log("CONJURO")
+     console.log(optionApi)
+      /*
       if (optionApi.api) {
         const dataApi = optionApi.api.split('_')
         const level = dataApi[0]
@@ -222,7 +249,7 @@ export const formatearOptions = async (optionsApi: OptionsMongo[], idiomaReposit
               .map(conjuro => { return { index: conjuro.index, name: conjuro.name, type: (optionApi?.type?.split('_')[1] ?? undefined) } })
           )
         }
-      }
+      }*/
     } else if (type === 'choice' && !isStringArray(optionApi.options)) {
       const newOptions = await formatearOptions(optionApi?.options, idiomaRepository, competenciasRepository, habilidadRepository, conjuroRepository)
       options.push(...newOptions)

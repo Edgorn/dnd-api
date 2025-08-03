@@ -71,7 +71,7 @@ export default class IdiomaRepository implements IIdiomaRepository {
       this.todosConsultados = true
     }
     
-    return this.formatearIdiomas(Object.values(this.idiomasMap))
+    return ordenarPorNombre(this.formatearIdiomas(Object.values(this.idiomasMap)))
   }
 
   private formatearIdiomas(idiomas: IdiomaMongo[]): IdiomaApi[] {

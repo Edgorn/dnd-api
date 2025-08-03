@@ -15,7 +15,8 @@ export default class TransfondoRepository implements ITransfondoRepository {
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly idiomaRepository: IIdiomaRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
-    private readonly rasgoRepository: IRasgoRepository) {}
+    private readonly rasgoRepository: IRasgoRepository
+  ) {}
 
   async obtenerTodos(): Promise<TransfondoApi[]> {
     try {

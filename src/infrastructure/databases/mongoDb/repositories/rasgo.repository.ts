@@ -1,6 +1,5 @@
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
-import IIdiomaRepository from "../../../../domain/repositories/IIdiomaRepository";
 import IDañoRepository from "../../../../domain/repositories/IDañoRepository";
 import DañoRepository from "./daño.repository";
 import RasgoSchema from "../schemas/Rasgo";
@@ -68,7 +67,7 @@ export default class RasgoRepository implements IRasgoRepository {
       const rasgos = await RasgoSchema.find({ index: { $in: missing } })
       rasgos.forEach(rasgo => (this.rasgosMap[rasgo.index] = rasgo));
 
-      const rasgosFormateados = await this.formatearRasgos(rasgos)
+      const rasgosFormateados = await this.formatearRasgos(rasgos, data)
       result.push(...rasgosFormateados);
     }
 

@@ -34,14 +34,14 @@ export default class DisciplinaRepository extends IDisciplinaRepository {
     const disciplinas = await DisciplinaSchema.find();
     
     disciplinas.forEach(async (disciplina: any) => {
-    const spells = await this.conjuroRepository.obtenerConjurosPorIndices(disciplina?.spells ?? [])
+    /*const spells = await this.conjuroRepository.obtenerConjurosPorIndices(disciplina?.spells ?? [])
       this.disciplinasMap[disciplina.index] = {
         index: disciplina.index,
         name: disciplina.name,
         desc: disciplina?.desc?.join('\n'),
          spells,
         level: disciplina?.level ?? 0
-      }; 
+      }; */
     });
   }
 

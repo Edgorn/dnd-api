@@ -55,20 +55,20 @@ export default class HabilidadRepository implements IHabilidadRepository {
     if (!opciones) return undefined
 
     if (Array.isArray(opciones.options)) {
-      const idiomas = await this.obtenerHabilidadesPorIndices(opciones.options);
+      const habilidades = await this.obtenerHabilidadesPorIndices(opciones.options);
       
       return {
         choose: opciones.choose,
-        options: idiomas
+        options: habilidades
       };
     }
 
     if (opciones.options === 'all') {
-      const idiomas = await this.obtenerTodas()
+      const habilidades = await this.obtenerTodas()
 
       return {
         choose: opciones.choose,
-        options: idiomas
+        options: habilidades
       }
     }
 

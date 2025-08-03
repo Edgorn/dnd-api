@@ -1,4 +1,7 @@
-import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo, DoteApi, OptionsApi, OptionsMongo } from "."
+import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo } from "."
+import { CompetenciaApi } from "./competencias.types"
+import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
+import { DoteApi } from "./dotes.types"
 import { HabilidadApi } from "./habilidades.types"
 import { IdiomaApi } from "./idiomas.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
@@ -11,11 +14,12 @@ export interface RaceMongo {
   speed: number,
   size: string,
   ability_bonuses: AbilityBonusesMongo[],
+  ability_bonus_choices: ChoiceMongo,
   traits: string[],
+  skill_choices?: ChoiceMongo,
   languages: string[],
   language_choices?: ChoiceMongo,
-  skill_choices?: ChoiceMongo,
-  options: OptionsMongo[],
+  proficiencies_choices?: ChoiceMongo[],
   subraces: SubraceMongo[],
   variants: VarianteMongo[]
 }
@@ -29,7 +33,7 @@ export interface SubraceMongo {
   traits: string[],
   traits_data: RasgoDataMongo,
   language_choices?: ChoiceMongo,
-  options: OptionsMongo[],
+  spell_choices?: ChoiceSpell,
   types: TypeMongo[],
 }
 
@@ -40,10 +44,10 @@ export interface TypeMongo {
 }
 
 export interface VarianteMongo {
-  name: String,
+  name: string,
   ability_bonuses: AbilityBonusesMongo[],
   skill_choices?: ChoiceMongo,
-  options: OptionsMongo[],
+  ability_bonus_choices: ChoiceMongo,
   dotes?: number
 }
 
@@ -55,12 +59,15 @@ export interface RaceApi {
   speed: number,
   size: string,
   ability_bonuses: AbilityBonusesApi[],
+  ability_bonus_choices?: ChoiceApi<AbilityBonusesApi>,
+  skill_choices?: ChoiceApi<HabilidadApi>,
   traits: RasgoApi[],
   languages: IdiomaApi[],
   language_choices?: ChoiceApi<IdiomaApi>,
-  skill_choices?: ChoiceApi<HabilidadApi>,
-  options: OptionsApi[],
-  subraces: SubraceApi[]
+  proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
+  spell_choices?: ChoiceApi<ConjuroApi>,
+  subraces: SubraceApi[], 
+  variants: VarianteApi[]
 } 
 
 export interface SubraceApi {
@@ -72,8 +79,7 @@ export interface SubraceApi {
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
   language_choices?: ChoiceApi<IdiomaApi>,
-  options: OptionsApi[],
-  /*resistances: DañoApi[],*/
+  spell_choices?: ChoiceApi<ConjuroApi>,
   types: TypeApi[],
 }
 
@@ -84,12 +90,9 @@ export interface TypeApi {
 }
 
 export interface VarianteApi {
-  name: String,
+  name: string,
   ability_bonuses: AbilityBonusesApi[],
   skill_choices?: ChoiceApi<HabilidadApi>,
-  options: OptionsApi[],
-  dotes: {
-    choose: number,
-    options: DoteApi[]
-  } | null
+  ability_bonus_choices?: ChoiceApi<AbilityBonusesApi>,
+  dotes?: ChoiceApi<DoteApi>
 }

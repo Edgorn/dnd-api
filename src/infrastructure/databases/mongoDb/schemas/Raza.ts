@@ -1,11 +1,11 @@
 import mongoose, { Schema } from "mongoose";
-import { RaceMongo, SubraceMongo, TypeMongo, VarianteMongo } from "../../../../domain/types/razas";
+import { RaceMongo, SubraceMongo, TypeMongo, VarianteMongo } from "../../../../domain/types/razas.types";
 
 const varianteSchema = new Schema<VarianteMongo>({
   name: String,
   ability_bonuses: [],
   skill_choices: {},
-  options: [],
+  ability_bonus_choices: {},
   dotes: Number
 });
 
@@ -23,8 +23,7 @@ const subrazaSchema = new Schema<SubraceMongo>({
   traits: [String],
   traits_data: {},
   language_choices: {},
-  options: [],
-  /*resistances: [String],*/
+  spell_choices: {},
   types: [tipoSchema],
   desc: String
 });
@@ -36,12 +35,13 @@ const razaSchema: Schema = new Schema<RaceMongo>({
   img: String,
   speed: Number,
   size: String,
-  traits: [String],
   ability_bonuses: [],
+  ability_bonus_choices: {},
+  traits: [String],
+  skill_choices: {},
   languages: [String],
   language_choices: {},
-  skill_choices: {},
-  options: [],
+  proficiencies_choices: [],
   subraces: [subrazaSchema],
   variants: [varianteSchema]
 }, { collection: 'Razas' });

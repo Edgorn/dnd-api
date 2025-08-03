@@ -1,4 +1,3 @@
-import { ObjectId } from "mongoose";
 import { CompetenciaApi } from "./competencias.types";
 import { IdiomaApi } from "./idiomas.types";
 
@@ -28,9 +27,9 @@ export interface MixedChoiceOptionProficiency {
 
 export interface MixedChoiceOptionNested {
   type: "choice";
-  value: "language_choices" | "proficiencies_choices"; // podrías añadir más en el futuro
-  language_choices?: ChoiceMongo; // si value = "language_choices"
-  proficiencies_choices?: ChoiceMongo[]; // si value = "proficiencies_choices"
+  value: "language_choices" | "proficiencies_choices";
+  language_choices?: ChoiceMongo;
+  proficiencies_choices?: ChoiceMongo[];
 }
 
 export type MixedChoicesApi =
@@ -53,38 +52,6 @@ export interface DañoApi {
   index: string,
   name: string,
   desc: string
-}
-
-export interface ConjuroMongo {
-  index: string,
-  name: string,
-  type: string,
-  level: number,
-  classes: string[],
-  typeName: string,
-  school: string,
-  casting_time: string,
-  range: string,
-  components: string[],
-  duration: string,
-  desc: string[],
-  ritual: boolean 
-}
-
-export interface ConjuroApi {
-  index: string,
-  name: string,
-  type: string,
-  level: number,
-  classes: string[],
-  typeName: string,
-  school: string,
-  casting_time: string,
-  range: string,
-  components: string[],
-  duration: string,
-  desc: string[],
-  ritual: boolean
 }
 
 export interface OptionsMongo {
@@ -154,16 +121,4 @@ export interface EquipamientoOpcionesApi {
     quantity: Number
   }[],
   name: String
-}
-
-export interface DoteMongo {
-  _id: ObjectId,
-  name: string,
-  desc: string[]
-}
-
-export interface DoteApi {
-  index: string,
-  name: string,
-  desc: string
 }

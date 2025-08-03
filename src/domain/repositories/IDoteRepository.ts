@@ -1,23 +1,7 @@
-import { DoteApi, DoteMongo } from "../types";
+import { ChoiceApi } from "../types";
+import { DoteApi } from "../types/dotes.types";
 
-export default class IDoteRepository {
-  async obtenerTodos(): Promise<DoteApi[]> {
-    throw new Error('Método no implementado');
-  }
-
-  async obtenerDotesPorIndices(indices: string[]): Promise<DoteApi[]> {
-    throw new Error('Método no implementado');
-  }
-
-  async obtenerDotePorIndice(index: string): Promise<DoteApi | null> {
-    throw new Error('Método no implementado');
-  }
-
-  formatearDotes(dotes: DoteMongo[]): DoteApi[] {
-    throw new Error('Método no implementado');
-  }
-
-  formatearDote(dote: DoteMongo): DoteApi {
-    throw new Error('Método no implementado');
-  }
+export default interface IDoteRepository {
+  formatearOpcionesDeDote(cantidad: number | undefined): Promise<ChoiceApi<DoteApi> | undefined>
+  obtenerDotesPorIndices(indices: string[]): Promise<DoteApi[]>
 }

@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { ConjuroMongo } from "../../../../domain/types";
+import { ConjuroMongo } from "../../../../domain/types/conjuros.types";
 
 const conjuroSchema: Schema = new Schema<ConjuroMongo>({
   index: String,

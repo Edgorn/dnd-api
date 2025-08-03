@@ -1,23 +1,7 @@
-import { ConjuroApi } from "../types";
+import { ChoiceApi } from "../types";
+import { ChoiceSpell, ConjuroApi } from "../types/conjuros.types";
 
-export default class IConjuroRepository {
-  /*init(): any {
-    throw new Error('Método no implementado');
-  }
-
-  cargar(): any {
-    throw new Error('Método no implementado');
-  }*/
-
-  async obtenerConjurosPorIndices(params: string[]): Promise<ConjuroApi[]> {
-    throw new Error('Método no implementado');
-  }
-
-  async obtenerConjuroPorIndice(params: string):  Promise<ConjuroApi | null> {
-    throw new Error('Método no implementado');
-  }
-
-  async obtenerConjurosPorNivelClase(nivel: string, clase: string): Promise<ConjuroApi[]> {
-    throw new Error('Método no implementado');
-  }
+export default interface IConjuroRepository {
+  formatearOpcionesDeConjuros(opciones: ChoiceSpell | undefined): Promise<ChoiceApi<ConjuroApi> | undefined>
+  obtenerConjurosPorIndices(indices: string[]): Promise<ConjuroApi[]> 
 }

@@ -1,68 +1,67 @@
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
-import { DoteApi, DoteMongo } from '../../../../domain/types';
+import { ChoiceApi } from '../../../../domain/types';
+import { DoteApi, DoteMongo } from '../../../../domain/types/dotes.types';
+import { ordenarPorNombre } from '../../../../utils/formatters';
 import DoteSchema from '../schemas/Dote';
 
-export default class DoteRepository extends IDoteRepository {
-  dotesMap: {
-    [key: string]: DoteApi
-  }
+export default class DoteRepository implements IDoteRepository {
+  private dotesMap: Record<string, DoteMongo>
+  private todosConsultados = false
 
   constructor() {
-    super()
     this.dotesMap = {}
   }
 
-  async obtenerTodos() {
-    const dotes = await DoteSchema.find()
+  async formatearOpcionesDeDote(cantidad: number | undefined): Promise<ChoiceApi<DoteApi> | undefined> {
+    if (cantidad === undefined) return undefined
 
-    const formateados = this.formatearDotes(dotes)
-    
-    formateados.sort((a: any, b: any) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
+    const dotes = await this.obtenerTodos()
 
-    formateados.forEach(dote => {
-      if (!this.dotesMap[dote.index]) {
-        this.dotesMap[dote.index] = dote
-      }
-    })
-
-    return formateados.filter(index => index !== null && index !== undefined);
-  }
-
-  async obtenerDotesPorIndices(indices: string[]) {
-    const formateados = await Promise.all(indices.map(index => this.obtenerDotePorIndice(index)))
-
-    formateados.sort((a: any, b: any) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
-
-    return formateados.filter(index => index !== null && index !== undefined);
-  }
-
-  async obtenerDotePorIndice(index: string) {
-    if (index) {
-      if (this.dotesMap[index]) {
-        return this.dotesMap[index]
-      } else {
-        const dote = await DoteSchema.findById(index)
-        if (!dote) return null;
-
-        const doteFormateado = this.formatearDote(dote)
-
-        this.dotesMap[index] = doteFormateado
-
-        return doteFormateado
-      }
-    } else {
-      return null
+    return {
+      choose: cantidad,
+      options: dotes
     }
   }
 
-  formatearDotes(dotes: DoteMongo[]) {
-    const dotesFormateados = dotes.map(dote => this.formatearDote(dote))
+  async obtenerDotesPorIndices(indices: string[]): Promise<DoteApi[]> {
+    if (!indices.length) return [];
+    
+    const result: DoteMongo[] = [];
+    const missing: string[] = [];
 
-    return dotesFormateados
+    indices.forEach(indice => {
+      if (this.dotesMap[indice]) {
+        result.push(this.dotesMap[indice]);
+      } else {
+        missing.push(indice);
+      }
+    })
+
+    if (missing.length > 0) {
+      const dotes = await DoteSchema.find({ _id: { $in: missing } })
+        
+      dotes.forEach(dote => (this.dotesMap[dote.index] = dote));
+      result.push(...dotes);
+    }
+
+    return ordenarPorNombre(this.formatearDotes(result));
+  }
+
+  async obtenerTodos(): Promise<DoteApi[]> {
+    if (!this.todosConsultados) {
+      const dotes = await DoteSchema.find()
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+
+      dotes.forEach(dote => (this.dotesMap[dote.index] = dote))
+      this.todosConsultados = true
+    } 
+    
+    return this.formatearDotes(Object.values(this.dotesMap))
+  }
+
+  formatearDotes(dotes: DoteMongo[]): DoteApi[] {
+    return dotes.map(dote => this.formatearDote(dote));
   }
 
   formatearDote(dote: DoteMongo) {
