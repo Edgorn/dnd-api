@@ -1,12 +1,10 @@
-
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
-import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
-import { formatearEquipamiento, formatearEquipamientosOptions, formatearOptions, mapStringArrayToLabelValue } from '../../../../utils/formatters';
+import { formatearEquipamiento, formatearEquipamientosOptions, mapStringArrayToLabelValue } from '../../../../utils/formatters';
 import TransfondoSchema from '../schemas/Transfondo';
 import { OptionsNameApi, OptionsNameMongo, TransfondoApi, TransfondoMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/transfondos.types';
 import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
@@ -16,7 +14,6 @@ export default class TransfondoRepository implements ITransfondoRepository {
     private readonly habilidadRepository: IHabilidadRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly idiomaRepository: IIdiomaRepository,
-    private readonly conjuroRepository: IConjuroRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly rasgoRepository: IRasgoRepository) {}
 

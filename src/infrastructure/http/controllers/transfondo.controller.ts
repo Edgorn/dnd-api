@@ -3,7 +3,6 @@ import { Request, Response } from "express";
 import HabilidadRepository from "../../databases/mongoDb/repositories/habilidad.repository";
 import CompetenciaRepository from "../../databases/mongoDb/repositories/competencia.repository";
 import IdiomaRepository from "../../databases/mongoDb/repositories/idioma.repository";
-import ConjuroRepository from "../../databases/mongoDb/repositories/conjuros.repository";
 import EquipamientoRepository from "../../databases/mongoDb/repositories/equipamiento.repository";
 import RasgoRepository from "../../databases/mongoDb/repositories/rasgo.repository";
 
@@ -11,13 +10,14 @@ import TransfondoRepository from "../../databases/mongoDb/repositories/transfond
 import TransfondoService from "../../../domain/services/transfondo.service";
 import ObtenerTodosLosTransfondos from "../../../application/use-cases/transfondo/obtenerTodosLosTransfondos";
 
+const competenciaRepository = new CompetenciaRepository()
+
 const transfondoRepository = new TransfondoRepository(
   new HabilidadRepository(),
-  new CompetenciaRepository(),
+  competenciaRepository,
   new IdiomaRepository(),
-  new ConjuroRepository(),
   new EquipamientoRepository(),
-  new RasgoRepository()
+  new RasgoRepository(undefined, competenciaRepository)
 );
 
 const transfondoService = new TransfondoService(transfondoRepository)
