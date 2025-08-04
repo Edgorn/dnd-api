@@ -1,12 +1,12 @@
 import usuarioRoutes from "./routes/usuario.routes";
 import transfondoRoutes from "./routes/transfondo.routes";
+import razaRoutes from "./routes/raza.routes";
 
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require('../databases/mongoDb/mongodb');
 
-const razaRoutes = require('./routes/raza.routes');
 const personajeRoutes = require('./routes/personaje.routes');
 const campañaRoutes = require('./routes/campaña.routes');
 const claseRoutes = require('./routes/clase.routes');
@@ -23,8 +23,8 @@ connectDB();
 
 app.use(usuarioRoutes)
 app.use(transfondoRoutes);
-
 app.use(razaRoutes)
+
 app.use(personajeRoutes)
 app.use(campañaRoutes)
 app.use(claseRoutes);

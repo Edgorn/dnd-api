@@ -1,38 +1,36 @@
-import ObtenerTodasLasRazas from '../../../application/use-cases/obtenerTodasLasRazas';
+import { Request, Response } from 'express';
+
+import ObtenerTodasLasRazas from '../../../application/use-cases/raza/obtenerTodasLasRazas.use-case';
 import RazaService from '../../../domain/services/raza.service';
 import RazaRepository from '../../databases/mongoDb/repositories/raza.repository';
+import IdiomaRepository from '../../databases/mongoDb/repositories/idioma.repository';
+import ConjuroRepository from '../../databases/mongoDb/repositories/conjuros.repository';
+import HabilidadRepository from '../../databases/mongoDb/repositories/habilidad.repository';
+import CompetenciaRepository from '../../databases/mongoDb/repositories/competencia.repository';
+import DoteRepository from '../../databases/mongoDb/repositories/dote.repository';
+import RasgoRepository from '../../databases/mongoDb/repositories/rasgo.repository';
 
-const razaService = new RazaService(new RazaRepository())
+const competenciaRepository = new CompetenciaRepository()
+const conjuroRepository = new ConjuroRepository()
+
+const razaRepository = new RazaRepository(
+  new IdiomaRepository,
+  conjuroRepository,
+  new HabilidadRepository,
+  competenciaRepository,
+  new DoteRepository,
+  new RasgoRepository(undefined, competenciaRepository, conjuroRepository)
+)
+
+const razaService = new RazaService(razaRepository)
 const obtenerTodasLasRazas = new ObtenerTodasLasRazas(razaService);
 
-import ValidarToken from "../../../application/use-cases/usuario/validarToken.use-case";
-import UsuarioService from "../../../domain/services/usuario.service";
-import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repository";
-
-const usuarioService = new UsuarioService(new UsuarioRepository())
-const validarToken = new ValidarToken(usuarioService)
-
-
-const getRazas = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const getRazas = async (req: Request, res: Response) => {
   try {
-    const validToken = await validarToken.execute(token)
-
-    if (validToken) {
-      const { success, data, message } = await obtenerTodasLasRazas.execute()
-
-      if (success) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
+    const data = await obtenerTodasLasRazas.execute()
+    res.status(200).json(data);
+    
   } catch (e) {
-    console.error(e)
     res.status(500).json({ error: 'Error al recuperar las razas' });
   }
 };

@@ -1,40 +1,23 @@
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 import { RaceApi, RaceMongo, SubraceApi, SubraceMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
 import { formatearAbilityBonusChoices, formatearAbilityBonuses, ordenarPorNombre } from '../../../../utils/formatters';
-import CompetenciaRepository from './competencia.repository';
-import ConjuroRepository from './conjuros.repository';
-import DañoRepository from './daño.repository';
-import HabilidadRepository from './habilidad.repository';
-import IdiomaRepository from './idioma.repository';
-import RasgoRepository from './rasgo.repository';
 import RazaSchema from '../schemas/Raza';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
-import DoteRepository from './dote.repository';
 
 export default class RazaRepository implements IRazaRepository {
-  idiomaRepository: IIdiomaRepository
-  rasgoRepository: IRasgoRepository
-  dañoRepository: IDañoRepository
-  habilidadRepository: IHabilidadRepository
-  competenciaRepository: ICompetenciaRepository
-  conjuroRepository: IConjuroRepository
-  doteRepository: IDoteRepository
-
-  constructor() {
-    this.idiomaRepository = new IdiomaRepository()
-    this.conjuroRepository = new ConjuroRepository()
-    this.dañoRepository = new DañoRepository()
-    this.competenciaRepository = new CompetenciaRepository()
-    this.rasgoRepository = new RasgoRepository(this.dañoRepository, this.competenciaRepository)
-    this.habilidadRepository = new HabilidadRepository()
-    this.doteRepository = new DoteRepository()
-  }
+  constructor(
+    private readonly idiomaRepository: IIdiomaRepository,
+    private readonly conjuroRepository: IConjuroRepository,
+    private readonly habilidadRepository: IHabilidadRepository,
+    private readonly competenciaRepository: ICompetenciaRepository,
+    private readonly doteRepository: IDoteRepository,
+    private readonly rasgoRepository: IRasgoRepository
+  ) {}
 
   async obtenerTodas(): Promise<RaceApi[]> {
     try {

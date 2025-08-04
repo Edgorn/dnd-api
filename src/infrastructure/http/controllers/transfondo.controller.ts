@@ -8,7 +8,7 @@ import RasgoRepository from "../../databases/mongoDb/repositories/rasgo.reposito
 
 import TransfondoRepository from "../../databases/mongoDb/repositories/transfondo.repository";
 import TransfondoService from "../../../domain/services/transfondo.service";
-import ObtenerTodosLosTransfondos from "../../../application/use-cases/transfondo/obtenerTodosLosTransfondos";
+import ObtenerTodosLosTransfondos from "../../../application/use-cases/transfondo/obtenerTodosLosTransfondos.use-case";
 
 const competenciaRepository = new CompetenciaRepository()
 
