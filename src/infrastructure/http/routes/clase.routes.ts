@@ -1,7 +1,9 @@
-const express = require('express');
-const router = express.Router();
+import { Router } from "express";
 import claseController from '../controllers/clase.controller';
+import { authMiddleware } from "../middlewares/auth.middleware";
 
-router.get('/clases', claseController.getClases);
+const router = Router();
 
-module.exports = router;
+router.get('/clases', authMiddleware, claseController.getClases);
+
+export default router;

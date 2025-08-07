@@ -1,82 +1,159 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
-import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
-import IDisciplinaRepository from '../../../../domain/repositories/IDisciplinaRepository';
-import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
-import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
-import { ClaseApi, ClaseLevelUp, ClaseMongo, SubclaseApi, SubclaseMongo, SubclaseOptionApi, SubclasesMongo, SubclasesOptionsMongo, SubclasesOptionsMongoOption } from '../../../../domain/types/clases';
-import { formatearEquipamientosOptions, formatearCompetencias, formatearOptions, formatearSalvacion, formatearEquipamiento, formatearDinero } from '../../../../utils/formatters';
+import { ClaseApi, ClaseMongo } from '../../../../domain/types/clases.types';
+import { formatearEquipamientosOptions, formatearSalvacion, formatearEquipamiento } from '../../../../utils/formatters';
 import ClaseSchema from '../schemas/Clase';
-import CompetenciaRepository from './competencia.repository';
-import ConjuroRepository from './conjuros.repository';
-import DañoRepository from './daño.repository';
-import DisciplinaRepository from './disciplina.repository';
-import DoteRepository from './dote.repository';
-import EquipamientoRepository from './equipamiento.repository';
-import HabilidadRepository from './habilidad.repository';
-import IdiomaRepository from './idioma.repository';
-import RasgoRepository from './rasgo.repository';
 
-export default class ClaseRepository extends IClaseRepository {
-  rasgoRepository: IRasgoRepository
-  habilidadRepository: IHabilidadRepository
-  competenciaRepository: ICompetenciaRepository
-  equipamientoRepository: IEquipamientoRepository
-  idiomaRepository: IIdiomaRepository
-  conjuroRepository: IConjuroRepository
-  disciplinaRespository: IDisciplinaRepository
-  dañoRepository: IDañoRepository
-  doteRepository: IDoteRepository
-
-  constructor() {
-    super()
-    this.habilidadRepository = new HabilidadRepository()
-    this.competenciaRepository = new CompetenciaRepository()
-    this.idiomaRepository = new IdiomaRepository()
-    this.conjuroRepository = new ConjuroRepository()
-    this.equipamientoRepository = new EquipamientoRepository()
-    this.dañoRepository = new DañoRepository()
-    this.rasgoRepository = new RasgoRepository(/*this.conjuroRepository,*/ this.dañoRepository)
-    this.disciplinaRespository = new DisciplinaRepository(this.conjuroRepository)
-    this.doteRepository = new DoteRepository()
+export default class ClaseRepository implements IClaseRepository {
+  constructor(
+    private readonly habilidadRepository: IHabilidadRepository,
+    private readonly competenciaRepository: ICompetenciaRepository,
+    private readonly equipamientoRepository: IEquipamientoRepository,
+    private readonly rasgoRepository: IRasgoRepository
+  ) {}
+  
+  async obtenerTodas(): Promise<ClaseApi[]> {
+    try {
+      const clases = await ClaseSchema.find()
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+      return this.formatearClases(clases);
+    } catch (error) {
+      console.error("Error obteniendo clases:", error);
+      throw new Error("No se pudieron obtener los clases");
+    }
   }
 
-  async obtenerTodas() {
-    const clases = await ClaseSchema.find();
-
-    const clasesFormateadas = await this.formatearClases(clases)
-
-    return clasesFormateadas
+  formatearClases(clases: ClaseMongo[]) {
+    return Promise.all(
+      clases
+        .filter(clase => 
+          clase.index === 'barbarian' /*|| 
+          clase.index === 'warlock' || 
+          clase.index === 'cleric' || 
+          clase.index === 'wizard' || 
+          clase.index === 'monk' || 
+          clase.index === 'sorcerer'*/
+        ) 
+        .map(clase => this.formatearClase(clase))
+    );
   }
+
+  async formatearClase(clase: ClaseMongo): Promise<ClaseApi> {  
+    const dataLevel = clase?.levels?.find(level => level.level === 1)
+
+    const [
+      proficiencies,
+      traits,
+      skill_choices
+    ] = await Promise.all([
+      this.competenciaRepository.obtenerCompetenciasPorIndices([ ...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? [] ]),
+      this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [], dataLevel?.traits_data),
+      this.habilidadRepository.formatearOpcionesDeHabilidad(clase.skill_choices)
+    ])
+
+    return {
+      index: clase.index,
+      name: clase.name,
+      desc: clase?.desc ?? '',
+      hit_die: clase.hit_die ?? 0,
+      img: clase.img,
+      prof_bonus: 2,
+      proficiencies,
+      saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
+      skill_choices,
+      equipment: formatearEquipamiento(clase?.starting_equipment ?? [], this.equipamientoRepository),
+      equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),
+      traits,
+      traits_data: dataLevel?.traits_data ?? {}
+      /*money: formatearDinero(clase.money, this.equipamientoRepository),*/
+      /*spellcasting_options: formatearOptions(dataLevel?.spellcasting?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
+      spells ,
+      /*traits_options: traitsOptions,
+      terrain_options: terrainOptions,
+      enemy_options: enemyOptions,*/
+      //subclases_options: subclasesOptions
+    };
+
+    /*
+    const dataSpells = dataLevel?.spellcasting?.spells?.split('_')
+    const traitsOptions = dataLevel?.traits_options
+    const terrainOptions = dataLevel?.terrain_options
+    const enemyOptions = []
+
+    if (traitsOptions) {
+      traitsOptions.options = this.rasgoRepository
+        .obtenerRasgosPorIndices(traitsOptions?.options ?? [])
+        .map(trait => {  return { index: trait.index, name: trait.name } })
+    }
+    
+    if (terrainOptions) {
+      terrainOptions.options = terrainOptions?.options.map(opt => {
+        return {
+          index: opt,
+          name: opt
+        }
+      })
+    }
+
+    if (dataLevel?.enemy_options) {
+      enemyOptions.push(
+        ...dataLevel?.enemy_options.map(en => {
+          return {
+            ...en,
+            options: en.options.map(opt => {
+              return {
+                index: opt,
+                name: opt
+              }
+            })
+          }
+        })
+      )
+    }
+
+    const traitsData = traits?.map(trait => {
+      if (dataLevel?.traits_data) {
+        const data = dataLevel?.traits_data[trait.index]
+        if (data) {
+          let desc: string = trait?.desc ?? ''
+  
+          Object.keys(data).forEach(d => {
+            desc = desc.replaceAll(d, data[d])
+          })
+  
+          return {
+            ...trait,
+            desc
+          }
+          
+        } else {
+          return trait
+        }
+      } else {
+        return trait
+      }
+    })
+
+    const spells = dataLevel?.spellcasting?.all_spells
+      ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase.index) 
+      : []
+
+    const subclasesOptions = await this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*/
+
+    
+  }
+
 /*
   async getClase(index: string) {
     const clase = await ClaseSchema.find({index});
 
     return clase[0] ?? null
   }*/
- 
-  async formatearClases(clases: ClaseMongo[]) {
-    const formateadas = await Promise.all(clases
-      .filter(clase => 
-        clase.index === 'barbarian' /*|| 
-        clase.index === 'warlock' || 
-        clase.index === 'cleric' || 
-        clase.index === 'wizard' || 
-        clase.index === 'monk' || 
-        clase.index === 'sorcerer'*/
-      ) 
-      .map((clase: any) => this.formatearClase(clase)))
-
-    formateadas.sort((a: any, b: any) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
-
-    return formateadas;
-  } 
+ /*
  
   async formatearClase(clase: ClaseMongo): Promise<ClaseApi> {  
     const dataLevel = clase?.levels?.find((level: any) => level.level === 1)
@@ -149,7 +226,7 @@ export default class ClaseRepository extends IClaseRepository {
       ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase.index) 
       : []
 
-    const subclasesOptions = await this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*/
+    const subclasesOptions = await this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*//*
 
     return {
       index: clase.index,
@@ -170,7 +247,7 @@ export default class ClaseRepository extends IClaseRepository {
       spells ,
       /*traits_options: traitsOptions,
       terrain_options: terrainOptions,
-      enemy_options: enemyOptions,*/
+      enemy_options: enemyOptions,*//*
       //subclases_options: subclasesOptions
     };
   }
@@ -291,7 +368,7 @@ export default class ClaseRepository extends IClaseRepository {
       } else {
         return trait
       }
-    })*/
+    })*//*
 
     return {
       index: subclase_option?.index,
@@ -310,7 +387,7 @@ export default class ClaseRepository extends IClaseRepository {
         options: subclaseData?.disciplines_new
           ? this.disciplinaRespository.obtenerTodos()
           : []
-      }*/
+      }*//*
     }
   }
 
@@ -341,7 +418,7 @@ export default class ClaseRepository extends IClaseRepository {
         options: subclaseData?.disciplines_new
           ? this.disciplinaRespository.obtenerTodos()
           : []
-      }*/
+      }*//*
     }
   }
   
@@ -354,5 +431,5 @@ export default class ClaseRepository extends IClaseRepository {
       }
     }
     return false;
-  }
+  }*/
 }

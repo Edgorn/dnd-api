@@ -29,7 +29,7 @@ import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import DoteRepository from './dote.repository';
 import ICampañaRepository from '../../../../domain/repositories/ICampañaRepository';
 import CampañaRepository from './campaña.repository';
-import { ClaseLevelUp, SubclasesOptionsApi } from '../../../../domain/types/clases';
+import { ClaseLevelUp, SubclasesOptionsApi } from '../../../../domain/types/clases.types';
 
 const fs = require('fs');
 const path = require('path');

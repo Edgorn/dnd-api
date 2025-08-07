@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { ClaseMongo, SubclasesOptionsMongo } from "../../../../domain/types/clases";
+import { ClaseMongo, SubclasesOptionsMongo } from "../../../../domain/types/clases.types";
 
 const claseSchema: Schema = new Schema<ClaseMongo>({
   index: String,
@@ -7,9 +7,9 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
   desc: String,
   hit_die: Number,
   img: String,
-  starting_proficiencies: [],
+  proficiencies: [],
+  skill_choices: {},
   saving_throws: [String],
-  options: [],
   starting_equipment: [
     {
       index: String,
@@ -19,10 +19,10 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
   starting_equipment_options: [],
   levels: [{
     level: Number,
+    proficiencies: [],
     traits: [String],
     traits_data: {},
     traits_options: {},
-    prof_bonus: Number,
     /*spellcasting: {},*/
     subclasses_options: {},
     subclasses: {},/*

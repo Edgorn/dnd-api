@@ -1,36 +1,32 @@
 
-import ObtenerTodasLasClases from '../../../application/use-cases/obtenerTodasLasClases';
+
+import { Request, Response } from 'express';
+import HabilidadRepository from '../../databases/mongoDb/repositories/habilidad.repository';
+import CompetenciaRepository from '../../databases/mongoDb/repositories/competencia.repository';
+import EquipamientoRepository from '../../databases/mongoDb/repositories/equipamiento.repository';
+import RasgoRepository from '../../databases/mongoDb/repositories/rasgo.repository';
+
+import ObtenerTodasLasClases from '../../../application/use-cases/clase/obtenerTodasLasClases.use-case';
 import ClaseService from '../../../domain/services/clase.service';
 import ClaseRepository from '../../databases/mongoDb/repositories/clase.repository';
 
-const claseService = new ClaseService(new ClaseRepository())
+const competenciaRepository = new CompetenciaRepository()
+const rasgoRepository = new RasgoRepository(undefined, competenciaRepository)
+
+const claseRepository = new ClaseRepository(
+  new HabilidadRepository,
+  competenciaRepository,
+  new EquipamientoRepository,
+  rasgoRepository
+)
+
+const claseService = new ClaseService(claseRepository)
 const obtenerTodasLasClases = new ObtenerTodasLasClases(claseService);
 
-import ValidarToken from "../../../application/use-cases/usuario/validarToken.use-case";
-import UsuarioService from "../../../domain/services/usuario.service";
-import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repository";
-
-const usuarioService = new UsuarioService(new UsuarioRepository())
-const validarToken = new ValidarToken(usuarioService)
-
-const getClases = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const getClases = async (req: Request, res: Response) => {
   try {
-    const validToken = await validarToken.execute(token)
-    
-    if (validToken) {
-      const { success, data, message } = await obtenerTodasLasClases.execute()
-
-      if (success) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
+    const data = await obtenerTodasLasClases.execute()
+    res.status(200).json(data);
   } catch (e) {
     res.status(500).json({ error: 'Error al recuperar las clases' });
   }
