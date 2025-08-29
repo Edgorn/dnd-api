@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { DoteMongo } from "../../../../domain/types";
+import { DoteMongo } from "../../../../domain/types/dotes.types";
 
 const datoSchema: Schema = new Schema<DoteMongo>({
   name: String,

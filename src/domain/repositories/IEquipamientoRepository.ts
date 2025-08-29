@@ -1,19 +1,6 @@
-import { EquipamientoApi } from "../types";
+import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "../types/equipamientos.types";
 
-export default class IEquipamientoRepository {
-  obtenerEquipamientosPorIndices(index: string[]): EquipamientoApi[] {
-    throw new Error('Método no implementado');
-  }
-
-  obtenerEquipamientoPorIndice(index: string): EquipamientoApi {
-    throw new Error('Método no implementado');
-  }
-  
-  obtenerEquipamientosPorTipos(categoria: string, tipo: string, rango: string): EquipamientoApi[] {
-    throw new Error('Método no implementado');
-  }
-
-  obtenerEquipamientosPorTipo(tipo: string): EquipamientoApi[] {
-    throw new Error('Método no implementado');
-  }
+export default interface IEquipamientoRepository {
+  obtenerEquipamientosPersonajePorIndices(index: EquipamientoPersonajeMongo[]): Promise<EquipamientoPersonajeApi[] | undefined>
+  formatearOpcionesDeEquipamientos(equipamientosOptions: EquipamientoOpcionesMongo[][] | undefined): Promise<EquipamientoChoiceApi[][]> | undefined
 }

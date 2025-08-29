@@ -11,7 +11,8 @@ const transfondoSchema: Schema = new Schema<TransfondoMongo>({
   language_choices: {},
   proficiencies: [],
   proficiencies_choices: [],
-  starting_equipment: [],
+  equipment: [],
+  equipment_choices: [],
   starting_equipment_options: [],
   money: {
     quantity: Number,

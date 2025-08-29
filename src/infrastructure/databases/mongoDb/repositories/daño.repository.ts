@@ -1,41 +1,50 @@
 import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import { DañoApi } from '../../../../domain/types';
+import { ordenarPorNombre } from '../../../../utils/formatters';
 import DañoSchema from '../schemas/Daño';
 
-export default class DañoRepository extends IDañoRepository {
-  dañosMap: {
-    [key: string]: DañoApi
-  }
+export default class DañoRepository implements IDañoRepository {
+  private dañosMap: Record<string, DañoApi>
 
   constructor() {
-    super()
     this.dañosMap = {}
   }
 
   async obtenerDañosPorIndices(indices: string[]) {
-    const daños = await Promise.all(indices.map(index => this.obtenerDañoPorIndice(index)))
+    if (!indices.length) return [];
     
-    daños?.sort((a: any, b: any) => {
-      return a?.name?.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
+    const result: DañoApi[] = [];
+    const missing: string[] = [];
 
-    return daños.filter(index => index !== null && index !== undefined);
+    indices.forEach(indice => {
+      if (this.dañosMap[indice]) {
+        result.push(this.dañosMap[indice]);
+      } else {
+        missing.push(indice);
+      }
+    })
+
+    if (missing.length > 0) {
+      const daños = await DañoSchema.find({ index: { $in: missing } })
+        
+      daños.forEach(daño => (this.dañosMap[daño.index] = daño));
+      result.push(...daños);
+    }
+
+    return ordenarPorNombre(result);
   }
 
   async obtenerDañoPorIndice(index: string) {
-    if (index) {
-      if (this.dañosMap[index]) {
-        return this.dañosMap[index]
-      } else {
-        const daño = await DañoSchema.findOne({index});
-        if (!daño) return null;
-
-        this.dañosMap[index] = daño
-
-        return daño
-      }
+    if (this.dañosMap[index]) {
+      return this.dañosMap[index]
     } else {
-      return null
+      const daño = await DañoSchema.findOne({index});
+
+      if (!daño) return null;
+
+      this.dañosMap[index] = daño
+
+      return daño
     }
   }
 }

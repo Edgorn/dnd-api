@@ -1,5 +1,6 @@
-import { ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionsMongo } from "."
+import { ChoiceApi, ChoiceMongo, EquipamientoOpcionesApi } from "."
 import { CompetenciaApi } from "./competencias.types"
+import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types"
 import { HabilidadApi } from "./habilidades.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 
@@ -12,8 +13,8 @@ export interface ClaseMongo {
   proficiencies: string[],
   skill_choices?: ChoiceMongo,
   saving_throws: string[],
-  starting_equipment: EquipamientoMongo[]
-  starting_equipment_options: EquipamientoOpcionesMongo[][],
+  equipment: EquipamientoPersonajeMongo[],
+  equipment_choices?: EquipamientoOpcionesMongo[][],
   levels: ClaseLevelMongo[]
 }
 
@@ -65,8 +66,8 @@ export interface ClaseApi {
     index: string,
     name: string
   }[],
-  equipment: EquipamientoApi[],
-  equipment_options: EquipamientoOpcionesApi[][],
+  equipment?: EquipamientoPersonajeApi[],
+  equipment_choices?: EquipamientoChoiceApi[][],
   prof_bonus: number
 }
 

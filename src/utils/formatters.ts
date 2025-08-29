@@ -5,7 +5,8 @@ import IEquipamientoRepository from "../domain/repositories/IEquipamientoReposit
 import IHabilidadRepository from "../domain/repositories/IHabilidadRepository"
 import IIdiomaRepository from "../domain/repositories/IIdiomaRepository"
 import IRasgoRepository from "../domain/repositories/IRasgoRepository"
-import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo } from "../domain/types"
+import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, OptionsApi, OptionSelectApi, OptionsMongo } from "../domain/types"
+import { EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "../domain/types/equipamientos.types"
 import { HabilidadApi } from "../domain/types/habilidades.types"
 
 const caracteristicas: {[key: string]: string} = {
@@ -23,7 +24,7 @@ export const mapStringArrayToLabelValue = (arr?: string[]): OptionSelectApi[] =>
 
 export const ordenarPorNombre = <T extends { name: string }>(items: T[]): T[] => {
   return [...items].sort((a, b) => 
-    a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+    a?.name?.localeCompare(b?.name, 'es', { sensitivity: 'base' })
   );
 }
 
@@ -288,7 +289,7 @@ export const formatearSalvacion = (ability_bonuses: string[]) => {
   return abilityBonuses
 }
 
-export const formatearEquipamiento = (equipamientosMongo: EquipamientoMongo[], equipamientoRepository: IEquipamientoRepository): EquipamientoApi[] => {
+export const formatearEquipamiento = (equipamientosMongo: EquipamientoPersonajeMongo[], equipamientoRepository: IEquipamientoRepository): EquipamientoPersonajeApi[] => {
   return equipamientosMongo.map(equipamientoApi => {
     const equipamiento = equipamientoRepository.obtenerEquipamientoPorIndice(equipamientoApi.index)
 

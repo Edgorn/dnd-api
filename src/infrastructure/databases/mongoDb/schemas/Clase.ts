@@ -10,13 +10,13 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
   proficiencies: [],
   skill_choices: {},
   saving_throws: [String],
-  starting_equipment: [
+  equipment: [
     {
       index: String,
       quantity: Number
     }
   ],
-  starting_equipment_options: [],
+  equipment_choices: [],
   levels: [{
     level: Number,
     proficiencies: [],

@@ -68,57 +68,16 @@ export interface OptionsApi {
   //spell?: any
 }
 
-export interface EquipamientoMongo {
-  index: string,
-  quantity: number
-}
-
-export interface EquipamientoApi {
-  index: string,
-  name: string,
-  quantity: number,
-  content: {
-    name: string,
-    quantity: number,
-    item?: string
-  }[],
-  equipped?: boolean,
-  category?: string,
-  weapon?: {
-    damage: {
-      name: string,
-      type: string
-    },
-    two_handed_damage: {
-      name: string,
-      type: string
-    },
-    properties: (string | any)[]
-  }
-  armor?: {
-    category: string,
-    class: {
-      base: number,
-      dex_bonus: number,
-      max_bonus: number
-    }
-  },
-  isMagic?: boolean,
-}
-
-export interface EquipamientoOpcionesMongo {
-  items: {
-    index: String,
-    quantity: Number
-  }[],
-  api: String,
-  quantity: number
-}
-
 export interface EquipamientoOpcionesApi {
   items: {
     index: String,
     quantity: Number
   }[],
   name: String
+}
+
+export interface PropiedadesArma {
+  index: string,
+  name: string,
+  desc: string[],
 }

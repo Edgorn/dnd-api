@@ -4,7 +4,7 @@ import IEquipamientoRepository from '../../../../domain/repositories/IEquipamien
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import { ClaseApi, ClaseMongo } from '../../../../domain/types/clases.types';
-import { formatearEquipamientosOptions, formatearSalvacion, formatearEquipamiento } from '../../../../utils/formatters';
+import { formatearSalvacion } from '../../../../utils/formatters';
 import ClaseSchema from '../schemas/Clase';
 
 export default class ClaseRepository implements IClaseRepository {
@@ -48,12 +48,18 @@ export default class ClaseRepository implements IClaseRepository {
     const [
       proficiencies,
       traits,
-      skill_choices
+      skill_choices,
+      equipment,
+      equipment_choices
     ] = await Promise.all([
       this.competenciaRepository.obtenerCompetenciasPorIndices([ ...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? [] ]),
       this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [], dataLevel?.traits_data),
-      this.habilidadRepository.formatearOpcionesDeHabilidad(clase.skill_choices)
+      this.habilidadRepository.formatearOpcionesDeHabilidad(clase.skill_choices),
+      this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment),
+      this.equipamientoRepository.formatearOpcionesDeEquipamientos(clase?.equipment_choices)
     ])
+
+    console.log(equipment_choices)
 
     return {
       index: clase.index,
@@ -65,8 +71,8 @@ export default class ClaseRepository implements IClaseRepository {
       proficiencies,
       saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
       skill_choices,
-      equipment: formatearEquipamiento(clase?.starting_equipment ?? [], this.equipamientoRepository),
-      equipment_options: formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),
+      equipment,
+      equipment_choices,//formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),
       traits,
       traits_data: dataLevel?.traits_data ?? {}
       /*money: formatearDinero(clase.money, this.equipamientoRepository),*/

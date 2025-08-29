@@ -1,5 +1,6 @@
-import { ChoiceApi, ChoiceMongo, EquipamientoApi, EquipamientoMongo, EquipamientoOpcionesApi, EquipamientoOpcionesMongo, MixedChoicesApi, MixedChoicesMongo, OptionsApi, OptionSelectApi, OptionsMongo } from ".";
+import { ChoiceApi, ChoiceMongo, EquipamientoOpcionesApi, MixedChoicesApi, MixedChoicesMongo, OptionSelectApi } from ".";
 import { CompetenciaApi } from "./competencias.types";
+import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types";
 import { HabilidadApi } from "./habilidades.types";
 import { IdiomaApi } from "./idiomas.types";
 import { RasgoApi, TraitsOptionsApi, TraitsOptionsMongo } from "./rasgos.types";
@@ -15,7 +16,8 @@ export interface TransfondoMongo {
   language_choices?: ChoiceMongo,
   proficiencies: string[],
   proficiencies_choices?: ChoiceMongo[],
-  starting_equipment: EquipamientoMongo[];
+  equipment: EquipamientoPersonajeMongo[];
+  equipment_choices?: EquipamientoOpcionesMongo[][],
   starting_equipment_options: EquipamientoOpcionesMongo[][];
   personalized_equipment: string[],
   money: {
@@ -38,8 +40,8 @@ export interface VarianteMongo {
   traits_options?: TraitsOptionsMongo,
   proficiencies_choices?: ChoiceMongo[],
   mixed_choices?: MixedChoicesMongo[][],
-  starting_equipment: EquipamientoMongo[],
-  starting_equipment_options?: EquipamientoOpcionesMongo[][],
+  equipment: EquipamientoPersonajeMongo[],
+  equipment_choices?: EquipamientoOpcionesMongo[][],
   personalized_equipment: string[],
   options_name?: OptionsNameMongo
 }
@@ -61,8 +63,8 @@ export interface TransfondoApi {
   language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies: CompetenciaApi[],
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
-  equipment: EquipamientoApi[];
-  equipment_options: EquipamientoOpcionesApi[][];
+  equipment?: EquipamientoPersonajeApi[];
+  equipment_choices?: EquipamientoChoiceApi[][],
   personalized_equipment: string[],
   money: {
     quantity: number,
@@ -84,8 +86,8 @@ export interface VarianteApi {
   traits_options?: TraitsOptionsApi,
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
   mixed_choices?: MixedChoicesApi[][],
-  equipment?: EquipamientoApi[],
-  equipment_options?: EquipamientoOpcionesApi[][],
+  equipment?: EquipamientoPersonajeApi[],
+  equipment_choices?: EquipamientoChoiceApi[][],
   personalized_equipment: string[],
   options_name?: OptionsNameApi   
 }

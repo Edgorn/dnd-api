@@ -1,9 +1,5 @@
-export default class IPropiedadArmaRepository {
-  obtenerPropiedadesPorIndices(params: string[]): any[] {
-    throw new Error('Método no implementado');
-  }
+import { PropiedadesArma } from "../types";
 
-  obtenerPropiedadPorIndice(params: string): any {
-    throw new Error('Método no implementado');
-  }
+export default interface IPropiedadArmaRepository {
+  obtenerPropiedadesPorIndices(params: string[]): Promise<PropiedadesArma[]>
 }

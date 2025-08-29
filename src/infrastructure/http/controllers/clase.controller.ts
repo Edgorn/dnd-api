@@ -19,7 +19,7 @@ const claseRepository = new ClaseRepository(
   new EquipamientoRepository,
   rasgoRepository
 )
-
+ 
 const claseService = new ClaseService(claseRepository)
 const obtenerTodasLasClases = new ObtenerTodasLasClases(claseService);
 
@@ -28,6 +28,7 @@ const getClases = async (req: Request, res: Response) => {
     const data = await obtenerTodasLasClases.execute()
     res.status(200).json(data);
   } catch (e) {
+    console.error(e)
     res.status(500).json({ error: 'Error al recuperar las clases' });
   }
 };

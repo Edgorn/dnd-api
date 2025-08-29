@@ -4,7 +4,7 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
-import { formatearEquipamiento, formatearEquipamientosOptions, mapStringArrayToLabelValue } from '../../../../utils/formatters';
+import { mapStringArrayToLabelValue } from '../../../../utils/formatters';
 import TransfondoSchema from '../schemas/Transfondo';
 import { OptionsNameApi, OptionsNameMongo, TransfondoApi, TransfondoMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/transfondos.types';
 import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
@@ -28,8 +28,8 @@ export default class TransfondoRepository implements ITransfondoRepository {
       console.error("Error obteniendo transfondos:", error);
       throw new Error("No se pudieron obtener los transfondos");
     }
-  }
-  
+  } 
+   
   private formatearTransfondos(transfondos: TransfondoMongo[]): Promise<TransfondoApi[]> {
     return Promise.all(transfondos.map(transfondo => this.formatearTransfondo(transfondo)));
   }  
@@ -44,6 +44,8 @@ export default class TransfondoRepository implements ITransfondoRepository {
       language_choices,
       proficiencies,
       proficiencies_choices,
+      equipment,
+      equipment_choices,
       variantes
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits ?? []),
@@ -52,9 +54,11 @@ export default class TransfondoRepository implements ITransfondoRepository {
       this.idiomaRepository.formatearOpcionesDeIdioma(transfondo?.language_choices),
       this.competenciaRepository.obtenerCompetenciasPorIndices(transfondo?.proficiencies ?? []),
       this.competenciaRepository.formatearOpcionesDeCompetencias(transfondo?.proficiencies_choices),
+      this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(transfondo?.equipment),
+      this.equipamientoRepository.formatearOpcionesDeEquipamientos(transfondo?.equipment_choices),
       this.formatearVariantes(transfondo?.variants)
     ])
-       
+    
     return {
       index: transfondo.index,
       name: transfondo.name,
@@ -66,8 +70,8 @@ export default class TransfondoRepository implements ITransfondoRepository {
       language_choices,
       proficiencies,
       proficiencies_choices,
-      equipment: formatearEquipamiento(transfondo?.starting_equipment ?? [], this.equipamientoRepository),
-      equipment_options: formatearEquipamientosOptions(transfondo?.starting_equipment_options ?? [], this.equipamientoRepository),
+      equipment,
+      equipment_choices,
       personalized_equipment: transfondo.personalized_equipment,
       money: transfondo.money,
       god: transfondo?.god,
@@ -91,13 +95,22 @@ export default class TransfondoRepository implements ITransfondoRepository {
   private async formatearVariante(variante: VarianteMongo): Promise<VarianteApi> {
     const options_name = this.formatearOptionsName(variante?.options_name)
 
-    const [traits, traits_options, proficiencies_choices, mixed_choices] = await Promise.all([
+    const [
+      traits, 
+      traits_options, 
+      proficiencies_choices, 
+      mixed_choices,
+      equipment,
+      equipment_choices
+    ] = await Promise.all([
       variante?.traits 
         ? this.rasgoRepository.obtenerRasgosPorIndices(variante?.traits ?? [])
         : Promise.resolve(undefined),
       this.rasgoRepository.obtenerRasgosOptions(variante?.traits_options),
       this.competenciaRepository.formatearOpcionesDeCompetencias(variante?.proficiencies_choices),
-      this.formatearMixedChoices(variante.mixed_choices)
+      this.formatearMixedChoices(variante.mixed_choices),
+      this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(variante?.equipment),
+      this.equipamientoRepository.formatearOpcionesDeEquipamientos(variante?.equipment_choices)
     ])
 
     return {
@@ -108,8 +121,8 @@ export default class TransfondoRepository implements ITransfondoRepository {
       proficiencies_choices,
       mixed_choices,
       personalized_equipment: variante.personalized_equipment,
-      equipment: variante?.starting_equipment ? formatearEquipamiento(variante?.starting_equipment ?? [], this.equipamientoRepository) : undefined,
-      equipment_options: variante?.starting_equipment_options ? formatearEquipamientosOptions(variante?.starting_equipment_options ?? [], this.equipamientoRepository) : undefined,
+      equipment,
+      equipment_choices,
       options_name
     }
   } 

@@ -5,7 +5,6 @@ import CompetenciaRepository from './competencia.repository';
 import HabilidadRepository from './habilidad.repository';
 import IdiomaRepository from './idioma.repository';
 import RasgoRepository from './rasgo.repository';
-import RazaRepository from './raza.repository';
 import EquipamientoRepository from './equipamiento.repository';
 import DañoRepository from './daño.repository';
 import PropiedadArmaRepository from './propiedadesArmas.repository';
@@ -51,7 +50,6 @@ const nameTraits: any = {
 }
 
 export default class PersonajeRepository extends IPersonajeRepository {
-  razaRepository: RazaRepository
   claseRepository: ClaseRepository
   habilidadRepository: HabilidadRepository
   idiomaRepository: IdiomaRepository
@@ -69,7 +67,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
   constructor() {
     super()
-    this.razaRepository = new RazaRepository()
     this.claseRepository = new ClaseRepository()
     this.habilidadRepository = new HabilidadRepository()
     this.idiomaRepository = new IdiomaRepository()
@@ -143,9 +140,9 @@ export default class PersonajeRepository extends IPersonajeRepository {
       CA += 3 + Math.floor((abilities.dex/2) - 5)
     }*/
 
-    const equipmentData: any[] = []
-    const equipmentList = [...equipment, /*...claseData?.starting_equipment ?? []*/]
-
+    //const equipmentData: any[] = []
+    //const equipmentList = [...equipment, /*...claseData?.starting_equipment ?? []*/]
+/*
     equipmentList?.forEach((equip1: any) => {
       const dataEquip = this.equipamientoRepository.obtenerEquipamientoPorIndice(equip1.index)
 
@@ -172,7 +169,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
           equipmentData[idx].quantity += equip1.quantity
         }
       }
-    })
+    })*/
 
     const moneyAux: any = {
       pc: 0,
@@ -230,7 +227,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       double_skills,
       proficiencies,
       spells,
-      equipment: equipmentData,
+      equipment: equipment,
       dotes,
       money: moneyAux,
       HPMax: HP,
@@ -336,7 +333,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     let plusSpeed = 0
 
-    const equipment = await this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.filter(eq => eq.equipped).map(eq => eq.index))
+    const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment.filter(eq => eq.equipped))
 
     equipment.forEach(equip => {
       const armor = { ...equip, ...personaje.equipment.find(eq => eq.equipped && eq.index===equip.index) }
@@ -363,8 +360,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
           armaduraPesada = true
         }
       }
-
-      
     })
 
     if (!armadura) {
@@ -378,7 +373,6 @@ export default class PersonajeRepository extends IPersonajeRepository {
     }
 
     if (!armaduraPesada) {
-
       if (personaje.traits.includes('fast-movement')) {
         plusSpeed += 10
       }
@@ -386,8 +380,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
       /*if (traits.includes('unarmored-movement')) {
         plusSpeed += traitsData['unarmored-movement'].FEET ?? 0
       }*/
-    }
-
+    } 
 
     return {
       CA: CA + shield,
@@ -1028,8 +1021,10 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     const idiomas = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId)
     const habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills)
-
-    const equipo = this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
+    const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)    
+    
+    
+    /*this.equipamientoRepository.obtenerEquipamientosPorIndices(personaje.equipment.map((eq: any) => eq.index))
     const equipoPersonaje:any[] = []
 
     personaje.equipment.forEach(async (equip: any) => {
@@ -1063,7 +1058,7 @@ export default class PersonajeRepository extends IPersonajeRepository {
 
     equipoPersonaje.sort((a: any, b: any) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    })
+    })*/
 
     const clases = personaje.classes.map((clase: any) => {
       return {
@@ -1177,12 +1172,12 @@ export default class PersonajeRepository extends IPersonajeRepository {
       metamagic: metamagicData,
       prof_bonus: personaje.prof_bonus,
       saving_throws: personaje.saving_throws,
-      equipment: equipoPersonaje,
+      equipment: equipment,
       dotes,
       money: personaje?.money ?? 0,
       spells,
       cargaMaxima
-    }
+    } 
   }
 
   async crearPdf(idUser: string, idCharacter: string): Promise<any> {
