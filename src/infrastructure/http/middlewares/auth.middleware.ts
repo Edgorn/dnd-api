@@ -21,6 +21,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       return res.status(401).json({ error: "Token inválido" });
     }
 
+    (req as any).user = isValid;
     next();
   } catch (error) {
     console.error("Error validando token:", error);

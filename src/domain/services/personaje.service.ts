@@ -1,33 +1,21 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { PersonajeBasico } from "../types/personajes";
+import { PersonajeBasico, TypeCrearPersonaje } from "../types/personajes";
 
 export default class PersonajeService {
-  private personajeRepository: IPersonajeRepository;
+  constructor(private readonly personajeRepository: IPersonajeRepository) {}
 
-  constructor(personajeRepository: IPersonajeRepository) {
-    this.personajeRepository = personajeRepository;
+  consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
+    return this.personajeRepository.consultarPorUsuario(id);
   }
 
-  async crearPersonaje(data: any): Promise<{success: boolean, data?: any, message?: string}> {
-    try {
-      const result = await this.personajeRepository.crear(data);
-      return { success: true, data: result };
-      
-    } catch (error) {
-      console.error(error)
-      return { success: false, message: 'Error al crear personaje' };
-    }
+  crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> {
+    return this.personajeRepository.crear(data);
   }
 
-  async consultarPersonajes(id: string): Promise<{success: boolean, data?: PersonajeBasico[], message?: string}> {
-    try {
-      const result = await this.personajeRepository.consultarPersonajesUser(id);
-      return { success: true, data: result };
-      
-    } catch (error) {
-      return { success: false, message: 'Error al consultar personajes' };
-    }
-  }
+
+
+
+
 
   async consultarPersonaje(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
     try {

@@ -59,8 +59,6 @@ export default class ClaseRepository implements IClaseRepository {
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(clase?.equipment_choices)
     ])
 
-    console.log(equipment_choices)
-
     return {
       index: clase.index,
       name: clase.name,
@@ -72,7 +70,7 @@ export default class ClaseRepository implements IClaseRepository {
       saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
       skill_choices,
       equipment,
-      equipment_choices,//formatearEquipamientosOptions(clase?.starting_equipment_options ?? [], this.equipamientoRepository),
+      equipment_choices,
       traits,
       traits_data: dataLevel?.traits_data ?? {}
       /*money: formatearDinero(clase.money, this.equipamientoRepository),*/

@@ -1,71 +1,40 @@
 import { TypeCrearPersonaje, PersonajeBasico, PersonajeMongo } from "../types/personajes";
 
-export default class IPersonajeRepository {
-  async crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> {
-    throw new Error('Método no implementado');
-  }
+export default interface IPersonajeRepository {
+  consultarPorUsuario(id: string): Promise<PersonajeBasico[]> 
+  crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> 
+  /*
+  crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> 
 
-  async consultarPersonajesUser(id: string): Promise<PersonajeBasico[]> {
-    throw new Error('Método no implementado');
-  }
+   consultarPersonajesUser(id: string): Promise<PersonajeBasico[]> 
 
-  async formatearPersonajes(personajes: PersonajeMongo[]): Promise<PersonajeBasico[]> {
-    throw new Error('Método no implementado');
-  }
+   formatearPersonajes(personajes: PersonajeMongo[]): Promise<PersonajeBasico[]> 
 
-  async formatearPersonajeBasico(personaje: PersonajeMongo): Promise<PersonajeBasico | null> {
-    throw new Error('Método no implementado');
-  }
+   formatearPersonajeBasico(personaje: PersonajeMongo): Promise<PersonajeBasico | null> 
 
-  async calcularCA(personaje: PersonajeMongo): Promise<{CA: number, plusSpeed: number}> {
-    throw new Error('Método no implementado');
-  }
+   calcularCA(personaje: PersonajeMongo): Promise<{CA: number, plusSpeed: number}> 
 
-  async consultarPersonajes(indexList: string[]): Promise<PersonajeBasico[]> {
-    throw new Error('Método no implementado');
-  }
+   consultarPersonajes(indexList: string[]): Promise<PersonajeBasico[]> 
 
-  async consultarPersonajeBasico(id: string): Promise<PersonajeBasico | null> {
-    throw new Error('Método no implementado')
-  }
+   consultarPersonajeBasico(id: string): Promise<PersonajeBasico | null> 
 
-  async consultarPersonaje(idUser: string, idCharacter: string): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+   consultarPersonaje(idUser: string, idCharacter: string): Promise<any> 
 
-  async cambiarXp(data: any): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+   cambiarXp(data: any): Promise<any> 
 
-  async subirNivelDatos(data: any): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+   subirNivelDatos(data: any): Promise<any> 
 
-  async subirNivel(data: any): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+   subirNivel(data: any): Promise<any> 
 
-  async añadirEquipamiento(data: any): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+   añadirEquipamiento(data: any): Promise<any> 
 
-  async eliminarEquipamiento(data: any): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+   eliminarEquipamiento(data: any): Promise<any> 
 
-  async equiparArmadura(data: any): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+   equiparArmadura(data: any): Promise<any> 
 
-  async updateMoney(id: string, money: number): Promise<boolean> {
-    throw new Error('Método no implementado');
-  }
+   updateMoney(id: string, money: number): Promise<boolean> 
 
-  async crearPdf(idUser: string, idCharacter: string): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+   crearPdf(idUser: string, idCharacter: string): Promise<any> 
 
-  async entrarPersonajeCampaña(idUser: string, idCharacter: string, idCampaign: string): Promise<PersonajeBasico | null> {
-    throw new Error('Método no implementado');
-  }
+   entrarPersonajeCampaña(idUser: string, idCharacter: string, idCampaign: string): Promise<PersonajeBasico | null> */
 }
