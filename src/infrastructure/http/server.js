@@ -3,6 +3,7 @@ import transfondoRoutes from "./routes/transfondo.routes";
 import razaRoutes from "./routes/raza.routes";
 import claseRoutes from "./routes/clase.routes";
 import personajeRoutes from "./routes/personaje.routes";
+import equipamientoRoutes from "./routes/equipamiento.routes";
 
 const express = require('express');
 const cors = require('cors');
@@ -10,7 +11,6 @@ const bodyParser = require('body-parser');
 const connectDB = require('../databases/mongoDb/mongodb');
 
 const campañaRoutes = require('./routes/campaña.routes');
-const equipamientoRoutes = require('./routes/equipamiento.routes');
 const monstruosRoutes = require('./routes/monstruos.routes');
 const npcsRoutes = require('./routes/npcs.routes');
 const defaultApi = require('../defaultApi/index');
@@ -26,9 +26,9 @@ app.use(transfondoRoutes);
 app.use(razaRoutes)
 app.use(claseRoutes);
 app.use(personajeRoutes)
+app.use(equipamientoRoutes);
 
 app.use(campañaRoutes)
-app.use(equipamientoRoutes);
 app.use(monstruosRoutes);
 app.use(npcsRoutes);
 app.use('*', defaultApi)

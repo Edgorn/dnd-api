@@ -97,7 +97,8 @@ export default class CompetenciaRepository implements ICompetenciaRepository {
     return {
       index: competencia.index,
       name: competencia.name,
-      type: competencia.type
+      type: competencia.type,
+      desc: competencia.desc
     }
   }
 }

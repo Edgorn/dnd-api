@@ -1,7 +1,7 @@
 import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IPropiedadArmaRepository from '../../../../domain/repositories/IPropiedadesArmas';
-import { EquipamientoPersonajeMongo, EquipamientoPersonajeApi, EquipamientoMongo, EquipamientoOpcionesMongo, EquipamientoChoiceApi, EquipamientoApi, WeaponMongo, WeaponApi, WeaponDamageMongo, WeaponDamageApi } from '../../../../domain/types/equipamientos.types';
+import { EquipamientoPersonajeMongo, EquipamientoPersonajeApi, EquipamientoMongo, EquipamientoOpcionesMongo, EquipamientoChoiceApi, EquipamientoApi, WeaponMongo, WeaponApi, WeaponDamageMongo, WeaponDamageApi, EquipamientoBasico, WeaponBasico } from '../../../../domain/types/equipamientos.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import EquipamientoSchema from '../schemas/Equipamiento';
 import DañoRepository from './daño.repository';
@@ -61,18 +61,23 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     ))
   }
 
-  formatearEquipamientosPersonaje(equipamientos: EquipamientoPersonajeMongo[], equipamientosMongo: EquipamientoMongo[]): Promise<EquipamientoPersonajeApi[]> {
+  async obtenerEquipamientosPorTipo(tipo: string): Promise<EquipamientoBasico[]> {
+    const equipamientos = await EquipamientoSchema.find({ category: tipo })
+
+    return this.formatearEquipamientosBasicos(equipamientos)
+  }
+
+  private formatearEquipamientosPersonaje(equipamientos: EquipamientoPersonajeMongo[], equipamientosMongo: EquipamientoMongo[]): Promise<EquipamientoPersonajeApi[]> {
     return Promise.all(equipamientos.map(equipamiento => this.formatearEquipamientoPersonaje(equipamiento, equipamientosMongo)));
   }
 
-  async formatearEquipamientoPersonaje(equipamiento: EquipamientoPersonajeMongo, equipamientosMongo: EquipamientoMongo[]): Promise<EquipamientoPersonajeApi> {
+  private async formatearEquipamientoPersonaje(equipamiento: EquipamientoPersonajeMongo, equipamientosMongo: EquipamientoMongo[]): Promise<EquipamientoPersonajeApi> {
     const equipamientoAux = equipamientosMongo.find(eq => eq.index === equipamiento.index)
     
     if (equipamientoAux) {
       const weapon = await this.formatearWeapon(equipamientoAux.weapon)
       const content = await this.obtenerEquipamientosPersonajePorIndices(equipamientoAux?.content ?? [])
 
-  
       return {
         index: equipamientoAux.index,
         name: equipamientoAux.name,
@@ -96,7 +101,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     }
   }
 
-  async formatearWeapon(weapon: WeaponMongo | undefined): Promise<WeaponApi | undefined> {
+  private async formatearWeapon(weapon: WeaponMongo | undefined): Promise<WeaponApi | undefined> {
     if (!weapon) return undefined
 
     const damage = await this.obtenerDamages(weapon?.damage ?? [])
@@ -113,11 +118,11 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     }
   }
  
-  obtenerDamages(damages: WeaponDamageMongo[]): Promise<WeaponDamageApi[]> {
+  private obtenerDamages(damages: WeaponDamageMongo[]): Promise<WeaponDamageApi[]> {
     return Promise.all(damages?.map(damage => this.obtenerDamage(damage)));
   } 
 
-  async obtenerDamage(damage: WeaponDamageMongo): Promise<WeaponDamageApi> {
+  private async obtenerDamage(damage: WeaponDamageMongo): Promise<WeaponDamageApi> {
     const daño = await this.dañoRepository.obtenerDañoPorIndice(damage?.type ?? "")
 
     return {
@@ -127,13 +132,13 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     }
   }
 
-  formatearOpcionesDeEquipamiento(equipamientosOptions: EquipamientoOpcionesMongo[]): Promise<EquipamientoChoiceApi[]> {
+  private formatearOpcionesDeEquipamiento(equipamientosOptions: EquipamientoOpcionesMongo[]): Promise<EquipamientoChoiceApi[]> {
     return Promise.all(equipamientosOptions.map(
       equipamientoOption => this.formatearOpcionDeEquipamiento(equipamientoOption)
     ))
   }
 
-  async formatearOpcionDeEquipamiento(equipamientosOption: EquipamientoOpcionesMongo): Promise<EquipamientoChoiceApi> {
+  private async formatearOpcionDeEquipamiento(equipamientosOption: EquipamientoOpcionesMongo): Promise<EquipamientoChoiceApi> {
     if (Array.isArray(equipamientosOption.options)) {
       const options = await this.obtenerEquipamientosPersonajePorIndices(
         equipamientosOption.options.map(option => {
@@ -154,8 +159,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     }
 
     const opcionesEquipamiento = equipamientosOption.options.split("-")
-    console.log(opcionesEquipamiento[1])
-    
+
     const options = await this.obtenerEquipamientoPorCategoria(opcionesEquipamiento[0], opcionesEquipamiento[1], opcionesEquipamiento[2])
 
     let name = equipamientosOption.options;
@@ -173,7 +177,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     }
   }  
  
-  async obtenerEquipamientoPorCategoria(category: string, categoriaArma: string, distanciaArma: string): Promise<EquipamientoPersonajeApi[]> {
+  private async obtenerEquipamientoPorCategoria(category: string, categoriaArma: string, distanciaArma: string): Promise<EquipamientoPersonajeApi[]> {
     const query:any = {};
 
     // Si existe, añádelo
@@ -192,5 +196,29 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
       equipamientos.map(equipamiento => { return {...equipamiento, quantity: 1}}), 
       equipamientos
     )
+  }
+
+  private formatearEquipamientosBasicos(equipamientos: EquipamientoMongo[]): EquipamientoBasico[] {
+    return equipamientos.map(
+      equipamiento => this.formatearEquipamientosBasico(equipamiento)
+    )
+  }
+
+  private formatearEquipamientosBasico(equipamiento: EquipamientoMongo): EquipamientoBasico {
+    return {
+      index: equipamiento.index,
+      name: equipamiento.name,
+      weapon: this.formatearWeaponBasico(equipamiento.weapon),
+      armor: equipamiento.armor
+    }
+  }
+
+  private formatearWeaponBasico(weapon: WeaponMongo | undefined): WeaponBasico | undefined {
+    if (!weapon) return undefined
+
+    return {
+      category: weapon.category,
+      range: weapon.range
+    }
   }
 }

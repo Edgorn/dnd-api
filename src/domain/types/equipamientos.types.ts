@@ -11,14 +11,7 @@ export interface EquipamientoMongo {
   equipped?: boolean,
   category?: string,
   weapon?: WeaponMongo,
-  armor?: {
-    category: string,
-    class: {
-      base: number,
-      dex_bonus: number,
-      max_bonus: number
-    }
-  },
+  armor?: ArmorMongo,
   weight: number,
   isMagic?: boolean,
 }
@@ -36,19 +29,13 @@ export interface EquipamientoApi {
   equipped?: boolean,
   category?: string,
   weapon?: WeaponApi,
-  armor?: {
-    category: string,
-    class: {
-      base: number,
-      dex_bonus: number,
-      max_bonus: number
-    }
-  },
+  armor?: ArmorMongo,
   weight: number,
   isMagic?: boolean,
 }
 
 export interface WeaponMongo {
+  category: string,
   damage: WeaponDamageMongo[],
   two_handed_damage: WeaponDamageMongo[],
   properties: string[],
@@ -63,6 +50,17 @@ export interface WeaponMongo {
 export interface WeaponDamageMongo {
   dice: string,
   type: string
+}
+
+export interface ArmorMongo {
+  category: string,
+  class: {
+    base: number,
+    dex_bonus: number,
+    max_bonus: number
+  },
+  str_minimum?: number,
+  stealth_disadvantage?: number
 }
 
 export interface WeaponApi {
@@ -97,4 +95,20 @@ export interface EquipamientoChoiceApi {
   name: string,
   choose: number,
   options: EquipamientoPersonajeApi[],
+}
+
+export interface EquipamientoBasico {
+  index: string,
+  name: string,
+  weapon?: WeaponBasico,
+  armor?: ArmorBasico,
+}
+
+export interface WeaponBasico {
+  category: string,
+  range: string
+}
+
+export interface ArmorBasico {
+  category: string,
 }

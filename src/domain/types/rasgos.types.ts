@@ -1,6 +1,7 @@
 import { DañoApi } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ConjuroApi } from "./conjuros.types"
+import { EstadoApi } from "./estados.types"
 
 export interface RasgoMongo {
   index: string,
@@ -47,9 +48,8 @@ export interface RasgoApi {
   hidden?: boolean,
   resistances: DañoApi[],
   conditional_resistances: DañoApi[],
-  condition_inmunities: any[],
-  proficiencies_weapon: CompetenciaApi[],
-  proficiencies_armor: CompetenciaApi[],
+  condition_inmunities: EstadoApi[],
+  proficiencies: CompetenciaApi[],
   skills?: string[],
   speed?: number,
   spells?: ConjuroApi[]

@@ -4,7 +4,7 @@ import { ClaseApi } from "../types/clases.types";
 export default class ClaseService {
   constructor(private readonly claseRepository: IClaseRepository) { }
 
-  async obtenerTodas(): Promise<ClaseApi[]> {
+  obtenerTodas(): Promise<ClaseApi[]> {
     return this.claseRepository.obtenerTodas();
   }
 }

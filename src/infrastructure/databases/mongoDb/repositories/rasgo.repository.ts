@@ -107,7 +107,7 @@ export default class RasgoRepository implements IRasgoRepository {
           desc = desc.replaceAll(d, rasgoData[d])
         })
       } 
-    } 
+    }
 
     return {
       index: rasgo.index,
@@ -118,8 +118,10 @@ export default class RasgoRepository implements IRasgoRepository {
       resistances,
       conditional_resistances,
       condition_inmunities,
-      proficiencies_weapon,
-      proficiencies_armor,
+      proficiencies: [
+        ...proficiencies_weapon,
+        ...proficiencies_armor
+      ],
       skills: rasgo?.skills ?? [],
       spells,
       speed: rasgo?.speed ?? undefined,

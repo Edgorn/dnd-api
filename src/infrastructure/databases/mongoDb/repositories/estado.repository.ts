@@ -1,42 +1,47 @@
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
-const EstadoSchema = require('../schemas/Estado');
+import { EstadoApi, EstadoMongo } from '../../../../domain/types/estados.types';
+import { ordenarPorNombre } from '../../../../utils/formatters';
+import EstadoSchema from '../schemas/Estado';
 
-export default class EstadoRepository extends IEstadoRepository {
-  estadosMap: {
-    [key: string]: {
-      index: string,
-      name: string
-    }
-  }
+export default class EstadoRepository implements IEstadoRepository {
+  private estadosMap: Record<string, EstadoMongo>
 
   constructor() {
-    super()
     this.estadosMap = {}
-    this.cargarEstados();
   }
 
-  async cargarEstados() {
-    const estados = await EstadoSchema.find();
+  async obtenerEstadosPorIndices(indices: string[]) {
+    if (!indices.length) return [];
 
-    estados.forEach((estado: any) => {
-      this.estadosMap[estado.index] = {
-        index: estado.index,
-        name: estado.name
-      };
-    });
+    const result: EstadoMongo[] = [];
+    const missing: string[] = [];
+
+    indices.forEach(indice => {
+      if (this.estadosMap[indice]) {
+        result.push(this.estadosMap[indice]);
+      } else {
+        missing.push(indice);
+      }
+    })
+
+    if (missing.length > 0) {
+      const estados = await EstadoSchema.find({ index: { $in: missing } })
+        
+      estados.forEach(estado => (this.estadosMap[estado.index] = estado));
+      result.push(...estados);
+    }
+
+    return ordenarPorNombre(this.formatearEstados(result));
   }
 
-  obtenerEstadoPorIndice(index: string) {
-    return this.estadosMap[index];
+  private formatearEstados(estados: EstadoMongo[]): EstadoApi[] {
+    return estados.map(estado => this.formatearEstado(estado));
   }
 
-  obtenerEstadosPorIndices(indices: string[]) {
-    const estados = indices.map(index => this.obtenerEstadoPorIndice(index))
-    
-    estados.sort((a: any, b: any) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
-
-    return estados;
+  private formatearEstado(estado: EstadoMongo): EstadoApi {
+    return {
+      index: estado.index,
+      name: estado.name
+    }
   }
 }

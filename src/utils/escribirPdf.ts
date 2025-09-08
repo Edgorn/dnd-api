@@ -1,4 +1,7 @@
 import { rgb, StandardFonts } from "pdf-lib";
+import { PersonajeApi } from "../domain/types/personajes";
+import { EquipamientoPersonajeApi } from "../domain/types/equipamientos.types";
+import { DoteApi } from "../domain/types/dotes.types";
 
 const abilities: {[key: string]: string} = {
   str: 'FUE',
@@ -106,7 +109,7 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
   return { textY: textY-1, actualHeight }
 }
 
-export async function escribirRasgos({ traits, invocations, disciplines, metamagic, pdfDoc, terrain }: any) {
+export async function escribirRasgos({ traits, invocations, disciplines, metamagic, dotes, pdfDoc }: { traits: any, invocations: any, disciplines: any, metamagic: any, dotes: DoteApi[], pdfDoc: any }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -123,7 +126,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
   // Ataques y lanzamientos de conjuros
   let textY4 = page1.getHeight() - 460;
 
-  const rasgos = [ ...traits ?? [], ...invocations ?? [], ...disciplines ?? [], ...metamagic ?? [] ]
+  const rasgos = [ ...traits ?? [], ...invocations ?? [], ...disciplines ?? [], ...metamagic ?? [], ...dotes ?? []]
   const rasgosList = rasgos.map(rasg => rasg.index)
     
   rasgos
@@ -568,7 +571,7 @@ const armaduras: any = {
   'Armadura de cuero tachonado': 'Cuero tachonado'
 }
  
-export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any) {
+export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { pdfDoc: any, equipment: EquipamientoPersonajeApi[], personaje: PersonajeApi, form: any }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -576,8 +579,8 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   const equipo = equipment
-    .filter((equip: any) => equip.category === "Arma" || equip.category === "Armadura" || equip.category === "Munición" || equipoPersonalizadoUno(equip))
-    .map((equip: any) => {
+    .filter(equip => equip.category === "Arma" || equip.category === "Armadura" || equip.category === "Munición" || equipoPersonalizadoUno(equip))
+    .map(equip => {
       if (equip.category === 'Armadura' && equip?.armor?.category !== 'Escudo' && equip.equipped) {
         let CA = equip?.armor?.class?.base ?? 10
 
@@ -606,11 +609,11 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: any
 
       let dataProperties = ''
 
-      if (equip?.weapon?.properties?.length > 0) {
+      if (equip?.weapon?.properties && equip?.weapon?.properties.length  > 0) {
         dataProperties = '(' + equip?.weapon?.properties
           .map((prop: any) => {
             if (prop?.name === 'Versátil') {
-              return prop?.name + ' ' + equip?.weapon?.two_handed_damage?.dice
+              return prop?.name + ' ' + equip?.weapon?.two_handed_damage?.map(damage => damage.dice).join(", ")
             }
             
             if (prop?.name === 'Arrojadiza') {

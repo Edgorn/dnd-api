@@ -11,5 +11,6 @@ export interface CompetenciaMongo {
 export interface CompetenciaApi {
   index: string,
   name: string,
-  type: string
+  type: string,
+  desc: [string]
 }

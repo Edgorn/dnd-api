@@ -1,9 +1,5 @@
-export default class IEstadoRepository {
-  obtenerEstadosPorIndices(params: string[]): any[] {
-    throw new Error('Método no implementado');
-  }
+import { EstadoApi } from "../types/estados.types";
 
-  obtenerEstadoPorIndice(params: string): any {
-    throw new Error('Método no implementado');
-  }
+export default interface IEstadoRepository {
+  obtenerEstadosPorIndices(params: string[]): Promise<EstadoApi[]>
 }

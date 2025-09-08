@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { PersonajeBasico, TypeCrearPersonaje } from "../types/personajes";
+import { PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento, TypeCrearPersonaje } from "../types/personajes";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) {}
@@ -12,21 +12,19 @@ export default class PersonajeService {
     return this.personajeRepository.crear(data);
   }
 
-
-
-
-
-
-  async consultarPersonaje(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
-    try {
-      const result = await this.personajeRepository.consultarPersonaje(idUser, idCharacter);
-      return { success: true, data: result };
-      
-    } catch (error: any) {
-      console.error(error)
-      return { success: false, message: error?.message ?? 'Error al consultar personaje' };
-    }
+  consultarPersonaje(idCharacter: string, user: string): Promise<PersonajeApi> {
+   return this.personajeRepository.consultarPorId(idCharacter, user);
   }
+
+  obtenerPdf(idCharacter: string, user: string): Promise<any> {
+    return this.personajeRepository.obtenerPdf(idCharacter, user);
+  }
+
+  añadirEquipamiento(data: TypeAñadirEquipamiento): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
+    return this.personajeRepository.añadirEquipamiento(data);
+  }
+
+  /**------------------------- */
  
   async cambiarXp(data: any): Promise<{success: boolean, data?: any, message?: string}> {
     try {
@@ -57,16 +55,6 @@ export default class PersonajeService {
     } catch (error) {
       console.error(error)
       return { success: false, message: 'Error al subir de nivel' };
-    }
-  }
-
-  async añadirEquipamiento(data: any) {
-    try {
-      const result = await this.personajeRepository.añadirEquipamiento(data);
-
-      return { success: true, data: result };
-    } catch (error) {
-      return { success: false, message: 'Error al añadir equipamiento' };
     }
   }
 
@@ -102,16 +90,6 @@ export default class PersonajeService {
 
     } catch (error) {
       return { success: false, message: 'Error al modificar dinero' };
-    }
-  }
-
-  async crearPdf(idUser: string, idCharacter: string): Promise<{success: boolean, data?: any, message?: string}> {
-    try {
-      const result = await this.personajeRepository.crearPdf(idUser, idCharacter);
-      return { success: true, data: result };
-      
-    } catch (error) {
-      return { success: false, message: 'Error al generar pdf' };
     }
   }
 }

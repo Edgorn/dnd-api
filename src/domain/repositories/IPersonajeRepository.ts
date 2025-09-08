@@ -1,8 +1,12 @@
-import { TypeCrearPersonaje, PersonajeBasico, PersonajeMongo } from "../types/personajes";
+import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAñadirEquipamiento } from "../types/personajes";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]> 
   crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> 
+  consultarPorId(idCharacter: string, user: string): Promise<PersonajeApi>
+  obtenerPdf(idCharacter: string, user: string): Promise<any> 
+  añadirEquipamiento(data: TypeAñadirEquipamiento): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> 
+
   /*
   crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> 
 

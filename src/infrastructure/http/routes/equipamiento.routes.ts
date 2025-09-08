@@ -1,7 +1,10 @@
-const express = require('express');
-const router = express.Router();
+import { Router } from "express";
+
 import equipamientoController from '../controllers/equipamiento.controller';
+import { authMiddleware } from "../middlewares/auth.middleware";
 
-router.get('/equipment/:type', equipamientoController.getEquipamientos);
+const router = Router();
 
-module.exports = router;
+router.get('/equipment/:type', authMiddleware, equipamientoController.getEquipamientos);
+
+export default router;

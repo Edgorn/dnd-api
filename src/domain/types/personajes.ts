@@ -1,5 +1,13 @@
 import { ObjectId } from "mongoose"
-import { RasgoDataMongo } from "./rasgos.types"
+import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
+import { HabilidadPersonajeApi } from "./habilidades.types"
+import { IdiomaApi } from "./idiomas.types"
+import { CompetenciaApi } from "./competencias.types"
+import { DañoApi } from "."
+import { EquipamientoPersonajeApi } from "./equipamientos.types"
+import { DoteApi } from "./dotes.types"
+import { ConjuroApi } from "./conjuros.types"
+import { EstadoApi } from "./estados.types"
 
 export interface TypeCrearPersonaje {
   name: string,
@@ -80,6 +88,10 @@ export interface TypeSubirNivel {
   }
 }
 
+export interface TypeAñadirEquipamiento {
+  cantidad: number, equip: string, id: string, isMagic: boolean 
+}
+
 export interface PersonajeBasico {
   id: string,
   img: string,
@@ -141,17 +153,20 @@ export interface PersonajeMongo {
   type: string,
   campaign: string | null,
   languages: string[],
-  spells: {},
+  spells: Record<string, string[]>,
   skills: string[],
   double_skills: string[],
   classes: { class: string, name: string, level: number, hit_die: number }[],
   saving_throws: string[],
   subclasses: string[],
   traits: string[],
-  traits_data: RasgoDataMongo[],
+  traits_data: RasgoDataMongo,
   money: {
-    unit: string,
-    quantity: number
+    pc: number;   // piezas de cobre
+    pp: number;   // piezas de plata
+    pe: number;   // piezas de electrum
+    po: number;   // piezas de oro
+    ppt: number;  // piezas de platino
   },
   dotes: string[],
   prof_bonus: number,
@@ -171,5 +186,72 @@ export interface PersonajeMongo {
 }
 
 export interface PersonajeApi {
-
+  id: string,
+  img: string,
+  name: string,
+  race: string,
+  classes: {
+    class: string,
+    level: number,
+    name: string,
+    hit_die: number
+  }[],
+  subclasses: string[],
+  campaign: {
+    index: string,
+    name: string | null | undefined
+  } | null,
+  appearance: {
+    age: number,
+    height: number,
+    weight: number,
+    eyes: string,
+    hair: string,
+    skin: string
+  },
+  background: {
+    name: string,
+    type: {
+      name: string,
+      values: string[]
+    },
+    history: string[],
+    alignment: string,
+    personality: string[],
+    ideals: string[],
+    bonds: string[],
+    flaws: string[],
+    god: string,
+  },
+  level: number,
+  XP: number,
+  XPMax: number,
+  abilities: Abilities,
+  HPMax: number,
+  CA: number,
+  speed: number,
+  skills: HabilidadPersonajeApi[],
+  languages: IdiomaApi[],
+  proficiencies: CompetenciaApi[],
+  traits: RasgoApi[],
+  traits_data: RasgoDataMongo,
+  resistances: DañoApi[],  
+  conditional_resistances:{ name: string, resistances: DañoApi[] }[],
+  condition_inmunities:{ name: string, estados: EstadoApi[] }[]
+  prof_bonus: number,
+  saving_throws: string[],
+  equipment: EquipamientoPersonajeApi[],
+  dotes: DoteApi[],
+  money: {
+    pc: number;   // piezas de cobre
+    pp: number;   // piezas de plata
+    pe: number;   // piezas de electrum
+    po: number;   // piezas de oro
+    ppt: number;  // piezas de platino
+  },
+  spells: Record<string, { list: ConjuroApi[]; type: string; }>,
+  cargaMaxima: number,
 }
+
+export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
+export type Abilities = Record<AbilityKey, number>;
