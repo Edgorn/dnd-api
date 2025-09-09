@@ -92,6 +92,17 @@ export interface TypeAñadirEquipamiento {
   cantidad: number, equip: string, id: string, isMagic: boolean 
 }
 
+export interface TypeEliminarEquipamiento {
+  cantidad: number, equip: string, id: string, isMagic: boolean 
+}
+
+export interface TypeEquiparArmadura {
+  nuevoEstado: boolean, 
+  equip: string, 
+  id: string, 
+  isMagic: boolean
+}
+
 export interface PersonajeBasico {
   id: string,
   img: string,

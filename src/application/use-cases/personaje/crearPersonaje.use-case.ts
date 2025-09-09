@@ -1,5 +1,5 @@
 import PersonajeService from "../../../domain/services/personaje.service";
-import { PersonajeBasico, TypeCrearPersonaje } from "../../../domain/types/personajes";
+import { PersonajeBasico, TypeCrearPersonaje } from "../../../domain/types/personajes.types";
 
 export default class CrearPersonaje {
   constructor(private readonly personajeService: PersonajeService) { }

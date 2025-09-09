@@ -16,7 +16,7 @@ import IConjuroRepository from '../../../../domain/repositories/IConjuroReposito
 import ConjuroRepository from './conjuros.repository';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import InvocacionRepository from './invocacion.repository';
-import { AbilityKey, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeSubirNivel } from '../../../../domain/types/personajes';
+import { AbilityKey, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import DisciplinaRepository from './disciplina.repository';
 import IDisciplinaRepository from '../../../../domain/repositories/IDisciplinaRepository';
 import IMetamagiaRepository from '../../../../domain/repositories/IMetamagiaRepository';
@@ -252,6 +252,118 @@ export default class PersonajeRepository implements IPersonajeRepository {
       {
         $set: {
           equipment
+        }
+      },
+      { new: true }
+    );
+
+    if (!resultado) {
+      return null
+    }
+
+    const completo = await this.formatearPersonaje(resultado)
+    const basico = await this.formatearPersonajeBasico(resultado)
+
+    return {
+      completo,
+      basico
+    }
+  }
+
+  async eliminarEquipamiento(data: TypeEliminarEquipamiento): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
+    const { id, equip, cantidad, isMagic } = data
+    const personaje = await Personaje.findById(id);
+
+    const equipment = personaje?.equipment ?? []
+
+    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
+
+    if (idx > -1) {
+      if (equipment[idx].quantity === cantidad) {
+        equipment.splice(idx, 1)
+      } else {
+        equipment[idx].quantity -= cantidad 
+      }
+    }
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          equipment
+        }
+      },
+      { new: true }
+    );
+
+    if (!resultado) {
+      return null
+    }
+
+    const completo = await this.formatearPersonaje(resultado)
+    const basico = await this.formatearPersonajeBasico(resultado)
+
+    return {
+      completo,
+      basico
+    }
+  }
+  
+  async equiparArmadura(data: TypeEquiparArmadura): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
+    const { id, equip, nuevoEstado, isMagic } = data
+    const personaje = await Personaje.findById(id);
+
+    const equipment = personaje?.equipment ?? []
+
+    const idx = equipment.findIndex(eq => eq.index === equip && eq.isMagic === isMagic)
+
+    if (idx > -1) {
+      if (equip === 'shield') {
+        equipment.forEach(item => {
+          if (item.index === "shield") {
+            item.equipped = false;
+          }
+        });
+      } else {
+        equipment.forEach(item => {
+          if (item.index !== "shield") {
+            item.equipped = false;
+          }
+        });
+      }
+
+      equipment[idx].equipped = nuevoEstado
+    }
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          equipment
+        }
+      },
+      { new: true }
+    );
+
+    if (!resultado) {
+      return null
+    }
+
+    const completo = await this.formatearPersonaje(resultado)
+    const basico = await this.formatearPersonajeBasico(resultado)
+
+    return {
+      completo,
+      basico
+    }
+  }
+  
+  async modificarDinero(id: string, money: number): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          money
         }
       },
       { new: true }
@@ -759,7 +871,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return pdfBytes
   }
 
-  async consultarPersonajes(indexList: string[]): Promise<PersonajeBasico[]> {
+  private async consultarPersonajes(indexList: string[]): Promise<PersonajeBasico[]> {
     const personajes = await Promise.all(indexList.map(index => {
       return this.consultarPersonajeBasico(index)
     }))
@@ -779,7 +891,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return personajesAux
   }
 
-  async consultarPersonajeBasico(id: string): Promise<PersonajeBasico | null> {
+  private async consultarPersonajeBasico(id: string): Promise<PersonajeBasico | null> {
     const personaje = await Personaje.findById(id);
 
     if (personaje) {
@@ -789,7 +901,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  calcularAbilites(personaje: PersonajeMongo) {
+  private calcularAbilites(personaje: PersonajeMongo) {
     const { abilities } = personaje
 
     if (personaje?.traits?.includes('primal-champion')) {
@@ -800,7 +912,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return abilities
   }
 
-  async cambiarXp(data: any): Promise<any> {
+  private async cambiarXp(data: any): Promise<any> {
     const { id, XP } = data
     
     const resultado = await Personaje.findByIdAndUpdate(
@@ -824,7 +936,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  async subirNivelDatos(data: any): Promise<ClaseLevelUp> {
+  private async subirNivelDatos(data: any): Promise<ClaseLevelUp> {
     const { id, clase } = data
 
     const personaje = await Personaje.findById(id);
@@ -1018,7 +1130,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     */}
   }
 
-  valoresNumericosDistintos(obj1: any, obj2: any): boolean {
+  private valoresNumericosDistintos(obj1: any, obj2: any): boolean {
     for (const key in obj1) {
       if (!obj2) {
         return true
@@ -1029,7 +1141,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return false;
   }
 
-  async subirNivel(data: TypeSubirNivel): Promise<{ basic: PersonajeBasico | null } | null> {
+  private async subirNivel(data: TypeSubirNivel): Promise<{ basic: PersonajeBasico | null } | null> {
     const id = data.id
 
     const { hit, clase, traits, traits_data, prof_bonus, subclase, abilities, /*, spells, invocations, disciplines, metamagic*/ } = data.data
@@ -1189,123 +1301,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
   
 
-  async eliminarEquipamiento(data: any) {
-    const { id, equip, cantidad, isMagic } = data
-    const personaje = await Personaje.findById(id);
 
-    const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip /*&& eq.isMagic === isMagic*/)
 
-    if (idx > -1) {
-      if (equipment[idx].quantity === cantidad) {
-        equipment.splice(idx, 1)
-      } else {
-        equipment[idx].quantity -= cantidad 
-      }
-    }
-
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          equipment
-        }
-      },
-      { new: true }
-    );
-
-    return resultado
-  }
-
-  async equiparArmadura(data: any): Promise<any> {
-    const { id, equip, nuevoEstado, isMagic } = data
-    const personaje = await Personaje.findById(id);
-
-    const equipment = personaje?.equipment ?? []
-
-    const idx = equipment.findIndex(eq => eq.index === equip && eq.isMagic === isMagic)
-
-    if (idx > -1) {
-      if (equip === 'shield') {
-        equipment.forEach(item => {
-          if (item.index === "shield") {
-            item.equipped = false;
-          }
-        });
-      } else {
-        equipment.forEach(item => {
-          if (item.index !== "shield") {
-            item.equipped = false;
-          }
-        });
-      }
-
-      equipment[idx].equipped = nuevoEstado
-    }
-
-    let plusSpeed = 0
-/*
-    if (!armadura) {
-      if (personaje?.traits.includes('barbarian-unarmored-defense')) {
-        CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
-      } else if (personaje?.traits.includes('monk-unarmored-defense')) {
-        CA += Math.floor((personaje?.abilities.wis/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
-      } else if (personaje?.traits.includes('draconid-resistance')) {
-        CA += 3 + Math.floor((personaje?.abilities.dex/2) - 5)
-      }
-
-      if (personaje?.traits.includes('fast-movement')) {
-        plusSpeed += 10
-      }*/
-/*
-      if (personaje?.traits.includes('unarmored-movement')) {
-        plusSpeed += personaje?.traits_data['unarmored-movement'].FEET ?? 0
-      }*/
-    //}
-
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          equipment,
-          plusSpeed
-        }
-      },
-      { new: true }
-    );
-
-    if (resultado) {
-      const personajeFormateado = await this.formatearPersonajeBasico(resultado)
-      
-      return {
-        basic: personajeFormateado
-      }
-    } else {
-      return null
-    }
-  }
-
-  async updateMoney(id: string, money: number): Promise<boolean> {
-    const personaje = await Personaje.findById(id);
-
-    if (personaje) {
-      await Personaje.findByIdAndUpdate(
-        id,
-        {
-          $set: {
-            money
-          }
-        },
-        { new: true }
-      );
-      return true
-    } else {
-      return false
-    }
-  }
-
-  sumaDaño(character: any, equip: any) {
+  private sumaDaño(character: any, equip: any) {
     let suma = equip?.isMagic ? 1 : 0
 
     if (equip.weapon.properties.find((prop: any) => prop.index === 'finesse')) {
@@ -1321,7 +1320,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return suma
   } 
 
-  sumaGolpe(character: PersonajeApi, equip: any) {
+  private sumaGolpe(character: PersonajeApi, equip: any) {
     let suma = 0
     
     suma += this.sumaDaño(character, equip)
@@ -1333,7 +1332,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return suma
   }
 
-  async entrarPersonajeCampaña(idUser: string, idCharacter: string, idCampaign: string) {
+  private async entrarPersonajeCampaña(idUser: string, idCharacter: string, idCampaign: string) {
     const personaje = await Personaje.findById(idCharacter);
 
     if (personaje?.user !== idUser) {
@@ -1347,7 +1346,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return await this.formatearPersonajeBasico(personaje)
   }
 
-  formatNumber(num: any) {
+  private formatNumber(num: any) {
     return (num >= 0 ? "+" : "") + num.toString();
   }
 }

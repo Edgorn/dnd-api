@@ -14,10 +14,10 @@ import CambiarXp from "../../../application/use-cases/cambiarXp";
 import SubirNivelDatos from "../../../application/use-cases/subirNivelDatos";
 import SubirNivel from "../../../application/use-cases/subirNivel";
 import AñadirEquipo from "../../../application/use-cases/personaje/añadirEquipo.use-case";
-import EliminarEquipo from "../../../application/use-cases/eliminarEquipo";
-import EquipArmor from "../../../application/use-cases/equipArmor";
+import EliminarEquipo from "../../../application/use-cases/personaje/eliminarEquipo.use-case";
+import EquipArmor from "../../../application/use-cases/personaje/equiparArmadura.use-case.";
 import CrearPdf from "../../../application/use-cases/personaje/obtenerPdf.use-case";
-import UpdateMoney from "../../../application/use-cases/updateMoney";
+import UpdateMoney from "../../../application/use-cases/personaje/modificarDinero.use-case";
 import { Request, Response } from "express";
 
 import EquipamientoRepository from "../../databases/mongoDb/repositories/equipamiento.repository";
@@ -133,6 +133,29 @@ const eliminarEquipamiento = async (req: Request, res: Response) => {
   }
 };
 
+const equiparArmadura = async (req: Request, res: Response) => {
+  try {
+    const data = await equipArmor.execute(req.body)
+    res.status(200).json(data);
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al añadir el equipamiento' });
+  }
+};
+ 
+const modificarDinero = async (req: Request, res: Response) => {
+  try {
+    const { id, money } = req.body
+    
+    const data = await updateMoney.execute(id, money)
+    res.status(200).json(data);
+    
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al modificar el dinero' });
+  }
+};
+
 
 /**__________________________ */
 
@@ -206,56 +229,6 @@ const levelUp = async (req: any, res: any) => {
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al modificar experiencia' });
-  }
-};
-
-const equiparArmadura = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
-  try {
-    const validToken = await validarToken.execute(token)
-
-    if (validToken) {
-      const { success, data, message } = await equipArmor.execute(req.body)
-
-      if (success) {
-        res.status(200).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
-  } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: 'Error al añadir el equipamiento' });
-  }
-};
- 
-const modificarDinero = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
-  try {
-    const validToken = await validarToken.execute(token)
-
-    if (validToken) {
-      const { id, money } = req.body
-      
-      const { success, message } = await updateMoney.execute(id, money)
-
-      if (success) { 
-        res.status(200).json({});
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
-  } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: 'Error al modificar el dinero' });
   }
 };
 

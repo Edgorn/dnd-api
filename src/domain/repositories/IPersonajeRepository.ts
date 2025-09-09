@@ -1,4 +1,4 @@
-import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAñadirEquipamiento } from "../types/personajes";
+import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAñadirEquipamiento, TypeEliminarEquipamiento, TypeEquiparArmadura } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]> 
@@ -6,6 +6,9 @@ export default interface IPersonajeRepository {
   consultarPorId(idCharacter: string, user: string): Promise<PersonajeApi>
   obtenerPdf(idCharacter: string, user: string): Promise<any> 
   añadirEquipamiento(data: TypeAñadirEquipamiento): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> 
+  eliminarEquipamiento(data: TypeEliminarEquipamiento): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> 
+  equiparArmadura(data: TypeEquiparArmadura): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> 
+  modificarDinero(id: string, money: number): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> 
 
   /*
   crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> 

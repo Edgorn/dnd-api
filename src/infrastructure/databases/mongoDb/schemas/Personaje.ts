@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { TransfondoMongo } from "../../../../domain/types/transfondos.types";
-import { PersonajeMongo } from "../../../../domain/types/personajes";
+import { PersonajeMongo } from "../../../../domain/types/personajes.types";
 
 
 const personajeSchema: Schema = new Schema<PersonajeMongo>({

@@ -1,5 +1,5 @@
 import { rgb, StandardFonts } from "pdf-lib";
-import { PersonajeApi } from "../domain/types/personajes";
+import { PersonajeApi } from "../domain/types/personajes.types";
 import { EquipamientoPersonajeApi } from "../domain/types/equipamientos.types";
 import { DoteApi } from "../domain/types/dotes.types";
 

@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { AbilityKey } from "./personajes"
+import { AbilityKey } from "./personajes.types"
 
 export interface HabilidadMongo {
   _id: ObjectId,

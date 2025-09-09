@@ -87,7 +87,8 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
         weapon: weapon,
         armor: equipamientoAux.armor,
         isMagic: equipamiento.isMagic,
-        weight: equipamientoAux.weight
+        weight: equipamientoAux.weight,
+        equipped: equipamiento.equipped
       }
     } else {
       return {
@@ -96,7 +97,8 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
         quantity: equipamiento.quantity,
         content: [],
         isMagic: equipamiento.isMagic,
-        weight: 0
+        weight: 0,
+        equipped: equipamiento.equipped
       }
     }
   }

@@ -1,5 +1,5 @@
 import PersonajeService from "../../../domain/services/personaje.service";
-import { PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento } from "../../../domain/types/personajes";
+import { PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento } from "../../../domain/types/personajes.types";
 
 export default class AñadirEquipo {
   constructor(private readonly personajeService: PersonajeService) { }

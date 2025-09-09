@@ -19,7 +19,8 @@ export interface EquipamientoMongo {
 export interface EquipamientoPersonajeMongo {
   index: string,
   quantity: number,
-  isMagic?: boolean
+  isMagic?: boolean,
+  equipped?: boolean
 }
 
 export interface EquipamientoApi {
@@ -82,7 +83,8 @@ export interface WeaponDamageApi {
 }
 
 export interface EquipamientoPersonajeApi extends EquipamientoApi {
-  quantity: number
+  quantity: number,
+  equipped?: boolean
 }
 
 export interface EquipamientoOpcionesMongo {
