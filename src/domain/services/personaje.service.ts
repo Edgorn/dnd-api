@@ -1,5 +1,6 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura } from "../types/personajes.types";
+import { ClaseLevelUp } from "../types/clases.types";
+import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) {}
@@ -36,37 +37,15 @@ export default class PersonajeService {
     return this.personajeRepository.modificarDinero(id, money);
   }
 
-  /**------------------------- */
- 
-  async cambiarXp(data: any): Promise<{success: boolean, data?: any, message?: string}> {
-    try {
-      const result = await this.personajeRepository.cambiarXp(data);
-      return { success: true, data: result };
-      
-    } catch (error) {
-      console.error(error)
-      return { success: false, message: 'Error al crear personaje' };
-    }
+  cambiarXp({id, XP}: {id: string, XP: number}): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
+    return this.personajeRepository.cambiarXp({id, XP});
   }
   
-  async subirNivelDatos(data: any): Promise<{success: boolean, data?: any, message?: string}> {
-    try {
-      const result = await this.personajeRepository.subirNivelDatos(data);
-      return { success: true, data: result };
-      
-    } catch (error) {
-      console.error(error)
-      return { success: false, message: 'Error al subir de nivel' };
-    }
+  subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter | null> {
+    return this.personajeRepository.subirNivelDatos({ id, clase });
   }
-  
-  async subirNivel(data: any): Promise<{success: boolean, data?: any, message?: string}> {
-    try {
-      const result = await this.personajeRepository.subirNivel(data);
-      return { success: true, data: result };
-    } catch (error) {
-      console.error(error)
-      return { success: false, message: 'Error al subir de nivel' };
-    }
+
+  subirNivel(data: TypeSubirNivel): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null>  {
+    return this.personajeRepository.subirNivel(data);
   }
 }

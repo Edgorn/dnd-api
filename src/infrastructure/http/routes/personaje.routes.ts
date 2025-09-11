@@ -12,10 +12,8 @@ router.post('/character/addEquipment', authMiddleware, personajeController.añad
 router.post('/character/deleteEquipment', authMiddleware, personajeController.eliminarEquipamiento);
 router.post('/character/equipArmor', authMiddleware, personajeController.equiparArmadura);
 router.post('/character/updateMoney', authMiddleware, personajeController.modificarDinero);
-
-
-router.post('/character/changeXp', personajeController.changeXp);
-router.post('/character/levelUpData', personajeController.levelUpData);
-router.post('/character/levelUp', personajeController.levelUp);
+router.post('/character/changeXp', authMiddleware, personajeController.changeXp);
+router.post('/character/levelUpData', authMiddleware, personajeController.levelUpData);
+router.post('/character/levelUp', authMiddleware, personajeController.levelUp);
 
 export default router;

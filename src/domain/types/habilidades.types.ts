@@ -5,18 +5,15 @@ export interface HabilidadMongo {
   _id: ObjectId,
   index: string,
   name: string,
-  ability_score: string
+  ability_score: AbilityKey
 }
 
 export interface HabilidadApi {
   index: string,
   name: string,
-  ability_score: string
+  ability_score: AbilityKey
 }
 
-export interface HabilidadPersonajeApi {
-  index: string,
-  name: string,
-  ability_score: AbilityKey,
+export interface HabilidadPersonajeApi extends HabilidadApi {
   value: number
 }

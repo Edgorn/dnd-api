@@ -156,7 +156,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
       return {
         name,
         choose: equipamientosOption.choose,
-        options: options ?? []
+        options: options?.map(option => { return {...option, name: option.quantity + "x " + option.name} }) ?? []
       };
     }
 

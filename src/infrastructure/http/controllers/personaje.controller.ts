@@ -10,9 +10,9 @@ import ObtenerPersonajesPorUsuario from "../../../application/use-cases/personaj
 import PersonajeService from "../../../domain/services/personaje.service";
 import PersonajeRepository from "../../databases/mongoDb/repositories/personaje.repository";
 import ConsultarPersonaje from "../../../application/use-cases/personaje/obtenerPersonajePorId.use-case";
-import CambiarXp from "../../../application/use-cases/cambiarXp";
-import SubirNivelDatos from "../../../application/use-cases/subirNivelDatos";
-import SubirNivel from "../../../application/use-cases/subirNivel";
+import ModificarXp from "../../../application/use-cases/personaje/modificarXp.use-case";
+import SubirNivelDatos from "../../../application/use-cases/personaje/subirNivelDatos.use-case";
+import SubirNivel from "../../../application/use-cases/personaje/subirNivel.use-case";
 import AñadirEquipo from "../../../application/use-cases/personaje/añadirEquipo.use-case";
 import EliminarEquipo from "../../../application/use-cases/personaje/eliminarEquipo.use-case";
 import EquipArmor from "../../../application/use-cases/personaje/equiparArmadura.use-case.";
@@ -27,19 +27,26 @@ import IdiomaRepository from "../../databases/mongoDb/repositories/idioma.reposi
 import HabilidadRepository from "../../databases/mongoDb/repositories/habilidad.repository";
 import ConjuroRepository from "../../databases/mongoDb/repositories/conjuros.repository";
 import DoteRepository from "../../databases/mongoDb/repositories/dote.repository";
+import ClaseRepository from "../../databases/mongoDb/repositories/clase.repository";
 
 const competenciaRepository = new CompetenciaRepository()
 const conjuroRepository = new ConjuroRepository()
+const habilidadRepository = new HabilidadRepository()
+const equipamientoRepository = new EquipamientoRepository()
+
+const rasgoRepository = new RasgoRepository(undefined, competenciaRepository, conjuroRepository)
+const claseRepository = new ClaseRepository(habilidadRepository, competenciaRepository, equipamientoRepository, rasgoRepository)
 
 const personajeRepository = new PersonajeRepository(
   new UsuarioRepository(),
-  new EquipamientoRepository(),
-  new RasgoRepository(undefined, competenciaRepository, conjuroRepository),
+  equipamientoRepository,
+  rasgoRepository,
   competenciaRepository,
   new IdiomaRepository(),
-  new HabilidadRepository(),
+  habilidadRepository,
   conjuroRepository,
-  new DoteRepository()
+  new DoteRepository(),
+  claseRepository
 )
 
 const personajeService = new PersonajeService(personajeRepository)
@@ -48,7 +55,7 @@ const obtenerPersonajesPorUsuario = new ObtenerPersonajesPorUsuario(personajeSer
 const crearPersonaje = new CrearPersonaje(personajeService);
 const consultarPersonaje = new ConsultarPersonaje(personajeService);
 
-const cambiaXp = new CambiarXp(personajeService)
+const modificarXp = new ModificarXp(personajeService)
 const subirNivelDatos = new SubirNivelDatos(personajeService)
 const subirNivel = new SubirNivel(personajeService)
 const añadirEquipo = new AñadirEquipo(personajeService);
@@ -156,79 +163,33 @@ const modificarDinero = async (req: Request, res: Response) => {
   }
 };
 
-
-/**__________________________ */
-
-
-const changeXp = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const changeXp = async (req: Request, res: Response) => {
   try {
-    const validToken = await validarToken.execute(token)
-
-    if (validToken) {
-      const { success, data, message } = await cambiaXp.execute(req.body)
-
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
+    const data = await modificarXp.execute(req.body)
+    res.status(200).json(data);
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al modificar experiencia' });
   }
 };
 
-const levelUpData = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const levelUpData = async (req: Request, res: Response) => {
   try {
-    const validToken = await validarToken.execute(token)
-
-    if (validToken) {
-      const { success, data, message } = await subirNivelDatos.execute(req.body)
-
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
+    const data = await subirNivelDatos.execute(req.body)
+    res.status(200).json(data);
   } catch (e) {
     console.error(e)
-    res.status(500).json({ error: 'Error al modificar experiencia' });
+    res.status(500).json({ error: 'Error al subir de nivel' });
   }
 };
 
-const levelUp = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const levelUp = async (req: Request, res: Response) => {
   try {
-    const validToken = await validarToken.execute(token)
-
-    if (validToken) {
-      const { success, data, message } = await subirNivel.execute(req.body)
-
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
+    const data = await subirNivel.execute(req.body)
+    res.status(200).json(data);
   } catch (e) {
     console.error(e)
-    res.status(500).json({ error: 'Error al modificar experiencia' });
+    res.status(500).json({ error: 'Error al subir de nivel' });
   }
 };
 

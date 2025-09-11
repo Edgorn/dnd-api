@@ -8,6 +8,7 @@ import { EquipamientoPersonajeApi } from "./equipamientos.types"
 import { DoteApi } from "./dotes.types"
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
+import { ClaseLevelUp } from "./clases.types"
 
 export interface TypeCrearPersonaje {
   name: string,
@@ -131,7 +132,7 @@ export interface PersonajeMongo {
       name: string,
       values: string[]
     },
-    history: string,
+    history: string[],
     alignment: string,
     personality: string[],
     ideals: string[],
@@ -266,3 +267,18 @@ export interface PersonajeApi {
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
 export type Abilities = Record<AbilityKey, number>;
+
+export interface ClaseLevelUpCharacter extends ClaseLevelUp {
+  prof_bonus: number
+}
+
+export interface TypeSubirNivel {
+  id: string,
+  hit: number,
+  clase: string,
+  traits: string[],
+  traits_data: RasgoDataMongo,
+  prof_bonus: number,
+  subclase?: string,
+  abilities: Record<AbilityKey, number> | null
+}

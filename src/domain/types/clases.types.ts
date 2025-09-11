@@ -98,7 +98,6 @@ export interface SubclaseApi {
 
 export interface ClaseLevelUp {
   hit_die: number,
-  prof_bonus: number,
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
   traits_options?: {

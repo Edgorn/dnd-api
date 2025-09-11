@@ -16,7 +16,7 @@ import IConjuroRepository from '../../../../domain/repositories/IConjuroReposito
 import ConjuroRepository from './conjuros.repository';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import InvocacionRepository from './invocacion.repository';
-import { AbilityKey, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
+import { AbilityKey, ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import DisciplinaRepository from './disciplina.repository';
 import IDisciplinaRepository from '../../../../domain/repositories/IDisciplinaRepository';
 import IMetamagiaRepository from '../../../../domain/repositories/IMetamagiaRepository';
@@ -40,6 +40,7 @@ const path = require('path');
 const { PDFDocument } = require('pdf-lib');
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
+const prof_bonus = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
 
 const caracteristicas: any = {
   str: 'Fuerza',
@@ -77,7 +78,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly idiomaRepository: IIdiomaRepository,
     private readonly habilidadRepository: IHabilidadRepository,
     private readonly conjuroRepository: IConjuroRepository,
-    private readonly doteRepository: IDoteRepository
+    private readonly doteRepository: IDoteRepository,
+    private readonly claseRepository: IClaseRepository
   ) {}
     
     /*private readonly claseRepository: IClaseRepository,
@@ -381,6 +383,213 @@ export default class PersonajeRepository implements IPersonajeRepository {
       basico
     }
   }
+  
+  async cambiarXp({id, XP}: {id: string, XP: number}): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          XP
+        }
+      },
+      { new: true }
+    );
+
+    if (!resultado) {
+      return null
+    }
+
+    const completo = await this.formatearPersonaje(resultado)
+    const basico = await this.formatearPersonajeBasico(resultado)
+
+    return {
+      completo,
+      basico
+    }
+  }
+  
+  async subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter> {
+    const personaje = await Personaje.findById(id);
+    const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
+
+    const dataLevel = await this.claseRepository.dataLevelUp(clase, level+1, personaje?.subclasses ?? [])
+    const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
+
+    return {
+      hit_die: dataLevel?.hit_die ?? 0,
+      prof_bonus: prof_bonus[totalLevels] ?? 0,
+      traits: dataLevel?.traits ?? [],
+      traits_data: dataLevel?.traits_data ?? {},
+      traits_options: dataLevel?.traits_options ?? undefined,
+      subclasesData: dataLevel?.subclasesData ?? null,
+      ability_score: dataLevel?.ability_score ?? false,
+      
+      
+      /*
+      //spellcasting_options: ,
+      //spellcasting_changes: ,
+      invocations,
+      invocations_change,
+      disciplines_new,
+      disciplines_change,
+      metamagic,
+      //subclasesData,
+      //spells
+    */}
+  }
+
+  async subirNivel(data: TypeSubirNivel): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
+    const { id, hit, clase, traits, traits_data, prof_bonus, subclase, abilities, /*, spells, invocations, disciplines, metamagic*/ } = data
+    const personaje = await Personaje.findById(id);
+    //const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
+
+    //const claseData = await this.claseRepository.getClase(clase)
+    //const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
+    
+    //let dataTraitsSubclases = {}
+    //let actualDisciplines = disciplines ?? []
+
+    //const listSubclases = [ ...personaje?.subclasses ?? [], ...subclases ?? []]
+    
+    /*if (dataLevel?.subclasses) {
+      listSubclases?.forEach((subclase: any) => {
+        if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]?.traits_data) {
+          dataTraitsSubclases = {
+            ...dataTraitsSubclases,
+            ...dataLevel?.subclasses[subclase]?.traits_data
+          }
+        }
+  
+        if (dataLevel?.subclasses[subclase]?.disciplines) {
+          actualDisciplines.push(...dataLevel?.subclasses[subclase]?.disciplines ?? [])
+        }
+      })
+    }*/
+    
+    //let traitsData = { ...personaje?.traits_data, traits_data /*...dataLevel?.traits_data, ...dataTraitsSubclases*/ }
+/*
+    traits_data?.forEach((traitData: any) => {
+      traitsData = { ...traitsData, ...traitData }
+    })*/
+/*
+    if (dataLevel?.traits?.includes('primal-champion')) {
+      abilities.str += 4
+      abilities.con += 4
+    }
+*//*
+    const traitsSubclase = dataLevel?.subclasses
+      ? [...subclases ?? [], ...personaje?.subclasses ?? []].map((subclase: any) => {
+          return dataLevel?.subclasses[subclase]?.traits
+        }).flat().filter(item => item !== undefined)
+      : []
+
+    if (trait) {
+      traitsSubclase.push(trait)
+    }
+*/
+
+    //let plusSpeed = 0
+/*
+    if (!armadura) {
+      if (traits.includes('barbarian-unarmored-defense')) {
+        CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
+      } else if (traits.includes('monk-unarmored-defense')) {
+        CA += Math.floor((abilities.wis/2) - 5) + Math.floor((abilities.dex/2) - 5)
+      } else if (traits.includes('draconid-resistance')) {
+        CA += 3 + Math.floor((abilities.dex/2) - 5)
+      }
+
+      if (traits.includes('fast-movement')) {
+        plusSpeed += 10
+      }
+      
+      if (traits.includes('unarmored-movement')) {
+        plusSpeed += traitsData['unarmored-movement'].FEET ?? 0
+      }
+    }
+*/
+    //const spellsData = { ...personaje?.spells }
+/*
+    if (spells.length > 0) {
+      spellsData[clase] = spells
+    }
+/*
+    if (dataLevel?.spellcasting?.all_spells) {
+      const spellsAux = dataLevel?.spellcasting?.all_spells
+        ? await this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase)
+        : []
+
+      spellsData[clase].push(...spellsAux?.map(spell => spell.index) ?? [])
+    }
+ *//*
+    personaje?.subclasses?.forEach((subclase => {
+      if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]) {
+        const nameSpells = clase + '_' + subclase
+        dataLevel?.subclasses[subclase]?.spells?.forEach((spell: string) => {
+          if (!spellsData[nameSpells]) {
+            spellsData[nameSpells] = []
+          }
+          spellsData[nameSpells].push(spell)
+        })
+      }
+    }))
+*/
+    let HP = hit + Math.floor(((personaje?.abilities?.con ?? 10)/2) - 5)
+
+    if (traits.includes('dwarven-toughness')) {
+      HP += 1
+    }
+
+    /*if (clase === 'sorcerer' && traits.includes('draconid-resistance')) {
+      HP += 1
+    }*/
+    
+    const traitsSinRepetidos = [...new Set([...personaje?.traits ?? [], ...traits ?? []])];
+
+    const subclaseArray = subclase ? [subclase] : []
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          XP: 0,
+          prof_bonus: Math.max(prof_bonus ?? 0, personaje?.prof_bonus ?? 0),
+          traits: traitsSinRepetidos,
+          traits_data: { ...personaje?.traits_data, ...traits_data },
+          subclasses: [...personaje?.subclasses ?? [], ...subclaseArray ?? []],
+          abilities: abilities ?? personaje?.abilities,
+          //invocations,
+          //disciplines: actualDisciplines,
+          //metamagic: [...personaje?.metamagic ?? [], ...metamagic ?? []],
+          //spells: spellsData,
+          //plusSpeed,
+        },
+        $inc: { 
+          'classes.$[elem].level': 1,
+          HPMax: HP,
+          HPActual: HP
+        }
+      },
+      {
+        arrayFilters: [{ 'elem.class': clase }],
+        new: true 
+      }
+    );
+
+    if (!resultado) {
+      return null
+    }
+
+    const completo = await this.formatearPersonaje(resultado)
+    const basico = await this.formatearPersonajeBasico(resultado)
+
+    return {
+      completo,
+      basico
+    }
+  }
+
+
 
   private formatearPersonajesBasicos(personajes: PersonajeMongo[]): Promise<PersonajeBasico[]> {
     return Promise.all(personajes.map(personaje => this.formatearPersonajeBasico(personaje)))
@@ -582,7 +791,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     
     let cargaMaxima = abilities.str*15
 
-    if (traits?.map(trait => trait.index === "semblance-beast-bear")) {
+    if (traits?.find(trait => trait.index === "semblance-beast-bear")) {
       cargaMaxima *= 2
     }
      
@@ -912,224 +1121,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return abilities
   }
 
-  private async cambiarXp(data: any): Promise<any> {
-    const { id, XP } = data
-    
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          XP
-        }
-      },
-      { new: true }
-    );
-
-    if (resultado) {
-      const personaje = await this.formatearPersonajeBasico(resultado)
-  
-      return {
-        basic: personaje
-      }
-    } else {
-      return null
-    }
-  }
-
-  private async subirNivelDatos(data: any): Promise<ClaseLevelUp> {
-    const { id, clase } = data
-
-    const personaje = await Personaje.findById(id);
-    const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
-
-    const dataLevel = await this.claseRepository.dataLevelUp(clase, level+1, personaje?.subclasses ?? [])
-/*
-    const claseData = await this.claseRepository.getClase(clase)
-
-    const dataLevel:any[] = []//claseData.levels.find((l:any)=> l.level === level+1)
-    const dataLevelOld:any[] = []//claseData.levels.find((l:any)=> l.level === level)
-
-    //const subclasesData = await this.claseRepository.formatearSubclasesType(dataLevel.subclasses_options, dataLevel.subclasses)
-    
-    const traits: any[] = []
-
-    //await this.rasgoRepository.init()
-    /* 
-    if (dataLevel?.traits_data) {
-      Object.keys(dataLevel?.traits_data).forEach(async t => {
-        const data = dataLevel.traits_data[t]
-        const dataOld = dataLevelOld?.traits_data ? dataLevelOld?.traits_data[t] : null
-  
-        if (this.valoresNumericosDistintos(data, dataOld)) {
-          const trait = await this.rasgoRepository.obtenerRasgoPorIndice(t)
-        
-          let desc: string = trait?.desc ?? ''
-    
-          Object.keys(data).forEach(d => {
-            desc = desc.replaceAll(d, data[d])
-          })
-  
-          traits.push({ ...trait, desc })
-        }
-      })
-    }
-
-    const rasgos = await this.rasgoRepository
-        .obtenerRasgosPorIndices(
-          dataLevel.traits?.filter((t: any) => !traits.map(trait => trait.index).includes(t))
-        )
-    
-    traits.push(rasgos)
-*/
-    //let traits_options = null
-/*
-    if (dataLevel?.traits_options) {
-      traits_options = dataLevel?.traits_options
-
-      if (traits_options) {
-        traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits_options?.options ?? [])
-      }
-    }
-
-    const spells = dataLevel?.spellcasting?.all_spells
-      ? await this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase)
-      : []
-*/
-    /*let disciplines_new_number = 0
-    let disciplines_new = null
-
-    let disciplines_change_number = 0
-    let disciplines_change = null
-/*
-    if (dataLevel?.subclasses) {
-      personaje?.subclasses?.forEach(async s => {
-        if (dataLevel?.subclasses[s]?.traits_data) {
-          Object.keys(dataLevel?.subclasses[s]?.traits_data).forEach(async t => {
-            const data = dataLevel?.subclasses[s]?.traits_data[t]
-            const dataOld = dataLevelOld?.traits_data ? dataLevelOld?.traits_data[t] : null
-      
-            if (this.valoresNumericosDistintos(data, dataOld)) {
-              const trait = await this.rasgoRepository.obtenerRasgoPorIndice(t)
-            
-              let desc: string = trait?.desc ?? ''
-        
-              Object.keys(data).forEach(d => {
-                desc = desc.replaceAll(d, data[d])
-              })
-      
-              traits.push({ ...trait, desc })
-            }
-          })
-        }
-
-        if (dataLevel?.subclasses[s]?.traits) {
-          const rasgo = await this.rasgoRepository
-              .obtenerRasgosPorIndices(
-                dataLevel?.subclasses[s]?.traits?.filter((t: any) => !traits.map(trait => trait.index).includes(t))
-              )
-          traits.push(...rasgo)
-        }
-  
-        if (dataLevel?.subclasses[s]?.traits_options) {
-          traits_options = dataLevel?.subclasses[s]?.traits_options
-     
-          if (traits_options) {
-            traits_options.options = this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.subclasses[s]?.traits_options?.options ?? [])
-          }
-        }
-
-        if (dataLevel?.subclasses[s]?.spells) {
-          const conjuros = await this.conjuroRepository.obtenerConjurosPorIndices(dataLevel?.subclasses[s]?.spells) ?? []
-          spells.push(...conjuros ?? [])
-        }
-
-        if (dataLevel?.subclasses[s]?.disciplines_new) {
-          disciplines_new_number = dataLevel?.subclasses[s]?.disciplines_new
-        }
-
-        if (dataLevel?.subclasses[s]?.disciplines_change) {
-          disciplines_change_number = dataLevel?.subclasses[s]?.disciplines_change
-        }
-      })
-    }
-*//*
-    if (disciplines_new_number || disciplines_change_number) {
-      await this.disciplinaRespository.init()
-      const dataDis = await this.disciplinaRespository.obtenerTodos() 
-
-      if (disciplines_new_number) {
-        disciplines_new = {
-          choose: disciplines_new_number,
-          options: dataDis
-        } 
-      }
-      
-      if (disciplines_change_number) {
-        disciplines_change = {
-          choose: disciplines_change_number,
-          options: dataDis
-        } 
-      }
-    }
-
-    let invocations = null
-    let invocations_change = null
-/*
-    if (dataLevel.invocations || dataLevel.invocations_change) {
-      await this.invocacionRepository.inicializar()
-      const dataInv = await this.invocacionRepository.obtenerTodos() 
-
-      if (dataLevel.invocations) {
-        invocations = {
-          choose: dataLevel.invocations,
-          options: dataInv
-        } 
-      }
-
-      if (dataLevel.invocations_change) {
-        invocations_change = {
-          choose: dataLevel.invocations_change,
-          options: dataInv
-        } 
-      } 
-    }
-*/
-    //let metamagic = null
-/*
-    if (dataLevel.metamagic_new) {
-      await this.metamagiaRepository.init()
-
-      metamagic = {
-          choose: dataLevel.metamagic_new,
-          options: this.metamagiaRepository.obtenerTodos()
-        } 
-    }
-*/
- 
-    return {
-      hit_die: dataLevel?.hit_die ?? 0,
-      prof_bonus: dataLevel?.prof_bonus ?? 0,
-      traits: dataLevel?.traits ?? [],
-      traits_data: dataLevel?.traits_data ?? {},
-      traits_options: dataLevel?.traits_options ?? undefined,
-      subclasesData: dataLevel?.subclasesData ?? null,
-      ability_score: dataLevel?.ability_score ?? false,
-      
-      
-      /*
-      traits_options,
-      //spellcasting_options: formatearOptions(dataLevel?.spellcasting?.options ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      //spellcasting_changes: formatearOptions(dataLevel?.spellcasting?.change ?? [], this.idiomaRepository, this.competenciaRepository, this.habilidadRepository, this.conjuroRepository),
-      invocations,
-      invocations_change,
-      disciplines_new,
-      disciplines_change,
-      metamagic,
-      //subclasesData,
-      //spells
-    */}
-  }
-
   private valoresNumericosDistintos(obj1: any, obj2: any): boolean {
     for (const key in obj1) {
       if (!obj2) {
@@ -1139,164 +1130,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     }
     return false;
-  }
-
-  private async subirNivel(data: TypeSubirNivel): Promise<{ basic: PersonajeBasico | null } | null> {
-    const id = data.id
-
-    const { hit, clase, traits, traits_data, prof_bonus, subclase, abilities, /*, spells, invocations, disciplines, metamagic*/ } = data.data
-
-    const personaje = await Personaje.findById(id);
-    //const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
-
-    //const claseData = await this.claseRepository.getClase(clase)
-    //const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
-    
-    //let dataTraitsSubclases = {}
-    //let actualDisciplines = disciplines ?? []
-
-    //const listSubclases = [ ...personaje?.subclasses ?? [], ...subclases ?? []]
-    
-    /*if (dataLevel?.subclasses) {
-      listSubclases?.forEach((subclase: any) => {
-        if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]?.traits_data) {
-          dataTraitsSubclases = {
-            ...dataTraitsSubclases,
-            ...dataLevel?.subclasses[subclase]?.traits_data
-          }
-        }
-  
-        if (dataLevel?.subclasses[subclase]?.disciplines) {
-          actualDisciplines.push(...dataLevel?.subclasses[subclase]?.disciplines ?? [])
-        }
-      })
-    }*/
-    
-    //let traitsData = { ...personaje?.traits_data, traits_data /*...dataLevel?.traits_data, ...dataTraitsSubclases*/ }
-/*
-    traits_data?.forEach((traitData: any) => {
-      traitsData = { ...traitsData, ...traitData }
-    })*/
-/*
-    if (dataLevel?.traits?.includes('primal-champion')) {
-      abilities.str += 4
-      abilities.con += 4
-    }
-*//*
-    const traitsSubclase = dataLevel?.subclasses
-      ? [...subclases ?? [], ...personaje?.subclasses ?? []].map((subclase: any) => {
-          return dataLevel?.subclasses[subclase]?.traits
-        }).flat().filter(item => item !== undefined)
-      : []
-
-    if (trait) {
-      traitsSubclase.push(trait)
-    }
-*/
-
-    //let plusSpeed = 0
-/*
-    if (!armadura) {
-      if (traits.includes('barbarian-unarmored-defense')) {
-        CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
-      } else if (traits.includes('monk-unarmored-defense')) {
-        CA += Math.floor((abilities.wis/2) - 5) + Math.floor((abilities.dex/2) - 5)
-      } else if (traits.includes('draconid-resistance')) {
-        CA += 3 + Math.floor((abilities.dex/2) - 5)
-      }
-
-      if (traits.includes('fast-movement')) {
-        plusSpeed += 10
-      }
-      
-      if (traits.includes('unarmored-movement')) {
-        plusSpeed += traitsData['unarmored-movement'].FEET ?? 0
-      }
-    }
-*/
-    //const spellsData = { ...personaje?.spells }
-/*
-    if (spells.length > 0) {
-      spellsData[clase] = spells
-    }
-/*
-    if (dataLevel?.spellcasting?.all_spells) {
-      const spellsAux = dataLevel?.spellcasting?.all_spells
-        ? await this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase)
-        : []
-
-      spellsData[clase].push(...spellsAux?.map(spell => spell.index) ?? [])
-    }
- *//*
-    personaje?.subclasses?.forEach((subclase => {
-      if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]) {
-        const nameSpells = clase + '_' + subclase
-        dataLevel?.subclasses[subclase]?.spells?.forEach((spell: string) => {
-          if (!spellsData[nameSpells]) {
-            spellsData[nameSpells] = []
-          }
-          spellsData[nameSpells].push(spell)
-        })
-      }
-    }))
-*/
-    let HP = hit + Math.floor(((personaje?.abilities?.con ?? 10)/2) - 5)
-
-    if (traits.includes('dwarven-toughness')) {
-      HP += 1
-    }
-
-    if (clase === 'sorcerer' && traits.includes('draconid-resistance')) {
-      HP += 1
-    }
-    
-    const traitsSinRepetidos = [...new Set([...personaje?.traits ?? [], ...traits ?? []])];
-
-    const subclaseArray = subclase ? [subclase] : []
-
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          XP: 0,
-          prof_bonus: Math.max(prof_bonus ?? 0, personaje?.prof_bonus ?? 0),
-          traits: traitsSinRepetidos,
-          traits_data: { ...personaje?.traits_data, ...traits_data },
-          subclasses: [...personaje?.subclasses ?? [], ...subclaseArray ?? []],
-          abilities,
-          //invocations,
-          //disciplines: actualDisciplines,
-          //metamagic: [...personaje?.metamagic ?? [], ...metamagic ?? []],
-          //spells: spellsData,
-          //plusSpeed,
-        },
-        $inc: { 
-          'classes.$[elem].level': 1,
-          HPMax: HP,
-          HPActual: HP
-        }
-      },
-      {
-        arrayFilters: [{ 'elem.class': clase }],
-        new: true 
-      }
-    );
-     
-/*  if (!resultado) {
-      console.log('No se encontró el personaje o no se realizó la actualización.');
-    } else {
-      console.log('Actualización exitosa:', resultado);
-    }*/
-
-    if (resultado) {
-      const personajeFormateado = await this.formatearPersonajeBasico(resultado)
-      
-      return {
-        basic: personajeFormateado
-      }
-    } else {
-      return null
-    }
   }
 
   
