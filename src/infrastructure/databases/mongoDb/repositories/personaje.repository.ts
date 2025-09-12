@@ -1,31 +1,13 @@
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
 import Personaje from '../schemas/Personaje';
-import ClaseRepository from './clase.repository';
-import CompetenciaRepository from './competencia.repository';
-import HabilidadRepository from './habilidad.repository';
-import IdiomaRepository from './idioma.repository';
-import RasgoRepository from './rasgo.repository';
-import EquipamientoRepository from './equipamiento.repository';
-import DañoRepository from './daño.repository';
-import PropiedadArmaRepository from './propiedadesArmas.repository';
 import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import axios from 'axios';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
-import UsuarioRepository from './usuario.repository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import ConjuroRepository from './conjuros.repository';
-import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
-import InvocacionRepository from './invocacion.repository';
 import { AbilityKey, ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
-import DisciplinaRepository from './disciplina.repository';
-import IDisciplinaRepository from '../../../../domain/repositories/IDisciplinaRepository';
-import IMetamagiaRepository from '../../../../domain/repositories/IMetamagiaRepository';
-import MetamagiaRepository from './metamagia.repository';
 import Campaña from '../schemas/Campaña';
 import { DañoApi } from '../../../../domain/types';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
-import DoteRepository from './dote.repository';
-import { ClaseLevelUp, SubclasesOptionsApi } from '../../../../domain/types/clases.types';
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
@@ -34,6 +16,8 @@ import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import { ConjuroApi } from '../../../../domain/types/conjuros.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
+import { TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
+import { EquipamientoPersonajeApi } from '../../../../domain/types/equipamientos.types';
 
 const fs = require('fs');
 const path = require('path');
@@ -56,20 +40,6 @@ const nameTraits: any = {
 }
 
 export default class PersonajeRepository implements IPersonajeRepository {
-  /*habilidadRepository: HabilidadRepository
-  idiomaRepository: IdiomaRepository
-  competenciaRepository: CompetenciaRepository
-  rasgoRepository: RasgoRepository
-  equipamientoRepository: EquipamientoRepository
-  dañoRepository: DañoRepository
-  propiedadArmaRepository: PropiedadArmaRepository
-  usuarioRepository: IUsuarioRepository
-  conjuroRepository: IConjuroRepository
-  invocacionRepository: IInvocacionRepository
-  disciplinaRespository: IDisciplinaRepository
-  metamagiaRepository: IMetamagiaRepository
-  doteRepository: IDoteRepository*/
-
   constructor(
     private readonly usuarioRepository: IUsuarioRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
@@ -82,22 +52,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly claseRepository: IClaseRepository
   ) {}
     
-    /*private readonly claseRepository: IClaseRepository,
-    this.habilidadRepository = new HabilidadRepository()
-    this.idiomaRepository = new IdiomaRepository()
-    this.competenciaRepository = new CompetenciaRepository()
-    this.conjuroRepository = new ConjuroRepository()
-    this.equipamientoRepository = new EquipamientoRepository()
-    this.dañoRepository = new DañoRepository()
-    this.rasgoRepository = new RasgoRepository(/*this.conjuroRepository,*//* this.dañoRepository)
-    this.propiedadArmaRepository = new PropiedadArmaRepository()
-    this.usuarioRepository = new UsuarioRepository()
-    this.invocacionRepository = new InvocacionRepository()
-    this.disciplinaRespository = new DisciplinaRepository(this.conjuroRepository)
-    this.metamagiaRepository = new MetamagiaRepository()
-    this.doteRepository = new DoteRepository()*/
-  
-
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
     try {
       const personajes = await Personaje.find({ user: id })
@@ -105,8 +59,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
         .sort({ name: 1 });
       return this.formatearPersonajesBasicos(personajes)
     } catch (error) {
-      console.error("Error obteniendo clases:", error);
-      throw new Error("No se pudieron obtener los clases");
+      console.error("Error obteniendo personajes:", error);
+      throw new Error("No se pudieron obtener los personajes");
     }
   }
 
@@ -435,7 +389,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       metamagic,
       //subclasesData,
       //spells
-    */}
+    */
+    }
   }
 
   async subirNivel(data: TypeSubirNivel): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
@@ -589,7 +544,33 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
+  async consultarPorIds(indices: string[]): Promise<PersonajeBasico[]> {
+    try {
+      const personajes = await Personaje.find({ _id: { $in: indices } })
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+      return this.formatearPersonajesBasicos(personajes)
+    } catch (error) {
+      console.error("Error obteniendo personajes:", error);
+      throw new Error("No se pudieron obtener los personajes");
+    }
+  }
 
+  async entrarCampaña(data: TypeEntradaPersonajeCampaña): Promise<PersonajeBasico | null> {
+    const { userId, campaignId, characterId } = data
+
+    const personaje = await Personaje.findById(characterId);
+
+    if (personaje?.user !== userId) {
+      throw new Error('El personaje no existe o no pertenece al usuario');
+    }
+    
+    personaje.campaign = campaignId
+
+    personaje.save()
+
+    return this.formatearPersonajeBasico(personaje)
+  }
 
   private formatearPersonajesBasicos(personajes: PersonajeMongo[]): Promise<PersonajeBasico[]> {
     return Promise.all(personajes.map(personaje => this.formatearPersonajeBasico(personaje)))
@@ -598,7 +579,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   private async formatearPersonajeBasico(personaje: PersonajeMongo): Promise<PersonajeBasico> {
     const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
 
-    const user = await this.usuarioRepository.nombreUsuario(personaje?.user ?? null)
+    const user = await this.usuarioRepository.consultarNombreUsuario(personaje?.user ?? null)
     const { CA } = await this.calcularCA(personaje)
     const campaña = await Campaña.findById(personaje?.campaign)
 
@@ -873,7 +854,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       });*/
       //console.log('_________________');
  
-      const usuario = await this.usuarioRepository.nombreUsuario(idUser)
+      const usuario = await this.usuarioRepository.consultarNombreUsuario(idUser)
  
       const background = personaje?.background?.name
  
@@ -1080,36 +1061,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return pdfBytes
   }
 
-  private async consultarPersonajes(indexList: string[]): Promise<PersonajeBasico[]> {
-    const personajes = await Promise.all(indexList.map(index => {
-      return this.consultarPersonajeBasico(index)
-    }))
-
-    const personajesAux = personajes.filter(personaje => personaje !== null)
-
-    personajesAux.sort((a, b) => {
-      if (a.name < b.name) {
-        return -1;
-      }
-      if (a.name > b.name) {
-        return 1;
-      }
-      return 0;
-    });
-
-    return personajesAux
-  }
-
-  private async consultarPersonajeBasico(id: string): Promise<PersonajeBasico | null> {
-    const personaje = await Personaje.findById(id);
-
-    if (personaje) {
-      return await this.formatearPersonajeBasico(personaje)
-    } else {
-      return null
-    }
-  }
-
   private calcularAbilites(personaje: PersonajeMongo) {
     const { abilities } = personaje
 
@@ -1121,30 +1072,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return abilities
   }
 
-  private valoresNumericosDistintos(obj1: any, obj2: any): boolean {
-    for (const key in obj1) {
-      if (!obj2) {
-        return true
-      } else if (obj1[key] !== obj2[key]) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  
-
-
-
-
-  private sumaDaño(character: any, equip: any) {
+  private sumaDaño(character: PersonajeApi, equip: EquipamientoPersonajeApi) {
     let suma = equip?.isMagic ? 1 : 0
 
-    if (equip.weapon.properties.find((prop: any) => prop.index === 'finesse')) {
+    if (equip?.weapon?.properties.find(prop => prop.index === 'finesse')) {
       const max = Math.max(character?.abilities?.str, character?.abilities?.dex)
 
       suma += Math.floor((max/2) - 5)
-    } else if (equip.weapon.range === 'Distancia') {
+    } else if (equip?.weapon?.range === 'Distancia') {
       suma += Math.floor((character?.abilities?.dex/2) - 5)
     } else {
       suma += Math.floor((character?.abilities?.str/2) - 5)
@@ -1153,7 +1088,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return suma
   } 
 
-  private sumaGolpe(character: PersonajeApi, equip: any) {
+  private sumaGolpe(character: PersonajeApi, equip: EquipamientoPersonajeApi) {
     let suma = 0
     
     suma += this.sumaDaño(character, equip)
@@ -1165,21 +1100,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return suma
   }
 
-  private async entrarPersonajeCampaña(idUser: string, idCharacter: string, idCampaign: string) {
-    const personaje = await Personaje.findById(idCharacter);
-
-    if (personaje?.user !== idUser) {
-      throw new Error('El personaje no existe o no pertenece al usuario');
-    }
-    
-    personaje.campaign = idCampaign
-
-    personaje.save()
-
-    return await this.formatearPersonajeBasico(personaje)
-  }
-
-  private formatNumber(num: any) {
+  private formatNumber(num: number) {
     return (num >= 0 ? "+" : "") + num.toString();
   }
 }

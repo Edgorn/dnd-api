@@ -4,7 +4,6 @@ import IEquipamientoRepository from '../../../../domain/repositories/IEquipamien
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import { ClaseApi, ClaseLevelUp, ClaseMongo, SubclaseApi, SubclaseMongo, SubclaseOptionApi, SubclasesMongo, SubclasesOptionsMongo, SubclasesOptionsMongoOption } from '../../../../domain/types/clases.types';
-import { RasgoDataMongo } from '../../../../domain/types/rasgos.types';
 import { formatearSalvacion } from '../../../../utils/formatters';
 import ClaseSchema from '../schemas/Clase';
 

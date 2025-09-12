@@ -1,3 +1,4 @@
+import { TypeEntradaPersonajeCampaña } from "../types/campañas.types";
 import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAñadirEquipamiento, TypeEliminarEquipamiento, TypeEquiparArmadura, ClaseLevelUpCharacter, TypeSubirNivel } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
@@ -12,6 +13,12 @@ export default interface IPersonajeRepository {
   cambiarXp({ id, XP }: {id: string, XP: number}): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null>
   subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter | null>
   subirNivel(data: TypeSubirNivel): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null>
+  consultarPorIds(idCharacters: string[]): Promise<PersonajeBasico[]>
+  entrarCampaña(data: TypeEntradaPersonajeCampaña): Promise<PersonajeBasico | null>
+
+
+
+
   /*
   crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> 
 

@@ -6,186 +6,179 @@ const usuarioService = new UsuarioService(new UsuarioRepository())
 const validarToken = new ValidarToken(usuarioService)
 
 import CampañaRepository from "../../databases/mongoDb/repositories/campaña.repository";
-import CrearCampaña from "../../../application/use-cases/crearCampaña";
+import CrearCampaña from "../../../application/use-cases/campaña/crearCampaña.use-case";
 import CampañaService from "../../../domain/services/campaña.service";
-import ConsultarCampañas from "../../../application/use-cases/consultarCampañas";
-import ConsultarCampaña from "../../../application/use-cases/consultarCampaña";
-import EntrarCampaña from "../../../application/use-cases/entrarCampaña";
-import AceptarUsuarioCampaña from "../../../application/use-cases/aceptarUsuarioCampaña";
-import DenegarUsuarioCampaña from "../../../application/use-cases/denegarUsuarioCampaña";
-import EntrarPersonajeCampaña from "../../../application/use-cases/entrarPersonajeCampaña";
+import ObtenerCampañasPorUsuario from "../../../application/use-cases/campaña/obtenerCampañasPorUsuario.use-case";
+import ObtenerCampañaPorId from "../../../application/use-cases/campaña/obtenerCampañaPorId.use-case";
+import SolicitarEntradaACampaña from "../../../application/use-cases/campaña/solicitarEntradaACampaña.use-case";
+import AceptarEntradaACampaña from "../../../application/use-cases/campaña/aceptarEntradaACampaña.use-case";
+import DenegarEntradaACampaña from "../../../application/use-cases/campaña/denegarEntradaACampaña.use-case";
+import { Request, Response } from "express";
+import PersonajeRepository from "../../databases/mongoDb/repositories/personaje.repository";
+import EquipamientoRepository from "../../databases/mongoDb/repositories/equipamiento.repository";
+import RasgoRepository from "../../databases/mongoDb/repositories/rasgo.repository";
+import CompetenciaRepository from "../../databases/mongoDb/repositories/competencia.repository";
+import ConjuroRepository from "../../databases/mongoDb/repositories/conjuros.repository";
+import HabilidadRepository from "../../databases/mongoDb/repositories/habilidad.repository";
+import ClaseRepository from "../../databases/mongoDb/repositories/clase.repository";
+import IdiomaRepository from "../../databases/mongoDb/repositories/idioma.repository";
+import DoteRepository from "../../databases/mongoDb/repositories/dote.repository";
+import AñadirPersonajeACampaña from "../../../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
 
-const campañaService = new CampañaService(new CampañaRepository())
+const usuarioRepository = new UsuarioRepository()
+const competenciaRepository = new CompetenciaRepository()
+const conjuroRepository = new ConjuroRepository()
+const habilidadRepository = new HabilidadRepository()
+const equipamientoRepository = new EquipamientoRepository()
+
+const rasgoRepository = new RasgoRepository(undefined, competenciaRepository, conjuroRepository)
+const claseRepository = new ClaseRepository(habilidadRepository, competenciaRepository, equipamientoRepository, rasgoRepository)
+
+const campañaRepository = new CampañaRepository(
+  usuarioRepository,
+  new PersonajeRepository(
+    usuarioRepository,
+    equipamientoRepository,
+    rasgoRepository,
+    competenciaRepository,
+    new IdiomaRepository(),
+    habilidadRepository,
+    conjuroRepository,
+    new DoteRepository(),
+    claseRepository
+  )
+)
+
+const campañaService = new CampañaService(campañaRepository)
 
 const crearCampaña = new CrearCampaña(campañaService)
-const consultarCampañas = new ConsultarCampañas(campañaService)
-const consultarCampaña = new ConsultarCampaña(campañaService)
-const entrarCampaña = new EntrarCampaña(campañaService)
-const aceptarUsuarioCampaña = new AceptarUsuarioCampaña(campañaService)
-const denegarUsuarioCampaña = new DenegarUsuarioCampaña(campañaService)
-const entregarPersonajeCampaña = new EntrarPersonajeCampaña(campañaService)
+const obtenerCampañasPorUsuario = new ObtenerCampañasPorUsuario(campañaService)
+const obtenerCampañaPorId = new ObtenerCampañaPorId(campañaService)
+const solicitarEntradaACampaña = new SolicitarEntradaACampaña(campañaService)
+const aceptarEntradaACampaña = new AceptarEntradaACampaña(campañaService)
+const denegarEntradaACampaña = new DenegarEntradaACampaña(campañaService)
+const añadirPersonajeACampaña = new AñadirPersonajeACampaña(campañaService)
 
-const createCampaign = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const getCampaigns = async (req: Request, res: Response) => {
   try {
-    const idMaster = await validarToken.execute(token)
+    const userId = (req as any).user;
+    
+    const data = await obtenerCampañasPorUsuario.execute(userId)
+    res.status(200).json(data);
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al consultar campañas' });
+  }
+};
 
-    if (idMaster) {
-      const { success, data, message } = await crearCampaña.execute({ ...req.body, master: idMaster })
+const createCampaign = async (req: Request, res: Response) => {
+  try {
+    const masterId = (req as any).user;
 
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
+    const data = await crearCampaña.execute({ ...req.body, master: masterId })
+    res.status(200).json(data);
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al crear campaña' });
   }
 };
 
-const getCampaign = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const getCampaign = async (req: Request, res: Response) => {
   try {
-    const idUser = await validarToken.execute(token)
+    const userId = (req as any).user;
+    const { id } = req.params;
 
-    if (idUser) {
-      const { id } = req.params;
-
-      let response: any = {
-        success: false,
-        data: {},
-        message: 'Error'
-      }
-      
-      if (id) {
-        response = await consultarCampaña.execute(idUser, id)
-      } else {
-        response = await consultarCampañas.execute(idUser)
-      }
-      
-      const { success, data, message } = response
-      
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
+    if (!id) {
+      return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
+    
+    const data = await obtenerCampañaPorId.execute(userId, id)
+    res.status(200).json(data);
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al consultar campañas' });
   }
 };
 
-const entryCampaign = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const requestJoinCampaign = async (req: Request, res: Response) => {
   try {
-    const idUser = await validarToken.execute(token)
+    const userId = (req as any).user;
+    const { id } = req.params;
 
-    if (idUser) {
-      const { id } = req.body;
-
-      const { success, data, message } = await entrarCampaña.execute(idUser, id)
-      
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
+    if (!id) {
+      return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
+
+    const data = await solicitarEntradaACampaña.execute(userId, id)
+    res.status(200).json(data);
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al consultar campañas' });
   }
 };
 
-const acceptUserRequest = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const denyJoinRequest = async (req: Request, res: Response) => {
   try {
-    const idMaster = await validarToken.execute(token)
-
-    if (idMaster) {
-      const { idUser, idCampaign } = req.body;
-      const { success, data, message } = await aceptarUsuarioCampaña.execute(idMaster, idUser, idCampaign)
-      
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
+    const masterId = (req as any).user;
+    const { id, userId } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
+        
+    if (!userId) {
+      return res.status(400).json({ error: 'Se requiere el ID del usuario' });
+    }
+
+    const data = await denegarEntradaACampaña.execute({ masterId, campaignId: id, userId })
+    res.status(200).json(data);
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al denegar solicitud' });
+  }
+};
+
+const acceptJoinRequest = async (req: Request, res: Response) => {
+  try {
+    const masterId = (req as any).user;
+    const { id, userId } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
+    }
+        
+    if (!userId) {
+      return res.status(400).json({ error: 'Se requiere el ID del usuario' });
+    }
+
+    const data = await aceptarEntradaACampaña.execute({ masterId, campaignId: id, userId })
+    res.status(200).json(data);
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al aceptar solicitud' });
   }
 };
 
-const denyUserRequest = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
+const addCharacterToCampaign = async (req: Request, res: Response) => {
   try {
-    const idMaster = await validarToken.execute(token)
+    const userId = (req as any).user;
+    const { id } = req.params;
+    const { characterId } = req.body;
 
-    if (idMaster) {
-      const { idUser, idCampaign } = req.body;
-      const { success, data, message } = await denegarUsuarioCampaña.execute(idMaster, idUser, idCampaign)
-      
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
+    if (!id) {
+      return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
+        
+    if (!characterId) {
+      return res.status(400).json({ error: 'Se requiere el ID del personaje' });
+    }
+
+    const data = await añadirPersonajeACampaña.execute({userId, campaignId: id, characterId})
+    res.status(200).json(data);
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al denegar solicitud' });
   }
 };
 
-const entryCharacter = async (req: any, res: any) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader?.split(' ')[1];
-
-  try {
-    const idUser = await validarToken.execute(token)
-
-    if (idUser) {
-      const { idCharacter, idCampaign } = req.body;
-      const { success, data, message } = await entregarPersonajeCampaña.execute(idUser, idCharacter, idCampaign)
-
-      if (success) {
-        res.status(201).json(data);
-      } else {
-        res.status(404).json({ error: message });
-      }
-    } else {
-      res.status(401).json({ error: 'Token invalido' });
-    }
-  } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: 'Error al denegar solicitud' });
-  }
-};
-
-export default { createCampaign, getCampaign, entryCampaign, acceptUserRequest, denyUserRequest, entryCharacter };
+export default { getCampaigns, createCampaign, getCampaign, requestJoinCampaign, acceptJoinRequest, denyJoinRequest, addCharacterToCampaign };

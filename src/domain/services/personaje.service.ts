@@ -1,5 +1,4 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { ClaseLevelUp } from "../types/clases.types";
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from "../types/personajes.types";
 
 export default class PersonajeService {

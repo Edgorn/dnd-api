@@ -1,13 +1,15 @@
-const express = require('express');
-const router = express.Router();
+import { Router } from "express";
 import campañaController from '../controllers/campaña.controller';
+import { authMiddleware } from "../middlewares/auth.middleware";
 
-router.post('/campaign', campañaController.createCampaign);
-router.post('/entryCampaign', campañaController.entryCampaign);
-router.get('/campaign', campañaController.getCampaign);
-router.get('/campaign/:id', campañaController.getCampaign);
-router.post('/campaign/acceptUserRequest', campañaController.acceptUserRequest);
-router.post('/campaign/denyUserRequest', campañaController.denyUserRequest);
-router.post('/campaign/entryCharacter', campañaController.entryCharacter);
+const router = Router();
 
-module.exports = router;
+router.get('/campaign', authMiddleware, campañaController.getCampaigns);
+router.post('/campaign', authMiddleware, campañaController.createCampaign);
+router.get('/campaign/:id', authMiddleware, campañaController.getCampaign);
+router.post('/campaign/:id/request-join', authMiddleware, campañaController.requestJoinCampaign);
+router.delete('/campaign/:id/request-join/:userId', authMiddleware, campañaController.denyJoinRequest);
+router.post('/campaign/:id/request-join/:userId/accept', authMiddleware, campañaController.acceptJoinRequest);
+router.post('/campaign/:id/add-character', authMiddleware, campañaController.addCharacterToCampaign);
+
+export default router;

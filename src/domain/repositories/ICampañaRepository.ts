@@ -1,11 +1,16 @@
-import { CampañaBasica } from "../types/campañas";
+import { CampañaApi, CampañaBasica, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña } from "../types/campañas.types";
+import { PersonajeBasico } from "../types/personajes.types";
 
-export default class ICampañaRepository {
+export default interface ICampañaRepository {
+  consultarPorUsuario(id: string): Promise<CampañaBasica[]>
+  crear(data: TypeCrearCampaña): Promise<CampañaBasica | null>
+  consultarPorId(idUser: string, idCampaign: string): Promise<CampañaApi | null>
+  registrarSolicitud(idUser: string, idCampaign: string): Promise<CampañaBasica | null>
+  denegarSolicitud(data: TypeEntradaCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica} | null>
+  aceptarSolicitud(data: TypeEntradaCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica} | null>
+  añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica, personaje: PersonajeBasico} | null>
+  /*
   async crear(data: any): Promise<CampañaBasica> {
-    throw new Error('Método no implementado');
-  }
-
-  async consultarCampañas(data: any): Promise<CampañaBasica[]> {
     throw new Error('Método no implementado');
   }
 
@@ -31,5 +36,5 @@ export default class ICampañaRepository {
   
   async nombreCampaña(idCampaign: string): Promise<string> {
     throw new Error('Método no implementado');
-  }
+  }*/
 }

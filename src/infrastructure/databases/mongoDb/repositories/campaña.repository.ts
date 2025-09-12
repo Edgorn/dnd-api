@@ -1,23 +1,32 @@
 import ICampañaRepository from '../../../../domain/repositories/ICampañaRepository';
 import Campaña from '../schemas/Campaña';
-import Usuario from '../schemas/Usuario';
-import { CampañaBasica } from '../../../../domain/types/campañas';
+import { CampañaApi, CampañaBasica, CampañaMongo, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
-import UsuarioRepository from './usuario.repository';
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
-import PersonajeRepository from './personaje.repository';
+import { PersonajeBasico } from '../../../../domain/types/personajes.types';
 
-export default class CampañaRepository extends ICampañaRepository {
-  usuarioRepository: IUsuarioRepository
-  personajeRepository: IPersonajeRepository
+export default class CampañaRepository implements ICampañaRepository {
+  constructor(
+    private readonly usuarioRepository: IUsuarioRepository,
+    private readonly personajeRepository: IPersonajeRepository
+  ) { }
 
-  constructor() {
-    super()
-    this.usuarioRepository = new UsuarioRepository()
-    this.personajeRepository = new PersonajeRepository()
+  async consultarPorUsuario(id: string): Promise<CampañaBasica[]> {
+    const campañas = await Campaña
+      .find({
+        $or: [
+          { master: id },
+          { players: id },
+          { players_requesting: id }
+        ]
+      })
+      .collation({ locale: 'es', strength: 1 })
+      .sort({ name: 1 });
+
+    return await this.formatearCampañasBasicas(campañas, id)
   }
 
-  async crear(data: any): Promise<CampañaBasica> {
+  async crear(data: TypeCrearCampaña): Promise<CampañaBasica | null> {
     const campaña = new Campaña({
       name: data.name,
       description: data.description,
@@ -25,36 +34,149 @@ export default class CampañaRepository extends ICampañaRepository {
       status: 'Creada',
       players_requesting: [],
       players: [],
-      characters: [],
-      PNJs: []
+      characters: []
     })
     
     const resultado = await campaña.save()
 
-    return await this.formatearCampañaBasica(resultado, data.master)
-  } 
-
-  async consultarCampañas(id: string): Promise<CampañaBasica[]> {
-    const campañas = await Campaña.find({
-      $or: [
-        { master: id },
-        { players: id },
-        { players_requesting: id }
-      ]
-    });
-
-    return await this.formatearCampañas(campañas, id)
+    return this.formatearCampañaBasica(resultado, data.master)
   }
 
-  async formatearCampañas(campañas: any[], master: string): Promise<CampañaBasica[]> {
-    const formateadas = await Promise.all(campañas.map(campaña => this.formatearCampañaBasica(campaña, master)))
+  async consultarPorId(idUser: string, idCampaign: string): Promise<CampañaApi | null> {
+    const campaña = await Campaña.findById(idCampaign);
+
+    if (campaña?.master === idUser || campaña?.players?.includes(idUser)) {
+      return this.formatearCampaña(campaña, idUser)
+    } else {
+      throw new Error('No perteneces a la campaña');
+    }
+  }
+
+  async registrarSolicitud(idUser: string, idCampaign: string): Promise<CampañaBasica | null> {
+    const campaña = await Campaña.findById(idCampaign);
+
+    if (!campaña) {
+      throw new Error('Campaña no encontrada');
+    }
+
+    if (campaña.players_requesting.includes(idUser)) {
+      throw new Error('El usuario ya ha pedido entrar en la campaña');
+    }
+
+    if (campaña.players.includes(idUser)) {
+      throw new Error('El usuario ya pertenece a la campaña');
+    }
+
+    campaña.players_requesting.push(idUser)
+
+    const result = await campaña.save()
+
+    return this.formatearCampañaBasica(result, idUser)
+  }
+  
+  async denegarSolicitud(data: TypeEntradaCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica} | null> {
+    const { masterId, campaignId, userId } = data
+
+    const campaña = await Campaña.findById(campaignId);
+
+    if (!campaña) {
+      throw new Error('Campaña no encontrada');
+    }
+
+    if (campaña?.master !== masterId) {
+      throw new Error('No tienes permisos para aceptar a alguien');
+    }
+
+    if (!campaña.players_requesting.includes(userId)) {
+      throw new Error('El usuario no ha solicitado entrar en la campaña');
+    }
+
+    campaña.players_requesting = campaña.players_requesting.filter(player => player !== userId)
+
+    await campaña.save()
+
+    const completo = await this.formatearCampaña(campaña, masterId)
+    const basico = await this.formatearCampañaBasica(campaña, masterId)
+
+    return {
+      completo,
+      basico
+    }
+  }
+
+  async aceptarSolicitud(data: TypeEntradaCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica} | null> {
+    const { masterId, campaignId, userId } = data
+
+    const campaña = await Campaña.findById(campaignId);
+
+    if (!campaña) {
+      throw new Error('Campaña no encontrada');
+    }
+
+    if (campaña?.master !== masterId) {
+      throw new Error('No tienes permisos para aceptar a alguien');
+    }
+
+    if (!campaña.players_requesting.includes(userId)) {
+      throw new Error('El usuario no ha solicitado entrar en la campaña');
+    }
+
+    campaña.players_requesting = campaña.players_requesting.filter(player => player !== userId)
+    campaña.players.push(userId)
+
+    await campaña.save()
     
-    return formateadas;
+    const completo = await this.formatearCampaña(campaña, masterId)
+    const basico = await this.formatearCampañaBasica(campaña, masterId)
+
+    return {
+      completo,
+      basico
+    }
   }
 
-  async formatearCampañaBasica(campaña: any, idUser: string): Promise<CampañaBasica> {
-    const userMaster = await Usuario.findById(campaña.master);
+  async añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica, personaje: PersonajeBasico} | null> {
+    const { userId, campaignId, characterId } = data
+    
+    const campaña = await Campaña.findById(campaignId);
 
+    if (!campaña) {
+      throw new Error('Campaña no encontrada');
+    }
+
+    if (!campaña.players.includes(userId) && campaña.master !== userId) {
+      throw new Error('El usuario no pertenece a la campaña');
+    }
+
+    const personaje = await this.personajeRepository.entrarCampaña(data)
+
+    if (!personaje) {
+      throw new Error('Personaje no encontrado');
+    }
+
+    campaña.characters.push(characterId)
+
+    await campaña.save()
+
+    const completo = await this.formatearCampaña(campaña, userId)
+    const basico = await this.formatearCampañaBasica(campaña, userId)
+
+    return {
+      completo,
+      basico,
+      personaje
+    }
+  }
+
+
+
+  private formatearCampañasBasicas(campañas: CampañaMongo[], master: string): Promise<CampañaBasica[]> {
+    return Promise.all(campañas.map(campaña => this.formatearCampañaBasica(campaña, master)));
+  }
+
+  private async formatearCampañaBasica(campaña: CampañaMongo, idUser: string): Promise<CampañaBasica> {
+    const userMaster = await this.usuarioRepository.buscarUsuarioPorId(campaña.master)
+    
     return {
       id: campaña._id.toString(),
       name: campaña.name,
@@ -66,143 +188,41 @@ export default class CampañaRepository extends ICampañaRepository {
     }
   }
 
-  async consultarCampaña(idUser: string, idCampaign: string): Promise<any[]> {
-    const campaña = await Campaña.findById(idCampaign);
-
-    if (campaña?.master === idUser || campaña?.players?.includes(idUser)) {
-      return await this.formatearCampaña(campaña, idUser)
-    } else {
-      throw new Error('No perteneces a la campaña');
-    }
-  }
-
-  async entrarCampaña(idUser: string, idCampaign: string): Promise<any> {
-    const campaña = await Campaña.findById(idCampaign);
-
-    if (!campaña) {
-      throw new Error('Campaña no encontrada');
-    }
-
-    if (!campaña.players_requesting) {
-      campaña.players_requesting = []; 
-    }
-
-    if (campaña.players_requesting.includes(idUser)) {
-      throw new Error('El usuario ya ha pedido entrar en la campaña');
-    }
-
-    if (!campaña.players) {
-      campaña.players = []; 
-    }
-
-    if (campaña.players.includes(idUser)) {
-      throw new Error('El usuario ya pertenece a la campaña');
-    }
-
-    campaña.players_requesting.push(idUser)
-
-    const result = await campaña.save()
-
-    return await this.formatearCampañaBasica(result, idUser)
-  }
-
-  async formatearCampaña(campaña: any, master: string): Promise<any> {
-    const userMaster = await Usuario.findById(master)
-    const isMaster = master === campaña.master
+  private async formatearCampaña(campaña: CampañaMongo, idUser: string): Promise<CampañaApi> {
+    const isMaster = idUser === campaña.master
+    const master = await this.usuarioRepository.buscarUsuarioPorId(campaña.master)
 
     const players_requesting = isMaster ? await this.usuarioRepository.consultarUsuarios(campaña?.players_requesting ?? []) : []
     const players = await this.usuarioRepository.consultarUsuarios(campaña?.players ?? [])
-    const characters = await this.personajeRepository.consultarPersonajes(campaña?.characters ?? [])
+    const characters = await this.personajeRepository.consultarPorIds(campaña?.characters ?? [])
 
     return {
       id: campaña._id.toString(),
       name: campaña.name,
       description: campaña?.description,
-      isMaster: master === campaña.master,
+      isMaster,
       players_requesting,
-      players: players.filter((user: any) => user !== null),
+      players,
       characters,
+      master: master?.name ?? campaña.master,
       status: campaña.status,
-      master: userMaster?.name ?? campaña.master
     }
   }
 
-  async aceptarUsuarioCampaña(idMaster: string, idUser: string, idCampaign: string): Promise<any> {
-    const campaña = await Campaña.findById(idCampaign);
 
-    if (!campaña) {
-      throw new Error('Campaña no encontrada');
-    }
+  /*
 
-    if (campaña?.master !== idMaster) {
-      throw new Error('No tienes permisos para aceptar a alguien');
-    }
+  
 
-    if (!campaña.players_requesting) {
-      campaña.players_requesting = []; 
-    }
+  
 
-    if (!campaña.players_requesting.includes(idUser)) {
-      throw new Error('El usuario no ha solicitado entrar en la campaña');
-    }
 
-    campaña.players_requesting = campaña.players_requesting.filter(player => player !== idUser)
-    campaña.players.push(idUser)
 
-    await campaña.save()
-    
-    return await this.formatearCampaña(campaña, idMaster); 
-  }
-
-  async denegarUsuarioCampaña(idMaster: string, idUser: string, idCampaign: string): Promise<any> {
-    const campaña = await Campaña.findById(idCampaign);
-
-    if (!campaña) {
-      throw new Error('Campaña no encontrada');
-    }
-
-    if (campaña?.master !== idMaster) {
-      throw new Error('No tienes permisos para aceptar a alguien');
-    }
-
-    if (!campaña.players_requesting) {
-      campaña.players_requesting = []; 
-    }
-
-    if (!campaña.players_requesting.includes(idUser)) {
-      throw new Error('El usuario no ha solicitado entrar en la campaña');
-    }
-
-    campaña.players_requesting = campaña.players_requesting.filter(player => player !== idUser)
-
-    await campaña.save()
-    
-    return await this.formatearCampaña(campaña, idMaster); 
-  }
-
-  async entrarPersonajeCampaña(idUser: string, idCharacter: string, idCampaign: string) {
-    const campaña = await Campaña.findById(idCampaign);
-
-    if (!campaña) {
-      throw new Error('Campaña no encontrada');
-    }
-
-    if (!campaña.players.includes(idUser)) {
-      throw new Error('El usuario no pertenece a la campaña');
-    }
-
-    const personaje = this.personajeRepository.entrarPersonajeCampaña(idUser, idCharacter, idCampaign)
-
-    campaña.characters.push(idCharacter)
-
-    campaña.save()
-
-    return personaje
-  }
+  
 
   async nombreCampaña(idCampaign: string): Promise<string> {
     const campaña = await Campaña.findById(idCampaign);
 
     return campaña?.name ?? ''
-  }
+  }*/
 }

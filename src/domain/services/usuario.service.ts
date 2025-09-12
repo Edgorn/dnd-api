@@ -22,6 +22,7 @@ export default class UsuarioService {
     return { 
       token,
       user: {
+        index: usuario?._id.toString(),
         name: usuario?.name
       }
     }
