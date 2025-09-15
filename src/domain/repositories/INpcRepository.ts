@@ -1,9 +1,5 @@
-export default class INpcRepository {
-  async cargar(): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+import { CriaturaApi } from "../types/criaturas.types";
 
-  async obtenerTodos(): Promise<any[]> {
-    throw new Error('Método no implementado');
-  }
+export default interface INpcRepository {
+  obtenerTodos(): Promise<CriaturaApi[]>
 }

@@ -1,18 +1,10 @@
 import ICriaturaRepository from "../repositories/ICriaturaRepository";
+import { CriaturaApi } from "../types/criaturas.types";
 
 export default class CriaturaService {
-  private criaturaRepository: ICriaturaRepository;
+  constructor(private readonly criaturaRepository: ICriaturaRepository) { }
 
-  constructor(criaturaRepository: ICriaturaRepository) {
-    this.criaturaRepository = criaturaRepository;
-  }
-
-  async obtenerTodasLasCriaturas() {
-    try {
-      const criaturas = await this.criaturaRepository.obtenerTodas();
-      return { success: true, data: criaturas };
-    } catch (error) {
-      return { success: false, message: 'Error al recuperar las clases' };
-    }
+  obtenerTodas(): Promise<CriaturaApi[]> {
+    return this.criaturaRepository.obtenerTodas();
   }
 }

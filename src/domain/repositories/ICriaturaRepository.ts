@@ -1,9 +1,5 @@
-export default class ICriaturaRepository {
-  async cargar(): Promise<any> {
-    throw new Error('Método no implementado');
-  }
+import { CriaturaApi } from "../types/criaturas.types";
 
-  async obtenerTodas(): Promise<any[]> {
-    throw new Error('Método no implementado');
-  }
+export default interface ICriaturaRepository {
+  obtenerTodas(): Promise<CriaturaApi[]>
 }

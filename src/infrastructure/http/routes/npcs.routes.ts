@@ -1,7 +1,9 @@
-const express = require('express');
-const router = express.Router();
-import npcs from '../controllers/npcs.controller';
+import { Router } from "express";
+import npcsController from '../controllers/npcs.controller';
+import { authMiddleware } from "../middlewares/auth.middleware";
+ 
+const router = Router();
 
-router.get('/npcs', npcs.getNpcs);
+router.get('/npcs', authMiddleware, npcsController.getNpcs);
 
-module.exports = router;
+export default router;

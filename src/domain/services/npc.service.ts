@@ -1,18 +1,10 @@
 import INpcRepository from "../repositories/INpcRepository";
+import { CriaturaApi } from "../types/criaturas.types";
 
 export default class NpcsService {
-  private npcRepository: INpcRepository;
+  constructor(private readonly npcRepository: INpcRepository) { }
 
-  constructor(npcRepository: INpcRepository) {
-    this.npcRepository = npcRepository;
-  }
-
-  async obtenerTodosLosNpcs() {
-    try {
-      const npcs = await this.npcRepository.obtenerTodos();
-      return { success: true, data: npcs };
-    } catch (error) {
-      return { success: false, message: 'Error al recuperar los npcs' };
-    }
+  obtenerTodos(): Promise<CriaturaApi[]> {
+    return this.npcRepository.obtenerTodos();
   }
 }

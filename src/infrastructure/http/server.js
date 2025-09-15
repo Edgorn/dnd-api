@@ -5,14 +5,14 @@ import claseRoutes from "./routes/clase.routes";
 import personajeRoutes from "./routes/personaje.routes";
 import equipamientoRoutes from "./routes/equipamiento.routes";
 import campañaRoutes from "./routes/campaña.routes";
+import criaturasRoutes from "./routes/criaturas.routes";
+import npcsRoutes from "./routes/npcs.routes";
 
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require('../databases/mongoDb/mongodb');
 
-const monstruosRoutes = require('./routes/monstruos.routes');
-const npcsRoutes = require('./routes/npcs.routes');
 const defaultApi = require('../defaultApi/index');
 
 const app = express();
@@ -28,9 +28,9 @@ app.use(claseRoutes);
 app.use(personajeRoutes)
 app.use(equipamientoRoutes);
 app.use(campañaRoutes)
-
-app.use(monstruosRoutes);
+app.use(criaturasRoutes);
 app.use(npcsRoutes);
+
 app.use('*', defaultApi)
 
 const startServer = (port) => {

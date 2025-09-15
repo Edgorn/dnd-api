@@ -1,6 +1,7 @@
-const mongoose = require('mongoose');
+import mongoose, { Schema } from "mongoose";
+import { CriaturaMongo } from "../../../../domain/types/criaturas.types";
 
-const npcSchema = new mongoose.Schema({
+const criaturaSchema: Schema = new Schema<CriaturaMongo>({
   index: String,
   name: String,
   type: String,
@@ -25,6 +26,7 @@ const npcSchema = new mongoose.Schema({
   special_abilities: [],
   actions: [],
   reactions: [] 
-}, { collection: 'NPCs' });
+}, { collection: 'Criaturas' });
 
-module.exports = mongoose.model('NPCs', npcSchema);
+const CriaturaModel = mongoose.model<CriaturaMongo>("Criaturas", criaturaSchema);
+export default CriaturaModel;

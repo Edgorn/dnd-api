@@ -1,38 +1,44 @@
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
 import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
-import DañoRepository from './daño.repository';
-import EstadoRepository from './estado.repository';
-const CriaturaSchema = require('../schemas/Criatura');
+import { CriaturaApi, CriaturaMongo } from '../../../../domain/types/criaturas.types';
+import CriaturaSchema from '../schemas/Criatura';
 
-export default class CriaturaRepository extends ICriaturaRepository {
-  dañoRepository: IDañoRepository
-  estadoRepository: IEstadoRepository
-  constructor() {
-    super()
-    this.dañoRepository = new DañoRepository()
-    this.estadoRepository = new EstadoRepository()
+export default class CriaturaRepository implements ICriaturaRepository {
+  constructor(
+    private readonly dañoRepository: IDañoRepository,
+    private readonly estadoRepository: IEstadoRepository,
+  ) { }
+
+  async obtenerTodas(): Promise<CriaturaApi[]> {
+    try {
+      const criaturas = await CriaturaSchema.find()
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+      return this.formatearCriaturas(criaturas);
+    } catch (error) {
+      console.error("Error obteniendo criaturas:", error);
+      throw new Error("No se pudieron obtener los criaturas");
+    }
   }
 
-  async obtenerTodas() {
-    const criaturasMongo: any[] = await CriaturaSchema.find();
-    const criaturasFormateadas = await this.formatearCriaturas(criaturasMongo)
-
-    return criaturasFormateadas
-  }
-
-  async formatearCriaturas(criaturas: any) {
-    const formateadas = await Promise.all(criaturas
-      .map((criatura: any) => this.formatearCriatura(criatura)))
-
-    formateadas.sort((a: any, b: any) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
-
-    return formateadas;
+  private formatearCriaturas(criaturas: CriaturaMongo[]): Promise<CriaturaApi[]>  {
+    return Promise.all(criaturas.map(criatura => this.formatearCriatura(criatura)));
   } 
 
-  async formatearCriatura(criatura: any) {
+  private async formatearCriatura(criatura: CriaturaMongo): Promise<CriaturaApi> {
+    const [
+      damage_vulnerabilities,
+      damage_immunities,
+      damage_resistances,
+      condition_immunities
+    ] = await Promise.all([
+      this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_vulnerabilities ?? []),
+      this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_immunities ?? []),
+      this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_resistances ?? []),
+      this.estadoRepository.obtenerEstadosPorIndices(criatura?.condition_immunities ?? [])
+    ])
+
     return {
       index: criatura.index,
       name: criatura.name,
@@ -45,15 +51,16 @@ export default class CriaturaRepository extends ICriaturaRepository {
       hit_dice: criatura.hit_dice,
       speed: criatura.speed,
       abilities: criatura.abilities,
+      saving: criatura.saving,
       skills: criatura.skills,
       senses: criatura.senses,
       languages: criatura.languages,
       challenge_rating: criatura.challenge_rating,
       xp: criatura.xp,
-      damage_vulnerabilities: this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_vulnerabilities ?? []),
-      damage_immunities: this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_immunities ?? []),
-      damage_resistances: this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_resistances ?? []),
-      condition_immunities: this.estadoRepository.obtenerEstadosPorIndices(criatura?.condition_immunities ?? []),
+      damage_vulnerabilities,
+      damage_immunities,
+      damage_resistances,
+      condition_immunities,
       special_abilities: criatura?.special_abilities ?? [],
       actions: criatura.actions,
       reactions: criatura.reactions

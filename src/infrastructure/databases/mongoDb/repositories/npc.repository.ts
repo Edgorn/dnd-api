@@ -1,38 +1,44 @@
 import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
 import INpcRepository from '../../../../domain/repositories/INpcRepository';
-import DañoRepository from './daño.repository';
-import EstadoRepository from './estado.repository';
-const NpcSchema = require('../schemas/Npc');
+import { CriaturaApi, CriaturaMongo } from '../../../../domain/types/criaturas.types';
+import NpcSchema from '../schemas/Npc';
 
-export default class NpcRepository extends INpcRepository {
-  dañoRepository: IDañoRepository
-  estadoRepository: IEstadoRepository
-  constructor() {
-    super()
-    this.dañoRepository = new DañoRepository()
-    this.estadoRepository = new EstadoRepository()
+export default class NpcRepository implements INpcRepository {
+  constructor(
+    private readonly dañoRepository: IDañoRepository,
+    private readonly estadoRepository: IEstadoRepository,
+  ) { }
+
+  async obtenerTodos(): Promise<CriaturaApi[]> {
+    try {
+      const npcs = await NpcSchema.find()
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+      return this.formatearNpcs(npcs);
+    } catch (error) {
+      console.error("Error obteniendo npcs:", error);
+      throw new Error("No se pudieron obtener los npcs");
+    }
   }
 
-  async obtenerTodos() {
-    const npcsMongo: any[] = await NpcSchema.find();
-    const npcsFormateadas = await this.formatearNpcs(npcsMongo)
-
-    return npcsFormateadas
+  private formatearNpcs(npcs: CriaturaMongo[]): Promise<CriaturaApi[]>  {
+    return Promise.all(npcs.map(npc => this.formatearNpc(npc)));
   }
 
-  async formatearNpcs(npcs: any) {
-    const formateadas = await Promise.all(npcs
-      .map((npc: any) => this.formatearNpc(npc)))
+  private async formatearNpc(npc: CriaturaMongo): Promise<CriaturaApi> {
+    const [
+      damage_vulnerabilities,
+      damage_immunities,
+      damage_resistances,
+      condition_immunities
+    ] = await Promise.all([
+      this.dañoRepository.obtenerDañosPorIndices(npc?.damage_vulnerabilities ?? []),
+      this.dañoRepository.obtenerDañosPorIndices(npc?.damage_immunities ?? []),
+      this.dañoRepository.obtenerDañosPorIndices(npc?.damage_resistances ?? []),
+      this.estadoRepository.obtenerEstadosPorIndices(npc?.condition_immunities ?? [])
+    ])
 
-    formateadas.sort((a: any, b: any) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
-
-    return formateadas;
-  } 
-
-  async formatearNpc(npc: any) {
     return {
       index: npc.index,
       name: npc.name,
@@ -51,10 +57,10 @@ export default class NpcRepository extends INpcRepository {
       languages: npc.languages,
       challenge_rating: npc.challenge_rating,
       xp: npc.xp,
-      damage_vulnerabilities: this.dañoRepository.obtenerDañosPorIndices(npc?.damage_vulnerabilities ?? []),
-      damage_immunities: this.dañoRepository.obtenerDañosPorIndices(npc?.damage_immunities ?? []),
-      damage_resistances: this.dañoRepository.obtenerDañosPorIndices(npc?.damage_resistances ?? []),
-      condition_immunities: this.estadoRepository.obtenerEstadosPorIndices(npc?.condition_immunities ?? []),
+      damage_vulnerabilities,
+      damage_immunities,
+      damage_resistances,
+      condition_immunities,
       special_abilities: npc?.special_abilities ?? [],
       actions: npc.actions,
       reactions: npc.reactions

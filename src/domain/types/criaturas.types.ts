@@ -1,0 +1,56 @@
+import { DañoApi } from "."
+import { EstadoApi } from "./estados.types"
+
+export interface CriaturaMongo {
+  index: string,
+  name: string,
+  type: string,
+  subtype: string,
+  alignment: string,
+  size: string,
+  armor_class: {},
+  hit_points: number,
+  hit_dice: string,
+  speed: {},
+  abilities: {},
+  saving: string,
+  skills: string,
+  senses: {},
+  languages: string,
+  challenge_rating: string,
+  xp: number,
+  damage_vulnerabilities: [],
+  damage_immunities: [],
+  damage_resistances: [],
+  condition_immunities: [],
+  special_abilities: [],
+  actions: [],
+  reactions: [] 
+}
+
+export interface CriaturaApi {
+  index: string,
+  name: string,
+  type: string,
+  subtype: string,
+  alignment: string,
+  size: string,
+  armor_class: {},
+  hit_points: number,
+  hit_dice: string,
+  speed: {},
+  abilities: {},
+  saving: string,
+  skills: string,
+  senses: {},
+  languages: string,
+  challenge_rating: string,
+  xp: number,
+  damage_vulnerabilities: DañoApi[],
+  damage_immunities: DañoApi[],
+  damage_resistances: DañoApi[],
+  condition_immunities: EstadoApi[],
+  special_abilities: [],
+  actions: [],
+  reactions: [] 
+}
