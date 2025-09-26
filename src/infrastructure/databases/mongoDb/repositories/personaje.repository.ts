@@ -721,18 +721,24 @@ export default class PersonajeRepository implements IPersonajeRepository {
       item.desc.every(ref => !indexSet.has(ref))
     );
 
+    const proficienciesUnicos = [
+    ...new Map(proficienciesFiltrados.map(item => [item.index, item])).values()
+  ];
+
     const idiomas = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId)
     const habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills)
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)    
 
-    const clases = personaje.classes.map(clase => {
-      return {
-        class: clase.class,
-        level: clase.level,
-        name: clase.name,
-        hit_die: clase.hit_die
-      }
-    })
+    const clases = personaje.classes
+
+    const spellcasting = await this.claseRepository.spellcastingClases(
+      personaje.classes.map(clase => {
+        return {
+          id: clase.class,
+          level: clase.level
+        }
+      })
+    )
 
     const spells = { ...personaje.spells }
     const updatedSpells: Record<string, {
@@ -740,7 +746,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       type: string
     }> = {}
     
-
     await Promise.all(
       Object.keys(spells).map(async groupSpells => {
         const indices = [...spells[groupSpells]]
@@ -795,7 +800,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       speed: speed + plusSpeed,
       skills: habilidades,
       languages: idiomas,
-      proficiencies: proficienciesFiltrados,
+      proficiencies: proficienciesUnicos,
       traits,
       traits_data: personaje.traits_data,
       resistances,  
@@ -807,7 +812,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       dotes,
       money: personaje?.money,
       spells: updatedSpells,
-      cargaMaxima
+      cargaMaxima,
+      spellcasting: spellcasting.filter(item => item !== null)
     } 
   }
 

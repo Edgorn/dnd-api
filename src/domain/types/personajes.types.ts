@@ -8,7 +8,7 @@ import { EquipamientoPersonajeApi } from "./equipamientos.types"
 import { DoteApi } from "./dotes.types"
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
-import { ClaseLevelUp } from "./clases.types"
+import { ClaseLevelUp, SpellcastingLevel } from "./clases.types"
 
 export interface TypeCrearPersonaje {
   name: string,
@@ -263,6 +263,7 @@ export interface PersonajeApi {
   },
   spells: Record<string, { list: ConjuroApi[]; type: string; }>,
   cargaMaxima: number,
+  spellcasting?: SpellcastingLevel[]
 }
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";

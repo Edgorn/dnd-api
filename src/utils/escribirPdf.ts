@@ -701,23 +701,75 @@ const nombres:any = {
   'Zancada prodigiosa': 'Absorber elementos'
 }
 
-export async function escribirConjuros({ form, personaje }: any) {
-  const spells = personaje.spells
+export async function escribirConjuros({ form, personaje }: { form: any, personaje: PersonajeApi }) {
   const checkSpells: any = []
 
-  spells?.race?.list?.forEach((spell: any) => {
+  personaje?.spells?.race?.list?.forEach(spell => {
     if (!checkSpells[spell.level]) {
       checkSpells[spell.level] = 0
     }
 
-    form.getTextField(spellsList[spell.level][checkSpells[spell.level]]).setText(spell.name + ' (' + spells.race.type + ')');
+    form.getTextField(spellsList[spell.level][checkSpells[spell.level]]).setText(spell.name + ' (' + personaje?.spells.race.type + ')');
 
     checkSpells[spell.level]++
   })
 
+  personaje.classes.forEach(clas => {
+    const spells = personaje.spells[clas.class]
+    const spellcastingClas = personaje?.spellcasting?.find(spell => spell.class === clas.class)
+
+    if (spells && spellcastingClas) {
+      
+      form.getDropdown('SpellClass').addOptions([clas.name]);
+      form.getDropdown('SpellClass').select(clas.name);
+    
+      form.getDropdown('SpellAbility').addOptions([abilities[spellcastingClas.ability] ?? '']);
+      form.getDropdown('SpellAbility').select(abilities[spellcastingClas.ability] ?? '');
+      
+      form.getTextField('SpellSaveDC').setText((8 + calcularAtaque(personaje, spellcastingClas.ability)) + '');
+      form.getTextField('SAB').setText(formatNumber(calcularAtaque(personaje, spellcastingClas.ability)) + '');
+
+      
+
+      Array.from({ length: 10 }).forEach((_, index) => {
+        if (!checkSpells[index]) {
+          checkSpells[index] = 0
+        }
+
+        const listSpells = spells?.list
+          ?.sort((a, b) => {
+            return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+          })
+          ?.filter(spell => spell.level === index)
+          ?.filter((obj, idx, self) =>
+            idx === self.findIndex((item) => item.index === obj.index)
+          );
+
+        listSpells?.forEach((spell, index2: number) => {
+          const valor = form.getTextField(spellsList[index][checkSpells[index]]).getText() ?? ''
+          const name = personaje?.name === 'Kohlembart Holimion' ? (nombres[spell.name] ?? spell.name) : spell.name
+
+          form.getTextField(spellsList[index][checkSpells[index]]).setText(valor ? (valor + ', ' + name) : name);
+          checkSpells[index]++ 
+        })
+
+        if (index !== 0) {
+          const slots = spellcastingClas?.spellcasting ? spellcastingClas?.spellcasting["slots_level_" + index] : 0
+
+          if (slots) {
+            form.getTextField('SlotsTot' + (index)).setText('' + slots)
+          } else {
+            form.getTextField('SlotsTot' + (index)).setText('0')
+          }
+        }
+      })
+    }
+  })
+    
+/*
   Object.keys(spells).forEach(clas => {
     if (clas !== 'race') {
-      const claseName = personaje.classes.find((c: any) => c.class === clas)?.name ?? ''
+      const claseName = personaje.classes.find(c => c.class === clas)?.name ?? ''
       const claseSpells = spells[clas]
       const listSpellsAux = [...claseSpells?.list ?? []]
 
@@ -784,8 +836,8 @@ export async function escribirConjuros({ form, personaje }: any) {
           }
         } else {
           console.error("Error: 'claseSpells.level' es undefined o null");
-        }*/
+        }*//*
       }
     }
-  })
+  })*/
 }

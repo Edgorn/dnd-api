@@ -33,7 +33,7 @@ export interface SubraceMongo {
   traits: string[],
   traits_data: RasgoDataMongo,
   language_choices?: ChoiceMongo,
-  spell_choices?: ChoiceSpell,
+  spell_choices?: ChoiceSpell[],
   types: TypeMongo[],
 }
 
@@ -79,7 +79,7 @@ export interface SubraceApi {
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
   language_choices?: ChoiceApi<IdiomaApi>,
-  spell_choices?: ChoiceApi<ConjuroApi>,
+  spell_choices?: ChoiceApi<ConjuroApi>[],
   types: TypeApi[],
 }
 

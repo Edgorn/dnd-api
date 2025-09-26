@@ -86,9 +86,9 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
         category: equipamientoAux.category,
         weapon: weapon,
         armor: equipamientoAux.armor,
-        isMagic: equipamiento.isMagic,
+        isMagic: equipamiento.isMagic ?? false,
         weight: equipamientoAux.weight,
-        equipped: equipamiento.equipped
+        equipped: equipamiento.equipped ?? false
       }
     } else {
       return {
@@ -96,9 +96,9 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
         name: equipamiento.index,
         quantity: equipamiento.quantity,
         content: [],
-        isMagic: equipamiento.isMagic,
+        isMagic: equipamiento.isMagic ?? false,
         weight: 0,
-        equipped: equipamiento.equipped
+        equipped: equipamiento.equipped ?? false
       }
     }
   }
@@ -175,7 +175,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     return {
       name,
       choose: equipamientosOption.choose,
-      options: options
+      options: options?.map(option => { return {...option, name: option.quantity + "x " + option.name} }) ?? []
     }
   }  
  

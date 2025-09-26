@@ -72,7 +72,7 @@ export default class HabilidadRepository implements IHabilidadRepository {
       }
     }
 
-    console.warn("Opciones de idioma no reconocidas:", opciones.options);
+    console.warn("Opciones de habilidades no reconocidas:", opciones.options);
     return undefined;
   }
 
@@ -86,7 +86,7 @@ export default class HabilidadRepository implements IHabilidadRepository {
       this.todosConsultados = true
     } 
     
-    return this.formatearHabilidades(Object.values(this.habilidadesMap))
+    return this.formatearHabilidades(ordenarPorNombre(Object.values(this.habilidadesMap)))
   }
 
   private formatearHabilidades(habilidades: HabilidadMongo[]): HabilidadApi[] {

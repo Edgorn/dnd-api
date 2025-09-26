@@ -9,15 +9,17 @@ import RasgoRepository from '../../databases/mongoDb/repositories/rasgo.reposito
 import ObtenerTodasLasClases from '../../../application/use-cases/clase/obtenerTodasLasClases.use-case';
 import ClaseService from '../../../domain/services/clase.service';
 import ClaseRepository from '../../databases/mongoDb/repositories/clase.repository';
+import ConjuroRepository from '../../databases/mongoDb/repositories/conjuros.repository';
 
 const competenciaRepository = new CompetenciaRepository()
-const rasgoRepository = new RasgoRepository(undefined, competenciaRepository)
+const conjuroRepository = new ConjuroRepository()
 
 const claseRepository = new ClaseRepository(
   new HabilidadRepository,
   competenciaRepository,
   new EquipamientoRepository,
-  rasgoRepository
+  new RasgoRepository(undefined, competenciaRepository, conjuroRepository),
+  conjuroRepository
 )
  
 const claseService = new ClaseService(claseRepository)

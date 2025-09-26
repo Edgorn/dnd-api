@@ -8,6 +8,7 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
   hit_die: Number,
   img: String,
   proficiencies: [],
+  proficiencies_choices: [],
   skill_choices: {},
   saving_throws: [String],
   equipment: [
@@ -23,7 +24,8 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
     traits: [String],
     traits_data: {},
     traits_options: {},
-    /*spellcasting: {},*/
+    spell_choices: [],
+    spellcasting: {},
     subclasses_options: {},
     subclasses: {},/*
     terrain_options: {},
@@ -34,8 +36,8 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
     invocations_change: Number,
     metamagic_new: Number*/
   }],/*
-  money: {},
-  spellcasting: String*/
+  money: {},*/
+  spellcasting: String
 }, { collection: 'Clases' });
 
 const ClaseModel = mongoose.model<ClaseMongo>("Clases", claseSchema);

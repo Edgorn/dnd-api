@@ -11,15 +11,10 @@ export default class ConjuroRepository implements IConjuroRepository {
     this.conjurosMap = {}
   }
 
-  async formatearOpcionesDeConjuros(opciones: ChoiceSpell | undefined): Promise<ChoiceApi<ConjuroApi> | undefined> {
+  async formatearOpcionesDeConjuros(opciones: ChoiceSpell[] | undefined): Promise<ChoiceApi<ConjuroApi>[] | undefined> {
     if (!opciones) return undefined
 
-    const conjuros = await this.obtenerConjurosPorNivelClase(opciones.level, opciones.class)
-
-    return {
-      choose: opciones.choose,
-      options: conjuros
-    };
+    return Promise.all(opciones.map(opcion => this.formatearOpcionDeConjuros(opcion)));
   } 
 
   async obtenerConjurosPorIndices(indices: string[]): Promise<ConjuroApi[]> {
@@ -46,7 +41,16 @@ export default class ConjuroRepository implements IConjuroRepository {
     return ordenarPorNombre(this.formatearConjuros(result));
   }
 
-  async obtenerConjurosPorNivelClase(nivel: number, clase: string): Promise<ConjuroApi[]> {
+  private async formatearOpcionDeConjuros(opciones: ChoiceSpell): Promise<ChoiceApi<ConjuroApi>> {
+    const conjuros = await this.obtenerConjurosPorNivelClase(opciones.level, opciones.class)
+
+    return {
+      choose: opciones.choose,
+      options: conjuros
+    };
+  } 
+
+  private async obtenerConjurosPorNivelClase(nivel: number, clase: string): Promise<ConjuroApi[]> {
     const conjuros = await ConjuroSchema.find({
         level: nivel,
         classes: clase
@@ -59,11 +63,11 @@ export default class ConjuroRepository implements IConjuroRepository {
     return this.formatearConjuros(conjuros)
   }
    
-  formatearConjuros(conjuros: ConjuroMongo[]): ConjuroApi[] {
+  private formatearConjuros(conjuros: ConjuroMongo[]): ConjuroApi[] {
     return conjuros.map(conjuro => this.formatearConjuro(conjuro));
   }
   
-  formatearConjuro(conjuro: ConjuroMongo): ConjuroApi {
+  private formatearConjuro(conjuro: ConjuroMongo): ConjuroApi {
     return {
       index: conjuro.index,
       name: conjuro.name,

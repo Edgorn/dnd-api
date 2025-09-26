@@ -1,9 +1,10 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
+import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
-import { ClaseApi, ClaseLevelUp, ClaseMongo, SubclaseApi, SubclaseMongo, SubclaseOptionApi, SubclasesMongo, SubclasesOptionsMongo, SubclasesOptionsMongoOption } from '../../../../domain/types/clases.types';
+import { ClaseApi, ClaseLevelUp, ClaseMongo, SpellcastingLevel, SubclaseApi, SubclaseMongo, SubclaseOptionApi, SubclasesMongo, SubclasesOptionsMongo, SubclasesOptionsMongoOption } from '../../../../domain/types/clases.types';
 import { formatearSalvacion } from '../../../../utils/formatters';
 import ClaseSchema from '../schemas/Clase';
 
@@ -12,7 +13,8 @@ export default class ClaseRepository implements IClaseRepository {
     private readonly habilidadRepository: IHabilidadRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
-    private readonly rasgoRepository: IRasgoRepository
+    private readonly rasgoRepository: IRasgoRepository,
+    private readonly conjuroRepository: IConjuroRepository
   ) {}
   
   async obtenerTodas(): Promise<ClaseApi[]> {
@@ -82,11 +84,36 @@ export default class ClaseRepository implements IClaseRepository {
     }
   }
 
+  async spellcastingClases(clases: { id: string, level: number }[]): Promise<(SpellcastingLevel | null)[]> {
+    const idx = clases.map(clase => clase.id)
+
+    const clasesData = await ClaseSchema.find({ index: idx })
+
+    return Promise.all(clasesData.map(clase => this.spellcastingClase(clase, clases)))
+  }
+
+  private async spellcastingClase(clase: ClaseMongo, clasesLevel: { id: string, level: number }[]): Promise<SpellcastingLevel | null> {
+    const level = clasesLevel.find(clas => clas.id ===clase.index)?.level
+
+    if (!level) return null
+
+    const spellcasting = clase.levels.find(lev => lev.level === level)?.spellcasting
+
+    if (!spellcasting) return null
+
+    return {
+      class: clase.index,
+      ability: clase.spellcasting,
+      spellcasting
+    }
+  }
+
   private formatearClases(clases: ClaseMongo[]) {
     return Promise.all(
       clases
         .filter(clase => 
-          clase.index === 'barbarian' /*|| 
+          clase.index === 'barbarian' ||
+          clase.index === 'bard' /*|| 
           clase.index === 'warlock' || 
           clase.index === 'cleric' || 
           clase.index === 'wizard' || 
@@ -101,18 +128,24 @@ export default class ClaseRepository implements IClaseRepository {
     const dataLevel = clase?.levels?.find(level => level.level === 1)
 
     const [
-      proficiencies,
       traits,
+      proficiencies,
+      proficiencies_choices,
       skill_choices,
+      spell_choices,
       equipment,
       equipment_choices
     ] = await Promise.all([
-      this.competenciaRepository.obtenerCompetenciasPorIndices([ ...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? [] ]),
       this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [], dataLevel?.traits_data),
+      this.competenciaRepository.obtenerCompetenciasPorIndices([ ...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? [] ]),
+      this.competenciaRepository.formatearOpcionesDeCompetencias(clase?.proficiencies_choices ?? []),
       this.habilidadRepository.formatearOpcionesDeHabilidad(clase.skill_choices),
+      this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment),
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(clase?.equipment_choices)
     ])
+
+    console.log(spell_choices)
 
     return {
       index: clase.index,
@@ -122,8 +155,10 @@ export default class ClaseRepository implements IClaseRepository {
       img: clase.img,
       prof_bonus: 2,
       proficiencies,
+      proficiencies_choices,
       saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
       skill_choices,
+      spell_choices,
       equipment,
       equipment_choices,
       traits,

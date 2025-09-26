@@ -23,7 +23,7 @@ const subrazaSchema = new Schema<SubraceMongo>({
   traits: [String],
   traits_data: {},
   language_choices: {},
-  spell_choices: {},
+  spell_choices: [],
   types: [tipoSchema],
   desc: String
 });
