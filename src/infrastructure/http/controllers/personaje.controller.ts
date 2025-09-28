@@ -33,9 +33,17 @@ const competenciaRepository = new CompetenciaRepository()
 const conjuroRepository = new ConjuroRepository()
 const habilidadRepository = new HabilidadRepository()
 const equipamientoRepository = new EquipamientoRepository()
+const doteRepository = new DoteRepository()
 
 const rasgoRepository = new RasgoRepository(undefined, competenciaRepository, conjuroRepository)
-const claseRepository = new ClaseRepository(habilidadRepository, competenciaRepository, equipamientoRepository, rasgoRepository)
+const claseRepository = new ClaseRepository(
+  habilidadRepository, 
+  competenciaRepository, 
+  equipamientoRepository, 
+  rasgoRepository,
+  conjuroRepository,
+  doteRepository
+)
 
 const personajeRepository = new PersonajeRepository(
   new UsuarioRepository(),
@@ -45,7 +53,7 @@ const personajeRepository = new PersonajeRepository(
   new IdiomaRepository(),
   habilidadRepository,
   conjuroRepository,
-  new DoteRepository(),
+  doteRepository,
   claseRepository
 )
 

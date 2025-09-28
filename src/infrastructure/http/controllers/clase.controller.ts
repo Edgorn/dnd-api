@@ -10,6 +10,7 @@ import ObtenerTodasLasClases from '../../../application/use-cases/clase/obtenerT
 import ClaseService from '../../../domain/services/clase.service';
 import ClaseRepository from '../../databases/mongoDb/repositories/clase.repository';
 import ConjuroRepository from '../../databases/mongoDb/repositories/conjuros.repository';
+import DoteRepository from '../../databases/mongoDb/repositories/dote.repository';
 
 const competenciaRepository = new CompetenciaRepository()
 const conjuroRepository = new ConjuroRepository()
@@ -19,7 +20,8 @@ const claseRepository = new ClaseRepository(
   competenciaRepository,
   new EquipamientoRepository,
   new RasgoRepository(undefined, competenciaRepository, conjuroRepository),
-  conjuroRepository
+  conjuroRepository,
+  new DoteRepository
 )
  
 const claseService = new ClaseService(claseRepository)

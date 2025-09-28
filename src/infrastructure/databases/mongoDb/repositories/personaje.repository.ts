@@ -377,6 +377,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       traits_options: dataLevel?.traits_options ?? undefined,
       subclasesData: dataLevel?.subclasesData ?? null,
       ability_score: dataLevel?.ability_score ?? false,
+      dotes: dataLevel?.dotes
       
       
       /*
@@ -726,7 +727,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   ];
 
     const idiomas = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId)
-    const habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills)
+    let habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills)
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)    
 
     const clases = personaje.classes
@@ -780,7 +781,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     if (traits?.find(trait => trait.index === "semblance-beast-bear")) {
       cargaMaxima *= 2
     }
-     
+
+    if (traits?.find(trait => trait.index === "jack-of-all-trades")) {
+      habilidades = habilidades.map(habilidad => { return {
+        ...habilidad,
+        value: habilidad.value ? habilidad.value : 0.5
+      }})
+    }
+
     return {
       id: personaje._id.toString(),
       img: personaje.img,

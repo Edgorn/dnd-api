@@ -1,6 +1,7 @@
 import { ChoiceApi, ChoiceMongo, EquipamientoOpcionesApi } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
+import { DoteApi } from "./dotes.types"
 import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types"
 import { HabilidadApi } from "./habilidades.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
@@ -122,5 +123,6 @@ export interface ClaseLevelUp {
     options: RasgoApi[]
   },
   ability_score: boolean,
+  dotes: ChoiceApi<DoteApi> | undefined,
   subclasesData: SubclasesOptionsApi | null
 }

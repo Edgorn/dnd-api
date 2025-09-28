@@ -1,10 +1,13 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
+import { ChoiceApi } from '../../../../domain/types';
 import { ClaseApi, ClaseLevelUp, ClaseMongo, SpellcastingLevel, SubclaseApi, SubclaseMongo, SubclaseOptionApi, SubclasesMongo, SubclasesOptionsMongo, SubclasesOptionsMongoOption } from '../../../../domain/types/clases.types';
+import { DoteApi } from '../../../../domain/types/dotes.types';
 import { formatearSalvacion } from '../../../../utils/formatters';
 import ClaseSchema from '../schemas/Clase';
 
@@ -14,7 +17,8 @@ export default class ClaseRepository implements IClaseRepository {
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly rasgoRepository: IRasgoRepository,
-    private readonly conjuroRepository: IConjuroRepository
+    private readonly conjuroRepository: IConjuroRepository,
+    private readonly doteRepository: IDoteRepository
   ) {}
   
   async obtenerTodas(): Promise<ClaseApi[]> {
@@ -45,7 +49,7 @@ export default class ClaseRepository implements IClaseRepository {
 
     const traitsId = []
 
-    Object.keys(dataLevel?.traits_data).forEach(t => {
+    Object.keys(dataLevel?.traits_data ?? {})?.forEach(t => {
       const data = dataLevel.traits_data[t]
       const dataOld = dataLevelOld?.traits_data ? dataLevelOld?.traits_data[t] : null
 
@@ -71,6 +75,12 @@ export default class ClaseRepository implements IClaseRepository {
       })
     )
 
+    let dotes: ChoiceApi<DoteApi> | undefined = undefined
+
+    if (dataLevel.ability_score) {
+      dotes = await this.doteRepository.formatearOpcionesDeDote(1)
+    }
+
     return {
       hit_die: clase.hit_die,
       traits: [
@@ -80,7 +90,8 @@ export default class ClaseRepository implements IClaseRepository {
       traits_data: dataLevel.traits_data,
       traits_options: subclaseData.filter(index => index !== null && index !== undefined)[0]?.traits_options ?? undefined,
       subclasesData,
-      ability_score: dataLevel.ability_score
+      ability_score: dataLevel.ability_score,
+      dotes
     }
   }
 
@@ -144,8 +155,6 @@ export default class ClaseRepository implements IClaseRepository {
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment),
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(clase?.equipment_choices)
     ])
-
-    console.log(spell_choices)
 
     return {
       index: clase.index,
