@@ -81,6 +81,15 @@ export default class ClaseRepository implements IClaseRepository {
       dotes = await this.doteRepository.formatearOpcionesDeDote(1)
     }
 
+    const spell_choices = await this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices)
+    const mixed_spell = await this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.mixed_spell_choices?.options)
+    const spell_changes_aux = await this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_changes?.options)
+
+    const mixed_spell_choices = Array.from({ length: dataLevel?.mixed_spell_choices?.number ?? 0 }, () =>  mixed_spell?.map(opt => ({ ...opt })) ?? []);
+    const spell_changes = Array.from({ length: dataLevel?.spell_changes?.number ?? 0 }, () =>  spell_changes_aux?.map(opt => ({ ...opt })) ?? []);
+
+    const skill_choices = await this.habilidadRepository.formatearOpcionesDeHabilidad(dataLevel.skill_choices)
+
     return {
       hit_die: clase.hit_die,
       traits: [
@@ -91,7 +100,18 @@ export default class ClaseRepository implements IClaseRepository {
       traits_options: subclaseData.filter(index => index !== null && index !== undefined)[0]?.traits_options ?? undefined,
       subclasesData,
       ability_score: dataLevel.ability_score,
-      dotes
+      dotes,
+      double_skills: dataLevel.double_skills,
+      spell_choices,
+      mixed_spell_choices: [
+        ...mixed_spell_choices ?? [],
+        ...subclaseData
+          .filter((item): item is SubclaseApi => !!item?.mixed_spell_choices)
+          .map(item => item.mixed_spell_choices ?? [])  
+          .flat() ?? []
+      ], 
+      spell_changes,
+      skill_choices
     }
   }
 
@@ -288,45 +308,15 @@ export default class ClaseRepository implements IClaseRepository {
   private async formatearSubclaseOption(subclase_option: SubclasesOptionsMongoOption, subclases: SubclasesMongo): Promise<SubclaseOptionApi>  {
     const subclaseData = subclases[subclase_option?.index]
     const subclase = await this.formatearSubclase(subclaseData)
-/*
-    const traits_options_subclase = subclaseData?.traits_options
-
-    await this.disciplinaRespository.init()
-
-    if (traits_options_subclase) {
-      traits_options_subclase.options = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits_options?.options ?? [])
-    }
-  */
-/*
-    const traitsData = traits?.map((trait: any) => {
-      if (subclaseData?.traits_data) {
-        const data = subclaseData?.traits_data[trait.index]
-        if (data) {
-          let desc: string = trait?.desc ?? ''
-  
-          Object.keys(data).forEach(d => {
-            desc = desc.replaceAll(d, data[d])
-          })
-  
-          return {
-            ...trait,
-            desc
-          }
-          
-        } else {
-          return trait
-        }
-      } else {
-        return trait
-      }
-    })*/
-
+   
     return {
       index: subclase_option?.index,
       name: subclase_option?.name,
       img: subclase_option?.img,
       traits: subclase.traits,
       traits_options: subclase?.traits_options,
+      skill_choices: subclase?.skill_choices,
+      proficiencies: subclase?.proficiencies
       /*traits_data_options: subclaseData.traits_data_options,/*
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//*
       options: ,
@@ -355,9 +345,18 @@ export default class ClaseRepository implements IClaseRepository {
       }
     }
 
+    const mixed_spell = await this.conjuroRepository.formatearOpcionesDeConjuros(subclase?.mixed_spell_choices?.options)
+    const mixed_spell_choices = Array.from({ length: subclase?.mixed_spell_choices?.number ?? 0 }, () =>  mixed_spell?.map(opt => ({ ...opt })) ?? []);
+
+    const skill_choices = await this.habilidadRepository.formatearOpcionesDeHabilidad(subclase.skill_choices)
+    const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(subclase?.proficiencies ?? [])
+
     return {
       traits,
       traits_options: traits_options,
+      mixed_spell_choices,
+      skill_choices,
+      proficiencies
       /*traits_data_options: subclaseData.traits_data_options,/*
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//*
       options: ,

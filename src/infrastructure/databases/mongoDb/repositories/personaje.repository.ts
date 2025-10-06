@@ -370,6 +370,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
 
     return {
+      clase,
       hit_die: dataLevel?.hit_die ?? 0,
       prof_bonus: prof_bonus[totalLevels] ?? 0,
       traits: dataLevel?.traits ?? [],
@@ -377,8 +378,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
       traits_options: dataLevel?.traits_options ?? undefined,
       subclasesData: dataLevel?.subclasesData ?? null,
       ability_score: dataLevel?.ability_score ?? false,
-      dotes: dataLevel?.dotes
-      
+      dotes: dataLevel?.dotes,
+      double_skills: dataLevel?.double_skills,
+      spell_choices: dataLevel?.spell_choices,
+      mixed_spell_choices: dataLevel?.mixed_spell_choices,
+      spell_changes: dataLevel?.spell_changes,
+      skill_choices: dataLevel?.skill_choices
       
       /*
       //spellcasting_options: ,
@@ -388,14 +393,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
       disciplines_new,
       disciplines_change,
       metamagic,
-      //subclasesData,
       //spells
     */
     }
   }
 
   async subirNivel(data: TypeSubirNivel): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
-    const { id, hit, clase, traits, traits_data, prof_bonus, subclase, abilities, /*, spells, invocations, disciplines, metamagic*/ } = data
+    const { id, hit, clase, traits, traits_data, prof_bonus, subclase, abilities, dotes, skills, double_skills, spells, proficiencies /*, invocations, disciplines, metamagic*/ } = data
     const personaje = await Personaje.findById(id);
     //const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
@@ -464,8 +468,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     }
 */
-    //const spellsData = { ...personaje?.spells }
-/*
+    const spellsData = { ...personaje?.spells }
+
     if (spells.length > 0) {
       spellsData[clase] = spells
     }
@@ -514,10 +518,26 @@ export default class PersonajeRepository implements IPersonajeRepository {
           traits_data: { ...personaje?.traits_data, ...traits_data },
           subclasses: [...personaje?.subclasses ?? [], ...subclaseArray ?? []],
           abilities: abilities ?? personaje?.abilities,
+          dotes: [
+            ...personaje?.dotes ?? [], ...dotes ?? []
+          ],
+          skills: [
+            ...personaje?.skills ?? [],
+            ...skills ?? []
+          ],
+          double_skills: [
+            ...personaje?.double_skills ?? [],
+            ...double_skills ?? []
+          ],
+          proficiencies: [
+            ...personaje?.proficiencies ?? [],
+            ...proficiencies ?? []
+          ],
+          spells: spellsData
           //invocations,
           //disciplines: actualDisciplines,
           //metamagic: [...personaje?.metamagic ?? [], ...metamagic ?? []],
-          //spells: spellsData,
+          //
           //plusSpeed,
         },
         $inc: { 
@@ -727,8 +747,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
   ];
 
     const idiomas = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId)
-    let habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills)
-    const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)    
+    let habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills, personaje?.double_skills ?? [])
+    const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)
 
     const clases = personaje.classes
 

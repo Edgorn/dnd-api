@@ -3,7 +3,7 @@ import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 import { HabilidadPersonajeApi } from "./habilidades.types"
 import { IdiomaApi } from "./idiomas.types"
 import { CompetenciaApi } from "./competencias.types"
-import { DañoApi } from "."
+import { ChoiceApi, DañoApi } from "."
 import { EquipamientoPersonajeApi } from "./equipamientos.types"
 import { DoteApi } from "./dotes.types"
 import { ConjuroApi } from "./conjuros.types"
@@ -270,6 +270,7 @@ export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
 export type Abilities = Record<AbilityKey, number>;
 
 export interface ClaseLevelUpCharacter extends ClaseLevelUp {
+  clase: string,
   prof_bonus: number
 }
 
@@ -281,5 +282,10 @@ export interface TypeSubirNivel {
   traits_data: RasgoDataMongo,
   prof_bonus: number,
   subclase?: string,
-  abilities: Record<AbilityKey, number> | null
+  abilities: Record<AbilityKey, number> | null,
+  dotes: string[],
+  skills: string[],
+  double_skills: string[],
+  proficiencies: string[],
+  spells: string[]
 }

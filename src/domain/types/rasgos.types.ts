@@ -13,6 +13,7 @@ export interface RasgoMongo {
   conditional_resistances: string[],
   proficiencies_weapon?: string[],
   proficiencies_armor?: string[],
+  proficiencies?: string[],
   skills?: string[],
   speed?: number,
   discard?: string[],

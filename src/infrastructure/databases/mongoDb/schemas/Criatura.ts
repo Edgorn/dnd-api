@@ -16,7 +16,7 @@ const criaturaSchema: Schema = new Schema<CriaturaMongo>({
   saving: String,
   skills: String,
   senses: {},
-  languages: String,
+  languages: {},
   challenge_rating: String,
   xp: Number,
   damage_vulnerabilities: [],

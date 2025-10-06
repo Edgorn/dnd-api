@@ -11,6 +11,7 @@ const rasgoSchema: Schema =  new Schema<RasgoMongo>({
   conditional_resistances: [String],
   proficiencies_weapon: [],
   proficiencies_armor: [],
+  proficiencies: [],
   skills: [],
   speed: Number,
   discard: [String],

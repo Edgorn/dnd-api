@@ -4,10 +4,12 @@ import CriaturaRepository from "../../databases/mongoDb/repositories/criaturas.r
 import { Request, Response } from "express";
 import DañoRepository from "../../databases/mongoDb/repositories/daño.repository";
 import EstadoRepository from "../../databases/mongoDb/repositories/estado.repository";
+import IdiomaRepository from "../../databases/mongoDb/repositories/idioma.repository";
 
 const criaturaRepository = new CriaturaRepository(
   new DañoRepository(),
-  new EstadoRepository()
+  new EstadoRepository(),
+  new IdiomaRepository()
 )
 
 const criaturaService = new CriaturaService(criaturaRepository)

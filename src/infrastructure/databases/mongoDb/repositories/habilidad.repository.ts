@@ -36,15 +36,17 @@ export default class HabilidadRepository implements IHabilidadRepository {
     return ordenarPorNombre(result);
   }
 
-  async obtenerHabilidadesPersonaje(skills: string[]): Promise<HabilidadPersonajeApi[]> {
+  async obtenerHabilidadesPersonaje(skills: string[], double_skills: string[]): Promise<HabilidadPersonajeApi[]> {
     const habilidades = await this.obtenerTodas()
 
     const habilidadesFormateadas = habilidades.map(habilidad => {
       return {
         ...habilidad,
-        value: skills?.includes(habilidad?.index)
-          ? 1
-          : 0
+        value: double_skills?.includes(habilidad?.index)
+          ? 2
+          : skills?.includes(habilidad?.index)
+            ? 1
+            : 0
       }
     })
 

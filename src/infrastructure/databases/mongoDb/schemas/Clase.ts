@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { ClaseMongo, SubclasesOptionsMongo } from "../../../../domain/types/clases.types";
+import { ClaseMongo } from "../../../../domain/types/clases.types";
 
 const claseSchema: Schema = new Schema<ClaseMongo>({
   index: String,
@@ -25,9 +25,12 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
     traits_data: {},
     traits_options: {},
     spell_choices: [],
+    mixed_spell_choices: {},
+    spell_changes: {},
     spellcasting: {},
     subclasses_options: {},
-    subclasses: {},/*
+    subclasses: {},
+    double_skills: Number,/*
     terrain_options: {},
     enemy_options: {},
     */

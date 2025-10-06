@@ -51,10 +51,13 @@ export default class ConjuroRepository implements IConjuroRepository {
   } 
 
   private async obtenerConjurosPorNivelClase(nivel: number, clase: string): Promise<ConjuroApi[]> {
-    const conjuros = await ConjuroSchema.find({
-        level: nivel,
-        classes: clase
-      }) 
+    const query:any = {};
+
+    // Si existe, añádelo
+    if (nivel !== undefined) query.level = nivel;
+    if (clase !== undefined) query.classes = clase;
+
+    const conjuros = await ConjuroSchema.find(query) 
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
     

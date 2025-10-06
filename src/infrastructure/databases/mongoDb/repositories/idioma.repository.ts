@@ -28,9 +28,23 @@ export default class IdiomaRepository implements IIdiomaRepository {
 
     if (missing.length > 0) {
       const idiomas = await IdiomaSchema.find({ index: { $in: missing } })
+
+      const encontrados = idiomas.map(i => i.index);
+      const faltantes: IdiomaMongo[] = missing
+        .filter(index => !encontrados.includes(index))
+        .map(index => {
+          return {
+            index: index,
+            name: index,
+            type: "",
+            typical_speakers: [],
+            script: ""
+          }
+        });
         
       idiomas.forEach(idioma => (this.idiomasMap[idioma.index] = idioma));
       result.push(...idiomas);
+      result.push(...faltantes);
     }
 
     return ordenarPorNombre(this.formatearIdiomas(result));

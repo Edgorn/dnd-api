@@ -62,3 +62,7 @@ export const formatearSalvacion = (ability_bonuses: string[]) => {
 
   return abilityBonuses
 }
+
+export function expandArray<T>(arr: T[], n: number): T[] {
+  return Array.from({ length: n }, (_, i) => arr[i % arr.length]);
+}

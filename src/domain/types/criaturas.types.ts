@@ -1,5 +1,6 @@
 import { DañoApi } from "."
 import { EstadoApi } from "./estados.types"
+import { IdiomaApi } from "./idiomas.types"
 
 export interface CriaturaMongo {
   index: string,
@@ -8,15 +9,28 @@ export interface CriaturaMongo {
   subtype: string,
   alignment: string,
   size: string,
-  armor_class: {},
+  armor_class: {
+    type: string,
+    value: number
+  },
   hit_points: number,
   hit_dice: string,
-  speed: {},
+  speed: {
+    walk?: number,
+    fly?: number,
+    climb?: number,
+    swim?: number,
+    notes?: string
+  },
   abilities: {},
-  saving: string,
+  saving: string, 
   skills: string,
-  senses: {},
-  languages: string,
+  senses: {
+    passive_perception: number,
+    darkvision: number,
+    blindsight: number
+  },
+  languages: LanguagesCriaturaMongo,
   challenge_rating: string,
   xp: number,
   damage_vulnerabilities: [],
@@ -28,6 +42,11 @@ export interface CriaturaMongo {
   reactions: [] 
 }
 
+export interface LanguagesCriaturaMongo {
+  understands: string[],
+  speaks: string[]
+}
+
 export interface CriaturaApi {
   index: string,
   name: string,
@@ -35,7 +54,10 @@ export interface CriaturaApi {
   subtype: string,
   alignment: string,
   size: string,
-  armor_class: {},
+  armor_class: {
+    type: string,
+    value: number
+  },
   hit_points: number,
   hit_dice: string,
   speed: {},
@@ -43,7 +65,7 @@ export interface CriaturaApi {
   saving: string,
   skills: string,
   senses: {},
-  languages: string,
+  languages: LanguagesCriaturaApi,
   challenge_rating: string,
   xp: number,
   damage_vulnerabilities: DañoApi[],
@@ -53,4 +75,9 @@ export interface CriaturaApi {
   special_abilities: [],
   actions: [],
   reactions: [] 
+}
+
+export interface LanguagesCriaturaApi {
+  understands: IdiomaApi[],
+  speaks: IdiomaApi[]
 }

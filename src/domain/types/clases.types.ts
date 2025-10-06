@@ -28,10 +28,20 @@ export interface ClaseLevelMongo {
   traits: string[],
   traits_data: RasgoDataMongo,
   spell_choices?: ChoiceSpell[],
+  mixed_spell_choices?: {
+    number: number,
+    options: ChoiceSpell[]
+  },
+  spell_changes?: {
+    number: number,
+    options: ChoiceSpell[]
+  },
   subclasses_options: SubclasesOptionsMongo,
   subclasses: SubclasesMongo,
   ability_score: boolean,
-  spellcasting?: Spellcasting
+  spellcasting?: Spellcasting,
+  double_skills?: number,
+  skill_choices?: ChoiceMongo
 }
 
 export interface Spellcasting {
@@ -65,7 +75,13 @@ export interface SubclaseMongo {
   traits_options?: {
     name: string,
     options: string[]
-  }
+  },
+  mixed_spell_choices?: {
+    number: number,
+    options: ChoiceSpell[]
+  },
+  skill_choices?: ChoiceMongo,
+  proficiencies?: string[]
 }
 
 export interface ClaseApi {
@@ -95,15 +111,10 @@ export interface SubclasesOptionsApi {
   options: SubclaseOptionApi[]
 }
 
-export interface SubclaseOptionApi {
+export interface SubclaseOptionApi extends SubclaseApi {
   index: string,
   name: string,
-  img: string,
-  traits: RasgoApi[],
-  traits_options?: {
-    name: string,
-    options: RasgoApi[]
-  }
+  img: string
 }
 
 export interface SubclaseApi {
@@ -111,7 +122,10 @@ export interface SubclaseApi {
   traits_options?: {
     name: string,
     options: RasgoApi[]
-  }
+  },
+  mixed_spell_choices?: ChoiceApi<ConjuroApi>[][],
+  skill_choices?: ChoiceApi<HabilidadApi>,
+  proficiencies?: CompetenciaApi[]
 }
 
 export interface ClaseLevelUp {
@@ -124,5 +138,10 @@ export interface ClaseLevelUp {
   },
   ability_score: boolean,
   dotes: ChoiceApi<DoteApi> | undefined,
-  subclasesData: SubclasesOptionsApi | null
+  subclasesData: SubclasesOptionsApi | null,
+  double_skills?: number,
+  spell_choices?: ChoiceApi<ConjuroApi>[],
+  mixed_spell_choices?: ChoiceApi<ConjuroApi>[][],
+  spell_changes?: ChoiceApi<ConjuroApi>[][],
+  skill_choices?: ChoiceApi<HabilidadApi>
 }

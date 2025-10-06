@@ -91,8 +91,12 @@ export default class RasgoRepository implements IRasgoRepository {
   private async formatearRasgo(rasgo: RasgoMongo, data: RasgoDataMongo = {}): Promise<RasgoApi> {
     const resistances = await this.dañoRepository.obtenerDañosPorIndices(rasgo.resistances ?? [])
     const conditional_resistances = await this.dañoRepository.obtenerDañosPorIndices(rasgo.conditional_resistances ?? [])
-    const proficiencies_weapon = await this.competenciaRepository.obtenerCompetenciasPorIndices(rasgo?.proficiencies_weapon ?? [])
-    const proficiencies_armor = await this.competenciaRepository.obtenerCompetenciasPorIndices(rasgo?.proficiencies_armor ?? [])
+    const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices([
+      ...rasgo?.proficiencies_weapon ?? [],
+      ...rasgo?.proficiencies_armor ?? [],
+      ...rasgo?.proficiencies ?? []
+    ])
+    
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(rasgo?.spells ?? [])
 
     const condition_inmunities = await this.estadoRepository.obtenerEstadosPorIndices(rasgo?.condition_inmunities)
@@ -118,10 +122,7 @@ export default class RasgoRepository implements IRasgoRepository {
       resistances,
       conditional_resistances,
       condition_inmunities,
-      proficiencies: [
-        ...proficiencies_weapon,
-        ...proficiencies_armor
-      ],
+      proficiencies,
       skills: rasgo?.skills ?? [],
       spells,
       speed: rasgo?.speed ?? undefined,
