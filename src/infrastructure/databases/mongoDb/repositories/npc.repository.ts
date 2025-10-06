@@ -54,7 +54,11 @@ export default class NpcRepository implements INpcRepository {
       saving: npc.saving,
       skills: npc.skills,
       senses: npc.senses,
-      languages: npc.languages,
+      languages: {
+        speaks: [],
+        understands: []
+      },
+      //languages: npc.languages,
       challenge_rating: npc.challenge_rating,
       xp: npc.xp,
       damage_vulnerabilities,

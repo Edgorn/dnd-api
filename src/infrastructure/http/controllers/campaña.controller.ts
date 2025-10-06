@@ -32,7 +32,7 @@ const habilidadRepository = new HabilidadRepository()
 const equipamientoRepository = new EquipamientoRepository()
 
 const rasgoRepository = new RasgoRepository(undefined, competenciaRepository, conjuroRepository)
-const claseRepository = new ClaseRepository(habilidadRepository, competenciaRepository, equipamientoRepository, rasgoRepository)
+const claseRepository = new ClaseRepository(habilidadRepository, competenciaRepository, equipamientoRepository, rasgoRepository, conjuroRepository, new DoteRepository())
 
 const campañaRepository = new CampañaRepository(
   usuarioRepository,
