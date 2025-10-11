@@ -1,6 +1,9 @@
+import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
+import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import INpcRepository from '../../../../domain/repositories/INpcRepository';
+import { ConjuroApi } from '../../../../domain/types/conjuros.types';
 import { CriaturaApi, CriaturaMongo } from '../../../../domain/types/criaturas.types';
 import NpcSchema from '../schemas/Npc';
 
@@ -8,6 +11,8 @@ export default class NpcRepository implements INpcRepository {
   constructor(
     private readonly dañoRepository: IDañoRepository,
     private readonly estadoRepository: IEstadoRepository,
+    private readonly idiomasRepository: IIdiomaRepository,
+    private readonly conjurosRepository: IConjuroRepository,
   ) { }
 
   async obtenerTodos(): Promise<CriaturaApi[]> {
@@ -31,14 +36,20 @@ export default class NpcRepository implements INpcRepository {
       damage_vulnerabilities,
       damage_immunities,
       damage_resistances,
-      condition_immunities
+      condition_immunities,
+      speaks_languages,
+      understands_languages,
+      spell_slots
     ] = await Promise.all([
       this.dañoRepository.obtenerDañosPorIndices(npc?.damage_vulnerabilities ?? []),
       this.dañoRepository.obtenerDañosPorIndices(npc?.damage_immunities ?? []),
       this.dañoRepository.obtenerDañosPorIndices(npc?.damage_resistances ?? []),
-      this.estadoRepository.obtenerEstadosPorIndices(npc?.condition_immunities ?? [])
+      this.estadoRepository.obtenerEstadosPorIndices(npc?.condition_immunities ?? []),
+      this.idiomasRepository.obtenerIdiomasPorIndices(npc?.languages?.speaks ?? []),
+      this.idiomasRepository.obtenerIdiomasPorIndices(npc?.languages?.understands ?? []),
+      this.formatearConjurosCriatura(npc?.spell_slots ?? [])
     ])
-
+ 
     return {
       index: npc.index,
       name: npc.name,
@@ -55,10 +66,10 @@ export default class NpcRepository implements INpcRepository {
       skills: npc.skills,
       senses: npc.senses,
       languages: {
-        speaks: [],
-        understands: []
+        speaks: speaks_languages,
+        understands: understands_languages,
+        notes: npc?.languages?.notes
       },
-      //languages: npc.languages,
       challenge_rating: npc.challenge_rating,
       xp: npc.xp,
       damage_vulnerabilities,
@@ -67,7 +78,21 @@ export default class NpcRepository implements INpcRepository {
       condition_immunities,
       special_abilities: npc?.special_abilities ?? [],
       actions: npc.actions,
-      reactions: npc.reactions
+      actions_aditional: npc.actions_aditional,
+      reactions: npc.reactions,
+      spell_slots
     }
+  }
+
+  private async formatearConjurosCriatura(spell_slots: { [key: string]: string[] }): Promise<{ [key: string]: ConjuroApi[] }> {
+    const response: { [key: string]: ConjuroApi[] } = {}
+
+    await Promise.all(
+      Object.keys(spell_slots).map(async spell_slot => {
+        response[spell_slot] = await this.conjurosRepository.obtenerConjurosPorIndices(spell_slots[spell_slot])
+      })
+    )
+
+    return response
   }
 }

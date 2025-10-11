@@ -16,7 +16,7 @@ const npcSchema: Schema = new Schema<CriaturaMongo>({
   saving: String,
   skills: String,
   senses: {},
-  languages: String,
+  languages: {},
   challenge_rating: String,
   xp: Number,
   damage_vulnerabilities: [],
@@ -25,7 +25,9 @@ const npcSchema: Schema = new Schema<CriaturaMongo>({
   condition_immunities: [],
   special_abilities: [],
   actions: [],
-  reactions: [] 
+  actions_aditional: [],
+  reactions: [],
+  spell_slots: {}
 }, { collection: 'NPCs' });
 
 module.exports = mongoose.model('NPCs', npcSchema);

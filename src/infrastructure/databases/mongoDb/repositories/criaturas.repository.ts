@@ -1,7 +1,9 @@
+import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
 import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import { ConjuroApi } from '../../../../domain/types/conjuros.types';
 import { CriaturaApi, CriaturaMongo } from '../../../../domain/types/criaturas.types';
 import CriaturaSchema from '../schemas/Criatura';
 
@@ -10,6 +12,7 @@ export default class CriaturaRepository implements ICriaturaRepository {
     private readonly dañoRepository: IDañoRepository,
     private readonly estadoRepository: IEstadoRepository,
     private readonly idiomasRepository: IIdiomaRepository,
+    private readonly conjurosRepository: IConjuroRepository,
   ) { }
 
   async obtenerTodas(): Promise<CriaturaApi[]> {
@@ -24,7 +27,7 @@ export default class CriaturaRepository implements ICriaturaRepository {
     }
   }
 
-  private formatearCriaturas(criaturas: CriaturaMongo[]): Promise<CriaturaApi[]>  {
+  private formatearCriaturas(criaturas: CriaturaMongo[]): Promise<CriaturaApi[]> {
     return Promise.all(criaturas.map(criatura => this.formatearCriatura(criatura)));
   } 
 
@@ -35,14 +38,16 @@ export default class CriaturaRepository implements ICriaturaRepository {
       damage_resistances,
       condition_immunities,
       speaks_languages,
-      understands_languages
+      understands_languages,
+      spell_slots
     ] = await Promise.all([
       this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_vulnerabilities ?? []),
       this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_immunities ?? []),
       this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_resistances ?? []),
       this.estadoRepository.obtenerEstadosPorIndices(criatura?.condition_immunities ?? []),
       this.idiomasRepository.obtenerIdiomasPorIndices(criatura?.languages?.speaks ?? []),
-      this.idiomasRepository.obtenerIdiomasPorIndices(criatura?.languages?.understands ?? [])
+      this.idiomasRepository.obtenerIdiomasPorIndices(criatura?.languages?.understands ?? []),
+      this.formatearConjurosCriatura(criatura?.spell_slots ?? [])
     ])
 
     return {
@@ -62,7 +67,8 @@ export default class CriaturaRepository implements ICriaturaRepository {
       senses: criatura.senses,
       languages: {
         speaks: speaks_languages,
-        understands: understands_languages
+        understands: understands_languages,
+        notes: criatura?.languages?.notes
       },
       challenge_rating: criatura.challenge_rating,
       xp: criatura.xp,
@@ -72,7 +78,21 @@ export default class CriaturaRepository implements ICriaturaRepository {
       condition_immunities,
       special_abilities: criatura?.special_abilities ?? [],
       actions: criatura.actions,
-      reactions: criatura.reactions
+      actions_aditional: criatura.actions_aditional,
+      reactions: criatura.reactions,
+      spell_slots
     }
+  }
+
+  private async formatearConjurosCriatura(spell_slots: { [key: string]: string[] }): Promise<{ [key: string]: ConjuroApi[] }> {
+    const response: { [key: string]: ConjuroApi[] } = {}
+
+    await Promise.all(
+      Object.keys(spell_slots).map(async spell_slot => {
+        response[spell_slot] = await this.conjurosRepository.obtenerConjurosPorIndices(spell_slots[spell_slot])
+      })
+    )
+
+    return response
   }
 }

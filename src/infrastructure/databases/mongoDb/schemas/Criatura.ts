@@ -25,7 +25,9 @@ const criaturaSchema: Schema = new Schema<CriaturaMongo>({
   condition_immunities: [],
   special_abilities: [],
   actions: [],
-  reactions: [] 
+  actions_aditional: [],
+  reactions: [],
+  spell_slots: {}
 }, { collection: 'Criaturas' });
 
 const CriaturaModel = mongoose.model<CriaturaMongo>("Criaturas", criaturaSchema);
