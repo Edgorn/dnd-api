@@ -64,7 +64,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
   async obtenerEquipamientosPorTipo(tipo: string): Promise<EquipamientoBasico[]> {
     const equipamientos = await EquipamientoSchema.find({ category: tipo })
 
-    return this.formatearEquipamientosBasicos(equipamientos)
+    return ordenarPorNombre(this.formatearEquipamientosBasicos(equipamientos))
   }
 
   private formatearEquipamientosPersonaje(equipamientos: EquipamientoPersonajeMongo[], equipamientosMongo: EquipamientoMongo[]): Promise<EquipamientoPersonajeApi[]> {
