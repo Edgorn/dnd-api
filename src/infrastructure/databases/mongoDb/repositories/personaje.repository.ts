@@ -1115,6 +1115,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
       suma += Math.floor((max/2) - 5)
     } else if (equip?.weapon?.range === 'Distancia') {
       suma += Math.floor((character?.abilities?.dex/2) - 5)
+      if (character?.traits?.map(trait => trait.index)?.includes("fighter-fighting-style-archery")) {
+        suma += 2
+      } 
     } else {
       suma += Math.floor((character?.abilities?.str/2) - 5)
     }

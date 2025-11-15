@@ -144,7 +144,8 @@ export default class ClaseRepository implements IClaseRepository {
       clases
         .filter(clase => 
           clase.index === 'barbarian' ||
-          clase.index === 'bard' /*|| 
+          clase.index === 'bard' ||
+          clase.index === 'ranger' /*|| 
           clase.index === 'warlock' || 
           clase.index === 'cleric' || 
           clase.index === 'wizard' || 
@@ -174,7 +175,7 @@ export default class ClaseRepository implements IClaseRepository {
       this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment),
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(clase?.equipment_choices)
-    ])
+    ]) 
 
     return {
       index: clase.index,
@@ -279,7 +280,7 @@ export default class ClaseRepository implements IClaseRepository {
       }
     }
     return false;
-  }
+  }  
 
   private async formatearSubclaseType(subclase_type: SubclasesOptionsMongo, subclases: SubclasesMongo) {
     if (subclase_type) {
