@@ -6,24 +6,29 @@ import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repo
 const usuarioService = new UsuarioService(new UsuarioRepository())
 const logear = new Logear(usuarioService)
 
-const login = async (req: Request, res: Response) => {
-  try {
-    const { user, password } = req.body
+export class UsuarioController {
+  constructor(private readonly logearUseCase: Logear) {}
 
-    const data = await logear.execute({ user, password })
+  login = async (req: Request, res: Response) => {
+    try {
+      const { user, password } = req.body
 
-    if (!data) {
-      console.warn(`Intento de login fallido para el usuario: ${user}`);
-      res.status(401).json({ error: "Usuario o contraseña incorrectos" });
-      return;
+      const data = await this.logearUseCase.execute({ user, password })
+
+      if (!data) {
+        console.warn(`Intento de login fallido para el usuario: ${user}`);
+        res.status(401).json({ error: "Usuario o contraseña incorrectos" });
+        return;
+      }
+
+      res.status(200).json(data);
+
+    } catch (e) {
+      console.error("Error en login:", e)
+      res.status(500).json({ error: 'Error al iniciar sesion' });
     }
+  };
+}
 
-    res.status(200).json(data);
-
-  } catch (e) {
-    console.error("Error en login:", e)
-    res.status(500).json({ error: 'Error al iniciar sesion' });
-  }
-};
-
-export default { login };
+const usuarioController = new UsuarioController(logear);
+export default usuarioController;

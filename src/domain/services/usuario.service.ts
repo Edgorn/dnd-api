@@ -1,6 +1,7 @@
 import IUsuarioRepository from "../repositories/IUsuarioRepository";
 import { LoginParams, LoginResult, UsuarioMongo } from "../types/usuarios.types";
-const jwt = require('jsonwebtoken')
+import * as bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export default class UsuarioService {
   private usuarioRepository: IUsuarioRepository;
@@ -14,8 +15,8 @@ export default class UsuarioService {
     
     if (!usuario) return null;
 
-    // Aquí iría bcrypt.compare(password, usuario.passwordHash)
-    if (usuario.password !== password) return null;
+    const isPasswordValid = await bcrypt.compare(password, usuario.password);
+    if (!isPasswordValid) return null;
 
     const token = this.generarToken(usuario);
 
@@ -31,7 +32,8 @@ export default class UsuarioService {
   private generarToken(usuario: UsuarioMongo): string {
     return jwt.sign(
       { id: usuario._id, name: usuario.name },
-      process.env.JWT_SECRET!
+      process.env.JWT_SECRET!,
+      { expiresIn: '2h' }
     );
   }
 
