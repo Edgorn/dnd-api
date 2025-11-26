@@ -1,9 +1,4 @@
-import ValidarToken from "../../../application/use-cases/usuario/validarToken.use-case";
-import UsuarioService from "../../../domain/services/usuario.service";
 import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repository";
-
-const usuarioService = new UsuarioService(new UsuarioRepository())
-const validarToken = new ValidarToken(usuarioService)
 
 import CrearPersonaje from "../../../application/use-cases/personaje/crearPersonaje.use-case";
 import ObtenerPersonajesPorUsuario from "../../../application/use-cases/personaje/obtenerPersonajesPorUsuario.use-case";
@@ -19,6 +14,7 @@ import EquipArmor from "../../../application/use-cases/personaje/equiparArmadura
 import CrearPdf from "../../../application/use-cases/personaje/obtenerPdf.use-case";
 import UpdateMoney from "../../../application/use-cases/personaje/modificarDinero.use-case";
 import { Request, Response } from "express";
+import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 
 import EquipamientoRepository from "../../databases/mongoDb/repositories/equipamiento.repository";
 import RasgoRepository from "../../databases/mongoDb/repositories/rasgo.repository";
@@ -72,13 +68,16 @@ const equipArmor = new EquipArmor(personajeService);
 const updateMoney = new UpdateMoney(personajeService);
 const crearPdf = new CrearPdf(personajeService);
 
-const getCharacters = async (req: Request, res: Response) => {
+const getCharacters = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = (req as any).user;
+    const userId = req.user;
+    if (!userId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
     const data = await obtenerPersonajesPorUsuario.execute(userId)
     res.status(200).json(data);
   } catch (e) {
-    console.error(e)
+    console.error('Error en getCharacters:', e)
     res.status(500).json({ error: 'Error al consultar personajes' });
   }
 };

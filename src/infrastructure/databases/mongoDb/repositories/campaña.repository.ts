@@ -31,7 +31,7 @@ export default class CampañaRepository implements ICampañaRepository {
       name: data.name,
       description: data.description,
       master: data.master,
-      status: 'Creada',
+      status: 'Activa',
       players_requesting: [],
       players: [],
       characters: []

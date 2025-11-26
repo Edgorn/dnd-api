@@ -57,7 +57,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
       const personajes = await Personaje.find({ user: id })
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
-      return this.formatearPersonajesBasicos(personajes)
+      
+      const userName = await this.usuarioRepository.consultarNombreUsuario(id);
+      return this.formatearPersonajesBasicos(personajes, userName)
     } catch (error) {
       console.error("Error obteniendo personajes:", error);
       throw new Error("No se pudieron obtener los personajes");
@@ -593,16 +595,28 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return this.formatearPersonajeBasico(personaje)
   }
 
-  private formatearPersonajesBasicos(personajes: PersonajeMongo[]): Promise<PersonajeBasico[]> {
-    return Promise.all(personajes.map(personaje => this.formatearPersonajeBasico(personaje)))
+  private async formatearPersonajesBasicos(personajes: PersonajeMongo[], userName?: string): Promise<PersonajeBasico[]> {
+    const campaignIds = [...new Set(personajes.map(p => p.campaign).filter(id => id))];
+    const campaigns = await Campaña.find({ _id: { $in: campaignIds } });
+    const campaignMap = new Map(campaigns.map(c => [c._id.toString(), c.name]));
+
+    return Promise.all(personajes.map(personaje => {
+      const campaignName = personaje.campaign ? campaignMap.get(personaje.campaign.toString()) : undefined;
+      return this.formatearPersonajeBasico(personaje, userName, campaignName);
+    }));
   }
 
-  private async formatearPersonajeBasico(personaje: PersonajeMongo): Promise<PersonajeBasico> {
+  private async formatearPersonajeBasico(personaje: PersonajeMongo, userName?: string, campaignName?: string): Promise<PersonajeBasico> {
     const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
 
-    const user = await this.usuarioRepository.consultarNombreUsuario(personaje?.user ?? null)
+    const user = userName ?? await this.usuarioRepository.consultarNombreUsuario(personaje?.user ?? null)
     const { CA } = await this.calcularCA(personaje)
-    const campaña = await Campaña.findById(personaje?.campaign)
+    
+    let finalCampaignName = campaignName;
+    if (finalCampaignName === undefined) {
+        const campaña = await Campaña.findById(personaje?.campaign)
+        finalCampaignName = campaña?.name ?? '';
+    }
 
     return {
       id: personaje?._id?.toString() ?? '',
@@ -610,7 +624,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       name: personaje.name,
       user,
       race: personaje.race,
-      campaign: campaña?.name ?? '',
+      campaign: finalCampaignName,
       classes: personaje?.classes?.map((clas: any) => { return { name: clas.name, level: clas.level }}) ?? [],
       CA,
       HPMax: personaje.HPMax,

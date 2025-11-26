@@ -24,6 +24,7 @@ import ClaseRepository from "../../databases/mongoDb/repositories/clase.reposito
 import IdiomaRepository from "../../databases/mongoDb/repositories/idioma.repository";
 import DoteRepository from "../../databases/mongoDb/repositories/dote.repository";
 import AñadirPersonajeACampaña from "../../../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
+import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 
 const usuarioRepository = new UsuarioRepository()
 const competenciaRepository = new CompetenciaRepository()
@@ -61,8 +62,12 @@ const añadirPersonajeACampaña = new AñadirPersonajeACampaña(campañaService)
 
 const getCampaigns = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user;
+    const userId = (req as AuthenticatedRequest).user;
     
+    if (!userId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
+
     const data = await obtenerCampañasPorUsuario.execute(userId)
     res.status(200).json(data);
   } catch (e) {
@@ -73,7 +78,11 @@ const getCampaigns = async (req: Request, res: Response) => {
 
 const createCampaign = async (req: Request, res: Response) => {
   try {
-    const masterId = (req as any).user;
+    const masterId = (req as AuthenticatedRequest).user;
+
+    if (!masterId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
 
     const data = await crearCampaña.execute({ ...req.body, master: masterId })
     res.status(200).json(data);
@@ -85,8 +94,12 @@ const createCampaign = async (req: Request, res: Response) => {
 
 const getCampaign = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user;
+    const userId = (req as AuthenticatedRequest).user;
     const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
 
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
@@ -102,8 +115,12 @@ const getCampaign = async (req: Request, res: Response) => {
 
 const requestJoinCampaign = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user;
+    const userId = (req as AuthenticatedRequest).user;
     const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
 
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
@@ -119,9 +136,13 @@ const requestJoinCampaign = async (req: Request, res: Response) => {
 
 const denyJoinRequest = async (req: Request, res: Response) => {
   try {
-    const masterId = (req as any).user;
+    const masterId = (req as AuthenticatedRequest).user;
     const { id, userId } = req.params;
     
+    if (!masterId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
+
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
@@ -140,8 +161,12 @@ const denyJoinRequest = async (req: Request, res: Response) => {
 
 const acceptJoinRequest = async (req: Request, res: Response) => {
   try {
-    const masterId = (req as any).user;
+    const masterId = (req as AuthenticatedRequest).user;
     const { id, userId } = req.params;
+
+    if (!masterId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
 
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
@@ -161,9 +186,13 @@ const acceptJoinRequest = async (req: Request, res: Response) => {
 
 const addCharacterToCampaign = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user;
+    const userId = (req as AuthenticatedRequest).user;
     const { id } = req.params;
     const { characterId } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
 
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });

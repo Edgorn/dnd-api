@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import ValidarToken from "../../../application/use-cases/usuario/validarToken.use-case";
 import UsuarioService from "../../../domain/services/usuario.service";
 import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repository";
@@ -21,7 +22,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       return res.status(401).json({ error: "Token inválido" });
     }
 
-    (req as any).user = isValid;
+    (req as AuthenticatedRequest).user = isValid;
     next();
   } catch (error) {
     console.error("Error validando token:", error);

@@ -8,13 +8,14 @@ import DañoRepository from './daño.repository';
 import PropiedadArmaRepository from './propiedadesArmas.repository';
 
 export default class EquipamientoRepository implements IEquipamientoRepository {
-  private equipamientosMap: Record<string, EquipamientoMongo>
+  private equipamientosMap: Map<string, EquipamientoMongo>
+  private readonly MAX_CACHE_SIZE = 1000;
 
   dañoRepository: IDañoRepository
   propiedadesRepository: IPropiedadArmaRepository
 
   constructor(dañoRepository?: IDañoRepository, propiedadesRepository?: IPropiedadArmaRepository) {
-    this.equipamientosMap = {}
+    this.equipamientosMap = new Map()
     this.dañoRepository = dañoRepository ?? this.crearDañoRepositorioPorDefecto()
     this.propiedadesRepository = propiedadesRepository ?? this.crearPropiedadesRepositorioPorDefecto()
   }
@@ -35,8 +36,8 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     const missing: EquipamientoPersonajeMongo[] = [];
 
     equipamientos.forEach(equipamiento => {
-      if (this.equipamientosMap[equipamiento.index]) {
-        result.push(this.equipamientosMap[equipamiento.index]);
+      if (this.equipamientosMap.has(equipamiento.index)) {
+        result.push(this.equipamientosMap.get(equipamiento.index)!);
       } else {
         missing.push(equipamiento);
       }
@@ -44,7 +45,12 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
 
     if (missing.length > 0) {
       const equipamientosAux = await EquipamientoSchema.find({ index: { $in: missing?.map(miss => miss.index) } })
-      equipamientosAux.forEach(equipamiento => (this.equipamientosMap[equipamiento.index] = equipamiento));
+      equipamientosAux.forEach(equipamiento => {
+        if (this.equipamientosMap.size >= this.MAX_CACHE_SIZE) {
+          this.equipamientosMap.clear();
+        }
+        this.equipamientosMap.set(equipamiento.index, equipamiento)
+      });
       result.push(...equipamientosAux);
     }
 
@@ -192,7 +198,12 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
       .sort({ name: 1 })
       .lean();
 
-    equipamientos.forEach(equipamiento => (this.equipamientosMap[equipamiento.index] = equipamiento))
+    equipamientos.forEach(equipamiento => {
+      if (this.equipamientosMap.size >= this.MAX_CACHE_SIZE) {
+        this.equipamientosMap.clear();
+      }
+      this.equipamientosMap.set(equipamiento.index, equipamiento)
+    })
 
     return this.formatearEquipamientosPersonaje(
       equipamientos.map(equipamiento => { return {...equipamiento, quantity: 1}}), 
