@@ -197,7 +197,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip && eq.isMagic === isMagic)
+    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
 
     if (idx > -1) {
       equipment[idx].quantity += cantidad 
@@ -273,7 +273,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip && eq.isMagic === isMagic)
+    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
 
     if (idx > -1) {
       if (equip === 'shield') {
