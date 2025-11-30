@@ -12,7 +12,7 @@ export default class UsuarioService {
 
   async logearUsuario({ user, password }: LoginParams): Promise<LoginResult | null> {
     const usuario = await this.usuarioRepository.buscarUsuarioPorNombre(user);
-    
+
     if (!usuario) return null;
 
     const isPasswordValid = await bcrypt.compare(password, usuario.password);
@@ -20,7 +20,7 @@ export default class UsuarioService {
 
     const token = this.generarToken(usuario);
 
-    return { 
+    return {
       token,
       user: {
         index: usuario?._id.toString(),
@@ -33,7 +33,7 @@ export default class UsuarioService {
     return jwt.sign(
       { id: usuario._id, name: usuario.name },
       process.env.JWT_SECRET!,
-      { expiresIn: '2h' }
+      { expiresIn: '24h' }
     );
   }
 
@@ -42,7 +42,7 @@ export default class UsuarioService {
 
     try {
       const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
-  
+
       const usuario = await this.usuarioRepository.buscarUsuarioPorId(decoded.id);
       return usuario ? usuario._id.toString() : null;
     } catch (error) {

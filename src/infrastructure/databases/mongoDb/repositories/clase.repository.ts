@@ -19,8 +19,8 @@ export default class ClaseRepository implements IClaseRepository {
     private readonly rasgoRepository: IRasgoRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository
-  ) {}
-  
+  ) { }
+
   async obtenerTodas(): Promise<ClaseApi[]> {
     try {
       const clases = await ClaseSchema.find()
@@ -41,7 +41,7 @@ export default class ClaseRepository implements IClaseRepository {
     }
 
     const dataLevel = clase.levels.find(data => data.level === level)
-    const dataLevelOld = clase.levels.find(data => data.level === level-1)
+    const dataLevelOld = clase.levels.find(data => data.level === level - 1)
 
     if (!dataLevel) {
       return null
@@ -56,7 +56,7 @@ export default class ClaseRepository implements IClaseRepository {
       if (this.valoresNumericosDistintos(data, dataOld)) {
         traitsId.push(t)
       }
-    }) 
+    })
 
     traitsId.push(...dataLevel?.traits ?? [])
 
@@ -85,8 +85,8 @@ export default class ClaseRepository implements IClaseRepository {
     const mixed_spell = await this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.mixed_spell_choices?.options)
     const spell_changes_aux = await this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_changes?.options)
 
-    const mixed_spell_choices = Array.from({ length: dataLevel?.mixed_spell_choices?.number ?? 0 }, () =>  mixed_spell?.map(opt => ({ ...opt })) ?? []);
-    const spell_changes = Array.from({ length: dataLevel?.spell_changes?.number ?? 0 }, () =>  spell_changes_aux?.map(opt => ({ ...opt })) ?? []);
+    const mixed_spell_choices = Array.from({ length: dataLevel?.mixed_spell_choices?.number ?? 0 }, () => mixed_spell?.map(opt => ({ ...opt })) ?? []);
+    const spell_changes = Array.from({ length: dataLevel?.spell_changes?.number ?? 0 }, () => spell_changes_aux?.map(opt => ({ ...opt })) ?? []);
 
     const skill_choices = await this.habilidadRepository.formatearOpcionesDeHabilidad(dataLevel.skill_choices)
 
@@ -107,9 +107,9 @@ export default class ClaseRepository implements IClaseRepository {
         ...mixed_spell_choices ?? [],
         ...subclaseData
           .filter((item): item is SubclaseApi => !!item?.mixed_spell_choices)
-          .map(item => item.mixed_spell_choices ?? [])  
+          .map(item => item.mixed_spell_choices ?? [])
           .flat() ?? []
-      ], 
+      ],
       spell_changes,
       skill_choices
     }
@@ -124,7 +124,7 @@ export default class ClaseRepository implements IClaseRepository {
   }
 
   private async spellcastingClase(clase: ClaseMongo, clasesLevel: { id: string, level: number }[]): Promise<SpellcastingLevel | null> {
-    const level = clasesLevel.find(clas => clas.id ===clase.index)?.level
+    const level = clasesLevel.find(clas => clas.id === clase.index)?.level
 
     if (!level) return null
 
@@ -142,21 +142,21 @@ export default class ClaseRepository implements IClaseRepository {
   private formatearClases(clases: ClaseMongo[]) {
     return Promise.all(
       clases
-        .filter(clase => 
+        .filter(clase =>
           clase.index === 'barbarian' ||
-          clase.index === 'bard' ||
-          clase.index === 'ranger' /*|| 
+          clase.index === 'bard' /*||
+          clase.index === 'ranger' || 
           clase.index === 'warlock' || 
           clase.index === 'cleric' || 
           clase.index === 'wizard' || 
           clase.index === 'monk' || 
           clase.index === 'sorcerer'*/
-        ) 
+        )
         .map(clase => this.formatearClase(clase))
     );
   }
 
-  private async formatearClase(clase: ClaseMongo): Promise<ClaseApi> {  
+  private async formatearClase(clase: ClaseMongo): Promise<ClaseApi> {
     const dataLevel = clase?.levels?.find(level => level.level === 1)
 
     const [
@@ -169,13 +169,13 @@ export default class ClaseRepository implements IClaseRepository {
       equipment_choices
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [], dataLevel?.traits_data),
-      this.competenciaRepository.obtenerCompetenciasPorIndices([ ...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? [] ]),
+      this.competenciaRepository.obtenerCompetenciasPorIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]),
       this.competenciaRepository.formatearOpcionesDeCompetencias(clase?.proficiencies_choices ?? []),
       this.habilidadRepository.formatearOpcionesDeHabilidad(clase.skill_choices),
       this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment),
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(clase?.equipment_choices)
-    ]) 
+    ])
 
     return {
       index: clase.index,
@@ -268,7 +268,7 @@ export default class ClaseRepository implements IClaseRepository {
 
     const subclasesOptions = await this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*/
 
-    
+
   }
 
   private valoresNumericosDistintos(obj1: { [key: string]: string }, obj2: { [key: string]: string } | null): boolean {
@@ -280,12 +280,12 @@ export default class ClaseRepository implements IClaseRepository {
       }
     }
     return false;
-  }  
+  }
 
   private async formatearSubclaseType(subclase_type: SubclasesOptionsMongo, subclases: SubclasesMongo) {
     if (subclase_type) {
       const options = await this.formatearSubclases(subclase_type?.options, subclases)
-      
+
       return {
         name: subclase_type.name,
         desc: subclase_type.desc,
@@ -306,10 +306,10 @@ export default class ClaseRepository implements IClaseRepository {
     return formateadas;
   }
 
-  private async formatearSubclaseOption(subclase_option: SubclasesOptionsMongoOption, subclases: SubclasesMongo): Promise<SubclaseOptionApi>  {
+  private async formatearSubclaseOption(subclase_option: SubclasesOptionsMongoOption, subclases: SubclasesMongo): Promise<SubclaseOptionApi> {
     const subclaseData = subclases[subclase_option?.index]
     const subclase = await this.formatearSubclase(subclaseData)
-   
+
     return {
       index: subclase_option?.index,
       name: subclase_option?.name,
@@ -335,7 +335,7 @@ export default class ClaseRepository implements IClaseRepository {
 
   private async formatearSubclase(subclase: SubclaseMongo): Promise<SubclaseApi> {
     const traits = await this.rasgoRepository.obtenerRasgosPorIndices(subclase?.traits ?? [])
-    
+
     let traits_options = undefined
 
     if (subclase?.traits_options) {
@@ -347,7 +347,7 @@ export default class ClaseRepository implements IClaseRepository {
     }
 
     const mixed_spell = await this.conjuroRepository.formatearOpcionesDeConjuros(subclase?.mixed_spell_choices?.options)
-    const mixed_spell_choices = Array.from({ length: subclase?.mixed_spell_choices?.number ?? 0 }, () =>  mixed_spell?.map(opt => ({ ...opt })) ?? []);
+    const mixed_spell_choices = Array.from({ length: subclase?.mixed_spell_choices?.number ?? 0 }, () => mixed_spell?.map(opt => ({ ...opt })) ?? []);
 
     const skill_choices = await this.habilidadRepository.formatearOpcionesDeHabilidad(subclase.skill_choices)
     const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(subclase?.proficiencies ?? [])
@@ -374,278 +374,278 @@ export default class ClaseRepository implements IClaseRepository {
   }
 
 
-/*
-  async getClase(index: string) {
-    const clase = await ClaseSchema.find({index});
-
-    return clase[0] ?? null
-  }*/
- /*
+  /*
+    async getClase(index: string) {
+      const clase = await ClaseSchema.find({index});
+  
+      return clase[0] ?? null
+    }*/
+  /*
+  
+   async formatearClase(clase: ClaseMongo): Promise<ClaseApi> {  
+     const dataLevel = clase?.levels?.find((level: any) => level.level === 1)
  
-  async formatearClase(clase: ClaseMongo): Promise<ClaseApi> {  
-    const dataLevel = clase?.levels?.find((level: any) => level.level === 1)
+     const traits = await this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [], dataLevel?.traits_data)
+     
+     
+ 
+     /*
+     const dataSpells = dataLevel?.spellcasting?.spells?.split('_')
+     const traitsOptions = dataLevel?.traits_options
+     const terrainOptions = dataLevel?.terrain_options
+     const enemyOptions = []
+ 
+     if (traitsOptions) {
+       traitsOptions.options = this.rasgoRepository
+         .obtenerRasgosPorIndices(traitsOptions?.options ?? [])
+         .map(trait => {  return { index: trait.index, name: trait.name } })
+     }
+     
+     if (terrainOptions) {
+       terrainOptions.options = terrainOptions?.options.map(opt => {
+         return {
+           index: opt,
+           name: opt
+         }
+       })
+     }
+ 
+     if (dataLevel?.enemy_options) {
+       enemyOptions.push(
+         ...dataLevel?.enemy_options.map(en => {
+           return {
+             ...en,
+             options: en.options.map(opt => {
+               return {
+                 index: opt,
+                 name: opt
+               }
+             })
+           }
+         })
+       )
+     }
+ 
+     const traitsData = traits?.map(trait => {
+       if (dataLevel?.traits_data) {
+         const data = dataLevel?.traits_data[trait.index]
+         if (data) {
+           let desc: string = trait?.desc ?? ''
+   
+           Object.keys(data).forEach(d => {
+             desc = desc.replaceAll(d, data[d])
+           })
+   
+           return {
+             ...trait,
+             desc
+           }
+           
+         } else {
+           return trait
+         }
+       } else {
+         return trait
+       }
+     })
+ 
+     const spells = dataLevel?.spellcasting?.all_spells
+       ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase.index) 
+       : []
+ 
+     const subclasesOptions = await this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*//*
 
-    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [], dataLevel?.traits_data)
-    
-    
+  return {
+    index: clase.index,
+    name: clase.name,
+    desc: clase?.desc ?? '',
+    hit_die: clase.hit_die ?? 0,
+    img: clase.img,
+    prof_bonus: dataLevel?.prof_bonus ?? 0,
+    proficiencies: competencias,
+    saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
+    options,
+    equipment: 
+    equipment_options: 
+    traits,
+    traits_data: dataLevel?.traits_data ?? {}
+    /*money: */
+  /*spellcasting_options: 
+  spells ,
+  /*traits_options: traitsOptions,
+  terrain_options: terrainOptions,
+  enemy_options: enemyOptions,*//*
+  //subclases_options: subclasesOptions
+};
+}
 
-    /*
-    const dataSpells = dataLevel?.spellcasting?.spells?.split('_')
-    const traitsOptions = dataLevel?.traits_options
-    const terrainOptions = dataLevel?.terrain_options
-    const enemyOptions = []
+async dataLevelUp(idClase: string, level: number, subclasses: string[]): Promise<ClaseLevelUp | null> {
+const clase = await ClaseSchema.findOne({ index: idClase })
 
-    if (traitsOptions) {
-      traitsOptions.options = this.rasgoRepository
-        .obtenerRasgosPorIndices(traitsOptions?.options ?? [])
-        .map(trait => {  return { index: trait.index, name: trait.name } })
-    }
-    
-    if (terrainOptions) {
-      terrainOptions.options = terrainOptions?.options.map(opt => {
-        return {
-          index: opt,
-          name: opt
+if (clase) {
+  const dataLevel = clase.levels.find(data => data.level === level)
+  const dataLevelOld = clase.levels.find(data => data.level === level-1)
+
+  if (dataLevel) {
+    const traitsId = []
+
+    Object.keys(dataLevel?.traits_data).forEach(t => {
+      const data = dataLevel.traits_data[t]
+      const dataOld = dataLevelOld?.traits_data ? dataLevelOld?.traits_data[t] : null
+ 
+      if (this.valoresNumericosDistintos(data, dataOld)) {
+        traitsId.push(t)
+      }
+    }) 
+
+    traitsId.push(...dataLevel?.traits ?? [])
+
+    const traitsSinRepetidos = [...new Set(traitsId)];
+    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(traitsSinRepetidos, dataLevel?.traits_data)
+
+    const subclasesData = await this.formatearSubclaseType(dataLevel.subclasses_options, dataLevel.subclasses)
+
+    const subclaseData = await Promise.all(
+      subclasses.map(subclase => {
+        if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]) {
+          return this.formatearSubclase(dataLevel.subclasses[subclase])
+        } else {
+          return null
         }
       })
-    }
+    )
 
-    if (dataLevel?.enemy_options) {
-      enemyOptions.push(
-        ...dataLevel?.enemy_options.map(en => {
-          return {
-            ...en,
-            options: en.options.map(opt => {
-              return {
-                index: opt,
-                name: opt
-              }
+    return {
+      hit_die: clase.hit_die,
+      prof_bonus: dataLevel.prof_bonus,
+      traits: [
+        ...traits ?? [],
+        ...subclaseData.filter(index => index !== null && index !== undefined).flatMap(item => item.traits) ?? []
+      ],
+      traits_data: dataLevel.traits_data,
+      traits_options: subclaseData.filter(index => index !== null && index !== undefined)[0]?.traits_options ?? undefined,
+      subclasesData,
+      ability_score: dataLevel.ability_score
+    }
+  } else {
+    return null
+  }
+} else {
+  return null
+}
+}
+
+async formatearSubclaseType(subclase_type: SubclasesOptionsMongo, subclases: SubclasesMongo) {
+if (subclase_type) {
+  const options = await this.formatearSubclases(subclase_type?.options, subclases)
+  
+  return {
+    name: subclase_type.name,
+    desc: subclase_type.desc,
+    options: options.filter(option => option.index !== "fanatic")
+  }
+} else {
+  return null
+}
+ 
+}
+
+async formatearSubclases(subclases_options: SubclasesOptionsMongoOption[], subclases: SubclasesMongo) {
+const formateadas = await Promise.all(subclases_options.map(subclase_option => this.formatearSubclaseOption(subclase_option, subclases)))
+
+formateadas.sort((a: any, b: any) => {
+  return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+});
+
+return formateadas;
+}
+
+async formatearSubclaseOption(subclase_option: SubclasesOptionsMongoOption, subclases: SubclasesMongo): Promise<SubclaseOptionApi>  {
+const subclaseData = subclases[subclase_option?.index]
+
+const subclase = await this.formatearSubclase(subclaseData)
+/*
+const traits_options_subclase = subclaseData?.traits_options
+
+await this.disciplinaRespository.init()
+
+if (traits_options_subclase) {
+  traits_options_subclase.options = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits_options?.options ?? [])
+}
+*/
+  /*
+      const traitsData = traits?.map((trait: any) => {
+        if (subclaseData?.traits_data) {
+          const data = subclaseData?.traits_data[trait.index]
+          if (data) {
+            let desc: string = trait?.desc ?? ''
+    
+            Object.keys(data).forEach(d => {
+              desc = desc.replaceAll(d, data[d])
             })
-          }
-        })
-      )
-    }
-
-    const traitsData = traits?.map(trait => {
-      if (dataLevel?.traits_data) {
-        const data = dataLevel?.traits_data[trait.index]
-        if (data) {
-          let desc: string = trait?.desc ?? ''
-  
-          Object.keys(data).forEach(d => {
-            desc = desc.replaceAll(d, data[d])
-          })
-  
-          return {
-            ...trait,
-            desc
-          }
-          
-        } else {
-          return trait
-        }
-      } else {
-        return trait
-      }
-    })
-
-    const spells = dataLevel?.spellcasting?.all_spells
-      ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase.index) 
-      : []
-
-    const subclasesOptions = await this.formatearSubclasesType(dataLevel?.subclasses_options ?? [], dataLevel?.subclasses)*//*
-
-    return {
-      index: clase.index,
-      name: clase.name,
-      desc: clase?.desc ?? '',
-      hit_die: clase.hit_die ?? 0,
-      img: clase.img,
-      prof_bonus: dataLevel?.prof_bonus ?? 0,
-      proficiencies: competencias,
-      saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
-      options,
-      equipment: 
-      equipment_options: 
-      traits,
-      traits_data: dataLevel?.traits_data ?? {}
-      /*money: */
-      /*spellcasting_options: 
-      spells ,
-      /*traits_options: traitsOptions,
-      terrain_options: terrainOptions,
-      enemy_options: enemyOptions,*//*
-      //subclases_options: subclasesOptions
-    };
-  }
-
-  async dataLevelUp(idClase: string, level: number, subclasses: string[]): Promise<ClaseLevelUp | null> {
-    const clase = await ClaseSchema.findOne({ index: idClase })
-
-    if (clase) {
-      const dataLevel = clase.levels.find(data => data.level === level)
-      const dataLevelOld = clase.levels.find(data => data.level === level-1)
-
-      if (dataLevel) {
-        const traitsId = []
-
-        Object.keys(dataLevel?.traits_data).forEach(t => {
-          const data = dataLevel.traits_data[t]
-          const dataOld = dataLevelOld?.traits_data ? dataLevelOld?.traits_data[t] : null
     
-          if (this.valoresNumericosDistintos(data, dataOld)) {
-            traitsId.push(t)
-          }
-        }) 
-
-        traitsId.push(...dataLevel?.traits ?? [])
-
-        const traitsSinRepetidos = [...new Set(traitsId)];
-        const traits = await this.rasgoRepository.obtenerRasgosPorIndices(traitsSinRepetidos, dataLevel?.traits_data)
-
-        const subclasesData = await this.formatearSubclaseType(dataLevel.subclasses_options, dataLevel.subclasses)
-
-        const subclaseData = await Promise.all(
-          subclasses.map(subclase => {
-            if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]) {
-              return this.formatearSubclase(dataLevel.subclasses[subclase])
-            } else {
-              return null
+            return {
+              ...trait,
+              desc
             }
-          })
-        )
-
-        return {
-          hit_die: clase.hit_die,
-          prof_bonus: dataLevel.prof_bonus,
-          traits: [
-            ...traits ?? [],
-            ...subclaseData.filter(index => index !== null && index !== undefined).flatMap(item => item.traits) ?? []
-          ],
-          traits_data: dataLevel.traits_data,
-          traits_options: subclaseData.filter(index => index !== null && index !== undefined)[0]?.traits_options ?? undefined,
-          subclasesData,
-          ability_score: dataLevel.ability_score
-        }
-      } else {
-        return null
-      }
-    } else {
-      return null
-    }
-  }
-
-  async formatearSubclaseType(subclase_type: SubclasesOptionsMongo, subclases: SubclasesMongo) {
-    if (subclase_type) {
-      const options = await this.formatearSubclases(subclase_type?.options, subclases)
-      
-      return {
-        name: subclase_type.name,
-        desc: subclase_type.desc,
-        options: options.filter(option => option.index !== "fanatic")
-      }
-    } else {
-      return null
-    }
-    
-  }
-
-  async formatearSubclases(subclases_options: SubclasesOptionsMongoOption[], subclases: SubclasesMongo) {
-    const formateadas = await Promise.all(subclases_options.map(subclase_option => this.formatearSubclaseOption(subclase_option, subclases)))
-
-    formateadas.sort((a: any, b: any) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
-
-    return formateadas;
-  }
-
-  async formatearSubclaseOption(subclase_option: SubclasesOptionsMongoOption, subclases: SubclasesMongo): Promise<SubclaseOptionApi>  {
-    const subclaseData = subclases[subclase_option?.index]
-
-    const subclase = await this.formatearSubclase(subclaseData)
-/*
-    const traits_options_subclase = subclaseData?.traits_options
-
-    await this.disciplinaRespository.init()
-
-    if (traits_options_subclase) {
-      traits_options_subclase.options = this.rasgoRepository.obtenerRasgosPorIndices(subclaseData?.traits_options?.options ?? [])
-    }
-  */
-/*
-    const traitsData = traits?.map((trait: any) => {
-      if (subclaseData?.traits_data) {
-        const data = subclaseData?.traits_data[trait.index]
-        if (data) {
-          let desc: string = trait?.desc ?? ''
-  
-          Object.keys(data).forEach(d => {
-            desc = desc.replaceAll(d, data[d])
-          })
-  
-          return {
-            ...trait,
-            desc
+            
+          } else {
+            return trait
           }
-          
         } else {
           return trait
         }
-      } else {
-        return trait
-      }
-    })*//*
+      })*//*
 
-    return {
-      index: subclase_option?.index,
-      name: subclase_option?.name,
-      img: subclase_option?.img,
-      traits: subclase.traits,
-      traits_options: subclase?.traits_options,
-      /*traits_data_options: subclaseData.traits_data_options,/*
-      languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//*
-      options: ,
-      proficiencies: ,
-      spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
-      disciplines: this.disciplinaRespository.obtenerDisciplinasPorIndices(subclaseData?.disciplines ?? []),
-      disciplines_new: {
-        choose: subclaseData?.disciplines_new ?? 0,
-        options: subclaseData?.disciplines_new
-          ? this.disciplinaRespository.obtenerTodos()
-          : []
-      }*//*
-    }
+  return {
+    index: subclase_option?.index,
+    name: subclase_option?.name,
+    img: subclase_option?.img,
+    traits: subclase.traits,
+    traits_options: subclase?.traits_options,
+    /*traits_data_options: subclaseData.traits_data_options,/*
+    languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//*
+  options: ,
+  proficiencies: ,
+  spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
+  disciplines: this.disciplinaRespository.obtenerDisciplinasPorIndices(subclaseData?.disciplines ?? []),
+  disciplines_new: {
+    choose: subclaseData?.disciplines_new ?? 0,
+    options: subclaseData?.disciplines_new
+      ? this.disciplinaRespository.obtenerTodos()
+      : []
+  }*//*
+}
+}
+
+async formatearSubclase(subclase: SubclaseMongo): Promise<SubclaseApi> {
+const traits = await this.rasgoRepository.obtenerRasgosPorIndices(subclase?.traits ?? [])
+ 
+let traits_options = undefined
+
+if (subclase?.traits_options) {
+  const traitsAux = await this.rasgoRepository.obtenerRasgosPorIndices(subclase?.traits_options?.options ?? [])
+  traits_options = {
+    ...subclase.traits_options,
+    options: traitsAux
   }
+}
 
-  async formatearSubclase(subclase: SubclaseMongo): Promise<SubclaseApi> {
-    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(subclase?.traits ?? [])
-    
-    let traits_options = undefined
-
-    if (subclase?.traits_options) {
-      const traitsAux = await this.rasgoRepository.obtenerRasgosPorIndices(subclase?.traits_options?.options ?? [])
-      traits_options = {
-        ...subclase.traits_options,
-        options: traitsAux
-      }
-    }
-
-    return {
-      traits,
-      traits_options: traits_options,
-      /*traits_data_options: subclaseData.traits_data_options,/*
-      languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//*
-      options: ,
-      proficiencies: ,
-      spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
-      disciplines: this.disciplinaRespository.obtenerDisciplinasPorIndices(subclaseData?.disciplines ?? []),
-      disciplines_new: {
-        choose: subclaseData?.disciplines_new ?? 0,
-        options: subclaseData?.disciplines_new
-          ? this.disciplinaRespository.obtenerTodos()
-          : []
-      }*//*
-    }
-  }*/
+return {
+  traits,
+  traits_options: traits_options,
+  /*traits_data_options: subclaseData.traits_data_options,/*
+  languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//*
+  options: ,
+  proficiencies: ,
+  spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
+  disciplines: this.disciplinaRespository.obtenerDisciplinasPorIndices(subclaseData?.disciplines ?? []),
+  disciplines_new: {
+    choose: subclaseData?.disciplines_new ?? 0,
+    options: subclaseData?.disciplines_new
+      ? this.disciplinaRespository.obtenerTodos()
+      : []
+  }*//*
+}
+}*/
 }
