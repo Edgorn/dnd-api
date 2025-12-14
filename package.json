@@ -30,7 +30,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "nodemon": "^3.1.0",
-    "pkg": "^5.8.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.5.4"
   }
