@@ -10,14 +10,15 @@ import npcsRoutes from "./routes/npcs.routes";
 
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const connectDB = require('../databases/mongoDb/mongodb');
 
 const defaultApi = require('../defaultApi/index');
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true }));
 
 connectDB();
 
