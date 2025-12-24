@@ -1,16 +1,17 @@
 import IUsuarioRepository from "../repositories/IUsuarioRepository";
 import { LoginParams, LoginResult, UsuarioMongo } from "../types/usuarios.types";
 import * as bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+
+interface UserTokenPayload extends JwtPayload {
+  id: string;
+  name: string;
+}
 
 export default class UsuarioService {
-  private usuarioRepository: IUsuarioRepository;
+  constructor(private readonly usuarioRepository: IUsuarioRepository) { }
 
-  constructor(usuarioRepository: IUsuarioRepository) {
-    this.usuarioRepository = usuarioRepository;
-  }
-
-  async logearUsuario({ user, password }: LoginParams): Promise<LoginResult | null> {
+  async login({ user, password }: LoginParams): Promise<LoginResult | null> {
     const usuario = await this.usuarioRepository.buscarUsuarioPorNombre(user);
 
     if (!usuario) return null;
@@ -23,30 +24,35 @@ export default class UsuarioService {
     return {
       token,
       user: {
-        index: usuario?._id.toString(),
+        id: usuario?._id.toString(),
         name: usuario?.name
       }
     }
   }
 
   private generarToken(usuario: UsuarioMongo): string {
-    return jwt.sign(
-      { id: usuario._id, name: usuario.name },
-      process.env.JWT_SECRET!,
-      { expiresIn: '24h' }
-    );
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error("JWT_SECRET no está configurado en el entorno");
+
+    const payload: UserTokenPayload = {
+      id: usuario._id.toString(),
+      name: usuario.name
+    };
+
+    return jwt.sign(payload, secret, { expiresIn: '24h' });
   }
 
   async validarToken(token: string): Promise<string | null> {
     if (!token) return null;
 
     try {
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
+      const secret = process.env.JWT_SECRET!;
+      const decoded = jwt.verify(token, secret) as UserTokenPayload;
 
       const usuario = await this.usuarioRepository.buscarUsuarioPorId(decoded.id);
       return usuario ? usuario._id.toString() : null;
     } catch (error) {
-      console.warn("Token inválido:", error);
+      console.warn("[AUTH] Token inválido o expirado");
       return null;
     }
   }

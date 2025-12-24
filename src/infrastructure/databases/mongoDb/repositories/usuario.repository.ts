@@ -7,32 +7,22 @@ export default class UsuarioRepository implements IUsuarioRepository {
   }
 
   buscarUsuarioPorId(id: string): Promise<UsuarioMongo | null> {
-    try {
-      return UsuarioSchema.findById(id);
-    } catch (error) {
-      console.error(`Error al buscar usuario: ${id}`, error);
-      throw new Error("Error en la base de datos");
-    }
+    return UsuarioSchema.findById(id).lean();
   }
 
   buscarUsuarioPorNombre(user: string): Promise<UsuarioMongo | null> {
-    try {
-      return UsuarioSchema.findOne({ name: user });
-    } catch (error) {
-      console.error(`Error al buscar usuario: ${user}`, error);
-      throw new Error("Error en la base de datos");
-    }
+    return UsuarioSchema.findOne({ name: user }).lean();
   }
 
   async consultarNombreUsuario(id: string): Promise<string> {
-    const usuario = await UsuarioSchema.findById(id)
-
-    return usuario?.name ?? ''
+    const usuario = await UsuarioSchema.findById(id).select('name').lean();
+    return usuario?.name ?? '';
   }
 
   async consultarUsuarios(indices: string[]): Promise<UsuarioApi[]> {
     const usuarios = await UsuarioSchema.find({ _id: { $in: indices } })
-    
+      .lean();
+
     return this.formatearUsuariosBasicos(usuarios)
   }
 
@@ -42,7 +32,7 @@ export default class UsuarioRepository implements IUsuarioRepository {
 
   private formatearUsuarioBasico(usuario: UsuarioMongo): UsuarioApi {
     return {
-      index: usuario?._id?.toString(),
+      id: usuario?._id?.toString(),
       name: usuario.name
     }
   }

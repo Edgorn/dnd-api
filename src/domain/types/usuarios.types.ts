@@ -9,7 +9,7 @@ export interface UsuarioMongo {
 }
 
 export interface UsuarioApi {
-  index: string,
+  id: string,
   name: string
 }
 

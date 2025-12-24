@@ -1,4 +1,5 @@
-const startServer = require('./infrastructure/http/server');
+import { startServer } from './infrastructure/http/server';
 
-const PORT = process.env.PORT || 8000;
+const PORT = Number(process.env.PORT) || 8000;
+
 startServer(PORT);

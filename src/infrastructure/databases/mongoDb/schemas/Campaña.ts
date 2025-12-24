@@ -8,7 +8,11 @@ const campañaSchema: Schema = new Schema<CampañaMongo>({
   status: String,
   players_requesting: [String],
   players: [String],
-  characters: [String]
+  characters: [String],
+  system: String,
+  initialLevel: Number,
+  maxPlayers: Number,
+  language: String
 }, { collection: 'Campañas' });
 
 const CampañaModel = mongoose.model<CampañaMongo>("Campañas", campañaSchema);

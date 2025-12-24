@@ -34,9 +34,13 @@ export default class CampañaRepository implements ICampañaRepository {
       status: 'Activa',
       players_requesting: [],
       players: [],
-      characters: []
+      characters: [],
+      system: data.system,
+      initialLevel: data.initialLevel,
+      maxPlayers: data.maxPlayers,
+      language: data.language
     })
-    
+
     const resultado = await campaña.save()
 
     return this.formatearCampañaBasica(resultado, data.master)
@@ -67,14 +71,22 @@ export default class CampañaRepository implements ICampañaRepository {
       throw new Error('El usuario ya pertenece a la campaña');
     }
 
+    if (campaña.master === idUser) {
+      throw new Error('El usuario ya es el master de la campaña');
+    }
+
+    if (campaña.players_requesting.length >= campaña.maxPlayers) {
+      throw new Error('La campaña ya tiene el maximo de jugadores');
+    }
+
     campaña.players_requesting.push(idUser)
 
     const result = await campaña.save()
 
     return this.formatearCampañaBasica(result, idUser)
   }
-  
-  async denegarSolicitud(data: TypeEntradaCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica} | null> {
+
+  async denegarSolicitud(data: TypeEntradaCampaña): Promise<{ completo: CampañaApi, basico: CampañaBasica } | null> {
     const { masterId, campaignId, userId } = data
 
     const campaña = await Campaña.findById(campaignId);
@@ -104,7 +116,7 @@ export default class CampañaRepository implements ICampañaRepository {
     }
   }
 
-  async aceptarSolicitud(data: TypeEntradaCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica} | null> {
+  async aceptarSolicitud(data: TypeEntradaCampaña): Promise<{ completo: CampañaApi, basico: CampañaBasica } | null> {
     const { masterId, campaignId, userId } = data
 
     const campaña = await Campaña.findById(campaignId);
@@ -125,7 +137,7 @@ export default class CampañaRepository implements ICampañaRepository {
     campaña.players.push(userId)
 
     await campaña.save()
-    
+
     const completo = await this.formatearCampaña(campaña, masterId)
     const basico = await this.formatearCampañaBasica(campaña, masterId)
 
@@ -135,9 +147,9 @@ export default class CampañaRepository implements ICampañaRepository {
     }
   }
 
-  async añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica, personaje: PersonajeBasico} | null> {
+  async añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{ completo: CampañaApi, basico: CampañaBasica, personaje: PersonajeBasico } | null> {
     const { userId, campaignId, characterId } = data
-    
+
     const campaña = await Campaña.findById(campaignId);
 
     if (!campaña) {
@@ -176,7 +188,7 @@ export default class CampañaRepository implements ICampañaRepository {
 
   private async formatearCampañaBasica(campaña: CampañaMongo, idUser: string): Promise<CampañaBasica> {
     const userMaster = await this.usuarioRepository.buscarUsuarioPorId(campaña.master)
-    
+
     return {
       id: campaña._id.toString(),
       name: campaña.name,
@@ -184,7 +196,11 @@ export default class CampañaRepository implements ICampañaRepository {
       isMaster: idUser === campaña.master,
       players: campaña.players.length,
       status: campaña.status,
-      master: userMaster?.name ?? campaña.master
+      master: userMaster?.name ?? campaña.master,
+      system: campaña.system,
+      initialLevel: campaña.initialLevel,
+      maxPlayers: campaña.maxPlayers,
+      language: campaña.language
     }
   }
 
@@ -206,6 +222,10 @@ export default class CampañaRepository implements ICampañaRepository {
       characters,
       master: master?.name ?? campaña.master,
       status: campaña.status,
+      system: campaña.system,
+      initialLevel: campaña.initialLevel,
+      maxPlayers: campaña.maxPlayers,
+      language: campaña.language
     }
   }
 

@@ -63,7 +63,7 @@ const añadirPersonajeACampaña = new AñadirPersonajeACampaña(campañaService)
 const getCampaigns = async (req: Request, res: Response) => {
   try {
     const userId = (req as AuthenticatedRequest).user;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Usuario no autenticado' });
     }
@@ -104,7 +104,7 @@ const getCampaign = async (req: Request, res: Response) => {
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
-    
+
     const data = await obtenerCampañaPorId.execute(userId, id)
     res.status(200).json(data);
   } catch (e) {
@@ -130,7 +130,7 @@ const requestJoinCampaign = async (req: Request, res: Response) => {
     res.status(200).json(data);
   } catch (e) {
     console.error(e)
-    res.status(500).json({ error: 'Error al consultar campañas' });
+    res.status(500).json({ error: 'Error al solicitar entrada a la campaña' });
   }
 };
 
@@ -138,7 +138,7 @@ const denyJoinRequest = async (req: Request, res: Response) => {
   try {
     const masterId = (req as AuthenticatedRequest).user;
     const { id, userId } = req.params;
-    
+
     if (!masterId) {
       return res.status(401).json({ error: 'Usuario no autenticado' });
     }
@@ -146,7 +146,7 @@ const denyJoinRequest = async (req: Request, res: Response) => {
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
-        
+
     if (!userId) {
       return res.status(400).json({ error: 'Se requiere el ID del usuario' });
     }
@@ -171,7 +171,7 @@ const acceptJoinRequest = async (req: Request, res: Response) => {
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
-        
+
     if (!userId) {
       return res.status(400).json({ error: 'Se requiere el ID del usuario' });
     }
@@ -197,12 +197,12 @@ const addCharacterToCampaign = async (req: Request, res: Response) => {
     if (!id) {
       return res.status(400).json({ error: 'Se requiere el ID de la campaña' });
     }
-        
+
     if (!characterId) {
       return res.status(400).json({ error: 'Se requiere el ID del personaje' });
     }
 
-    const data = await añadirPersonajeACampaña.execute({userId, campaignId: id, characterId})
+    const data = await añadirPersonajeACampaña.execute({ userId, campaignId: id, characterId })
     res.status(200).json(data);
   } catch (e) {
     console.error(e)

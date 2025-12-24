@@ -10,7 +10,11 @@ export interface CampañaMongo {
   status: string,
   players_requesting: string[],
   players: string[],
-  characters: string[]
+  characters: string[],
+  system: string,
+  initialLevel: number,
+  maxPlayers: number,
+  language: string
 }
 
 export interface CampañaBasica {
@@ -20,7 +24,11 @@ export interface CampañaBasica {
   isMaster: boolean,
   players: number,
   status: string,
-  master: string
+  master: string,
+  system: string,
+  initialLevel: number,
+  maxPlayers: number,
+  language: string
 }
 
 export interface CampañaApi {
@@ -33,22 +41,30 @@ export interface CampañaApi {
   characters: PersonajeBasico[],
   master: string,
   status: string,
+  system: string,
+  initialLevel: number,
+  maxPlayers: number,
+  language: string
 }
 
 export interface TypeCrearCampaña {
-  name: string, 
-  description: string, 
-  master: string
+  name: string,
+  description: string,
+  master: string,
+  system: string,
+  initialLevel: number,
+  maxPlayers: number,
+  language: string
 }
 
-export interface TypeEntradaCampaña { 
-  masterId: string, 
-  campaignId: string, 
-  userId: string 
+export interface TypeEntradaCampaña {
+  masterId: string,
+  campaignId: string,
+  userId: string
 }
 
 export interface TypeEntradaPersonajeCampaña {
-  userId: string, 
-  campaignId: string, 
+  userId: string,
+  campaignId: string,
   characterId: string
 }
