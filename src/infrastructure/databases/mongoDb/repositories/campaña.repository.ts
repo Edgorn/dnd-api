@@ -86,7 +86,7 @@ export default class CampañaRepository implements ICampañaRepository {
     return this.formatearCampañaBasica(result, idUser)
   }
 
-  async denegarSolicitud(data: TypeEntradaCampaña): Promise<{ completo: CampañaApi, basico: CampañaBasica } | null> {
+  async denegarSolicitud(data: TypeEntradaCampaña): Promise<{ userId: string, campaignId: string } | null> {
     const { masterId, campaignId, userId } = data
 
     const campaña = await Campaña.findById(campaignId);
@@ -107,16 +107,13 @@ export default class CampañaRepository implements ICampañaRepository {
 
     await campaña.save()
 
-    const completo = await this.formatearCampaña(campaña, masterId)
-    const basico = await this.formatearCampañaBasica(campaña, masterId)
-
     return {
-      completo,
-      basico
+      userId,
+      campaignId
     }
   }
 
-  async aceptarSolicitud(data: TypeEntradaCampaña): Promise<{ completo: CampañaApi, basico: CampañaBasica } | null> {
+  async aceptarSolicitud(data: TypeEntradaCampaña): Promise<{ userId: string, campaignId: string } | null> {
     const { masterId, campaignId, userId } = data
 
     const campaña = await Campaña.findById(campaignId);
@@ -138,16 +135,13 @@ export default class CampañaRepository implements ICampañaRepository {
 
     await campaña.save()
 
-    const completo = await this.formatearCampaña(campaña, masterId)
-    const basico = await this.formatearCampañaBasica(campaña, masterId)
-
     return {
-      completo,
-      basico
+      userId,
+      campaignId
     }
   }
 
-  async añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{ completo: CampañaApi, basico: CampañaBasica, personaje: PersonajeBasico } | null> {
+  async añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{ characterId: string } | null> {
     const { userId, campaignId, characterId } = data
 
     const campaña = await Campaña.findById(campaignId);
@@ -170,17 +164,10 @@ export default class CampañaRepository implements ICampañaRepository {
 
     await campaña.save()
 
-    const completo = await this.formatearCampaña(campaña, userId)
-    const basico = await this.formatearCampañaBasica(campaña, userId)
-
     return {
-      completo,
-      basico,
-      personaje
+      characterId
     }
   }
-
-
 
   private formatearCampañasBasicas(campañas: CampañaMongo[], master: string): Promise<CampañaBasica[]> {
     return Promise.all(campañas.map(campaña => this.formatearCampañaBasica(campaña, master)));

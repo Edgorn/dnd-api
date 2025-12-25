@@ -1,10 +1,5 @@
 import { Request, Response } from "express";
 import Logear from "../../../application/use-cases/usuario/login.use-case";
-import UsuarioService from "../../../domain/services/usuario.service";
-import UsuarioRepository from "../../databases/mongoDb/repositories/usuario.repository";
-
-const usuarioService = new UsuarioService(new UsuarioRepository())
-const logearUseCase = new Logear(usuarioService)
 
 export class UsuarioController {
   constructor(private readonly logearUseCase: Logear) { }
@@ -29,6 +24,3 @@ export class UsuarioController {
     }
   };
 }
-
-const usuarioController = new UsuarioController(logearUseCase);
-export default usuarioController;

@@ -1,10 +1,9 @@
 import ICampañaRepository from "../repositories/ICampañaRepository";
 import { CampañaApi, CampañaBasica, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña } from "../types/campañas.types";
-import { PersonajeBasico } from "../types/personajes.types";
 
 export default class CampañaService {
   constructor(private readonly campañaRepository: ICampañaRepository) { }
-  
+
   consultarPorUsuario(id: string): Promise<CampañaBasica[]> {
     return this.campañaRepository.consultarPorUsuario(id);
   }
@@ -21,15 +20,15 @@ export default class CampañaService {
     return this.campañaRepository.registrarSolicitud(idUser, idCampaign);
   }
 
-  denegarSolicitud(data: TypeEntradaCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica} | null> {
-    return this.campañaRepository.denegarSolicitud(data); 
+  denegarSolicitud(data: TypeEntradaCampaña): Promise<{ userId: string, campaignId: string } | null> {
+    return this.campañaRepository.denegarSolicitud(data);
   }
 
-  aceptarSolicitud(data: TypeEntradaCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica} | null> {
+  aceptarSolicitud(data: TypeEntradaCampaña): Promise<{ userId: string, campaignId: string } | null> {
     return this.campañaRepository.aceptarSolicitud(data);
   }
 
-  añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{completo: CampañaApi, basico: CampañaBasica, personaje: PersonajeBasico} | null> {
+  añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{ characterId: string } | null> {
     return this.campañaRepository.añadirPersonaje(data);
   }
 }
