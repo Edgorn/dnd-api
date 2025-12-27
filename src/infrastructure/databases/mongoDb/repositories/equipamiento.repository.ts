@@ -19,11 +19,11 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     this.dañoRepository = dañoRepository ?? this.crearDañoRepositorioPorDefecto()
     this.propiedadesRepository = propiedadesRepository ?? this.crearPropiedadesRepositorioPorDefecto()
   }
-  
+
   private crearDañoRepositorioPorDefecto(): IDañoRepository {
     return new DañoRepository();
   }
-  
+
   private crearPropiedadesRepositorioPorDefecto(): IPropiedadArmaRepository {
     return new PropiedadArmaRepository();
   }
@@ -58,10 +58,10 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
 
     return ordenarPorNombre(equipamiento);
   }
-  
+
   formatearOpcionesDeEquipamientos(equipamientosOptions: EquipamientoOpcionesMongo[][] | undefined): Promise<EquipamientoChoiceApi[][]> | undefined {
     if (!equipamientosOptions) return undefined
-    
+
     return Promise.all(equipamientosOptions.map(
       equipamientoOptions => this.formatearOpcionesDeEquipamiento(equipamientoOptions)
     ))
@@ -79,7 +79,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
 
   private async formatearEquipamientoPersonaje(equipamiento: EquipamientoPersonajeMongo, equipamientosMongo: EquipamientoMongo[]): Promise<EquipamientoPersonajeApi> {
     const equipamientoAux = equipamientosMongo.find(eq => eq.index === equipamiento.index)
-    
+
     if (equipamientoAux) {
       const weapon = await this.formatearWeapon(equipamientoAux.weapon)
       const content = await this.obtenerEquipamientosPersonajePorIndices(equipamientoAux?.content ?? [])
@@ -115,7 +115,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     const damage = await this.obtenerDamages(weapon?.damage ?? [])
     const properties = await this.propiedadesRepository.obtenerPropiedadesPorIndices(weapon?.properties ?? [])
     const two_handed_damage = await this.obtenerDamages(weapon?.two_handed_damage ?? [])
-    
+
     return {
       damage: damage,
       two_handed_damage,
@@ -125,10 +125,10 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
       competency: weapon.competency
     }
   }
- 
+
   private obtenerDamages(damages: WeaponDamageMongo[]): Promise<WeaponDamageApi[]> {
     return Promise.all(damages?.map(damage => this.obtenerDamage(damage)));
-  } 
+  }
 
   private async obtenerDamage(damage: WeaponDamageMongo): Promise<WeaponDamageApi> {
     const daño = await this.dañoRepository.obtenerDañoPorIndice(damage?.type ?? "")
@@ -157,12 +157,13 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
         })
       )
 
+      const quantity = options?.length === 1 ? options[0]?.quantity : 1
       const name = options?.length === 1 ? options[0]?.name : "Objeto"
 
       return {
-        name,
+        name: quantity > 1 ? quantity + "x " + name : name,
         choose: equipamientosOption.choose,
-        options: options?.map(option => { return {...option, name: option.quantity + "x " + option.name} }) ?? []
+        options: options?.map(option => { return { ...option, name: option.quantity + "x " + option.name } }) ?? []
       };
     }
 
@@ -174,19 +175,19 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
 
     // Reemplazar guiones por espacios
     name = name.replace(/-/g, " ");
-    
+
     // Poner la primera letra en mayúscula
     name = name.charAt(0).toUpperCase() + name.slice(1);
- 
+
     return {
       name,
       choose: equipamientosOption.choose,
-      options: options?.map(option => { return {...option, name: option.quantity + "x " + option.name} }) ?? []
+      options: options?.map(option => { return { ...option, name: option.quantity + "x " + option.name } }) ?? []
     }
-  }  
- 
+  }
+
   private async obtenerEquipamientoPorCategoria(category: string, categoriaArma: string, distanciaArma: string): Promise<EquipamientoPersonajeApi[]> {
-    const query:any = {};
+    const query: any = {};
 
     // Si existe, añádelo
     if (category) query.category = category;
@@ -206,7 +207,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     })
 
     return this.formatearEquipamientosPersonaje(
-      equipamientos.map(equipamiento => { return {...equipamiento, quantity: 1}}), 
+      equipamientos.map(equipamiento => { return { ...equipamiento, quantity: 1 } }),
       equipamientos
     )
   }

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import razaController from '../controllers/raza.controller';
 import { authMiddleware } from "../middlewares/auth.middleware";
+import { razaController } from "../../dependencies";
 
 const router = Router();
 

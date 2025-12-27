@@ -6,9 +6,13 @@ import AceptarEntradaACampaña from "../application/use-cases/campaña/aceptarEn
 import DenegarEntradaACampaña from "../application/use-cases/campaña/denegarEntradaACampaña.use-case";
 import AñadirPersonajeACampaña from "../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
 import Logear from "../application/use-cases/usuario/login.use-case";
+import ObtenerTodosLosTransfondos from "../application/use-cases/transfondo/obtenerTodosLosTransfondos.use-case";
+import ObtenerTodasLasRazas from "../application/use-cases/raza/obtenerTodasLasRazas.use-case";
 
 import CampañaService from "../domain/services/campaña.service";
 import UsuarioService from "../domain/services/usuario.service";
+import RazaService from "../domain/services/raza.service";
+import TransfondoService from "../domain/services/transfondo.service";
 
 import CampañaRepository from "./databases/mongoDb/repositories/campaña.repository";
 import ClaseRepository from "./databases/mongoDb/repositories/clase.repository";
@@ -21,15 +25,24 @@ import IdiomaRepository from "./databases/mongoDb/repositories/idioma.repository
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
 import RasgoRepository from "./databases/mongoDb/repositories/rasgo.repository";
 import UsuarioRepository from "./databases/mongoDb/repositories/usuario.repository";
+import RazaRepository from "./databases/mongoDb/repositories/raza.repository";
+import TransfondoRepository from "./databases/mongoDb/repositories/transfondo.repository";
 
 import { CampañaController } from "./http/controllers/campaña.controller";
 import { UsuarioController } from "./http/controllers/usuario.controller";
+import { RazaController } from "./http/controllers/raza.controller";
+import { TransfondoController } from "./http/controllers/transfondo.controller";
+import { ClaseController } from "./http/controllers/clase.controller";
+import ObtenerTodasLasClases from "../application/use-cases/clase/obtenerTodasLasClases.use-case";
+import ClaseService from "../domain/services/clase.service";
 
 const usuarioRepository = new UsuarioRepository()
 const competenciaRepository = new CompetenciaRepository()
 const conjuroRepository = new ConjuroRepository()
 const habilidadRepository = new HabilidadRepository()
 const equipamientoRepository = new EquipamientoRepository()
+const doteRepository = new DoteRepository()
+const idiomaRepository = new IdiomaRepository()
 const rasgoRepository = new RasgoRepository(undefined, competenciaRepository, conjuroRepository)
 const claseRepository = new ClaseRepository(habilidadRepository, competenciaRepository, equipamientoRepository, rasgoRepository, conjuroRepository, new DoteRepository())
 
@@ -40,16 +53,36 @@ const campañaRepository = new CampañaRepository(
     equipamientoRepository,
     rasgoRepository,
     competenciaRepository,
-    new IdiomaRepository(),
+    idiomaRepository,
     habilidadRepository,
     conjuroRepository,
-    new DoteRepository(),
+    doteRepository,
     claseRepository
   )
 )
 
+const razaRepository = new RazaRepository(
+  idiomaRepository,
+  conjuroRepository,
+  habilidadRepository,
+  competenciaRepository,
+  doteRepository,
+  rasgoRepository
+)
+
+const transfondoRepository = new TransfondoRepository(
+  habilidadRepository,
+  competenciaRepository,
+  idiomaRepository,
+  equipamientoRepository,
+  rasgoRepository
+);
+
 const campañaService = new CampañaService(campañaRepository)
 const usuarioService = new UsuarioService(usuarioRepository)
+const razaService = new RazaService(razaRepository)
+const transfondoService = new TransfondoService(transfondoRepository)
+const claseService = new ClaseService(claseRepository)
 
 const crearCampaña = new CrearCampaña(campañaService)
 const obtenerCampañasPorUsuario = new ObtenerCampañasPorUsuario(campañaService)
@@ -60,6 +93,14 @@ const denegarEntradaACampaña = new DenegarEntradaACampaña(campañaService)
 const añadirPersonajeACampaña = new AñadirPersonajeACampaña(campañaService)
 
 const logearUseCase = new Logear(usuarioService)
+
+const obtenerTodasLasRazas = new ObtenerTodasLasRazas(razaService);
+
+const obtenerTodosLosTransfondos = new ObtenerTodosLosTransfondos(transfondoService);
+
+const obtenerTodasLasClases = new ObtenerTodasLasClases(claseService);
+
+export const razaController = new RazaController(obtenerTodasLasRazas)
 
 export const campañaController = new CampañaController(
   crearCampaña,
@@ -72,3 +113,7 @@ export const campañaController = new CampañaController(
 )
 
 export const usuarioController = new UsuarioController(logearUseCase)
+
+export const transfondoController = new TransfondoController(obtenerTodosLosTransfondos)
+
+export const claseController = new ClaseController(obtenerTodasLasClases)
