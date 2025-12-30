@@ -86,25 +86,29 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
 
       return {
         index: equipamientoAux.index,
-        name: equipamientoAux.name,
+        name: equipamiento?.name ?? equipamientoAux.name,
+        description: equipamiento?.description ?? equipamientoAux.description,
         quantity: equipamiento.quantity,
         content,
         category: equipamientoAux.category,
         weapon: weapon,
         armor: equipamientoAux.armor,
         isMagic: equipamiento.isMagic ?? false,
-        weight: equipamientoAux.weight,
-        equipped: equipamiento.equipped ?? false
+        weight: equipamientoAux.weight ?? 0,
+        equipped: equipamiento.equipped ?? false,
+        cost: equipamiento.cost ?? equipamientoAux.cost
       }
     } else {
       return {
         index: equipamiento.index,
-        name: equipamiento.index,
+        name: equipamiento.name ?? equipamiento.index,
+        description: equipamiento.description ?? [],
         quantity: equipamiento.quantity,
         content: [],
         isMagic: equipamiento.isMagic ?? false,
         weight: 0,
-        equipped: equipamiento.equipped ?? false
+        equipped: equipamiento.equipped ?? false,
+        cost: equipamiento.cost ?? { quantity: 0, unit: "" }
       }
     }
   }

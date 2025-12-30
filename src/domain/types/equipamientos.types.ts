@@ -3,6 +3,7 @@ import { PropiedadesArma } from "."
 export interface EquipamientoMongo {
   index: string,
   name: string,
+  description: string[],
   content: EquipamientoPersonajeMongo[],
   cost: {
     quantity: number,
@@ -19,13 +20,20 @@ export interface EquipamientoMongo {
 export interface EquipamientoPersonajeMongo {
   index: string,
   quantity: number,
+  name?: string,
+  description?: string[],
   isMagic?: boolean,
-  equipped?: boolean
+  equipped?: boolean,
+  cost?: {
+    quantity: number,
+    unit: string
+  }
 }
 
 export interface EquipamientoApi {
   index: string,
   name: string,
+  description: string[],
   content?: EquipamientoPersonajeApi[],
   equipped?: boolean,
   category?: string,
@@ -33,6 +41,10 @@ export interface EquipamientoApi {
   armor?: ArmorMongo,
   weight: number,
   isMagic?: boolean,
+  cost?: {
+    quantity: number,
+    unit: string
+  }
 }
 
 export interface WeaponMongo {
