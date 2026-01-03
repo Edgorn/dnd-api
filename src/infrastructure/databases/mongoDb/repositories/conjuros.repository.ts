@@ -15,11 +15,11 @@ export default class ConjuroRepository implements IConjuroRepository {
     if (!opciones) return undefined
 
     return Promise.all(opciones.map(opcion => this.formatearOpcionDeConjuros(opcion)));
-  } 
+  }
 
   async obtenerConjurosPorIndices(indices: string[]): Promise<ConjuroApi[]> {
     if (!indices.length) return [];
-        
+
     const result: ConjuroMongo[] = [];
     const missing: string[] = [];
 
@@ -33,7 +33,7 @@ export default class ConjuroRepository implements IConjuroRepository {
 
     if (missing.length > 0) {
       const conjuros = await ConjuroSchema.find({ index: { $in: missing } })
-        
+
       conjuros.forEach(conjuro => (this.conjurosMap[conjuro.index] = conjuro));
       result.push(...conjuros);
     }
@@ -48,28 +48,37 @@ export default class ConjuroRepository implements IConjuroRepository {
       choose: opciones.choose,
       options: conjuros
     };
-  } 
+  }
 
-  private async obtenerConjurosPorNivelClase(nivel: number, clase: string): Promise<ConjuroApi[]> {
-    const query:any = {};
+  async obtenerConjurosPorNivelClase(nivel: number, clase?: string): Promise<ConjuroApi[]> {
+    const query: any = {};
 
-    // Si existe, añádelo
     if (nivel !== undefined) query.level = nivel;
     if (clase !== undefined) query.classes = clase;
 
-    const conjuros = await ConjuroSchema.find(query) 
+    const conjuros = await ConjuroSchema.find(query)
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
-    
+
     conjuros.forEach(conjuro => (this.conjurosMap[conjuro.index] = conjuro));
 
     return this.formatearConjuros(conjuros)
   }
-   
+
+  async obtenerConjurosRituales(): Promise<ConjuroApi[]> {
+    const conjuros = await ConjuroSchema.find({ ritual: true })
+      .collation({ locale: 'es', strength: 1 })
+      .sort({ name: 1 });
+
+    conjuros.forEach(conjuro => (this.conjurosMap[conjuro.index] = conjuro));
+
+    return this.formatearConjuros(conjuros)
+  }
+
   private formatearConjuros(conjuros: ConjuroMongo[]): ConjuroApi[] {
     return conjuros.map(conjuro => this.formatearConjuro(conjuro));
   }
-  
+
   private formatearConjuro(conjuro: ConjuroMongo): ConjuroApi {
     return {
       index: conjuro.index,

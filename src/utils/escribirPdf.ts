@@ -719,6 +719,13 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
     const spells = personaje.spells[clas.class]
     const spellcastingClas = personaje?.spellcasting?.find(spell => spell.class === clas.class)
 
+    if (clas.class === 'warlock') {
+      spells.list.push(
+        ...personaje.spells["pact-tome"]?.list ?? [],
+        ...personaje.spells["book-ancestral-secrets"]?.list ?? []
+      )
+    }
+
     if (spells && spellcastingClas) {
 
       form.getDropdown('SpellClass').addOptions([clas.name]);
@@ -729,8 +736,6 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
 
       form.getTextField('SpellSaveDC').setText((8 + calcularAtaque(personaje, spellcastingClas.ability)) + '');
       form.getTextField('SAB').setText(formatNumber(calcularAtaque(personaje, spellcastingClas.ability)) + '');
-
-
 
       Array.from({ length: 10 }).forEach((_, index) => {
         if (!checkSpells[index]) {
@@ -755,12 +760,20 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
         })
 
         if (index !== 0) {
-          const slots = spellcastingClas?.spellcasting ? spellcastingClas?.spellcasting["slots_level_" + index] : 0
-
-          if (slots) {
-            form.getTextField('SlotsTot' + (index)).setText('' + slots)
+          if (clas.class === 'warlock') {
+            if (spellcastingClas?.spellcasting?.spell_level === index) {
+              form.getTextField('SlotsTot' + (index)).setText('' + spellcastingClas?.spellcasting?.spell_slots)
+            } else {
+              form.getTextField('SlotsTot' + (index)).setText('0')
+            }
           } else {
-            form.getTextField('SlotsTot' + (index)).setText('0')
+            const slots = spellcastingClas?.spellcasting ? spellcastingClas?.spellcasting["slots_level_" + index] : 0
+
+            if (slots) {
+              form.getTextField('SlotsTot' + (index)).setText('' + slots)
+            } else {
+              form.getTextField('SlotsTot' + (index)).setText('0')
+            }
           }
         }
       })

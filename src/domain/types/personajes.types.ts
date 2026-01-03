@@ -9,6 +9,7 @@ import { DoteApi } from "./dotes.types"
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
 import { ClaseLevelUp, SpellcastingLevel } from "./clases.types"
+import { InvocacionApi } from "./invocaciones.types"
 
 export interface TypeCrearPersonaje {
   name: string,
@@ -77,9 +78,9 @@ export interface TypeCrearPersonaje {
 
 export interface TypeSubirNivel {
   id: string,
-  data: { 
-    hit: number, 
-    clase: string, 
+  data: {
+    hit: number,
+    clase: string,
     traits: string[],
     traits_data: RasgoDataMongo,
     prof_bonus: number,
@@ -90,17 +91,17 @@ export interface TypeSubirNivel {
 }
 
 export interface TypeAñadirEquipamiento {
-  cantidad: number, equip: string, id: string, isMagic: boolean 
+  cantidad: number, equip: string, id: string, isMagic: boolean, isBond: boolean
 }
 
 export interface TypeEliminarEquipamiento {
-  cantidad: number, equip: string, id: string, isMagic: boolean 
+  cantidad: number, equip: string, id: string, isMagic: boolean, isBond: boolean
 }
 
 export interface TypeEquiparArmadura {
-  nuevoEstado: boolean, 
-  equip: string, 
-  id: string, 
+  nuevoEstado: boolean,
+  equip: string,
+  id: string,
   isMagic: boolean
 }
 
@@ -114,7 +115,7 @@ export interface PersonajeBasico {
   classes: {
     name: string,
     level: number
-  } [],
+  }[],
   CA: number,
   HPMax: number,
   HPActual: number,
@@ -190,11 +191,13 @@ export interface PersonajeMongo {
     index: string,
     quantity: number,
     equipped: boolean,
-    isMagic: boolean
+    isMagic: boolean,
+    isBond?: boolean
   }[],
   HPMax: number,
   HPActual: number,
-  XP: 0 
+  XP: 0,
+  invocations: string[]
 }
 
 export interface PersonajeApi {
@@ -247,9 +250,9 @@ export interface PersonajeApi {
   proficiencies: CompetenciaApi[],
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
-  resistances: DañoApi[],  
-  conditional_resistances:{ name: string, resistances: DañoApi[] }[],
-  condition_inmunities:{ name: string, estados: EstadoApi[] }[]
+  resistances: DañoApi[],
+  conditional_resistances: { name: string, resistances: DañoApi[] }[],
+  condition_inmunities: { name: string, estados: EstadoApi[] }[]
   prof_bonus: number,
   saving_throws: string[],
   equipment: EquipamientoPersonajeApi[],
@@ -263,7 +266,8 @@ export interface PersonajeApi {
   },
   spells: Record<string, { list: ConjuroApi[]; type: string; }>,
   cargaMaxima: number,
-  spellcasting?: SpellcastingLevel[]
+  spellcasting?: SpellcastingLevel[],
+  invocations?: InvocacionApi[]
 }
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -287,5 +291,6 @@ export interface TypeSubirNivel {
   skills: string[],
   double_skills: string[],
   proficiencies: string[],
-  spells: string[]
+  spells: string[],
+  invocations: string[],
 }

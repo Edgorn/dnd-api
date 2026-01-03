@@ -1,6 +1,6 @@
 import { Router } from "express";
-import personajeController from '../controllers/personaje.controller';
 import { authMiddleware } from "../middlewares/auth.middleware";
+import { personajeController } from "../../dependencies";
 
 const router = Router();
 
@@ -12,8 +12,10 @@ router.post('/character/addEquipment', authMiddleware, personajeController.añad
 router.post('/character/deleteEquipment', authMiddleware, personajeController.eliminarEquipamiento);
 router.post('/character/equipArmor', authMiddleware, personajeController.equiparArmadura);
 router.post('/character/updateMoney', authMiddleware, personajeController.modificarDinero);
+router.post('/character/vincularPacto', authMiddleware, personajeController.vincularArmaPacto);
 router.post('/character/changeXp', authMiddleware, personajeController.changeXp);
 router.post('/character/levelUpData', authMiddleware, personajeController.levelUpData);
 router.post('/character/levelUp', authMiddleware, personajeController.levelUp);
+router.post('/character/learnSpells', authMiddleware, personajeController.aprenderListaConjuros);
 
 export default router;

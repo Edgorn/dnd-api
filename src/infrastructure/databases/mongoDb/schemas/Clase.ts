@@ -35,8 +35,8 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
     enemy_options: {},
     */
     ability_score: Boolean,
-    /*invocations: Number,
-    invocations_change: Number,
+    invocations: Number,
+    invocations_change: Number,/*
     metamagic_new: Number*/
   }],/*
   money: {},*/

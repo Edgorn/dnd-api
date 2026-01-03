@@ -1,94 +1,110 @@
 import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
-import ConjuroRepository from "./conjuros.repository";
 import IInvocacionRepository from "../../../../domain/repositories/IInvocacionRepository";
 import IRasgoRepository from "../../../../domain/repositories/IRasgoRepository";
-import RasgoRepository from "./rasgo.repository";
-import IdiomaRepository from "./idioma.repository";
-import IIdiomaRepository from "../../../../domain/repositories/IIdiomaRepository";
-import IDañoRepository from "../../../../domain/repositories/IDañoRepository";
-import DañoRepository from "./daño.repository";
-const InvocacionSchema = require('../schemas/Invocacion');
+import InvocacionSchema from "../schemas/Invocacion";
+import { InvocacionApi, InvocacionMongo } from "../../../../domain/types/invocaciones.types";
+import { ordenarPorNombre } from "../../../../utils/formatters";
+import { ChoiceApi } from "../../../../domain/types";
 
-export default class InvocacionRepository extends IInvocacionRepository {
-  invocacionesMap: {
-    [key: string]: {
-      index: string,
-      name: string,
-      desc: string,
-      spells: any[],
-      skills: string[],
-      requirements: any
+export default class InvocacionRepository implements IInvocacionRepository {
+  private invocacionesMap: Record<string, InvocacionMongo>
+  private todosConsultados = false
+
+  constructor(
+    private readonly conjuroRepository: IConjuroRepository,
+    private readonly rasgoRepository: IRasgoRepository
+  ) {
+    this.invocacionesMap = {}
+  }
+
+  async obtenerOpciones(numberOptions: number): Promise<ChoiceApi<InvocacionApi> | undefined> {
+    if (!numberOptions) return undefined;
+
+    const options = await this.obtenerTodas();
+
+    return {
+      choose: numberOptions,
+      options
     }
   }
-  
-  conjuroRepository: IConjuroRepository
-  rasgoRepository: IRasgoRepository
-  idiomaRepository: IIdiomaRepository
-  dañoRepository: IDañoRepository
 
-  constructor() {
-    super()
-    this.invocacionesMap = {}
-    this.conjuroRepository = new ConjuroRepository()
-    this.idiomaRepository = new IdiomaRepository()
-    this.dañoRepository = new DañoRepository()
-    this.rasgoRepository = new RasgoRepository(/*this.conjuroRepository,*/ this.dañoRepository)
-    //this.cargarInvocaciones();
-  } 
+  async obtenerPorIndices(indices: string[]): Promise<InvocacionApi[]> {
+    if (!indices.length) return [];
 
-  async inicializar() {
-    await this.cargarInvocaciones();
-  } 
+    const procesados = await Promise.all(indices.map(async (indice) => {
+      if (this.invocacionesMap[indice]) {
+        const invocacion = await this.formatearInvocacion(this.invocacionesMap[indice]);
+        return { encontrado: invocacion };
+      } else {
+        return { faltante: indice };
+      }
+    }));
 
-  async cargarInvocaciones() {
-    const invocaciones = await InvocacionSchema.find(); 
-    
-    invocaciones.forEach(async (invocacion: any) => {
-      const traits = await this.rasgoRepository.obtenerRasgosPorIndices(invocacion?.requirements?.traits ?? []) 
-      const conjuros = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.spells ?? []) 
-      const conjuros_required = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.requirements?.spells ?? []) 
+    const result = procesados
+      .filter(p => p.encontrado)
+      .map(p => p.encontrado!);
 
-      this.invocacionesMap[invocacion.index] = {
-        index: invocacion.index,
-        name: invocacion.name,
-        desc: invocacion?.desc?.join('\n'),
-        spells: conjuros,
-        skills: invocacion?.skills ?? [],
-        requirements: {
-          spells: conjuros_required
-            .map(spell => {
-              return {
-                index: spell.index,
-                name: spell.name
-              } 
-            }),
-          traits: traits.map(trait => {
-              return {
-                index: trait.index,
-                name: trait.name
-              } 
-            }),
-          level: invocacion?.requirements?.level ?? 0
-        }
-      };
-    });
+    const missing = procesados
+      .filter(p => p.faltante)
+      .map(p => p.faltante!);
+
+    if (missing.length > 0) {
+      const invocaciones = await InvocacionSchema.find({ index: { $in: missing } })
+      invocaciones.forEach(invocacion => (this.invocacionesMap[invocacion.index] = invocacion));
+
+      const invocacionesFormateadas = await this.formatearInvocaciones(invocaciones)
+      result.push(...invocacionesFormateadas);
+    }
+
+    return ordenarPorNombre(result);
   }
 
-  obtenerInvocacionPorIndice(index: string) {
-    return this.invocacionesMap[index];
+  private async obtenerTodas() {
+    if (!this.todosConsultados) {
+      const invocaciones = await InvocacionSchema.find()
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+
+      invocaciones.forEach(invocacion => (this.invocacionesMap[invocacion.index] = invocacion))
+      this.todosConsultados = true
+    }
+
+    const invocacionesFormateadas = await this.formatearInvocaciones(Object.values(this.invocacionesMap))
+
+    return ordenarPorNombre(invocacionesFormateadas)
   }
 
-  obtenerInvocacionesPorIndices(indices: string[]) {
-    return indices.map(index => this.obtenerInvocacionPorIndice(index));
+  private formatearInvocaciones(invocaciones: InvocacionMongo[]): Promise<InvocacionApi[]> {
+    return Promise.all(invocaciones.map(invocacion => this.formatearInvocacion(invocacion)));
   }
 
-  obtenerTodos() {
-    const invocaciones = Object.values(this.invocacionesMap);
+  private async formatearInvocacion(invocacion: InvocacionMongo): Promise<InvocacionApi> {
+    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(invocacion?.requirements?.traits ?? [])
+    const spells = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.spells ?? [])
+    const spells_required = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.requirements?.spells ?? [])
 
-    invocaciones.sort((a, b) => {
-      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-    });
-
-    return invocaciones
+    return {
+      index: invocacion.index,
+      name: invocacion.name,
+      desc: invocacion?.desc,
+      spells,
+      skills: invocacion?.skills ?? [],
+      requirements: {
+        spells: spells_required
+          .map(spell => {
+            return {
+              index: spell.index,
+              name: spell.name
+            }
+          }),
+        traits: traits.map(trait => {
+          return {
+            index: trait.index,
+            name: trait.name
+          }
+        }),
+        level: invocacion?.requirements?.level ?? 0
+      }
+    }
   }
 }

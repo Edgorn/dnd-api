@@ -94,6 +94,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
         weapon: weapon,
         armor: equipamientoAux.armor,
         isMagic: equipamiento.isMagic ?? false,
+        isBond: equipamiento.isBond ?? false,
         weight: equipamientoAux.weight ?? 0,
         equipped: equipamiento.equipped ?? false,
         cost: equipamiento.cost ?? equipamientoAux.cost
@@ -154,18 +155,24 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     if (Array.isArray(equipamientosOption.options)) {
       const options = await this.obtenerEquipamientosPersonajePorIndices(
         equipamientosOption.options.map(option => {
-          return {
-            index: option,
-            quantity: equipamientosOption.quantity
+          if (typeof option === "string") {
+            return {
+              index: option,
+              quantity: equipamientosOption.quantity
+            }
+          } else {
+            return {
+              index: option.index,
+              quantity: option.quantity ?? 1
+            }
           }
         })
       )
 
-      const quantity = options?.length === 1 ? options[0]?.quantity : 1
-      const name = options?.length === 1 ? options[0]?.name : "Objeto"
+      const name = options?.length === equipamientosOption.choose ? options.map(option => option.quantity + "x " + option.name).join(", ") : "Objeto"
 
       return {
-        name: quantity > 1 ? quantity + "x " + name : name,
+        name,
         choose: equipamientosOption.choose,
         options: options?.map(option => { return { ...option, name: option.quantity + "x " + option.name } }) ?? []
       };

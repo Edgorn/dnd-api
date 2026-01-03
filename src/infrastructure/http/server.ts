@@ -12,6 +12,7 @@ import equipamientoRoutes from "./routes/equipamiento.routes";
 import campañaRoutes from "./routes/campaña.routes";
 import criaturasRoutes from "./routes/criaturas.routes";
 import npcsRoutes from "./routes/npcs.routes";
+import conjuroRoutes from "./routes/conjuro.routes";
 
 const app: Application = express();
 
@@ -33,6 +34,7 @@ app.use(equipamientoRoutes);
 app.use(campañaRoutes)
 app.use(criaturasRoutes);
 app.use(npcsRoutes);
+app.use(conjuroRoutes);
 
 export const startServer = (port: number | string): void => {
   app.listen(port, () => {

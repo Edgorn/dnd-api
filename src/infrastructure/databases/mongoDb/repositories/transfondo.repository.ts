@@ -16,7 +16,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
     private readonly idiomaRepository: IIdiomaRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly rasgoRepository: IRasgoRepository
-  ) {}
+  ) { }
 
   async obtenerTodos(): Promise<TransfondoApi[]> {
     try {
@@ -28,13 +28,13 @@ export default class TransfondoRepository implements ITransfondoRepository {
       console.error("Error obteniendo transfondos:", error);
       throw new Error("No se pudieron obtener los transfondos");
     }
-  } 
-   
+  }
+
   private formatearTransfondos(transfondos: TransfondoMongo[]): Promise<TransfondoApi[]> {
     return Promise.all(transfondos.map(transfondo => this.formatearTransfondo(transfondo)));
-  }  
+  }
 
-  private async formatearTransfondo(transfondo: TransfondoMongo): Promise<TransfondoApi>  {
+  private async formatearTransfondo(transfondo: TransfondoMongo): Promise<TransfondoApi> {
     const options_name = this.formatearOptionsName(transfondo?.options_name)
 
     const [
@@ -58,9 +58,9 @@ export default class TransfondoRepository implements ITransfondoRepository {
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(transfondo?.equipment_choices),
       this.formatearVariantes(transfondo?.variants)
     ])
-    
+
     return {
-      index: transfondo.index,
+      id: transfondo.id,
       name: transfondo.name,
       img: transfondo.img,
       desc: transfondo.desc,
@@ -81,7 +81,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
       bonds: mapStringArrayToLabelValue(transfondo?.bonds ?? []),
       flaws: mapStringArrayToLabelValue(transfondo?.flaws ?? []),
       variants: variantes
-    } 
+    }
   }
 
   private async formatearVariantes(variantes: VarianteMongo[]): Promise<VarianteApi[]> {
@@ -96,14 +96,14 @@ export default class TransfondoRepository implements ITransfondoRepository {
     const options_name = this.formatearOptionsName(variante?.options_name)
 
     const [
-      traits, 
-      traits_options, 
-      proficiencies_choices, 
+      traits,
+      traits_options,
+      proficiencies_choices,
       mixed_choices,
       equipment,
       equipment_choices
     ] = await Promise.all([
-      variante?.traits 
+      variante?.traits
         ? this.rasgoRepository.obtenerRasgosPorIndices(variante?.traits ?? [])
         : Promise.resolve(undefined),
       this.rasgoRepository.obtenerRasgosOptions(variante?.traits_options),
@@ -125,7 +125,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
       equipment_choices,
       options_name
     }
-  } 
+  }
 
   private formatearOptionsName(options_name: OptionsNameMongo | undefined): OptionsNameApi | undefined {
     return options_name ? {
@@ -138,8 +138,8 @@ export default class TransfondoRepository implements ITransfondoRepository {
   private async formatearMixedChoices(mixedChoices: MixedChoicesMongo[][] | undefined): Promise<MixedChoicesApi[][] | undefined> {
     if (!mixedChoices) return undefined;
 
-    const results = await Promise.all(mixedChoices.map(mixedChoice => this.formatearMixedChoice(mixedChoice)))  
-    
+    const results = await Promise.all(mixedChoices.map(mixedChoice => this.formatearMixedChoice(mixedChoice)))
+
     return results.filter((r): r is MixedChoicesApi[] => r !== undefined);
   }
 
@@ -178,7 +178,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
           }
         }
       }
-      
+
       return undefined
     }))
 

@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import { TransfondoMongo } from "../../../../domain/types/transfondos.types";
 
 const transfondoSchema: Schema = new Schema<TransfondoMongo>({
-  index: String,
+  id: String,
   name: String,
   desc: [String],
   img: String,

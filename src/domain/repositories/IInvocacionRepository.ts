@@ -1,17 +1,7 @@
-export default class IInvocacionRepository {
-  async inicializar() {
-    throw new Error('Método no implementado');
-  }
+import { ChoiceApi } from "../types";
+import { InvocacionApi } from "../types/invocaciones.types";
 
-  obtenerInvocacionesPorIndices(params: string[]): any[] {
-    throw new Error('Método no implementado');
-  }
-
-  obtenerInvocacionPorIndice(params: string): any {
-    throw new Error('Método no implementado');
-  }
-
-  obtenerTodos(): any {
-    throw new Error('Método no implementado');
-  }
+export default interface IInvocacionRepository {
+  obtenerOpciones(numberOptions: number): Promise<ChoiceApi<InvocacionApi> | undefined>
+  obtenerPorIndices(indices: string[]): Promise<InvocacionApi[]>
 }

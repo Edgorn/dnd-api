@@ -23,6 +23,7 @@ export interface EquipamientoPersonajeMongo {
   name?: string,
   description?: string[],
   isMagic?: boolean,
+  isBond?: boolean,
   equipped?: boolean,
   cost?: {
     quantity: number,
@@ -41,6 +42,7 @@ export interface EquipamientoApi {
   armor?: ArmorMongo,
   weight: number,
   isMagic?: boolean,
+  isBond?: boolean,
   cost?: {
     quantity: number,
     unit: string
@@ -101,7 +103,7 @@ export interface EquipamientoPersonajeApi extends EquipamientoApi {
 
 export interface EquipamientoOpcionesMongo {
   choose: number,
-  options: string[] | string,
+  options: string[] | string | { index: string, quantity: number }[],
   quantity: number
 }
 

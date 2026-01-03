@@ -18,6 +18,7 @@ import { ConjuroApi } from '../../../../domain/types/conjuros.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
 import { TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
 import { EquipamientoPersonajeApi } from '../../../../domain/types/equipamientos.types';
+import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 
 const fs = require('fs');
 const path = require('path');
@@ -49,7 +50,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly habilidadRepository: IHabilidadRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
-    private readonly claseRepository: IClaseRepository
+    private readonly claseRepository: IClaseRepository,
+    private readonly invocacionRepository: IInvocacionRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -192,17 +194,20 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   async añadirEquipamiento(data: TypeAñadirEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { id, equip, cantidad, isMagic } = data
+    const { id, equip, cantidad, isMagic, isBond } = data
     const personaje = await Personaje.findById(id);
-
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
-
-    if (idx > -1) {
-      equipment[idx].quantity += cantidad
+    if (isBond) {
+      equipment.push({ index: equip, quantity: cantidad, isMagic, isBond, equipped: false })
     } else {
-      equipment.push({ index: equip, quantity: cantidad, isMagic, equipped: false })
+      const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
+
+      if (idx > -1) {
+        equipment[idx].quantity += cantidad
+      } else {
+        equipment.push({ index: equip, quantity: cantidad, isMagic, equipped: false, isBond })
+      }
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
@@ -229,18 +234,25 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   async eliminarEquipamiento(data: TypeEliminarEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { id, equip, cantidad, isMagic } = data
+    const { id, equip, cantidad, isMagic, isBond } = data
     const personaje = await Personaje.findById(id);
-
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
+    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic && !!eq.isBond === !!isBond)
 
     if (idx > -1) {
-      if (equipment[idx].quantity === cantidad) {
-        equipment.splice(idx, 1)
+      if (isBond) {
+        if (isMagic) {
+          equipment[idx].isBond = false
+        } else {
+          equipment.splice(idx, 1)
+        }
       } else {
-        equipment[idx].quantity -= cantidad
+        if (equipment[idx].quantity === cantidad) {
+          equipment.splice(idx, 1)
+        } else {
+          equipment[idx].quantity -= cantidad
+        }
       }
     }
 
@@ -384,24 +396,21 @@ export default class PersonajeRepository implements IPersonajeRepository {
       double_skills: dataLevel?.double_skills,
       spell_choices: dataLevel?.spell_choices,
       mixed_spell_choices: dataLevel?.mixed_spell_choices,
+      spells: dataLevel?.spells,
       spell_changes: dataLevel?.spell_changes,
-      skill_choices: dataLevel?.skill_choices
-
+      skill_choices: dataLevel?.skill_choices,
+      invocations_choices: dataLevel?.invocations_choices,
+      invocations_change: dataLevel?.invocations_change,
       /*
-      //spellcasting_options: ,
-      //spellcasting_changes: ,
-      invocations,
-      invocations_change,
       disciplines_new,
       disciplines_change,
       metamagic,
-      //spells
     */
     }
   }
 
   async subirNivel(data: TypeSubirNivel): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { id, hit, clase, traits, traits_data, prof_bonus, subclase, abilities, dotes, skills, double_skills, spells, proficiencies /*, invocations, disciplines, metamagic*/ } = data
+    const { id, hit, clase, traits, traits_data, prof_bonus, subclase, abilities, dotes, skills, double_skills, spells, proficiencies, invocations, /*,disciplines, metamagic*/ } = data
     const personaje = await Personaje.findById(id);
     //const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
@@ -475,27 +484,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     if (spells.length > 0) {
       spellsData[clase] = spells
     }
-    /*
-        if (dataLevel?.spellcasting?.all_spells) {
-          const spellsAux = dataLevel?.spellcasting?.all_spells
-            ? await this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spellcasting?.all_spells, clase)
-            : []
-    
-          spellsData[clase].push(...spellsAux?.map(spell => spell.index) ?? [])
-        }
-     *//*
-    personaje?.subclasses?.forEach((subclase => {
-      if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]) {
-        const nameSpells = clase + '_' + subclase
-        dataLevel?.subclasses[subclase]?.spells?.forEach((spell: string) => {
-          if (!spellsData[nameSpells]) {
-            spellsData[nameSpells] = []
-          }
-          spellsData[nameSpells].push(spell)
-        })
-      }
-    }))
-*/
+
     let HP = hit + Math.floor(((personaje?.abilities?.con ?? 10) / 2) - 5)
 
     if (traits.includes('dwarven-toughness')) {
@@ -535,8 +524,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
             ...personaje?.proficiencies ?? [],
             ...proficiencies ?? []
           ],
-          spells: spellsData
-          //invocations,
+          spells: spellsData,
+          invocations,
           //disciplines: actualDisciplines,
           //metamagic: [...personaje?.metamagic ?? [], ...metamagic ?? []],
           //
@@ -593,6 +582,73 @@ export default class PersonajeRepository implements IPersonajeRepository {
     personaje.save()
 
     return this.formatearPersonajeBasico(personaje)
+  }
+
+  async vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
+    const { equip, id } = data
+    const personaje = await Personaje.findById(id);
+    const equipment = personaje?.equipment ?? []
+
+    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === true)
+
+    if (idx > -1) {
+      equipment[idx].isBond = true
+    }
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          equipment
+        }
+      },
+      { new: true }
+    );
+
+    if (!resultado) {
+      return null
+    }
+
+    const completo = await this.formatearPersonaje(resultado)
+    const basico = await this.formatearPersonajeBasico(resultado)
+
+    return {
+      completo,
+      basico
+    }
+  }
+
+  async aprenderConjuros(data: { id: string, spells: string[], type: string }): Promise<PersonajeApi | null> {
+    const { id, spells, type } = data
+    const personaje = await Personaje.findById(id);
+
+    if (!personaje) {
+      return null
+    }
+
+    if (personaje.spells[type]) {
+      personaje.spells[type].push(...spells)
+    } else {
+      personaje.spells[type] = [...spells]
+    }
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          spells: personaje.spells
+        }
+      },
+      { new: true }
+    );
+
+    if (!resultado) {
+      return null
+    }
+
+    const personajeFormateado = await this.formatearPersonaje(resultado)
+
+    return personajeFormateado
   }
 
   private async formatearPersonajesBasicos(personajes: PersonajeMongo[], userName?: string): Promise<PersonajeBasico[]> {
@@ -701,6 +757,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const level = personaje.classes.map(cl => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
 
     const traits = await this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits, personaje?.traits_data)
+    const invocations = await this.invocacionRepository.obtenerPorIndices(personaje.invocations)
     const skills = personaje?.skills ?? []
 
     const idiomasId = personaje?.languages ?? []
@@ -747,6 +804,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
       if (trait?.speed) {
         speed = trait?.speed
+      }
+    })
+
+    invocations.forEach(invocation => {
+      if (invocation?.skills) {
+        skills.push(...invocation?.skills)
       }
     })
 
@@ -857,7 +920,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       money: personaje?.money,
       spells: updatedSpells,
       cargaMaxima,
-      spellcasting: spellcasting.filter(item => item !== null)
+      spellcasting: spellcasting.filter(item => item !== null),
+      invocations
     }
   }
 
@@ -1015,7 +1079,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
       escribirRasgos({
         traits: personaje?.traits,
-        invocations: [],//personaje?.invocations,
+        invocations: personaje?.invocations ?? [],
         disciplines: [],//personaje?.disciplines,
         metamagic: [],//personaje?.metamagic,
         dotes: personaje?.dotes,

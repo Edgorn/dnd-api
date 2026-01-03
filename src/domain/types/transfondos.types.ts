@@ -6,7 +6,7 @@ import { IdiomaApi } from "./idiomas.types";
 import { RasgoApi, TraitsOptionsApi, TraitsOptionsMongo } from "./rasgos.types";
 
 export interface TransfondoMongo {
-  index: string,
+  id: string,
   name: string,
   desc: string[],
   img: string,
@@ -53,7 +53,7 @@ export interface OptionsNameMongo {
 }
 
 export interface TransfondoApi {
-  index: string,
+  id: string,
   name: string,
   desc: string[],
   img: string,
@@ -89,7 +89,7 @@ export interface VarianteApi {
   equipment?: EquipamientoPersonajeApi[],
   equipment_choices?: EquipamientoChoiceApi[][],
   personalized_equipment: string[],
-  options_name?: OptionsNameApi   
+  options_name?: OptionsNameApi
 }
 
 export interface OptionsNameApi {
