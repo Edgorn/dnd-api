@@ -39,7 +39,7 @@ export default class IdiomaRepository implements IIdiomaRepository {
             type: "",
             typical_speakers: [],
             script: ""
-          }
+          }  
         });
         
       idiomas.forEach(idioma => (this.idiomasMap[idioma.index] = idioma));

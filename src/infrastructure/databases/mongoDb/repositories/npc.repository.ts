@@ -49,9 +49,9 @@ export default class NpcRepository implements INpcRepository {
       this.idiomasRepository.obtenerIdiomasPorIndices(npc?.languages?.understands ?? []),
       this.formatearConjurosCriatura(npc?.spell_slots ?? [])
     ])
- 
+       
     return {
-      index: npc.index,
+      id: npc.index,
       name: npc.name,
       type: npc.type,
       subtype: npc.subtype,

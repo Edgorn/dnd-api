@@ -49,9 +49,9 @@ export default class CriaturaRepository implements ICriaturaRepository {
       this.idiomasRepository.obtenerIdiomasPorIndices(criatura?.languages?.understands ?? []),
       this.formatearConjurosCriatura(criatura?.spell_slots ?? [])
     ])
-
+        
     return {
-      index: criatura.index,
+      id: criatura.index,
       name: criatura.name,
       type: criatura.type,
       subtype: criatura.subtype,

@@ -679,6 +679,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       img: personaje.img,
       name: personaje.name,
       user,
+      abilities: personaje.abilities,
+      speed: personaje.speed,
       race: personaje.race,
       campaign: finalCampaignName,
       classes: personaje?.classes?.map((clas: any) => { return { name: clas.name, level: clas.level } }) ?? [],

@@ -120,7 +120,16 @@ export interface PersonajeBasico {
   HPMax: number,
   HPActual: number,
   XP: number,
-  XPMax: number
+  XPMax: number,
+  abilities: {
+    str: number,
+    dex: number,
+    con: number,
+    int: number,
+    wis: number,
+    cha: number
+  },
+  speed: number,
 }
 
 export interface PersonajeMongo {

@@ -47,7 +47,7 @@ export interface CriaturaMongo {
   reactions: [],
   spell_slots: { [key: string]: string[] }
 }
-
+   
 export interface LanguagesCriaturaMongo {
   understands: string[],
   speaks: string[],
@@ -55,7 +55,7 @@ export interface LanguagesCriaturaMongo {
 }
 
 export interface CriaturaApi {
-  index: string,
+  id: string,
   name: string,
   type: string,
   subtype: string,
