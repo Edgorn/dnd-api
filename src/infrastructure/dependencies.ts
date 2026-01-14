@@ -9,7 +9,7 @@ import Logear from "../application/use-cases/usuario/login.use-case";
 import ObtenerTodosLosTransfondos from "../application/use-cases/transfondo/obtenerTodosLosTransfondos.use-case";
 import ObtenerTodasLasRazas from "../application/use-cases/raza/obtenerTodasLasRazas.use-case";
 import ObtenerTodasLasClases from "../application/use-cases/clase/obtenerTodasLasClases.use-case";
-import ObtenerEquipamientosPorTipo from "../application/use-cases/equipamiento/obtenerEquipamientosPorTipo.use-case";
+import ObtenerEquipamientosPorTipo from "../application/use-cases/equipamiento/obtenerEquipamientosPorTipos.use-case";
 import ObtenerPersonajesPorUsuario from "../application/use-cases/personaje/obtenerPersonajesPorUsuario.use-case";
 import CrearPersonaje from "../application/use-cases/personaje/crearPersonaje.use-case";
 import ObtenerPersonajePorId from "../application/use-cases/personaje/obtenerPersonajePorId.use-case";

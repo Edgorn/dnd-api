@@ -1,10 +1,10 @@
 import EquipamientoService from "../../../domain/services/equipamiento.service"
 import { EquipamientoBasico } from "../../../domain/types/equipamientos.types"
 
-export default class ObtenerEquipamientosPorTipo {
+export default class ObtenerEquipamientosPorTipos {
   constructor(private readonly equipamientoService: EquipamientoService) { }
 
-  execute(type: string): Promise<EquipamientoBasico[]> {
-    return this.equipamientoService.obtenerEquipamientosPorTipo(type)
+  execute(types: string[]): Promise<EquipamientoBasico[]> {
+    return this.equipamientoService.obtenerEquipamientosPorTipos(types)
   }
 }

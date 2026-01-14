@@ -118,6 +118,7 @@ export interface EquipamientoBasico {
   name: string,
   weapon?: WeaponBasico,
   armor?: ArmorBasico,
+  category?: string,
 }
 
 export interface WeaponBasico {

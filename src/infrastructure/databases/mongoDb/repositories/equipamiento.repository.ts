@@ -67,8 +67,8 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     ))
   }
 
-  async obtenerEquipamientosPorTipo(tipo: string): Promise<EquipamientoBasico[]> {
-    const equipamientos = await EquipamientoSchema.find({ category: tipo })
+  async obtenerEquipamientosPorTipos(tipos: string[]): Promise<EquipamientoBasico[]> {
+    const equipamientos = await EquipamientoSchema.find({ category: { $in: tipos } })
 
     return ordenarPorNombre(this.formatearEquipamientosBasicos(equipamientos))
   }
@@ -228,16 +228,17 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
       equipamiento => this.formatearEquipamientosBasico(equipamiento)
     )
   }
-
+ 
   private formatearEquipamientosBasico(equipamiento: EquipamientoMongo): EquipamientoBasico {
     return {
       index: equipamiento.index,
       name: equipamiento.name,
       weapon: this.formatearWeaponBasico(equipamiento.weapon),
-      armor: equipamiento.armor
+      armor: equipamiento.armor,
+      category: equipamiento.category
     }
   }
-
+ 
   private formatearWeaponBasico(weapon: WeaponMongo | undefined): WeaponBasico | undefined {
     if (!weapon) return undefined
 
