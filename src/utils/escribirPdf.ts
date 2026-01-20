@@ -143,10 +143,10 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
 
       return trait.type !== 'spell' && !trait.hidden && isDiscard
 
-    })?.forEach((trait: any) => {
+    })?.forEach((trait: RasgoApi | DoteApi) => {
       const { textY, actualHeight: actualHeight1 } = escribirParrafo({
         titulo: trait?.name,
-        descripcion: trait?.desc,
+        descripcion: trait?.summary?.join('\n'),
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth: 178,  //174
@@ -159,7 +159,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
       if (maxHeight1 === actualHeight1) {
         const { textY, actualHeight: actualHeight2 } = escribirParrafo({
           titulo: trait?.name,
-          descripcion: trait?.desc,
+          descripcion: trait?.summary?.join('\n'),
           fontTitle: fontBold,
           fontText: fontRegular,
           maxWidth: 182,
@@ -168,21 +168,21 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
           y: textY2,
           maxHeight: maxHeight2
         })
-
+ 
         if (maxHeight2 === actualHeight2) {
           const { textY } = escribirParrafo({
             titulo: trait?.name,
-            descripcion: trait?.desc,
+            descripcion: trait?.summary?.join('\n'),
             fontTitle: fontBold,
             fontText: fontRegular,
-            maxWidth: 182,
+            maxWidth: 182, 
             page: page2,
             x: 405,
             y: textY3
           })
 
           textY3 = textY
-
+  
         } else {
           textY2 = textY
           maxHeight2 = actualHeight2
@@ -243,10 +243,10 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
 
   traits
     ?.filter((trait: any) => trait.type === 'spell')
-    ?.forEach((trait: any) => {
+    ?.forEach((trait: RasgoApi) => {
       const { textY } = escribirParrafo({
         titulo: trait?.name,
-        descripcion: trait?.desc,
+        descripcion: trait?.summary,
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth: 182,

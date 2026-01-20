@@ -1033,7 +1033,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       let golpeCuerpo = 0
 
       if (monkTrait) {
-        const dado = parseInt(monkTrait?.desc?.split('1d')[1][0])
+        const dado = parseInt(monkTrait.summary.join(' ').split('1d')[1][0])
         const max = Math.max(personaje?.abilities?.str, personaje?.abilities?.dex)
         const daño = Math.floor((max / 2) - 5)
 
@@ -1080,11 +1080,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
 
       escribirRasgos({
-        traits: personaje?.traits,
+        traits: personaje?.traits ?? [],
         invocations: personaje?.invocations ?? [],
         disciplines: [],//personaje?.disciplines,
         metamagic: [],//personaje?.metamagic,
-        dotes: personaje?.dotes,
+        dotes: personaje?.dotes ?? [],
         pdfDoc: originalPdf
       })
 

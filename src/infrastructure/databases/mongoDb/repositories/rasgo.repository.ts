@@ -100,23 +100,37 @@ export default class RasgoRepository implements IRasgoRepository {
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(rasgo?.spells ?? [])
 
     const condition_inmunities = await this.estadoRepository.obtenerEstadosPorIndices(rasgo?.condition_inmunities)
-
-    let desc = rasgo?.desc?.join("\n") ?? ''
+    let desc = rasgo?.desc ?? [];
+    let description_aux = rasgo?.description ?? [];
+    let summary_aux = rasgo?.summary ?? [];
 
     if (data) {
+
       const rasgoData = data[rasgo.index]
 
       if (rasgoData) {
         Object.keys(rasgoData).forEach(d => {
-          desc = desc.replaceAll(d, rasgoData[d])
+          desc.forEach((_, index) => {
+            desc[index] = desc[index].replaceAll(d, rasgoData[d])
+          })
+          description_aux.forEach((_, index) => {
+            description_aux[index] = description_aux[index].replaceAll(d, rasgoData[d])
+          })
+          summary_aux.forEach((_, index) => {
+            summary_aux[index] = summary_aux[index].replaceAll(d, rasgoData[d])
+          })
         })
       } 
     }
 
+    const description = (description_aux?.length ? description_aux : desc )?? [];
+    const summary = (summary_aux?.length ? summary_aux : description);
+   
     return {
       index: rasgo.index,
       name: rasgo.name,
-      desc,
+      description: description,
+      summary: summary,
       hidden: rasgo?.hidden,
       discard: rasgo?.discard ?? [],
       resistances,

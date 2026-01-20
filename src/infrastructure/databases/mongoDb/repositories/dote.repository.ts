@@ -68,7 +68,8 @@ export default class DoteRepository implements IDoteRepository {
     return {
       index: dote._id.toString(),
       name: dote.name,
-      desc: dote.desc.join("\n")
+      description: dote.description ?? dote.desc ?? [],
+      summary: dote.summary ?? dote.description ?? dote.desc ?? []
     }
   }
 }

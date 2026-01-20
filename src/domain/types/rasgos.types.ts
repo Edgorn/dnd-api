@@ -6,7 +6,9 @@ import { EstadoApi } from "./estados.types"
 export interface RasgoMongo {
   index: string,
   name: string,
-  desc: string[],
+  desc?: string[],
+  description?: string[],
+  summary?: string[],
   hidden?: boolean,
   resistances: string[],
   condition_inmunities: string[],
@@ -45,7 +47,8 @@ export interface TraitsOptionsMongo {
 export interface RasgoApi {
   index: string,
   name: string,
-  desc: string,
+  description: string[],
+  summary: string[],
   hidden?: boolean,
   resistances: DañoApi[],
   conditional_resistances: DañoApi[],

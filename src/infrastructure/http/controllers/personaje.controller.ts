@@ -14,7 +14,6 @@ import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import VincularPacto from "../../../application/use-cases/personaje/vincularPacto.use-case";
 import AprenderConjuros from "../../../application/use-cases/personaje/aprenderConjuros.use-case";
 
-
 export class PersonajeController {
   constructor(
     private readonly obtenerPersonajesPorUsuario: ObtenerPersonajesPorUsuario,

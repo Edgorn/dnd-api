@@ -5,6 +5,8 @@ const rasgoSchema: Schema =  new Schema<RasgoMongo>({
   index: String,
   name: String,
   desc: [String],
+  description: [String],
+  summary: [String],
   hidden: Boolean,
   resistances: [String],
   condition_inmunities: [String],
