@@ -727,7 +727,6 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
     }
 
     if (spells && spellcastingClas) {
-
       form.getDropdown('SpellClass').addOptions([clas.name]);
       form.getDropdown('SpellClass').select(clas.name);
 
@@ -752,10 +751,20 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
           );
 
         listSpells?.forEach((spell, index2: number) => {
-          const valor = form.getTextField(spellsList[index][checkSpells[index]]).getText() ?? ''
+          const camposNivelActual = spellsList[index];
+          const numCamposDisponibles = camposNivelActual.length;
+
+          if (numCamposDisponibles === 0) return;
+
+          const indiceCircular = checkSpells[index] % numCamposDisponibles;
+          const nombreCampo = camposNivelActual[indiceCircular];
+
+          const campoTexto = form.getTextField(nombreCampo);
+          const valorPrevio = campoTexto.getText() ?? '';
+
           const name = personaje?.name === 'Kohlembart Holimion' ? (nombres[spell.name] ?? spell.name) : spell.name
 
-          form.getTextField(spellsList[index][checkSpells[index]]).setText(valor ? (valor + ', ' + name) : name);
+          campoTexto.setText(valorPrevio ? `${valorPrevio}, ${name}` : name);
           checkSpells[index]++
         })
 

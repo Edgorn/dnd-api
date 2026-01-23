@@ -30,7 +30,7 @@ export class PersonajeController {
     private readonly vincularPacto: VincularPacto,
     private readonly aprenderConjuros: AprenderConjuros
   ) { }
-
+ 
   getCharacters = async (req: AuthenticatedRequest, res: Response) => {
     const data = await this.obtenerPersonajesPorUsuario.execute(req.user!)
     res.status(200).json(data);

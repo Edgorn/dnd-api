@@ -75,24 +75,6 @@ const idiomaRepository = new IdiomaRepository()
 const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
 const claseRepository = new ClaseRepository(habilidadRepository, competenciaRepository, equipamientoRepository, rasgoRepository, conjuroRepository, doteRepository, invocacionRepository)
-const personajeRepository = new PersonajeRepository(
-  usuarioRepository,
-  equipamientoRepository,
-  rasgoRepository,
-  competenciaRepository,
-  idiomaRepository,
-  habilidadRepository,
-  conjuroRepository,
-  doteRepository,
-  claseRepository,
-  invocacionRepository
-)
-
-
-const campañaRepository = new CampañaRepository(
-  usuarioRepository,
-  personajeRepository
-)
 
 const razaRepository = new RazaRepository(
   idiomaRepository,
@@ -110,6 +92,25 @@ const transfondoRepository = new TransfondoRepository(
   equipamientoRepository,
   rasgoRepository
 );
+
+const personajeRepository = new PersonajeRepository(
+  usuarioRepository,
+  equipamientoRepository,
+  rasgoRepository,
+  competenciaRepository,
+  idiomaRepository,
+  habilidadRepository,
+  conjuroRepository,
+  doteRepository,
+  claseRepository,
+  invocacionRepository,
+  razaRepository
+)
+
+const campañaRepository = new CampañaRepository(
+  usuarioRepository,
+  personajeRepository
+)
 
 const campañaService = new CampañaService(campañaRepository)
 const usuarioService = new UsuarioService(usuarioRepository)

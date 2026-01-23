@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { RasgoMongo } from "../../../../domain/types/rasgos.types";
-
+ 
 const rasgoSchema: Schema =  new Schema<RasgoMongo>({
   index: String,
   name: String,
@@ -30,7 +30,7 @@ const rasgoSchema: Schema =  new Schema<RasgoMongo>({
       rows: [[String]]
     }
   }]*/
-}, { collection: 'Rasgos' });
+}, { collection: 'Rasgos' }); 
 
 const RasgoModel = mongoose.model<RasgoMongo>("Rasgos", rasgoSchema);
 export default RasgoModel;

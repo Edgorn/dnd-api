@@ -19,6 +19,8 @@ import { EstadoApi } from '../../../../domain/types/estados.types';
 import { TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
 import { EquipamientoPersonajeApi } from '../../../../domain/types/equipamientos.types';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
+import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
+import { deepMerge } from '../../../../utils/formatters';
 
 const fs = require('fs');
 const path = require('path');
@@ -51,7 +53,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly claseRepository: IClaseRepository,
-    private readonly invocacionRepository: IInvocacionRepository
+    private readonly invocacionRepository: IInvocacionRepository,
+    private readonly razaRepository: IRazaRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -375,20 +378,27 @@ export default class PersonajeRepository implements IPersonajeRepository {
       basico
     }
   }
-
+  
   async subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter> {
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
     const dataLevel = await this.claseRepository.dataLevelUp(clase, level + 1, personaje?.subclasses ?? [])
     const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
+    const raceLevel = await this.razaRepository.dataLevelUp(personaje?.raceId ?? '', level + 1)
 
+    let raceTraitsData = {}
+
+    if (raceLevel) {
+      raceTraitsData = deepMerge(raceLevel?.traits_data ?? {}, personaje?.traits_data ?? {})
+    }
+    
     return {
       clase,
       hit_die: dataLevel?.hit_die ?? 0,
       prof_bonus: prof_bonus[totalLevels] ?? 0,
       traits: dataLevel?.traits ?? [],
-      traits_data: dataLevel?.traits_data ?? {},
+      traits_data: deepMerge(dataLevel?.traits_data ?? {}, raceTraitsData),
       traits_options: dataLevel?.traits_options ?? undefined,
       subclasesData: dataLevel?.subclasesData ?? null,
       ability_score: dataLevel?.ability_score ?? false,

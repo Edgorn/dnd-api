@@ -10,7 +10,7 @@ import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 export interface ClaseMongo {
   index: string,
   name: string,
-  desc: string
+  description: string[],
   img: string,
   hit_die: number,
   proficiencies: string[],
@@ -40,6 +40,10 @@ export interface ClaseLevelMongo {
   spell_changes?: {
     number: number,
     options: ChoiceSpell[]
+  },
+  spell_group: {
+    level: number,
+    class: string
   },
   subclasses_options: SubclasesOptionsMongo,
   subclasses: SubclasesMongo,
@@ -95,7 +99,7 @@ export interface SubclaseMongo {
 export interface ClaseApi {
   index: string,
   name: string,
-  desc: string
+  description: string[],
   img: string,
   hit_die: number,
   proficiencies: CompetenciaApi[],

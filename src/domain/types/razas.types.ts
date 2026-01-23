@@ -21,7 +21,13 @@ export interface RaceMongo {
   language_choices?: ChoiceMongo,
   proficiencies_choices?: ChoiceMongo[],
   subraces: SubraceMongo[],
-  variants: VarianteMongo[]
+  variants: VarianteMongo[],
+  levels: RaceLevelMongo[]
+}
+
+export interface RaceLevelMongo {
+  level: number,
+  traits_data: RasgoDataMongo,
 }
 
 export interface SubraceMongo {
@@ -62,6 +68,7 @@ export interface RaceApi {
   ability_bonus_choices?: ChoiceApi<AbilityBonusesApi>,
   skill_choices?: ChoiceApi<HabilidadApi>,
   traits: RasgoApi[],
+  traits_data: RasgoDataMongo,
   languages: IdiomaApi[],
   language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],

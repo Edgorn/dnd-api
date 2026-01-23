@@ -4,10 +4,11 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
-import { RaceApi, RaceMongo, SubraceApi, SubraceMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
-import { formatearAbilityBonusChoices, formatearAbilityBonuses, ordenarPorNombre } from '../../../../utils/formatters';
+import { RaceApi, RaceLevelMongo, RaceMongo, SubraceApi, SubraceMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
+import { deepMerge, formatearAbilityBonusChoices, formatearAbilityBonuses, ordenarPorNombre } from '../../../../utils/formatters';
 import RazaSchema from '../schemas/Raza';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
+import { RasgoDataMongo } from '../../../../domain/types/rasgos.types';
 
 export default class RazaRepository implements IRazaRepository {
   constructor(
@@ -36,6 +37,8 @@ export default class RazaRepository implements IRazaRepository {
   } 
 
   async formatearRaza(raza: RaceMongo): Promise<RaceApi> {
+    const dataLevel = raza?.levels?.find(level => level.level === 1)
+
     const [
       traits,
       skill_choices,
@@ -45,12 +48,12 @@ export default class RazaRepository implements IRazaRepository {
       subraces,
       variants
     ] = await Promise.all([
-      this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? []),
+      this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? [], dataLevel?.traits_data),
       this.habilidadRepository.formatearOpcionesDeHabilidad(raza.skill_choices),
       this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
       this.idiomaRepository.formatearOpcionesDeIdioma(raza.language_choices),
       this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
-      this.formatearSubrazas(raza?.subraces ?? []),
+      this.formatearSubrazas(raza?.subraces ?? [], dataLevel?.traits_data),
       this.formatearVariantes(raza?.variants ?? [])
     ])
 
@@ -65,6 +68,7 @@ export default class RazaRepository implements IRazaRepository {
       ability_bonus_choices: formatearAbilityBonusChoices(raza?.ability_bonus_choices),
       skill_choices,
       traits,
+      traits_data: dataLevel?.traits_data ?? {},
       languages,
       language_choices,
       proficiencies_choices,
@@ -73,18 +77,18 @@ export default class RazaRepository implements IRazaRepository {
     }; 
   } 
 
-  async formatearSubrazas(subrazas: SubraceMongo[]): Promise<SubraceApi[]> {
-    const formateadas = await Promise.all(subrazas.map(subraza => this.formatearSubraza(subraza)))
+  async formatearSubrazas(subrazas: SubraceMongo[], traitsData?: RasgoDataMongo): Promise<SubraceApi[]> {
+    const formateadas = await Promise.all(subrazas.map(subraza => this.formatearSubraza(subraza, traitsData)))
     return ordenarPorNombre(formateadas);
   }
 
-  async formatearSubraza(subraza: SubraceMongo): Promise<SubraceApi> {
+  async formatearSubraza(subraza: SubraceMongo, traitsData?: RasgoDataMongo): Promise<SubraceApi> {
     const [
       traits,
       language_choices,
       spell_choices
     ] = await Promise.all([
-      this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? [], subraza?.traits_data),
+      this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? [], deepMerge(subraza?.traits_data, traitsData)),
       this.idiomaRepository.formatearOpcionesDeIdioma(subraza.language_choices),
       this.conjuroRepository.formatearOpcionesDeConjuros(subraza?.spell_choices)
     ])
@@ -137,5 +141,13 @@ export default class RazaRepository implements IRazaRepository {
       skill_choices,
       dotes
     }
+  }
+
+  async dataLevelUp(idRaza: string, level: number): Promise<RaceLevelMongo | undefined> {
+    const raza = await RazaSchema.findOne({ index: idRaza });
+    if (!raza) return undefined;
+
+    const dataLevel = raza?.levels?.find(lev => lev.level === level);
+    return dataLevel;
   }
 }

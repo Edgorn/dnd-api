@@ -4,7 +4,7 @@ import { ClaseMongo } from "../../../../domain/types/clases.types";
 const claseSchema: Schema = new Schema<ClaseMongo>({
   index: String,
   name: String,
-  desc: String,
+  description: [String],
   hit_die: Number,
   img: String,
   proficiencies: [],
@@ -26,6 +26,7 @@ const claseSchema: Schema = new Schema<ClaseMongo>({
     traits_options: {},
     spell_choices: [],
     mixed_spell_choices: {},
+    spell_group: {},
     spell_changes: {},
     spellcasting: {},
     subclasses_options: {},

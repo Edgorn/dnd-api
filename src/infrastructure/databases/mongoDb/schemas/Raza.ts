@@ -42,6 +42,10 @@ const razaSchema: Schema = new Schema<RaceMongo>({
   languages: [String],
   language_choices: {},
   proficiencies_choices: [],
+  levels: [{
+    level: Number,
+    traits_data: {}
+  }],
   subraces: [subrazaSchema],
   variants: [varianteSchema]
 }, { collection: 'Razas' });

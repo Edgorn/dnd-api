@@ -66,3 +66,16 @@ export const formatearSalvacion = (ability_bonuses: string[]) => {
 export function expandArray<T>(arr: T[], n: number): T[] {
   return Array.from({ length: n }, (_, i) => arr[i % arr.length]);
 }
+
+export const deepMerge = (obj1: any, obj2: any) => {
+  const output = { ...obj1 };
+  
+  for (const key in obj2) {
+    if (obj2[key] instanceof Object && key in obj1) {
+      output[key] = deepMerge(obj1[key], obj2[key]);
+    } else {
+      output[key] = obj2[key];
+    }
+  }
+  return output;
+};

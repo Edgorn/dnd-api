@@ -122,7 +122,7 @@ export default class RasgoRepository implements IRasgoRepository {
         })
       } 
     }
-
+    
     const description = (description_aux?.length ? description_aux : desc )?? [];
     const summary = (summary_aux?.length ? summary_aux : description);
    

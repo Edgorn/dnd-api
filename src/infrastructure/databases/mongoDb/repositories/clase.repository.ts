@@ -94,6 +94,8 @@ export default class ClaseRepository implements IClaseRepository {
     const invocations_choices = await this.invocacionRepository.obtenerOpciones(dataLevel.invocations ?? 0)
     const invocations_change = await this.invocacionRepository.obtenerOpciones(dataLevel.invocations_change ?? 0)
 
+    const spells = await this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? '')
+
     let traits_options = undefined
 
     if (dataLevel?.traits_options) {
@@ -128,6 +130,7 @@ export default class ClaseRepository implements IClaseRepository {
           .flat() ?? []
       ],
       spells: [
+        ...spells,
         ...subclaseData
           .filter((item): item is SubclaseApi => !!item?.spells)
           .map(item => item.spells ?? [])
@@ -170,9 +173,9 @@ export default class ClaseRepository implements IClaseRepository {
         .filter(clase =>
           clase.index === 'barbarian' ||
           clase.index === 'bard' ||
-          clase.index === 'warlock' /*|| 
+          clase.index === 'warlock' ||
+          clase.index === 'cleric' /*|| 
           clase.index === 'ranger' || 
-          clase.index === 'cleric' || 
           clase.index === 'wizard' || 
           clase.index === 'monk' || 
           clase.index === 'sorcerer'*/
@@ -184,11 +187,14 @@ export default class ClaseRepository implements IClaseRepository {
   private async formatearClase(clase: ClaseMongo): Promise<ClaseApi> {
     const dataLevel = clase?.levels?.find(level => level.level === 1)
 
+    const spell_group = await this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? '')
+
     const [
       traits,
       proficiencies,
       proficiencies_choices,
       skill_choices,
+      spells,
       spell_choices,
       equipment,
       equipment_choices
@@ -197,17 +203,18 @@ export default class ClaseRepository implements IClaseRepository {
       this.competenciaRepository.obtenerCompetenciasPorIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]),
       this.competenciaRepository.formatearOpcionesDeCompetencias(clase?.proficiencies_choices ?? []),
       this.habilidadRepository.formatearOpcionesDeHabilidad(clase.skill_choices),
+      this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? ''),
       this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment),
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(clase?.equipment_choices)
     ])
-
+ 
     const subclasesData = await this.formatearSubclaseType(dataLevel?.subclasses_options, dataLevel?.subclasses)
-
+              
     return {
       index: clase.index,
       name: clase.name,
-      desc: clase?.desc ?? '',
+      description: clase?.description ?? [],
       hit_die: clase.hit_die ?? 0,
       img: clase.img,
       prof_bonus: 2,
@@ -215,6 +222,7 @@ export default class ClaseRepository implements IClaseRepository {
       proficiencies_choices,
       saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
       skill_choices,
+      spells,
       spell_choices,
       equipment,
       equipment_choices,
