@@ -152,7 +152,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       languages: [...languages ?? []],
       saving_throws: saving_throws ?? [],
       skills: [...skills ?? []],
-      double_skills,
+      double_skills: [...double_skills ?? []],
       proficiencies,
       spells,
       equipment: equipment,

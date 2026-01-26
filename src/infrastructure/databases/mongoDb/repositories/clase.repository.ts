@@ -4,6 +4,7 @@ import IConjuroRepository from '../../../../domain/repositories/IConjuroReposito
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
+import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import { ChoiceApi } from '../../../../domain/types';
@@ -20,7 +21,8 @@ export default class ClaseRepository implements IClaseRepository {
     private readonly rasgoRepository: IRasgoRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
-    private readonly invocacionRepository: IInvocacionRepository
+    private readonly invocacionRepository: IInvocacionRepository,
+    private readonly idiomaRepository: IIdiomaRepository
   ) { }
 
   async obtenerTodas(): Promise<ClaseApi[]> {
@@ -187,8 +189,6 @@ export default class ClaseRepository implements IClaseRepository {
   private async formatearClase(clase: ClaseMongo): Promise<ClaseApi> {
     const dataLevel = clase?.levels?.find(level => level.level === 1)
 
-    const spell_group = await this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? '')
-
     const [
       traits,
       proficiencies,
@@ -353,10 +353,12 @@ export default class ClaseRepository implements IClaseRepository {
       traits: subclase.traits,
       traits_options: subclase?.traits_options,
       skill_choices: subclase?.skill_choices,
+      double_skill_choices: subclase?.double_skill_choices,
       proficiencies: subclase?.proficiencies,
-      spells: subclase?.spells
+      spells: subclase?.spells,
+      language_choices: subclase?.language_choices,
       /*traits_data_options: subclaseData.traits_data_options,/*
-      languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//*
+      languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//* 
       options: ,
       proficiencies: ,
       spells: this.conjuroRepository.obtenerConjurosPorIndices(subclaseData?.spells ?? []),
@@ -389,14 +391,18 @@ export default class ClaseRepository implements IClaseRepository {
     const skill_choices = await this.habilidadRepository.formatearOpcionesDeHabilidad(subclase.skill_choices)
     const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(subclase?.proficiencies ?? [])
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(subclase?.spells ?? [])
+    const languagesOptions = await this.idiomaRepository.formatearOpcionesDeIdioma(subclase?.language_choices)
+    const double_skill_choices = await this.habilidadRepository.formatearOpcionesDeHabilidad(subclase?.double_skill_choices)
 
     return {
       traits,
       traits_options: traits_options,
       mixed_spell_choices,
       skill_choices,
+      double_skill_choices,
       proficiencies,
-      spells
+      spells,
+      language_choices: languagesOptions
       /*traits_data_options: subclaseData.traits_data_options,/*
       languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.languages ?? []),*//*
       options: ,

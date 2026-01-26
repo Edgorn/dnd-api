@@ -74,7 +74,16 @@ const doteRepository = new DoteRepository()
 const idiomaRepository = new IdiomaRepository()
 const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
-const claseRepository = new ClaseRepository(habilidadRepository, competenciaRepository, equipamientoRepository, rasgoRepository, conjuroRepository, doteRepository, invocacionRepository)
+const claseRepository = new ClaseRepository(
+  habilidadRepository, 
+  competenciaRepository, 
+  equipamientoRepository, 
+  rasgoRepository, 
+  conjuroRepository, 
+  doteRepository,
+  invocacionRepository,
+  idiomaRepository
+)
 
 const razaRepository = new RazaRepository(
   idiomaRepository,

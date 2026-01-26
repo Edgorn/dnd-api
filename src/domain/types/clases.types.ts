@@ -1,9 +1,10 @@
-import { ChoiceApi, ChoiceMongo, EquipamientoOpcionesApi } from "."
+import { ChoiceApi, ChoiceMongo } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
 import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types"
 import { HabilidadApi } from "./habilidades.types"
+import { IdiomaApi } from "./idiomas.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 
@@ -92,8 +93,10 @@ export interface SubclaseMongo {
     options: ChoiceSpell[]
   },
   skill_choices?: ChoiceMongo,
+  double_skill_choices?: ChoiceMongo,
   proficiencies?: string[],
-  spells?: string[]
+  spells?: string[],
+  language_choices?: ChoiceMongo
 }
 
 export interface ClaseApi {
@@ -139,6 +142,8 @@ export interface SubclaseApi {
   },
   mixed_spell_choices?: ChoiceApi<ConjuroApi>[][],
   skill_choices?: ChoiceApi<HabilidadApi>,
+  double_skill_choices?: ChoiceApi<HabilidadApi>,
+  language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies?: CompetenciaApi[],
   spells?: ConjuroApi[]
 }
