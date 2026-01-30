@@ -84,6 +84,7 @@ export interface SubclasesMongo {
 
 export interface SubclaseMongo {
   traits: string[],
+  traits_data: RasgoDataMongo,
   traits_options?: {
     name: string,
     options: string[]
@@ -96,6 +97,7 @@ export interface SubclaseMongo {
   double_skill_choices?: ChoiceMongo,
   proficiencies?: string[],
   spells?: string[],
+  spell_choices?: ChoiceSpell[],
   language_choices?: ChoiceMongo
 }
 
@@ -145,7 +147,8 @@ export interface SubclaseApi {
   double_skill_choices?: ChoiceApi<HabilidadApi>,
   language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies?: CompetenciaApi[],
-  spells?: ConjuroApi[]
+  spells?: ConjuroApi[],
+  spell_choices?: ChoiceApi<ConjuroApi>[]
 }
 
 export interface ClaseLevelUp {

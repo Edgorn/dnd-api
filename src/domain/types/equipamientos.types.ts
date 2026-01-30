@@ -15,6 +15,10 @@ export interface EquipamientoMongo {
   armor?: ArmorMongo,
   weight: number,
   isMagic?: boolean,
+  bonuses?: {
+    armor_class?: number,
+    saving_throws?: number
+  }
 }
 
 export interface EquipamientoPersonajeMongo {
@@ -46,6 +50,10 @@ export interface EquipamientoApi {
   cost?: {
     quantity: number,
     unit: string
+  },
+  bonuses?: {
+    armor_class?: number,
+    saving_throws?: number
   }
 }
 

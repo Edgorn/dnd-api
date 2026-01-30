@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { RasgoMongo } from "../../../../domain/types/rasgos.types";
- 
-const rasgoSchema: Schema =  new Schema<RasgoMongo>({
+
+const rasgoSchema: Schema = new Schema<RasgoMongo>({
   index: String,
   name: String,
   desc: [String],
@@ -18,6 +18,9 @@ const rasgoSchema: Schema =  new Schema<RasgoMongo>({
   speed: Number,
   discard: [String],
   spells: [],
+  bonuses: {
+    armor_class: Number
+  }
   /*type: String,
   languages: [String],
   
@@ -30,7 +33,7 @@ const rasgoSchema: Schema =  new Schema<RasgoMongo>({
       rows: [[String]]
     }
   }]*/
-}, { collection: 'Rasgos' }); 
+}, { collection: 'Rasgos' });
 
 const RasgoModel = mongoose.model<RasgoMongo>("Rasgos", rasgoSchema);
 export default RasgoModel;

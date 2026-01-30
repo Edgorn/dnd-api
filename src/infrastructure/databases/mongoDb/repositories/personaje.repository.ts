@@ -21,6 +21,7 @@ import { EquipamientoPersonajeApi } from '../../../../domain/types/equipamientos
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 import { deepMerge } from '../../../../utils/formatters';
+import { RasgoApi } from '../../../../domain/types/rasgos.types';
 
 const fs = require('fs');
 const path = require('path');
@@ -286,26 +287,28 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const { id, equip, nuevoEstado, isMagic } = data
     const personaje = await Personaje.findById(id);
 
-    const equipment = personaje?.equipment ?? []
+    const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje?.equipment ?? [])
 
-    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
+    if (equipment) {
+      const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
 
-    if (idx > -1) {
-      if (equip === 'shield') {
-        equipment.forEach(item => {
-          if (item.index === "shield") {
-            item.equipped = false;
-          }
-        });
-      } else {
-        equipment.forEach(item => {
-          if (item.index !== "shield") {
-            item.equipped = false;
-          }
-        });
+      if (idx > -1) {
+        if (equip === 'shield') {
+          equipment.forEach(item => {
+            if (item.index === "shield") {
+              item.equipped = false;
+            }
+          });
+        } else if (equip === 'Armadura') {
+          equipment.forEach(item => {
+            if (item.index === "Armadura") {
+              item.equipped = false;
+            }
+          });
+        } else {
+          equipment[idx].equipped = nuevoEstado
+        }
       }
-
-      equipment[idx].equipped = nuevoEstado
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
@@ -378,7 +381,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       basico
     }
   }
-  
+
   async subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter> {
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
@@ -392,7 +395,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     if (raceLevel) {
       raceTraitsData = deepMerge(raceLevel?.traits_data ?? {}, personaje?.traits_data ?? {})
     }
-    
+
     return {
       clase,
       hit_die: dataLevel?.hit_die ?? 0,
@@ -674,9 +677,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
   private async formatearPersonajeBasico(personaje: PersonajeMongo, userName?: string, campaignName?: string): Promise<PersonajeBasico> {
     const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
-
     const user = userName ?? await this.usuarioRepository.consultarNombreUsuario(personaje?.user ?? null)
-    const { CA } = await this.calcularCA(personaje)
+
+    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits, personaje?.traits_data)
+    const { CA } = await this.calcularCA(personaje, traits)
 
     let finalCampaignName = campaignName;
     if (finalCampaignName === undefined) {
@@ -702,11 +706,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  private async calcularCA(personaje: PersonajeMongo) {
+  private async calcularCA(personaje: PersonajeMongo, traits: RasgoApi[]) {
     let armadura = false
     let armaduraPesada = false
     let CA = 10
     let shield = 0
+    let bonus = 0
 
     let plusSpeed = 0
 
@@ -714,28 +719,38 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     equipment?.forEach(equip => {
       const armor = { ...equip, ...personaje.equipment.find(eq => eq.equipped && eq.index === equip.index) }
-      if (armor?.armor?.category === 'Escudo') {
-        shield += armor?.armor?.class?.base ?? 0
+      if (armor.category === 'Armadura') {
+        if (armor?.armor?.category === 'Escudo') {
+          shield += armor?.armor?.class?.base ?? 0
 
-        if (armor.isMagic) {
-          shield += 1
+          if (armor.isMagic) {
+            shield += 1
+          }
+        } else {
+          CA = armor?.armor?.class?.base ?? 10
+
+          if (armor.isMagic) {
+            CA += 1
+          }
+
+          if (armor?.armor?.class?.dex_bonus) {
+            CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex / 2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
+          }
+
+          armadura = true
+
+          if (armor.armor?.category === "Pesada") {
+            armaduraPesada = true
+          }
         }
       } else {
-        CA = armor?.armor?.class?.base ?? 10
+        bonus += armor.bonuses?.armor_class ?? 0
+      }
+    })
 
-        if (armor.isMagic) {
-          CA += 1
-        }
-
-        if (armor?.armor?.class?.dex_bonus) {
-          CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex / 2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
-        }
-
-        armadura = true
-
-        if (armor.armor?.category === "Pesada") {
-          armaduraPesada = true
-        }
+    traits.forEach(trait => {
+      if (trait?.bonuses?.armor_class) {
+        bonus += trait?.bonuses?.armor_class ?? 0
       }
     })
 
@@ -760,7 +775,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     return {
-      CA: CA + shield,
+      CA: CA + shield + bonus,
       plusSpeed
     }
   }
@@ -883,7 +898,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const campaign = await Campaña.findById(personaje?.campaign)
     const dotes = await this.doteRepository.obtenerDotesPorIndices(personaje?.dotes ?? [])
     const abilities = this.calcularAbilites(personaje)
-    const { CA, plusSpeed } = await this.calcularCA(personaje)
+    const { CA, plusSpeed } = await this.calcularCA(personaje, traits)
 
     let cargaMaxima = abilities.str * 15
 

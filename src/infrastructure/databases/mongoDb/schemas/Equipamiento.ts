@@ -10,6 +10,11 @@ const equipamientoSchema: Schema = new Schema<EquipamientoMongo>({
     quantity: Number,
     unit: String
   },
+  bonuses: {
+    armor_class: Number,
+    saving_throws: Number
+  },
+  isMagic: Boolean,
   weapon: {},
   armor: {},
   weight: Number,

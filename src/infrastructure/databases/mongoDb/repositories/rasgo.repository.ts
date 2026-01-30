@@ -58,7 +58,7 @@ export default class RasgoRepository implements IRasgoRepository {
     const result = procesados
       .filter(p => p.encontrado)
       .map(p => p.encontrado!);
-    
+
     const missing = procesados
       .filter(p => p.faltante)
       .map(p => p.faltante!);
@@ -96,16 +96,15 @@ export default class RasgoRepository implements IRasgoRepository {
       ...rasgo?.proficiencies_armor ?? [],
       ...rasgo?.proficiencies ?? []
     ])
-    
+
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(rasgo?.spells ?? [])
 
     const condition_inmunities = await this.estadoRepository.obtenerEstadosPorIndices(rasgo?.condition_inmunities)
-    let desc = rasgo?.desc ?? [];
-    let description_aux = rasgo?.description ?? [];
-    let summary_aux = rasgo?.summary ?? [];
+    let desc = [...rasgo?.desc ?? []];
+    let description_aux = [...rasgo?.description ?? []];
+    let summary_aux = [...rasgo?.summary ?? []];
 
     if (data) {
-
       const rasgoData = data[rasgo.index]
 
       if (rasgoData) {
@@ -120,12 +119,12 @@ export default class RasgoRepository implements IRasgoRepository {
             summary_aux[index] = summary_aux[index].replaceAll(d, rasgoData[d])
           })
         })
-      } 
+      }
     }
-    
-    const description = (description_aux?.length ? description_aux : desc )?? [];
+
+    const description = (description_aux?.length ? description_aux : desc) ?? [];
     const summary = (summary_aux?.length ? summary_aux : description);
-   
+
     return {
       index: rasgo.index,
       name: rasgo.name,
@@ -140,6 +139,7 @@ export default class RasgoRepository implements IRasgoRepository {
       skills: rasgo?.skills ?? [],
       spells,
       speed: rasgo?.speed ?? undefined,
+      bonuses: rasgo?.bonuses ?? undefined,
       //type: rasgo?.type,
       //languages: rasgo?.languages ?? [],
       //spells: this.conjuroRepository.obtenerConjurosPorIndices(rasgo.spells ?? []),

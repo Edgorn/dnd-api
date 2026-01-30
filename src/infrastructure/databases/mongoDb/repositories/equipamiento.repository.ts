@@ -83,7 +83,6 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
     if (equipamientoAux) {
       const weapon = await this.formatearWeapon(equipamientoAux.weapon)
       const content = await this.obtenerEquipamientosPersonajePorIndices(equipamientoAux?.content ?? [])
-
       return {
         index: equipamientoAux.index,
         name: equipamiento?.name ?? equipamientoAux.name,
@@ -93,11 +92,12 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
         category: equipamientoAux.category,
         weapon: weapon,
         armor: equipamientoAux.armor,
-        isMagic: equipamiento.isMagic ?? false,
+        isMagic: equipamientoAux.isMagic ?? equipamiento.isMagic ?? false,
         isBond: equipamiento.isBond ?? false,
         weight: equipamientoAux.weight ?? 0,
         equipped: equipamiento.equipped ?? false,
-        cost: equipamiento.cost ?? equipamientoAux.cost
+        cost: equipamiento.cost ?? equipamientoAux.cost,
+        bonuses: equipamientoAux.bonuses
       }
     } else {
       return {
@@ -228,7 +228,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
       equipamiento => this.formatearEquipamientosBasico(equipamiento)
     )
   }
- 
+
   private formatearEquipamientosBasico(equipamiento: EquipamientoMongo): EquipamientoBasico {
     return {
       index: equipamiento.index,
@@ -238,7 +238,7 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
       category: equipamiento.category
     }
   }
- 
+
   private formatearWeaponBasico(weapon: WeaponMongo | undefined): WeaponBasico | undefined {
     if (!weapon) return undefined
 

@@ -20,6 +20,9 @@ export interface RasgoMongo {
   speed?: number,
   discard?: string[],
   spells?: [],
+  bonuses?: {
+    armor_class: number
+  }
   /*type?: string,
   languages?: string[],
   */
@@ -58,6 +61,9 @@ export interface RasgoApi {
   speed?: number,
   spells?: ConjuroApi[]
   discard?: string[],
+  bonuses?: {
+    armor_class: number
+  },
   /*languages?: any[],
   tables?: {
     title: string,
