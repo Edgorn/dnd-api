@@ -7,6 +7,7 @@ import DenegarEntradaACampaña from "../../../application/use-cases/campaña/den
 import AñadirPersonajeACampaña from "../../../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
 import { Response } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
+import ModificarLocalizacionesCampaña from "../../../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
 
 export class CampañaController {
   constructor(
@@ -16,7 +17,8 @@ export class CampañaController {
     private readonly solicitarEntrada: SolicitarEntradaACampaña,
     private readonly aceptarEntrada: AceptarEntradaACampaña,
     private readonly denegarEntrada: DenegarEntradaACampaña,
-    private readonly añadirPersonaje: AñadirPersonajeACampaña
+    private readonly añadirPersonaje: AñadirPersonajeACampaña,
+    private readonly modificarLocalizaciones: ModificarLocalizacionesCampaña
   ) { }
 
   getCampaigns = async (req: AuthenticatedRequest, res: Response) => {
@@ -125,6 +127,29 @@ export class CampañaController {
     } catch (e) {
       console.error(e)
       res.status(500).json({ error: 'Error al denegar solicitud' });
+    }
+  };
+
+  updateCampaignLocations = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { locations, initialMapId } = req.body;
+      const userId = req.user!;
+
+      if (!Array.isArray(locations) || !initialMapId) {
+        return res.status(400).json({ message: "Datos de localizaciones inválidos" });
+      }
+
+      const updatedCampaign = await this.modificarLocalizaciones.execute({
+        campaignId: id,
+        userId,
+        locations,
+        initialMapId
+      });
+
+      return res.status(200).json(updatedCampaign);
+    } catch (error: any) {
+      return res.status(error.status || 500).json({ message: error.message });
     }
   };
 

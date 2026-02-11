@@ -61,6 +61,7 @@ import { EquipamientoController } from "./http/controllers/equipamiento.controll
 import { PersonajeController } from "./http/controllers/personaje.controller";
 import { ConjuroController } from "./http/controllers/conjuro.controller";
 import ObtenerConjurosRituales from "../application/use-cases/conjuro/obtenerConjurosRituales.use-case";
+import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
 
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
@@ -137,6 +138,7 @@ const solicitarEntradaACampaña = new SolicitarEntradaACampaña(campañaService)
 const aceptarEntradaACampaña = new AceptarEntradaACampaña(campañaService)
 const denegarEntradaACampaña = new DenegarEntradaACampaña(campañaService)
 const añadirPersonajeACampaña = new AñadirPersonajeACampaña(campañaService)
+const modificarLocalizacionesCampaña = new ModificarLocalizacionesCampaña(campañaService)
 
 const logearUseCase = new Logear(usuarioService)
 
@@ -174,7 +176,8 @@ export const campañaController = new CampañaController(
   solicitarEntradaACampaña,
   aceptarEntradaACampaña,
   denegarEntradaACampaña,
-  añadirPersonajeACampaña
+  añadirPersonajeACampaña,
+  modificarLocalizacionesCampaña
 )
 
 export const usuarioController = new UsuarioController(logearUseCase)

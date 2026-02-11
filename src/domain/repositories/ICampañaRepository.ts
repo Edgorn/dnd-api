@@ -1,4 +1,4 @@
-import { CampañaApi, CampañaBasica, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña } from "../types/campañas.types";
+import { CampañaApi, CampañaBasica, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña, TypeModificarLocalizaciones } from "../types/campañas.types";
 
 export default interface ICampañaRepository {
   consultarPorUsuario(id: string): Promise<CampañaBasica[]>
@@ -8,4 +8,5 @@ export default interface ICampañaRepository {
   denegarSolicitud(data: TypeEntradaCampaña): Promise<{ userId: string, campaignId: string } | null>
   aceptarSolicitud(data: TypeEntradaCampaña): Promise<{ userId: string, campaignId: string } | null>
   añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{ characterId: string } | null>
+  modificarLocalizaciones(data: TypeModificarLocalizaciones): Promise<boolean>
 }

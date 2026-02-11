@@ -1,5 +1,5 @@
 import ICampañaRepository from "../repositories/ICampañaRepository";
-import { CampañaApi, CampañaBasica, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña } from "../types/campañas.types";
+import { CampañaApi, CampañaBasica, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña, TypeModificarLocalizaciones } from "../types/campañas.types";
 
 export default class CampañaService {
   constructor(private readonly campañaRepository: ICampañaRepository) { }
@@ -30,5 +30,9 @@ export default class CampañaService {
 
   añadirPersonaje(data: TypeEntradaPersonajeCampaña): Promise<{ characterId: string } | null> {
     return this.campañaRepository.añadirPersonaje(data);
+  }
+
+  async modificarLocalizaciones(data: TypeModificarLocalizaciones): Promise<boolean> {
+    return this.campañaRepository.modificarLocalizaciones(data);
   }
 }

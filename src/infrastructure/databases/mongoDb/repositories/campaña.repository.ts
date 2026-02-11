@@ -1,9 +1,8 @@
 import ICampañaRepository from '../../../../domain/repositories/ICampañaRepository';
 import Campaña from '../schemas/Campaña';
-import { CampañaApi, CampañaBasica, CampañaMongo, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
+import { CampañaApi, CampañaBasica, CampañaMongo, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña, TypeModificarLocalizaciones } from '../../../../domain/types/campañas.types';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
-import { PersonajeBasico } from '../../../../domain/types/personajes.types';
 
 export default class CampañaRepository implements ICampañaRepository {
   constructor(
@@ -25,7 +24,7 @@ export default class CampañaRepository implements ICampañaRepository {
 
     return await this.formatearCampañasBasicas(campañas, id)
   }
-
+ 
   async crear(data: TypeCrearCampaña): Promise<CampañaBasica | null> {
     const campaña = new Campaña({
       name: data.name,
@@ -38,7 +37,8 @@ export default class CampañaRepository implements ICampañaRepository {
       system: data.system,
       initialLevel: data.initialLevel,
       maxPlayers: data.maxPlayers,
-      language: data.language
+      language: data.language,
+      locations: []
     })
 
     const resultado = await campaña.save()
@@ -212,24 +212,36 @@ export default class CampañaRepository implements ICampañaRepository {
       system: campaña.system,
       initialLevel: campaña.initialLevel,
       maxPlayers: campaña.maxPlayers,
-      language: campaña.language
+      language: campaña.language,
+      locations: campaña.locations,
+      initialMapId: campaña.initialMapId
     }
   }
 
+  async modificarLocalizaciones(data: TypeModificarLocalizaciones): Promise<boolean> {
+    const { campaignId, locations, initialMapId, userId } = data;
 
-  /*
+    const campaña = await Campaña.findById(campaignId);
 
-  
+    if (!campaña) {
+      throw new Error('Campaña no encontrada');
+    }
 
-  
+    if (campaña?.master !== userId) {
+      throw new Error('No tienes permisos para modificar las localizaciones');
+    }
 
+    const resultado = await Campaña.findByIdAndUpdate(
+      campaignId,
+      { 
+        $set: { 
+          locations: locations,
+          initialMapId: initialMapId
+        } 
+      },
+      { new: true }
+    );
 
-
-  
-
-  async nombreCampaña(idCampaign: string): Promise<string> {
-    const campaña = await Campaña.findById(idCampaign);
-
-    return campaña?.name ?? ''
-  }*/
+    return !!resultado;
+  }
 }

@@ -11,5 +11,6 @@ router.post('/campaign/:id/request-join', authMiddleware, campañaController.req
 router.delete('/campaign/:id/request-join/:userId', authMiddleware, campañaController.denyJoinRequest);
 router.post('/campaign/:id/request-join/:userId/accept', authMiddleware, campañaController.acceptJoinRequest);
 router.post('/campaign/:id/add-character', authMiddleware, campañaController.addCharacterToCampaign);
+router.patch('/campaign/:id/locations', authMiddleware, campañaController.updateCampaignLocations);
 
 export default router;

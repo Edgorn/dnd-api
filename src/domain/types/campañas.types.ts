@@ -14,7 +14,9 @@ export interface CampañaMongo {
   system: string,
   initialLevel: number,
   maxPlayers: number,
-  language: string
+  language: string,
+  locations: string[],
+  initialMapId: string
 }
 
 export interface CampañaBasica {
@@ -44,7 +46,9 @@ export interface CampañaApi {
   system: string,
   initialLevel: number,
   maxPlayers: number,
-  language: string
+  language: string,
+  locations: string[],
+  initialMapId: string
 }
 
 export interface TypeCrearCampaña {
@@ -67,4 +71,12 @@ export interface TypeEntradaPersonajeCampaña {
   userId: string,
   campaignId: string,
   characterId: string
+}
+
+
+export interface TypeModificarLocalizaciones {
+  campaignId: string;
+  userId: string;
+  locations: string[];
+  initialMapId: string;
 }

@@ -12,7 +12,9 @@ const campañaSchema: Schema = new Schema<CampañaMongo>({
   system: String,
   initialLevel: Number,
   maxPlayers: Number,
-  language: String
+  language: String,
+  locations: [String],
+  initialMapId: String
 }, { collection: 'Campañas' });
 
 const CampañaModel = mongoose.model<CampañaMongo>("Campañas", campañaSchema);
