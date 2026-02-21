@@ -173,7 +173,7 @@ export default class ClaseRepository implements IClaseRepository {
       spellcasting
     }
   }
-
+        
   private formatearClases(clases: ClaseMongo[]) {
     return Promise.all(
       clases
@@ -181,7 +181,8 @@ export default class ClaseRepository implements IClaseRepository {
           clase.index === 'barbarian' ||
           clase.index === 'bard' ||
           clase.index === 'warlock' ||
-          clase.index === 'cleric' /*|| 
+          clase.index === 'cleric' ||
+          clase.index === 'druid' /*|| 
           clase.index === 'ranger' || 
           clase.index === 'wizard' || 
           clase.index === 'monk' || 

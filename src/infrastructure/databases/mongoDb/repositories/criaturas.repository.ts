@@ -95,4 +95,16 @@ export default class CriaturaRepository implements ICriaturaRepository {
 
     return response
   }
+
+  async obtenerPorTipos(types: string[]): Promise<CriaturaApi[]> {
+    try {
+      const criaturas = await CriaturaSchema.find({ type: { $in: types } })
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+      return this.formatearCriaturas(criaturas);
+    } catch (error) {
+      console.error("Error obteniendo criaturas:", error);
+      throw new Error("No se pudieron obtener los criaturas");
+    }
+  }
 }

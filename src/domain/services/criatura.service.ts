@@ -7,4 +7,8 @@ export default class CriaturaService {
   obtenerTodas(): Promise<CriaturaApi[]> {
     return this.criaturaRepository.obtenerTodas();
   }
+
+  obtenerPorTipos(types: string[]): Promise<CriaturaApi[]> {
+    return this.criaturaRepository.obtenerPorTipos(types);
+  }
 }
