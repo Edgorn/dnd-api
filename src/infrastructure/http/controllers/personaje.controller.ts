@@ -13,6 +13,7 @@ import { Response } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import VincularPacto from "../../../application/use-cases/personaje/vincularPacto.use-case";
 import AprenderConjuros from "../../../application/use-cases/personaje/aprenderConjuros.use-case";
+import AñadirForma from "../../../application/use-cases/personaje/añadirForma.use-case";
 
 export class PersonajeController {
   constructor(
@@ -28,9 +29,10 @@ export class PersonajeController {
     private readonly updateMoney: UpdateMoney,
     private readonly crearPdf: CrearPdf,
     private readonly vincularPacto: VincularPacto,
-    private readonly aprenderConjuros: AprenderConjuros
+    private readonly aprenderConjuros: AprenderConjuros,
+    private readonly añadirForma: AñadirForma
   ) { }
- 
+
   getCharacters = async (req: AuthenticatedRequest, res: Response) => {
     const data = await this.obtenerPersonajesPorUsuario.execute(req.user!)
     res.status(200).json(data);
@@ -107,6 +109,12 @@ export class PersonajeController {
 
   aprenderListaConjuros = async (req: AuthenticatedRequest, res: Response) => {
     const data = await this.aprenderConjuros.execute(req.body)
+    res.status(200).json(data);
+  };
+
+  addForm = async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const data = await this.añadirForma.execute({ id, form: req.body.form })
     res.status(200).json(data);
   };
 }

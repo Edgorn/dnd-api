@@ -17,4 +17,5 @@ export default interface IPersonajeRepository {
   entrarCampaña(data: TypeEntradaPersonajeCampaña): Promise<PersonajeBasico | null>
   vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
   aprenderConjuros(data: { id: string, spells: string[], type: string }): Promise<PersonajeApi | null>
+  añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null>
 }

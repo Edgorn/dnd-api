@@ -17,5 +17,6 @@ router.post('/character/changeXp', authMiddleware, personajeController.changeXp)
 router.post('/character/levelUpData', authMiddleware, personajeController.levelUpData);
 router.post('/character/levelUp', authMiddleware, personajeController.levelUp);
 router.post('/character/learnSpells', authMiddleware, personajeController.aprenderListaConjuros);
+router.post('/character/:id/addForm', authMiddleware, personajeController.addForm);
 
 export default router;

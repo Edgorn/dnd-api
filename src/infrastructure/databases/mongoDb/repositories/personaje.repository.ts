@@ -22,6 +22,7 @@ import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRe
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 import { deepMerge } from '../../../../utils/formatters';
 import { RasgoApi } from '../../../../domain/types/rasgos.types';
+import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
 
 const fs = require('fs');
 const path = require('path');
@@ -55,7 +56,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly doteRepository: IDoteRepository,
     private readonly claseRepository: IClaseRepository,
     private readonly invocacionRepository: IInvocacionRepository,
-    private readonly razaRepository: IRazaRepository
+    private readonly razaRepository: IRazaRepository,
+    private readonly criaturaRepository: ICriaturaRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -664,6 +666,35 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return personajeFormateado
   }
 
+  async añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null> {
+    const { id, form } = data
+    const personaje = await Personaje.findById(id);
+
+    if (!personaje) {
+      return null
+    }
+
+    personaje.forms.push(form)
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          forms: personaje.forms
+        }
+      },
+      { new: true }
+    );
+
+    if (!resultado) {
+      return null
+    }
+
+    const personajeFormateado = await this.formatearPersonaje(resultado)
+
+    return personajeFormateado
+  }
+
   private async formatearPersonajesBasicos(personajes: PersonajeMongo[], userName?: string): Promise<PersonajeBasico[]> {
     const campaignIds = [...new Set(personajes.map(p => p.campaign).filter(id => id))];
     const campaigns = await Campaña.find({ _id: { $in: campaignIds } });
@@ -915,6 +946,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       })
     }
 
+    const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
+
     return {
       id: personaje._id.toString(),
       img: personaje.img,
@@ -948,7 +981,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spells: updatedSpells,
       cargaMaxima,
       spellcasting: spellcasting.filter(item => item !== null),
-      invocations
+      invocations,
+      forms: forms
     }
   }
 

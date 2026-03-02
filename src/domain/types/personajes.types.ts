@@ -10,6 +10,7 @@ import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
 import { ClaseLevelUp, SpellcastingLevel } from "./clases.types"
 import { InvocacionApi } from "./invocaciones.types"
+import { CriaturaApi } from "./criaturas.types"
 
 export interface TypeCrearPersonaje {
   name: string,
@@ -206,7 +207,8 @@ export interface PersonajeMongo {
   HPMax: number,
   HPActual: number,
   XP: 0,
-  invocations: string[]
+  invocations: string[],
+  forms: string[]
 }
 
 export interface PersonajeApi {
@@ -276,7 +278,8 @@ export interface PersonajeApi {
   spells: Record<string, { list: ConjuroApi[]; type: string; }>,
   cargaMaxima: number,
   spellcasting?: SpellcastingLevel[],
-  invocations?: InvocacionApi[]
+  invocations?: InvocacionApi[],
+  forms?: CriaturaApi[]
 }
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";

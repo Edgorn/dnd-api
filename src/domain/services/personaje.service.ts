@@ -55,4 +55,8 @@ export default class PersonajeService {
   aprenderConjuros(data: { id: string, spells: string[], type: string }): Promise<PersonajeApi | null> {
     return this.personajeRepository.aprenderConjuros(data);
   }
+
+  añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null> {
+    return this.personajeRepository.añadirForma(data);
+  }
 }

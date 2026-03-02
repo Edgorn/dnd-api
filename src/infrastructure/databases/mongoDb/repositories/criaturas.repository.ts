@@ -27,9 +27,33 @@ export default class CriaturaRepository implements ICriaturaRepository {
     }
   }
 
+  async obtenerPorIndices(indices: string[]): Promise<CriaturaApi[]> {
+    try {
+      const criaturas = await CriaturaSchema.find({ index: { $in: indices } })
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+      return this.formatearCriaturas(criaturas);
+    } catch (error) {
+      console.error("Error obteniendo criaturas:", error);
+      throw new Error("No se pudieron obtener los criaturas");
+    }
+  }
+
+  async obtenerPorTipos(types: string[]): Promise<CriaturaApi[]> {
+    try {
+      const criaturas = await CriaturaSchema.find({ type: { $in: types } })
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+      return this.formatearCriaturas(criaturas);
+    } catch (error) {
+      console.error("Error obteniendo criaturas:", error);
+      throw new Error("No se pudieron obtener los criaturas");
+    }
+  }
+
   private formatearCriaturas(criaturas: CriaturaMongo[]): Promise<CriaturaApi[]> {
     return Promise.all(criaturas.map(criatura => this.formatearCriatura(criatura)));
-  } 
+  }
 
   private async formatearCriatura(criatura: CriaturaMongo): Promise<CriaturaApi> {
     const [
@@ -49,7 +73,7 @@ export default class CriaturaRepository implements ICriaturaRepository {
       this.idiomasRepository.obtenerIdiomasPorIndices(criatura?.languages?.understands ?? []),
       this.formatearConjurosCriatura(criatura?.spell_slots ?? [])
     ])
-        
+
     return {
       id: criatura.index,
       name: criatura.name,
@@ -94,17 +118,5 @@ export default class CriaturaRepository implements ICriaturaRepository {
     )
 
     return response
-  }
-
-  async obtenerPorTipos(types: string[]): Promise<CriaturaApi[]> {
-    try {
-      const criaturas = await CriaturaSchema.find({ type: { $in: types } })
-        .collation({ locale: 'es', strength: 1 })
-        .sort({ name: 1 });
-      return this.formatearCriaturas(criaturas);
-    } catch (error) {
-      console.error("Error obteniendo criaturas:", error);
-      throw new Error("No se pudieron obtener los criaturas");
-    }
   }
 }

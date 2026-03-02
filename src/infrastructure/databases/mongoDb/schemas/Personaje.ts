@@ -45,7 +45,8 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   HPMax: Number,
   HPActual: Number,
   XP: Number,
-  dotes: []
+  dotes: [],
+  forms: [String]
 }, { collection: 'Personajes' });
 
 const PersonajeModel = mongoose.model<PersonajeMongo>("Personajes", personajeSchema);

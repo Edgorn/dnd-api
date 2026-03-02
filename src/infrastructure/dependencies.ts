@@ -24,6 +24,9 @@ import ObtenerPdf from "../application/use-cases/personaje/obtenerPdf.use-case";
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
 import ObtenerConjurosPorNivelClase from "../application/use-cases/conjuro/obtenerConjurosPorNivel.use-case";
 import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuros.use-case";
+import ObtenerConjurosRituales from "../application/use-cases/conjuro/obtenerConjurosRituales.use-case";
+import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
+import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 
 import CampañaService from "../domain/services/campaña.service";
 import UsuarioService from "../domain/services/usuario.service";
@@ -60,8 +63,7 @@ import { ClaseController } from "./http/controllers/clase.controller";
 import { EquipamientoController } from "./http/controllers/equipamiento.controller";
 import { PersonajeController } from "./http/controllers/personaje.controller";
 import { ConjuroController } from "./http/controllers/conjuro.controller";
-import ObtenerConjurosRituales from "../application/use-cases/conjuro/obtenerConjurosRituales.use-case";
-import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
+import CriaturaRepository from "./databases/mongoDb/repositories/criaturas.repository";
 
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
@@ -76,11 +78,11 @@ const idiomaRepository = new IdiomaRepository()
 const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
 const claseRepository = new ClaseRepository(
-  habilidadRepository, 
-  competenciaRepository, 
-  equipamientoRepository, 
-  rasgoRepository, 
-  conjuroRepository, 
+  habilidadRepository,
+  competenciaRepository,
+  equipamientoRepository,
+  rasgoRepository,
+  conjuroRepository,
   doteRepository,
   invocacionRepository,
   idiomaRepository
@@ -103,6 +105,13 @@ const transfondoRepository = new TransfondoRepository(
   rasgoRepository
 );
 
+const criaturaRepository = new CriaturaRepository(
+  dañoRepository,
+  estadoRepository,
+  idiomaRepository,
+  conjuroRepository
+)
+
 const personajeRepository = new PersonajeRepository(
   usuarioRepository,
   equipamientoRepository,
@@ -114,7 +123,8 @@ const personajeRepository = new PersonajeRepository(
   doteRepository,
   claseRepository,
   invocacionRepository,
-  razaRepository
+  razaRepository,
+  criaturaRepository
 )
 
 const campañaRepository = new CampañaRepository(
@@ -163,6 +173,7 @@ const modificarDinero = new ModificarDinero(personajeService);
 const obtenerPdf = new ObtenerPdf(personajeService);
 const vincularPacto = new VincularPacto(personajeService);
 const aprenderConjuros = new AprenderConjuros(personajeService);
+const añadirForma = new AñadirForma(personajeService);
 
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
@@ -201,7 +212,8 @@ export const personajeController = new PersonajeController(
   modificarDinero,
   obtenerPdf,
   vincularPacto,
-  aprenderConjuros
+  aprenderConjuros,
+  añadirForma
 )
 
 export const conjuroController = new ConjuroController(
