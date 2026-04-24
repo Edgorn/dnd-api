@@ -4,7 +4,7 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
-import { RaceApi, RaceLevelMongo, RaceMongo, SubraceApi, SubraceMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
+import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubraceApi, SubraceMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
 import { deepMerge, formatearAbilityBonusChoices, formatearAbilityBonuses, ordenarPorNombre } from '../../../../utils/formatters';
 import RazaSchema from '../schemas/Raza';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
@@ -30,6 +30,19 @@ export default class RazaRepository implements IRazaRepository {
       console.error("Error obteniendo razas:", error);
       throw new Error("No se pudieron obtener los razas");
     }
+  }
+
+  async crear(raza: CreateRace): Promise<RaceApi> {
+    const nuevaRaza = new RazaSchema({
+      name: raza.name,
+      description: raza.description ?? '',
+      ruleset: raza.ruleset,
+      img: raza.image
+    })
+
+    nuevaRaza.save()
+
+    return this.formatearRaza(nuevaRaza)
   }
 
   formatearRazas(razas: RaceMongo[]): Promise<RaceApi[]> {
@@ -58,9 +71,9 @@ export default class RazaRepository implements IRazaRepository {
     ])
 
     return {
-      index: raza.index,
+      index: raza.index ?? raza?._id.toString(),
       name: raza.name,
-      desc: raza.desc,
+      desc: raza.description ?? raza.desc,
       img: raza.img,
       speed: raza.speed,
       size: raza.size,

@@ -5,6 +5,6 @@ export default class ObtenerTodasLasRazas {
   constructor(private readonly razaService: RazaService) { }
 
   execute(): Promise<RaceApi[]> {
-    return this.razaService.obtenerTodos();
+    return this.razaService.obtenerTodas();
   }
 }

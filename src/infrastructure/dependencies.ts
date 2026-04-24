@@ -64,6 +64,7 @@ import { EquipamientoController } from "./http/controllers/equipamiento.controll
 import { PersonajeController } from "./http/controllers/personaje.controller";
 import { ConjuroController } from "./http/controllers/conjuro.controller";
 import CriaturaRepository from "./databases/mongoDb/repositories/criaturas.repository";
+import CrearRaza from "../application/use-cases/raza/crearRaza.use-case";
 
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
@@ -153,6 +154,7 @@ const modificarLocalizacionesCampaña = new ModificarLocalizacionesCampaña(camp
 const logearUseCase = new Logear(usuarioService)
 
 const obtenerTodasLasRazas = new ObtenerTodasLasRazas(razaService);
+const crearRaza = new CrearRaza(razaService);
 
 const obtenerTodosLosTransfondos = new ObtenerTodosLosTransfondos(transfondoService);
 
@@ -178,7 +180,7 @@ const añadirForma = new AñadirForma(personajeService);
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
 
-export const razaController = new RazaController(obtenerTodasLasRazas)
+export const razaController = new RazaController(obtenerTodasLasRazas, crearRaza)
 
 export const campañaController = new CampañaController(
   crearCampaña,

@@ -1101,7 +1101,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
         form.getTextField('Damage1').setText('1d' + dado + ' +' + daño);
         golpeCuerpo = 1
       }
-
+      
       personaje?.equipment
         ?.filter(equi => equi?.category === 'Arma')
         ?.forEach((equi, index: number) => {

@@ -29,10 +29,12 @@ const subrazaSchema = new Schema<SubraceMongo>({
 });
 
 const razaSchema: Schema = new Schema<RaceMongo>({
-  index: String,
+  index: String,    //ELIMINABLE
   name: String,
-  desc: String,
+  description: String,
+  desc: String,    //ELIMINABLE
   img: String,
+  ruleset: String,
   speed: Number,
   size: String,
   ability_bonuses: [],

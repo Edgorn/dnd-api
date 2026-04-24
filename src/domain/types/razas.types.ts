@@ -1,3 +1,4 @@
+import { ObjectId } from "mongoose"
 import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
@@ -7,10 +8,13 @@ import { IdiomaApi } from "./idiomas.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 
 export interface RaceMongo {
+  _id: ObjectId,
   index: string,
   name: string,
+  description: string,
   desc: string,
   img: string,
+  ruleset: string,
   speed: number,
   size: string,
   ability_bonuses: AbilityBonusesMongo[],
@@ -102,4 +106,11 @@ export interface VarianteApi {
   skill_choices?: ChoiceApi<HabilidadApi>,
   ability_bonus_choices?: ChoiceApi<AbilityBonusesApi>,
   dotes?: ChoiceApi<DoteApi>
+}
+
+export interface CreateRace {
+  name: string;
+  description: string;
+  ruleset: string;
+  image: string;
 }
