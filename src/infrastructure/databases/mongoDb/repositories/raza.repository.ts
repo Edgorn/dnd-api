@@ -32,12 +32,30 @@ export default class RazaRepository implements IRazaRepository {
     }
   }
 
+  async obtenerPorSistema(ruleset: string): Promise<RaceApi[]> {
+    try {
+      const razas = await RazaSchema.find({ ruleset: ruleset })
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+      return this.formatearRazas(razas);
+    } catch (error) {
+      console.error("Error obteniendo razas:", error);
+      throw new Error("No se pudieron obtener los razas");
+    }
+  }
+
   async crear(raza: CreateRace): Promise<RaceApi> {
     const nuevaRaza = new RazaSchema({
       name: raza.name,
       description: raza.description ?? '',
-      ruleset: raza.ruleset,
-      img: raza.image
+      alignment: raza.alignment,
+      img: raza.image,
+      ability_bonuses: raza.ability_bonuses,
+      age: raza.age,
+      size: raza.size,
+      size_range: raza.size_range,
+      speed: raza.speed,
+      ruleset: raza.ruleset
     })
 
     nuevaRaza.save()
@@ -73,10 +91,14 @@ export default class RazaRepository implements IRazaRepository {
     return {
       index: raza.index ?? raza?._id.toString(),
       name: raza.name,
-      desc: raza.description ?? raza.desc,
+      description: raza.description.length > 0 ? raza.description : [raza.desc],
+      alignment: raza.alignment,
       img: raza.img,
-      speed: raza.speed,
+      ruleset: raza.ruleset,
+      speed: typeof raza.speed === 'number' ? { walk: raza.speed } : (raza.speed ?? { walk: 30 }),
       size: raza.size,
+      size_range: raza.size_range,
+      age: raza.age,
       ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
       ability_bonus_choices: formatearAbilityBonusChoices(raza?.ability_bonus_choices),
       skill_choices,

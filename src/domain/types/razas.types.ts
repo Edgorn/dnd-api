@@ -11,12 +11,21 @@ export interface RaceMongo {
   _id: ObjectId,
   index: string,
   name: string,
-  description: string,
+  description: string[],
   desc: string,
+  alignment?: string,
   img: string,
   ruleset: string,
-  speed: number,
+  speed: number | { walk: number; [key: string]: number },
   size: string,
+  size_range?: {
+    min: number;
+    max: number;
+  },
+  age?: {
+    maturity: number;
+    expectancy: number;
+  },
   ability_bonuses: AbilityBonusesMongo[],
   ability_bonus_choices: ChoiceMongo,
   traits: string[],
@@ -64,10 +73,20 @@ export interface VarianteMongo {
 export interface RaceApi {
   index: string,
   name: string,
-  desc: string,
+  description: string[],
+  alignment?: string,
   img: string,
-  speed: number,
+  ruleset: string,
+  speed: { walk: number; [key: string]: number },
   size: string,
+  size_range?: {
+    min: number;
+    max: number;
+  },
+  age?: {
+    maturity: number;
+    expectancy: number;
+  },
   ability_bonuses: AbilityBonusesApi[],
   ability_bonus_choices?: ChoiceApi<AbilityBonusesApi>,
   skill_choices?: ChoiceApi<HabilidadApi>,
@@ -110,7 +129,21 @@ export interface VarianteApi {
 
 export interface CreateRace {
   name: string;
-  description: string;
+  description: string[];
+  alignment: string;
   ruleset: string;
   image: string;
+  ability_bonuses: AbilityBonusesMongo;
+  speed: {
+    walk: number;
+  };
+  size: string;
+  size_range?: {
+    min: number;
+    max: number;
+  };
+  age?: {
+    maturity: number;
+    expectancy: number;
+  };
 }

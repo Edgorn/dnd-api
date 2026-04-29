@@ -31,12 +31,21 @@ const subrazaSchema = new Schema<SubraceMongo>({
 const razaSchema: Schema = new Schema<RaceMongo>({
   index: String,    //ELIMINABLE
   name: String,
-  description: String,
+  description: [String],
   desc: String,    //ELIMINABLE
+  alignment: String,
   img: String,
   ruleset: String,
-  speed: Number,
+  speed: Schema.Types.Mixed,
   size: String,
+  size_range: {
+    min: Number,
+    max: Number
+  },
+  age: {
+    maturity: Number,
+    expectancy: Number
+  },
   ability_bonuses: [],
   ability_bonus_choices: {},
   traits: [String],

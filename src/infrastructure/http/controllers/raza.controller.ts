@@ -12,8 +12,10 @@ export class RazaController {
   ) { }
 
   getRazas = async (req: AuthenticatedRequest, res: Response) => {
+    const { ruleset } = req.query;
+
     try {
-      const data = await this.obtenerTodasLasRazas.execute()
+      const data = await this.obtenerTodasLasRazas.execute(ruleset as string)
       res.status(200).json(data);
 
     } catch (e) {
