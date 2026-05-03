@@ -4,9 +4,12 @@ import { RasgoMongo } from "../../../../domain/types/rasgos.types";
 const rasgoSchema: Schema = new Schema<RasgoMongo>({
   index: String,
   name: String,
-  desc: [String],
   description: [String],
   summary: [String],
+  ruleset: String,
+  incompatible_traits: [String],
+
+  desc: [String],
   hidden: Boolean,
   resistances: [String],
   condition_inmunities: [String],

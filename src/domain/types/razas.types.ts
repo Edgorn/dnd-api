@@ -16,7 +16,7 @@ export interface RaceMongo {
   alignment?: string,
   img: string,
   ruleset: string,
-  speed: number | { walk: number; [key: string]: number },
+  speed: number | { walk: number;[key: string]: number },
   size: string,
   size_range?: {
     min: number;
@@ -71,13 +71,13 @@ export interface VarianteMongo {
 }
 
 export interface RaceApi {
-  index: string,
+  id: string,
   name: string,
   description: string[],
   alignment?: string,
   img: string,
   ruleset: string,
-  speed: { walk: number; [key: string]: number },
+  speed: { walk: number;[key: string]: number },
   size: string,
   size_range?: {
     min: number;
@@ -96,9 +96,9 @@ export interface RaceApi {
   language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
   spell_choices?: ChoiceApi<ConjuroApi>,
-  subraces: SubraceApi[], 
+  subraces: SubraceApi[],
   variants: VarianteApi[]
-} 
+}
 
 export interface SubraceApi {
   index: string,

@@ -18,7 +18,7 @@ export default class RazaRepository implements IRazaRepository {
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly rasgoRepository: IRasgoRepository
-  ) {}
+  ) { }
 
   async obtenerTodas(): Promise<RaceApi[]> {
     try {
@@ -65,7 +65,7 @@ export default class RazaRepository implements IRazaRepository {
 
   formatearRazas(razas: RaceMongo[]): Promise<RaceApi[]> {
     return Promise.all(razas.map(raza => this.formatearRaza(raza)));
-  } 
+  }
 
   async formatearRaza(raza: RaceMongo): Promise<RaceApi> {
     const dataLevel = raza?.levels?.find(level => level.level === 1)
@@ -89,7 +89,7 @@ export default class RazaRepository implements IRazaRepository {
     ])
 
     return {
-      index: raza.index ?? raza?._id.toString(),
+      id: raza.index ?? raza?._id.toString(),
       name: raza.name,
       description: raza.description.length > 0 ? raza.description : [raza.desc],
       alignment: raza.alignment,
@@ -109,8 +109,8 @@ export default class RazaRepository implements IRazaRepository {
       proficiencies_choices,
       subraces,
       variants
-    }; 
-  } 
+    };
+  }
 
   async formatearSubrazas(subrazas: SubraceMongo[], traitsData?: RasgoDataMongo): Promise<SubraceApi[]> {
     const formateadas = await Promise.all(subrazas.map(subraza => this.formatearSubraza(subraza, traitsData)))
@@ -140,7 +140,7 @@ export default class RazaRepository implements IRazaRepository {
       spell_choices,
       types: this.formatearTipos(subraza?.types)
     }
-  }  
+  }
 
   formatearTipos(tipos: TypeMongo[]): TypeApi[] {
     const formateadas = tipos.map(tipo => this.formatearTipo(tipo));
@@ -153,14 +153,14 @@ export default class RazaRepository implements IRazaRepository {
       img: tipo.img,
       desc: tipo.desc,
     }
-  } 
+  }
 
-  async formatearVariantes(variantes: VarianteMongo[]): Promise<VarianteApi[]>  {
+  async formatearVariantes(variantes: VarianteMongo[]): Promise<VarianteApi[]> {
     const formateadas = await Promise.all(variantes.map(variante => this.formatearVariante(variante)))
     return ordenarPorNombre(formateadas);
-  } 
+  }
 
-  async formatearVariante(variante: VarianteMongo): Promise<VarianteApi>  {
+  async formatearVariante(variante: VarianteMongo): Promise<VarianteApi> {
     const [
       skill_choices,
       dotes

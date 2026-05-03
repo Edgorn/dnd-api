@@ -1,14 +1,18 @@
+import { ObjectId } from "mongoose"
 import { DañoApi } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
 
 export interface RasgoMongo {
+  _id: ObjectId,
   index: string,
   name: string,
-  desc?: string[],
   description?: string[],
   summary?: string[],
+  ruleset: string,
+  incompatible_traits?: string[],
+  desc?: string[],
   hidden?: boolean,
   resistances: string[],
   condition_inmunities: string[],
@@ -48,10 +52,12 @@ export interface TraitsOptionsMongo {
 }
 
 export interface RasgoApi {
-  index: string,
+  id: string,
   name: string,
   description: string[],
   summary: string[],
+  ruleset: string,
+  incompatible_traits: string[],
   hidden?: boolean,
   resistances: DañoApi[],
   conditional_resistances: DañoApi[],

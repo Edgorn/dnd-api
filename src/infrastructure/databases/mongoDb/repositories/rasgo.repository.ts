@@ -43,6 +43,11 @@ export default class RasgoRepository implements IRasgoRepository {
     return new EstadoRepository();
   }
 
+  async obtenerPorSistemas(ruleset: string[]): Promise<RasgoApi[]> {
+    const rasgos = await RasgoSchema.find({ ruleset: { $in: ruleset } })
+    return this.formatearRasgos(rasgos, {});
+  }
+
   async obtenerRasgosPorIndices(indices: string[], data: RasgoDataMongo = {}) {
     if (!indices.length) return [];
 
@@ -126,10 +131,12 @@ export default class RasgoRepository implements IRasgoRepository {
     const summary = (summary_aux?.length ? summary_aux : description);
 
     return {
-      index: rasgo.index,
+      id: rasgo.index ?? rasgo._id.toString(),
       name: rasgo.name,
       description: description,
       summary: summary,
+      ruleset: rasgo?.ruleset ?? "",
+      incompatible_traits: rasgo?.incompatible_traits ?? [],
       hidden: rasgo?.hidden,
       discard: rasgo?.discard ?? [],
       resistances,

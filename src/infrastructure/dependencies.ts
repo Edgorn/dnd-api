@@ -64,7 +64,10 @@ import { EquipamientoController } from "./http/controllers/equipamiento.controll
 import { PersonajeController } from "./http/controllers/personaje.controller";
 import { ConjuroController } from "./http/controllers/conjuro.controller";
 import CriaturaRepository from "./databases/mongoDb/repositories/criaturas.repository";
+import { RasgoController } from "./http/controllers/rasgo.controller";
 import CrearRaza from "../application/use-cases/raza/crearRaza.use-case";
+import ObtenerRasgosPorSistemas from "../application/use-cases/rasgo/obtenerRasgosPorSistemas.use-case";
+import RasgoService from "../domain/services/rasgo.service";
 
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
@@ -141,6 +144,7 @@ const claseService = new ClaseService(claseRepository)
 const equipamientoService = new EquipamientoService(equipamientoRepository)
 const personajeService = new PersonajeService(personajeRepository)
 const conjuroService = new ConjuroService(conjuroRepository)
+const rasgoService = new RasgoService(rasgoRepository)
 
 const crearCampaña = new CrearCampaña(campañaService)
 const obtenerCampañasPorUsuario = new ObtenerCampañasPorUsuario(campañaService)
@@ -179,6 +183,9 @@ const añadirForma = new AñadirForma(personajeService);
 
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
+
+const obtenerRasgosPorSistemasUseCase = new ObtenerRasgosPorSistemas(rasgoService)
+
 
 export const razaController = new RazaController(obtenerTodasLasRazas, crearRaza)
 
@@ -222,3 +229,5 @@ export const conjuroController = new ConjuroController(
   obtenerConjurosPorNivelClase,
   obtenerConjurosRituales
 )
+
+export const rasgoController = new RasgoController(obtenerRasgosPorSistemasUseCase)
