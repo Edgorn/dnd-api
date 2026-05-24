@@ -49,8 +49,9 @@ const razaSchema: Schema = new Schema<RaceMongo>({
   ability_bonuses: [],
   ability_bonus_choices: {},
   traits: [String],
+  traits_data: {},
   skill_choices: {},
-  languages: [String],
+  languages: {},
   language_choices: {},
   proficiencies_choices: [],
   levels: [{

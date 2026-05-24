@@ -55,12 +55,48 @@ export default class RazaRepository implements IRazaRepository {
       size: raza.size,
       size_range: raza.size_range,
       speed: raza.speed,
-      ruleset: raza.ruleset
+      ruleset: raza.ruleset,
+      languages: raza.languages
     })
 
     nuevaRaza.save()
 
     return this.formatearRaza(nuevaRaza)
+  }
+
+  async actualizar(raza: CreateRace): Promise<RaceApi | undefined> {
+    try {
+      if (!raza.id) {
+        throw new Error("No se proporciono el id de la raza");
+      }
+
+      const update = {
+        name: raza.name,
+        description: raza.description ?? '',
+        alignment: raza.alignment,
+        img: raza.image,
+        ability_bonuses: raza.ability_bonuses,
+        age: raza.age,
+        size: raza.size,
+        size_range: raza.size_range,
+        speed: raza.speed,
+        ruleset: raza.ruleset,
+        traits: raza.traits,
+        traits_data: raza.traits_data,
+        languages: raza.languages
+      }
+
+      const razaActualizada = await RazaSchema.findByIdAndUpdate(
+        raza.id,
+        update,
+        { new: true }
+      ).exec();
+
+      return razaActualizada ? this.formatearRaza(razaActualizada) : undefined
+    } catch (error) {
+      console.error("Error actualizando raza:", error);
+      throw new Error("No se pudo actualizar la raza");
+    }
   }
 
   formatearRazas(razas: RaceMongo[]): Promise<RaceApi[]> {
@@ -73,18 +109,20 @@ export default class RazaRepository implements IRazaRepository {
     const [
       traits,
       skill_choices,
-      languages,
+      languages_understand,
+      languages_speaks,
       language_choices,
       proficiencies_choices,
       subraces,
       variants
     ] = await Promise.all([
-      this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? [], dataLevel?.traits_data),
+      this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.habilidadRepository.formatearOpcionesDeHabilidad(raza.skill_choices),
-      this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages ?? []),
+      this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages?.understands ?? []),
+      this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages?.speaks ?? []),
       this.idiomaRepository.formatearOpcionesDeIdioma(raza.language_choices),
       this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
-      this.formatearSubrazas(raza?.subraces ?? [], dataLevel?.traits_data),
+      this.formatearSubrazas(raza?.subraces ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.formatearVariantes(raza?.variants ?? [])
     ])
 
@@ -103,8 +141,12 @@ export default class RazaRepository implements IRazaRepository {
       ability_bonus_choices: formatearAbilityBonusChoices(raza?.ability_bonus_choices),
       skill_choices,
       traits,
-      traits_data: dataLevel?.traits_data ?? {},
-      languages,
+      traits_data: { ...dataLevel?.traits_data, ...raza.traits_data },
+      languages: {
+        understands: languages_understand,
+        speaks: languages_speaks,
+        notes: raza?.languages?.notes  ?? ""
+      },
       language_choices,
       proficiencies_choices,
       subraces,

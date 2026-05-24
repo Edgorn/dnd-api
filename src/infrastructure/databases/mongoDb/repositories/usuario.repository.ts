@@ -20,8 +20,7 @@ export default class UsuarioRepository implements IUsuarioRepository {
   }
 
   async consultarUsuarios(indices: string[]): Promise<UsuarioApi[]> {
-    const usuarios = await UsuarioSchema.find({ _id: { $in: indices } })
-      .lean();
+    const usuarios = await UsuarioSchema.find().where('_id').in(indices).lean();
 
     return this.formatearUsuariosBasicos(usuarios)
   }

@@ -4,7 +4,7 @@ import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
 import { HabilidadApi } from "./habilidades.types"
-import { IdiomaApi } from "./idiomas.types"
+import { IdiomaApi, IdiomasCriatura, IdiomasCriaturaCrear } from "./idiomas.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 
 export interface RaceMongo {
@@ -29,8 +29,9 @@ export interface RaceMongo {
   ability_bonuses: AbilityBonusesMongo[],
   ability_bonus_choices: ChoiceMongo,
   traits: string[],
+  traits_data: RasgoDataMongo,
   skill_choices?: ChoiceMongo,
-  languages: string[],
+  languages: IdiomasCriaturaCrear,
   language_choices?: ChoiceMongo,
   proficiencies_choices?: ChoiceMongo[],
   subraces: SubraceMongo[],
@@ -92,7 +93,7 @@ export interface RaceApi {
   skill_choices?: ChoiceApi<HabilidadApi>,
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
-  languages: IdiomaApi[],
+  languages: IdiomasCriatura,
   language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
   spell_choices?: ChoiceApi<ConjuroApi>,
@@ -128,6 +129,7 @@ export interface VarianteApi {
 }
 
 export interface CreateRace {
+  id?: string,
   name: string;
   description: string[];
   alignment: string;
@@ -146,4 +148,7 @@ export interface CreateRace {
     maturity: number;
     expectancy: number;
   };
+  traits: string[];
+  traits_data: RasgoDataMongo,
+  languages: IdiomasCriaturaCrear
 }

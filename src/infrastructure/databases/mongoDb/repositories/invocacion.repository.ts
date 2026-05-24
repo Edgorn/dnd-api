@@ -99,7 +99,7 @@ export default class InvocacionRepository implements IInvocacionRepository {
           }),
         traits: traits.map(trait => {
           return {
-            index: trait.index,
+            index: trait.id,
             name: trait.name
           }
         }),

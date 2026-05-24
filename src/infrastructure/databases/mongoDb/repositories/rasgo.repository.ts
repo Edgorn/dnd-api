@@ -8,8 +8,9 @@ import CompetenciaRepository from "./competencia.repository";
 import ConjuroRepository from "./conjuros.repository";
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
 import EstadoRepository from "./estado.repository";
-import { RasgoApi, RasgoDataMongo, RasgoMongo, TraitsOptionsApi, TraitsOptionsMongo } from "../../../../domain/types/rasgos.types";
+import { CreateRasgo, RasgoApi, RasgoDataMongo, RasgoMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateRasgo } from "../../../../domain/types/rasgos.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
+import { Types } from 'mongoose';
 
 export default class RasgoRepository implements IRasgoRepository {
   rasgosMap: { [key: string]: RasgoMongo }
@@ -69,7 +70,16 @@ export default class RasgoRepository implements IRasgoRepository {
       .map(p => p.faltante!);
 
     if (missing.length > 0) {
-      const rasgos = await RasgoSchema.find({ index: { $in: missing } })
+      const validMongoIds = missing.filter(item => Types.ObjectId.isValid(item));
+      const stringIndexes = missing.filter(item => !Types.ObjectId.isValid(item));
+
+      const rasgos = await RasgoSchema.find({
+        $or: [
+          { _id: { $in: validMongoIds } as any },
+          { index: { $in: stringIndexes } }
+        ]
+      });
+
       rasgos.forEach(rasgo => (this.rasgosMap[rasgo.index] = rasgo));
 
       const rasgosFormateados = await this.formatearRasgos(rasgos, data)
@@ -87,6 +97,20 @@ export default class RasgoRepository implements IRasgoRepository {
       ...traitsOptions,
       options
     };
+  }
+
+  async create(rasgo: CreateRasgo): Promise<RasgoApi> {
+    const rasgoCreated = await RasgoSchema.create(rasgo);
+
+    return this.formatearRasgo(rasgoCreated, {});
+  }
+
+  async update(rasgo: UpdateRasgo): Promise<RasgoApi> {
+    const rasgoUpdated = await RasgoSchema.findByIdAndUpdate(rasgo.id, rasgo, { new: true });
+    if (!rasgoUpdated) {
+      throw new Error("Rasgo no encontrado");
+    }
+    return this.formatearRasgo(rasgoUpdated, {});
   }
 
   private formatearRasgos(rasgos: RasgoMongo[], data: RasgoDataMongo = {}): Promise<RasgoApi[]> {
@@ -110,7 +134,7 @@ export default class RasgoRepository implements IRasgoRepository {
     let summary_aux = [...rasgo?.summary ?? []];
 
     if (data) {
-      const rasgoData = data[rasgo.index]
+      const rasgoData = data[rasgo.index] ?? data[rasgo._id.toString()]
 
       if (rasgoData) {
         Object.keys(rasgoData).forEach(d => {
@@ -126,9 +150,11 @@ export default class RasgoRepository implements IRasgoRepository {
         })
       }
     }
-
+ 
     const description = (description_aux?.length ? description_aux : desc) ?? [];
     const summary = (summary_aux?.length ? summary_aux : description);
+
+    const incompatible_traits = await this.obtenerRasgosPorIndices(rasgo?.incompatible_traits ?? [])
 
     return {
       id: rasgo.index ?? rasgo._id.toString(),
@@ -136,7 +162,7 @@ export default class RasgoRepository implements IRasgoRepository {
       description: description,
       summary: summary,
       ruleset: rasgo?.ruleset ?? "",
-      incompatible_traits: rasgo?.incompatible_traits ?? [],
+      incompatible_traits,
       hidden: rasgo?.hidden,
       discard: rasgo?.discard ?? [],
       resistances,

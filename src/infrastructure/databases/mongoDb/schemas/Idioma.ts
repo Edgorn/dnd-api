@@ -5,8 +5,10 @@ const idiomaSchema: Schema = new Schema<IdiomaMongo>({
   index: String,
   name: String,
   type: String,
-  typical_speakers: [String],
-  script: String
+  //typical_speakers: [String],
+  description: String,
+  script: String,
+  ruleset: String
 }, { collection: 'Idiomas' });
 
 const IdiomaModel = mongoose.model<IdiomaMongo>("Idiomas", idiomaSchema);

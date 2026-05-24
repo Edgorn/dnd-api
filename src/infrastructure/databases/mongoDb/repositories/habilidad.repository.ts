@@ -14,7 +14,7 @@ export default class HabilidadRepository implements IHabilidadRepository {
 
   async obtenerHabilidadesPorIndices(indices: string[]): Promise<HabilidadApi[]> {
     if (!indices.length) return [];
-        
+
     const result: HabilidadApi[] = [];
     const missing: string[] = [];
 
@@ -28,12 +28,23 @@ export default class HabilidadRepository implements IHabilidadRepository {
 
     if (missing.length > 0) {
       const habilidades = await HabilidadSchema.find({ index: { $in: missing } })
-        
+
       habilidades.forEach(habilidad => (this.habilidadesMap[habilidad.index] = habilidad));
       result.push(...this.formatearHabilidades(habilidades));
     }
 
     return ordenarPorNombre(result);
+  }
+
+  async obtenerTodos(): Promise<HabilidadApi[]> {
+    if (this.todosConsultados) return this.formatearHabilidades(ordenarPorNombre(Object.values(this.habilidadesMap)))
+
+    const habilidades = await HabilidadSchema.find()
+
+    habilidades.forEach(habilidad => (this.habilidadesMap[habilidad.index] = habilidad))
+    this.todosConsultados = true
+
+    return this.formatearHabilidades(ordenarPorNombre(Object.values(this.habilidadesMap)))
   }
 
   async obtenerHabilidadesPersonaje(skills: string[], double_skills: string[]): Promise<HabilidadPersonajeApi[]> {
@@ -52,13 +63,13 @@ export default class HabilidadRepository implements IHabilidadRepository {
 
     return habilidadesFormateadas
   }
-  
+
   async formatearOpcionesDeHabilidad(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<HabilidadApi> | undefined> {
     if (!opciones) return undefined
 
     if (Array.isArray(opciones.options)) {
       const habilidades = await this.obtenerHabilidadesPorIndices(opciones.options);
-      
+
       return {
         choose: opciones.choose,
         options: habilidades
@@ -86,8 +97,8 @@ export default class HabilidadRepository implements IHabilidadRepository {
 
       idiomas.forEach(idioma => (this.habilidadesMap[idioma.index] = idioma))
       this.todosConsultados = true
-    } 
-    
+    }
+
     return this.formatearHabilidades(ordenarPorNombre(Object.values(this.habilidadesMap)))
   }
 

@@ -68,6 +68,17 @@ import { RasgoController } from "./http/controllers/rasgo.controller";
 import CrearRaza from "../application/use-cases/raza/crearRaza.use-case";
 import ObtenerRasgosPorSistemas from "../application/use-cases/rasgo/obtenerRasgosPorSistemas.use-case";
 import RasgoService from "../domain/services/rasgo.service";
+import CrearRasgo from "../application/use-cases/rasgo/crearRasgo.use-case";
+import ModificarRasgo from "../application/use-cases/rasgo/modificarRasgo.use-case";
+import { HabilidadController } from "./http/controllers/habilidad.controller";
+import HabilidadService from "../domain/services/habilidad.service";
+import ObtenerTodasLasHabilidades from "../application/use-cases/habilidad/obtenerHabilidadesPorSIstemas.use-case";
+import ActualizarRaza from "../application/use-cases/raza/actualizarRaza.use-case";
+import { IdiomaController } from "./http/controllers/idioma.controller";
+import ObtenerIdiomasPorSistemas from "../application/use-cases/idioma/obtenerIdiomaPorSistema.use-case";
+import CrearIdioma from "../application/use-cases/idioma/crearIdioma.use-case";
+import ModificarIdioma from "../application/use-cases/idioma/modificarIdioma.use-case";
+import IdiomaService from "../domain/services/idioma.service";
 
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
@@ -145,6 +156,7 @@ const equipamientoService = new EquipamientoService(equipamientoRepository)
 const personajeService = new PersonajeService(personajeRepository)
 const conjuroService = new ConjuroService(conjuroRepository)
 const rasgoService = new RasgoService(rasgoRepository)
+const habilidadService = new HabilidadService(habilidadRepository)
 
 const crearCampaña = new CrearCampaña(campañaService)
 const obtenerCampañasPorUsuario = new ObtenerCampañasPorUsuario(campañaService)
@@ -159,6 +171,7 @@ const logearUseCase = new Logear(usuarioService)
 
 const obtenerTodasLasRazas = new ObtenerTodasLasRazas(razaService);
 const crearRaza = new CrearRaza(razaService);
+const actualizarRaza = new ActualizarRaza(razaService);
 
 const obtenerTodosLosTransfondos = new ObtenerTodosLosTransfondos(transfondoService);
 
@@ -185,9 +198,12 @@ const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroSer
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
 
 const obtenerRasgosPorSistemasUseCase = new ObtenerRasgosPorSistemas(rasgoService)
+const crearRasgoUseCase = new CrearRasgo(rasgoService)
+const modificarRasgoUseCase = new ModificarRasgo(rasgoService)
 
+const obtenerTodasLasHabilidades = new ObtenerTodasLasHabilidades(habilidadService)
 
-export const razaController = new RazaController(obtenerTodasLasRazas, crearRaza)
+export const razaController = new RazaController(obtenerTodasLasRazas, crearRaza, actualizarRaza)
 
 export const campañaController = new CampañaController(
   crearCampaña,
@@ -230,4 +246,14 @@ export const conjuroController = new ConjuroController(
   obtenerConjurosRituales
 )
 
-export const rasgoController = new RasgoController(obtenerRasgosPorSistemasUseCase)
+export const rasgoController = new RasgoController(obtenerRasgosPorSistemasUseCase, crearRasgoUseCase, modificarRasgoUseCase)
+
+export const habilidadController = new HabilidadController(obtenerTodasLasHabilidades)
+
+const idiomaService = new IdiomaService(idiomaRepository)
+
+const obtenerIdiomasPorSistemas = new ObtenerIdiomasPorSistemas(idiomaService)
+const crearIdioma = new CrearIdioma(idiomaService)
+const modificarIdioma = new ModificarIdioma(idiomaService)
+
+export const idiomaController = new IdiomaController(obtenerIdiomasPorSistemas, crearIdioma, modificarIdioma)

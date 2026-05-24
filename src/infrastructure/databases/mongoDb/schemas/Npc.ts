@@ -30,7 +30,5 @@ const npcSchema: Schema = new Schema<CriaturaMongo>({
   spell_slots: {}
 }, { collection: 'NPCs' });
 
-module.exports = mongoose.model('NPCs', npcSchema);
-
 const NpcModel = mongoose.model<CriaturaMongo>("NPCs", npcSchema);
 export default NpcModel;

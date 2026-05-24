@@ -3,6 +3,7 @@ import { HabilidadApi, HabilidadPersonajeApi } from "../types/habilidades.types"
 
 export default interface IHabilidadRepository {
   obtenerHabilidadesPorIndices(indices: string[]): Promise<HabilidadApi[]>
+  obtenerTodos(): Promise<HabilidadApi[]>
   obtenerHabilidadesPersonaje(skills: string[], double_skills: string[]): Promise<HabilidadPersonajeApi[]>
   formatearOpcionesDeHabilidad(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<HabilidadApi> | undefined>
 }

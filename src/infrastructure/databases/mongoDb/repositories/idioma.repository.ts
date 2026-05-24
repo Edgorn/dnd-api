@@ -1,6 +1,7 @@
+import { Types } from 'mongoose';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import { ChoiceMongo, ChoiceApi } from '../../../../domain/types';
-import { IdiomaApi, IdiomaMongo } from '../../../../domain/types/idiomas.types';
+import { CrearIdioma, IdiomaApi, IdiomaMongo } from '../../../../domain/types/idiomas.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import IdiomaSchema from '../schemas/Idioma';
 
@@ -10,6 +11,32 @@ export default class IdiomaRepository implements IIdiomaRepository {
 
   constructor() {
     this.idiomasMap = {}
+  }
+
+  async obtenerIdiomasPorSistemas(ruleset: string[]): Promise<IdiomaApi[]> {
+    const idiomas = await IdiomaSchema.find({ ruleset: { $in: ruleset } })
+    return this.formatearIdiomas(idiomas);
+  }
+
+  async crearIdioma(idioma: CrearIdioma): Promise<IdiomaApi> {
+    const nuevoIdioma = new IdiomaSchema(idioma);
+    await nuevoIdioma.save();
+
+    this.idiomasMap[nuevoIdioma._id.toString()] = nuevoIdioma;
+
+    return this.formatearIdioma(nuevoIdioma);
+  }
+
+  async modificarIdioma(idioma: CrearIdioma): Promise<IdiomaApi> {
+    const idiomaModificado = await IdiomaSchema.findByIdAndUpdate(idioma.id, idioma, { new: true });
+
+    if (!idiomaModificado) {
+      throw new Error(`No se encontró ningún idioma con el identificador: ${idioma.id}`);
+    }
+
+    this.idiomasMap[idiomaModificado.id] = idiomaModificado;
+
+    return this.formatearIdioma(idiomaModificado);
   }
 
   async obtenerIdiomasPorIndices(indices: string[]): Promise<IdiomaApi[]> {
@@ -27,24 +54,18 @@ export default class IdiomaRepository implements IIdiomaRepository {
     })
 
     if (missing.length > 0) {
-      const idiomas = await IdiomaSchema.find({ index: { $in: missing } })
+      const validMongoIds = missing.filter(item => Types.ObjectId.isValid(item));
+      const stringIndexes = missing.filter(item => !Types.ObjectId.isValid(item));
 
-      const encontrados = idiomas.map(i => i.index);
-      const faltantes: IdiomaMongo[] = missing
-        .filter(index => !encontrados.includes(index))
-        .map(index => {
-          return {
-            index: index,
-            name: index,
-            type: "",
-            typical_speakers: [],
-            script: ""
-          }  
-        });
-        
-      idiomas.forEach(idioma => (this.idiomasMap[idioma.index] = idioma));
+      const idiomas = await IdiomaSchema.find({
+        $or: [
+          { _id: { $in: validMongoIds } as any },
+          { index: { $in: stringIndexes } }
+        ]
+      });
+
+      idiomas.forEach(idioma => (this.idiomasMap[idioma.id] = idioma));
       result.push(...idiomas);
-      result.push(...faltantes);
     }
 
     return ordenarPorNombre(this.formatearIdiomas(result));
@@ -81,7 +102,7 @@ export default class IdiomaRepository implements IIdiomaRepository {
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
 
-      idiomas.forEach(idioma => (this.idiomasMap[idioma.index] = idioma))
+      idiomas.forEach(idioma => (this.idiomasMap[idioma.id] = idioma))
       this.todosConsultados = true
     }
     
@@ -94,8 +115,12 @@ export default class IdiomaRepository implements IIdiomaRepository {
 
   private formatearIdioma(idioma: IdiomaMongo): IdiomaApi {
     return {
-      index: idioma.index,
-      name: idioma.name
+      id: idioma.index ?? idioma._id.toString(),
+      name: idioma.name,
+      type: idioma.type,
+      description: idioma.description,
+      script: idioma.script,
+      ruleset: idioma.ruleset
     }
   }
 }

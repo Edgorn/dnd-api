@@ -38,7 +38,7 @@ export default class DoteRepository implements IDoteRepository {
     })
 
     if (missing.length > 0) {
-      const dotes = await DoteSchema.find({ _id: { $in: missing } })
+      const dotes = await DoteSchema.find().where('_id').in(missing).lean();
         
       dotes.forEach(dote => (this.dotesMap[dote._id.toString()] = dote));
       result.push(...dotes);
@@ -69,7 +69,7 @@ export default class DoteRepository implements IDoteRepository {
       index: dote._id.toString(),
       name: dote.name,
       description: dote.description ?? dote.desc ?? [],
-      summary: dote.summary ?? dote.description ?? dote.desc ?? []
+      summary: dote.summary.length > 0 ? dote.summary : (dote.description ?? dote.desc ?? [])
     }
   }
 }

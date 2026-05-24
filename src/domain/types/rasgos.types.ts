@@ -57,7 +57,7 @@ export interface RasgoApi {
   description: string[],
   summary: string[],
   ruleset: string,
-  incompatible_traits: string[],
+  incompatible_traits: RasgoApi[],
   hidden?: boolean,
   resistances: DañoApi[],
   conditional_resistances: DañoApi[],
@@ -83,4 +83,23 @@ export interface RasgoApi {
 export interface TraitsOptionsApi {
   name: string,
   options: RasgoApi[]
+}
+
+
+
+export interface CreateRasgo {
+  name: string,
+  description: string[],
+  summary: string[],
+  ruleset: string,
+  incompatible_traits: string[]
+}
+
+export interface UpdateRasgo {
+  id: string,
+  name: string,
+  description: string[],
+  summary: string[],
+  ruleset: string,
+  incompatible_traits: string[]
 }

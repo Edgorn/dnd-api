@@ -23,10 +23,9 @@ import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 import { deepMerge } from '../../../../utils/formatters';
 import { RasgoApi } from '../../../../domain/types/rasgos.types';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
-
-const fs = require('fs');
-const path = require('path');
-const { PDFDocument } = require('pdf-lib');
+import fs from 'fs'
+import path from 'path';
+import { PDFDocument } from 'pdf-lib';
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 const prof_bonus = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
@@ -573,7 +572,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
   async consultarPorIds(indices: string[]): Promise<PersonajeBasico[]> {
     try {
-      const personajes = await Personaje.find({ _id: { $in: indices } })
+      const personajes = await Personaje.find().where('_id').in(indices)
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
       return this.formatearPersonajesBasicos(personajes)
@@ -697,7 +696,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
   private async formatearPersonajesBasicos(personajes: PersonajeMongo[], userName?: string): Promise<PersonajeBasico[]> {
     const campaignIds = [...new Set(personajes.map(p => p.campaign).filter(id => id))];
-    const campaigns = await Campaña.find({ _id: { $in: campaignIds } });
+    
+    const campaigns = await Campaña.find().where('_id').in(campaignIds)
     const campaignMap = new Map(campaigns.map(c => [c._id.toString(), c.name]));
 
     return Promise.all(personajes.map(personaje => {
@@ -845,7 +845,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
 
       if (trait.conditional_resistances.length > 0) {
-        const idx = conditional_resistances.findIndex(name => name.name === (nameTraits[trait.index] ?? trait.name))
+        const idx = conditional_resistances.findIndex(name => name.name === (nameTraits[trait.id] ?? trait.name))
         if (idx > -1) {
           conditional_resistances[idx].resistances = trait?.conditional_resistances ?? []
         } else {
@@ -930,14 +930,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const dotes = await this.doteRepository.obtenerDotesPorIndices(personaje?.dotes ?? [])
     const abilities = this.calcularAbilites(personaje)
     const { CA, plusSpeed } = await this.calcularCA(personaje, traits)
-
+  
     let cargaMaxima = abilities.str * 15
 
-    if (traits?.find(trait => trait.index === "semblance-beast-bear")) {
+    if (traits?.find(trait => trait.id === "semblance-beast-bear")) {
       cargaMaxima *= 2
     }
 
-    if (traits?.find(trait => trait.index === "jack-of-all-trades")) {
+    if (traits?.find(trait => trait.id === "jack-of-all-trades")) {
       habilidades = habilidades.map(habilidad => {
         return {
           ...habilidad,
@@ -1088,7 +1088,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
         form.getCheckBox('shieldyes').check();
       }
 
-      const monkTrait = personaje?.traits?.find(trait => trait.index === 'martial-arts')
+      const monkTrait = personaje?.traits?.find(trait => trait.id === 'martial-arts')
       let golpeCuerpo = 0
 
       if (monkTrait) {
@@ -1101,7 +1101,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
         form.getTextField('Damage1').setText('1d' + dado + ' +' + daño);
         golpeCuerpo = 1
       }
-      
+
       personaje?.equipment
         ?.filter(equi => equi?.category === 'Arma')
         ?.forEach((equi, index: number) => {
@@ -1180,7 +1180,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       if (personaje?.img) {
         const imageResponse = await axios.get(personaje?.img, { responseType: 'arraybuffer' });
         const imageBytes = imageResponse.data; // Obtener los bytes de la imagen
-        const contentType = imageResponse.headers['content-type'];
+        const contentType = String(imageResponse.headers['content-type'] || '');
 
         let image;
 
@@ -1256,7 +1256,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       suma += Math.floor((max / 2) - 5)
     } else if (equip?.weapon?.range === 'Distancia') {
       suma += Math.floor((character?.abilities?.dex / 2) - 5)
-      if (character?.traits?.map(trait => trait.index)?.includes("fighter-fighting-style-archery")) {
+      if (character?.traits?.map(trait => trait.id)?.includes("fighter-fighting-style-archery")) {
         suma += 2
       }
     } else {

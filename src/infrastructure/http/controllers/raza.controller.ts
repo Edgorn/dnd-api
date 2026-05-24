@@ -4,11 +4,13 @@ import ObtenerTodasLasRazas from '../../../application/use-cases/raza/obtenerTod
 import CrearRaza from '../../../application/use-cases/raza/crearRaza.use-case';
 
 import { AuthenticatedRequest } from '../interfaces/AuthenticatedRequest';
+import ActualizarRaza from '../../../application/use-cases/raza/actualizarRaza.use-case';
 
 export class RazaController {
   constructor(
     private readonly obtenerTodasLasRazas: ObtenerTodasLasRazas,
-    private readonly crearRaza: CrearRaza
+    private readonly crearRaza: CrearRaza,
+    private readonly actualizarRaza: ActualizarRaza
   ) { }
 
   getRazas = async (req: AuthenticatedRequest, res: Response) => {
@@ -31,6 +33,19 @@ export class RazaController {
     } catch (e) {
       console.error("Error en createRaza:", e);
       res.status(500).json({ error: 'Error al crear la raza' });
+    }
+  };
+
+  updateRaza = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await this.actualizarRaza.execute(req.body)
+      if (data)
+        res.status(200).json(data);
+      else
+        res.status(404).json({ error: 'No se encontro la raza' });
+    } catch (e) {
+      console.error("Error en updateRaza:", e);
+      res.status(500).json({ error: 'Error al actualizar la raza' });
     }
   };
 }
