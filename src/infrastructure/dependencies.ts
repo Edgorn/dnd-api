@@ -27,6 +27,9 @@ import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuro
 import ObtenerConjurosRituales from "../application/use-cases/conjuro/obtenerConjurosRituales.use-case";
 import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
+import CrearSistema from "../application/use-cases/system/crearSistema.use-case";
+import ObtenerSistemasPorUsuario from "../application/use-cases/system/obtenerSistemasPorUsuario.use-case";
+import ModificarSistema from "../application/use-cases/system/modificarSistema.use-case";
 
 import CampañaService from "../domain/services/campaña.service";
 import UsuarioService from "../domain/services/usuario.service";
@@ -36,6 +39,7 @@ import ClaseService from "../domain/services/clase.service";
 import EquipamientoService from "../domain/services/equipamiento.service";
 import PersonajeService from "../domain/services/personaje.service";
 import ConjuroService from "../domain/services/conjuro.service";
+import SystemService from "../domain/services/system.service";
 
 import CampañaRepository from "./databases/mongoDb/repositories/campaña.repository";
 import ClaseRepository from "./databases/mongoDb/repositories/clase.repository";
@@ -54,6 +58,7 @@ import DañoRepository from "./databases/mongoDb/repositories/daño.repository";
 import PropiedadArmaRepository from "./databases/mongoDb/repositories/propiedadesArmas.repository";
 import EstadoRepository from "./databases/mongoDb/repositories/estado.repository";
 import InvocacionRepository from "./databases/mongoDb/repositories/invocacion.repository";
+import SystemRepository from "./databases/mongoDb/repositories/system.repository";
 
 import { CampañaController } from "./http/controllers/campaña.controller";
 import { UsuarioController } from "./http/controllers/usuario.controller";
@@ -63,6 +68,7 @@ import { ClaseController } from "./http/controllers/clase.controller";
 import { EquipamientoController } from "./http/controllers/equipamiento.controller";
 import { PersonajeController } from "./http/controllers/personaje.controller";
 import { ConjuroController } from "./http/controllers/conjuro.controller";
+import { SystemController } from "./http/controllers/system.controller";
 import CriaturaRepository from "./databases/mongoDb/repositories/criaturas.repository";
 import { RasgoController } from "./http/controllers/rasgo.controller";
 import CrearRaza from "../application/use-cases/raza/crearRaza.use-case";
@@ -147,6 +153,10 @@ const campañaRepository = new CampañaRepository(
   personajeRepository
 )
 
+const systemRepository = new SystemRepository(
+  usuarioRepository
+)
+
 const campañaService = new CampañaService(campañaRepository)
 const usuarioService = new UsuarioService(usuarioRepository)
 const razaService = new RazaService(razaRepository)
@@ -157,6 +167,7 @@ const personajeService = new PersonajeService(personajeRepository)
 const conjuroService = new ConjuroService(conjuroRepository)
 const rasgoService = new RasgoService(rasgoRepository)
 const habilidadService = new HabilidadService(habilidadRepository)
+const systemService = new SystemService(systemRepository)
 
 const crearCampaña = new CrearCampaña(campañaService)
 const obtenerCampañasPorUsuario = new ObtenerCampañasPorUsuario(campañaService)
@@ -193,6 +204,9 @@ const obtenerPdf = new ObtenerPdf(personajeService);
 const vincularPacto = new VincularPacto(personajeService);
 const aprenderConjuros = new AprenderConjuros(personajeService);
 const añadirForma = new AñadirForma(personajeService);
+const crearSistema = new CrearSistema(systemService);
+const obtenerSistemasPorUsuario = new ObtenerSistemasPorUsuario(systemService);
+const modificarSistema = new ModificarSistema(systemService);
 
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
@@ -244,6 +258,12 @@ export const personajeController = new PersonajeController(
 export const conjuroController = new ConjuroController(
   obtenerConjurosPorNivelClase,
   obtenerConjurosRituales
+)
+
+export const systemController = new SystemController(
+  obtenerSistemasPorUsuario,
+  crearSistema,
+  modificarSistema
 )
 
 export const rasgoController = new RasgoController(obtenerRasgosPorSistemasUseCase, crearRasgoUseCase, modificarRasgoUseCase)

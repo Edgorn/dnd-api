@@ -12,7 +12,6 @@ const usuarioSchema: Schema = new Schema<UsuarioMongo>({
     type: String,
     required: [true, "La contraseña es obligatoria"]
   },
-  createdSystems: [String],
   accessibleSystems: [String]
 }, {
   collection: 'Usuarios',

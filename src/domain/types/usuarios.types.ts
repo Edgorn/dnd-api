@@ -5,7 +5,6 @@ export interface UsuarioMongo {
   _id: ObjectId,
   name: string,
   password: string,
-  createdSystems: string[]
   accessibleSystems: string[]
 }
 

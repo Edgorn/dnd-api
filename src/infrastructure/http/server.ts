@@ -16,6 +16,7 @@ import conjuroRoutes from "./routes/conjuro.routes";
 import rasgosRoutes from "./routes/rasgo.routes";
 import habilidadRoutes from "./routes/habilidad.routes";
 import idiomaRoutes from "./routes/idioma.routes";
+import systemRoutes from "./routes/system.routes";
 
 const app: Application = express();
 
@@ -41,6 +42,7 @@ app.use(conjuroRoutes);
 app.use(rasgosRoutes);
 app.use(habilidadRoutes);
 app.use(idiomaRoutes)
+app.use(systemRoutes);
 
 export const startServer = (port: number | string): void => {
   app.listen(port, () => {
