@@ -56,6 +56,8 @@ export default class RazaRepository implements IRazaRepository {
       size_range: raza.size_range,
       speed: raza.speed,
       ruleset: raza.ruleset,
+      traits: raza.traits,
+      traits_data: raza.traits_data,
       languages: raza.languages
     })
 

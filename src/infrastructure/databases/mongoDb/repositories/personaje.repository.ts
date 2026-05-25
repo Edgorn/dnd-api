@@ -151,7 +151,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       speed,
       plusSpeed: 0,
       size,
-      languages: [...languages ?? []],
+      languages: languages,
       saving_throws: saving_throws ?? [],
       skills: [...skills ?? []],
       double_skills: [...double_skills ?? []],
@@ -881,7 +881,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ...new Map(proficienciesFiltrados.map(item => [item.index, item])).values()
     ];
 
-    const idiomas = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId)
+    const idiomas_understands = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId.understands)
+    const idiomas_speaks = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId.speaks)
     let habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills, personaje?.double_skills ?? [])
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)
 
@@ -966,7 +967,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
       CA,
       speed: speed + plusSpeed,
       skills: habilidades,
-      languages: idiomas,
+      languages: {
+        understands: idiomas_understands,
+        speaks: idiomas_speaks,
+        notes: idiomasId.notes
+      },
       proficiencies: proficienciesUnicos,
       traits,
       traits_data: personaje.traits_data,

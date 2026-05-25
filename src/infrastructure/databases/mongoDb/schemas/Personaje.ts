@@ -25,7 +25,7 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   plusSpeed: Number,
   size: String,
   prof_bonus: Number,
-  languages: [String],
+  languages: {},
   skills: [String],
   double_skills: [String],
   proficiency_weapon: [String],

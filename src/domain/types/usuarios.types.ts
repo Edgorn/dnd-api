@@ -3,9 +3,10 @@ import { ObjectId } from "mongoose";
 
 export interface UsuarioMongo {
   _id: ObjectId,
-  index: number,
   name: string,
-  password: string
+  password: string,
+  createdSystems: string[]
+  accessibleSystems: string[]
 }
 
 export interface UsuarioApi {

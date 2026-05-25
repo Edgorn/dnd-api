@@ -1,9 +1,9 @@
 import { ObjectId } from "mongoose"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 import { HabilidadPersonajeApi } from "./habilidades.types"
-import { IdiomaApi } from "./idiomas.types"
+import { IdiomasCriatura, IdiomasCriaturaCrear } from "./idiomas.types"
 import { CompetenciaApi } from "./competencias.types"
-import { ChoiceApi, DañoApi } from "."
+import { DañoApi } from "."
 import { EquipamientoPersonajeApi } from "./equipamientos.types"
 import { DoteApi } from "./dotes.types"
 import { ConjuroApi } from "./conjuros.types"
@@ -53,7 +53,7 @@ export interface TypeCrearPersonaje {
   subraceId: string,
   type: string,
   campaign: string | null,
-  languages: string[],
+  languages: IdiomasCriaturaCrear,
   spells: {},
   skills: string[],
   double_skills: string[],
@@ -175,7 +175,7 @@ export interface PersonajeMongo {
   subraceId: string,
   type: string,
   campaign: string | null,
-  languages: string[],
+  languages: IdiomasCriaturaCrear,
   spells: Record<string, string[]>,
   skills: string[],
   double_skills: string[],
@@ -257,7 +257,7 @@ export interface PersonajeApi {
   CA: number,
   speed: number,
   skills: HabilidadPersonajeApi[],
-  languages: IdiomaApi[],
+  languages: IdiomasCriatura,
   proficiencies: CompetenciaApi[],
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,

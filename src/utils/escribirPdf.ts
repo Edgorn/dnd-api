@@ -468,10 +468,44 @@ export async function escribirCompetencias({ pdfDoc, languages, proficiencies }:
     textY = actualY
   }
 
-  if (languages.length > 0) {
+  const hasSpeaks = languages?.speaks?.length > 0;
+  const hasUnderstands = languages?.understands?.length > 0;
+  const hasNotes = !!languages?.notes;
+
+  if (hasSpeaks) {
     const { textY: actualY } = escribirParrafo({
-      titulo: 'Idiomas',
-      descripcion: languages?.map((language: any) => language.name)?.join(', ') + '.',
+      titulo: 'Habla',
+      descripcion: languages?.speaks?.map((language: any) => language.name)?.join(', ') + '.',
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth,
+      page: page1,
+      x,
+      y: textY
+    })
+
+    textY = actualY
+  }
+ 
+  if (hasUnderstands) {
+    const { textY: actualY } = escribirParrafo({
+      titulo: 'Entiende',
+      descripcion: languages?.understands?.map((language: any) => language.name)?.join(', ') + '.',
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth,
+      page: page1,
+      x,
+      y: textY
+    })
+
+    textY = actualY
+  }
+
+  if (hasNotes) {
+    const { textY: actualY } = escribirParrafo({
+      titulo: '',
+      descripcion: languages?.notes,
       fontTitle: fontBold,
       fontText: fontRegular,
       maxWidth,
