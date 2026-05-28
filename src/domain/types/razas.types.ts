@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo } from "."
+import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo, Speed } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
@@ -16,9 +16,13 @@ export interface RaceMongo {
   alignment?: string,
   img: string,
   ruleset: string,
-  speed: number | { walk: number;[key: string]: number },
+  speed: Speed,
   size: string,
   size_range?: {
+    min: number;
+    max: number;
+  },
+  weight_range?: {
     min: number;
     max: number;
   },
@@ -34,7 +38,7 @@ export interface RaceMongo {
   languages: IdiomasCriaturaCrear,
   language_choices?: ChoiceMongo,
   proficiencies_choices?: ChoiceMongo[],
-  subraces: SubraceMongo[],
+  subraces?: SubracesMongo,
   variants: VarianteMongo[],
   levels: RaceLevelMongo[]
 }
@@ -44,14 +48,21 @@ export interface RaceLevelMongo {
   traits_data: RasgoDataMongo,
 }
 
+export interface SubracesMongo {
+  name: string,
+  list: SubraceMongo[]
+}
+
 export interface SubraceMongo {
   index: string,
   name: string,
+  description: string[],
   desc: string,
   img: string,
   ability_bonuses: AbilityBonusesMongo[],
   traits: string[],
   traits_data: RasgoDataMongo,
+  languages: IdiomasCriaturaCrear,
   language_choices?: ChoiceMongo,
   spell_choices?: ChoiceSpell[],
   types: TypeMongo[],
@@ -78,12 +89,16 @@ export interface RaceApi {
   alignment?: string,
   img: string,
   ruleset: string,
-  speed: { walk: number;[key: string]: number },
+  speed: Speed,
   size: string,
   size_range?: {
     min: number;
     max: number;
   },
+  weight_range?: {
+    min: number;
+    max: number;
+  }
   age?: {
     maturity: number;
     expectancy: number;
@@ -97,18 +112,24 @@ export interface RaceApi {
   language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
   spell_choices?: ChoiceApi<ConjuroApi>,
-  subraces: SubraceApi[],
+  subraces?: SubracesApi,
   variants: VarianteApi[]
+}
+
+export interface SubracesApi {
+  name: string,
+  list: SubraceApi[]
 }
 
 export interface SubraceApi {
   index: string,
   name: string,
-  desc: String,
+  description: string[],
   img: string,
   ability_bonuses: AbilityBonusesApi[],
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
+  languages: IdiomasCriatura,
   language_choices?: ChoiceApi<IdiomaApi>,
   spell_choices?: ChoiceApi<ConjuroApi>[],
   types: TypeApi[],
@@ -134,7 +155,7 @@ export interface CreateRace {
   description: string[];
   alignment: string;
   ruleset: string;
-  image: string;
+  img: string;
   ability_bonuses: AbilityBonusesMongo;
   speed: {
     walk: number;
@@ -144,10 +165,31 @@ export interface CreateRace {
     min: number;
     max: number;
   };
+  weight_range?: {
+    min: number;
+    max: number;
+  }
   age?: {
     maturity: number;
     expectancy: number;
   };
+  traits: string[];
+  traits_data: RasgoDataMongo,
+  languages: IdiomasCriaturaCrear,
+  subraces: CreateSubraces
+}
+
+export interface CreateSubraces {
+  name: string,
+  list: CreateSubrace[]
+}
+
+export interface CreateSubrace {
+  id: string,
+  name: string
+  description: string[]
+  img: string;
+  ability_bonuses: AbilityBonusesMongo;
   traits: string[];
   traits_data: RasgoDataMongo,
   languages: IdiomasCriaturaCrear

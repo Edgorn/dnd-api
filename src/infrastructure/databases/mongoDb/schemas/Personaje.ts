@@ -1,5 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import { TransfondoMongo } from "../../../../domain/types/transfondos.types";
 import { PersonajeMongo } from "../../../../domain/types/personajes.types";
 
 
@@ -21,7 +20,7 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   //metamagic: [String],
   traits_data: {},
   //resistances: [String],
-  speed: Number,
+  speed: {},
   plusSpeed: Number,
   size: String,
   prof_bonus: Number,

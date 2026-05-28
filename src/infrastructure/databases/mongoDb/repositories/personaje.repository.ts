@@ -861,7 +861,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
 
       if (trait?.speed) {
-        speed = trait?.speed
+        speed.walk = trait?.speed
       }
     })
 
@@ -881,8 +881,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ...new Map(proficienciesFiltrados.map(item => [item.index, item])).values()
     ];
 
-    const idiomas_understands = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId.understands)
-    const idiomas_speaks = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId.speaks)
+    const idiomas_understands = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId?.understands ?? [])
+    const idiomas_speaks = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId?.speaks ?? [])
     let habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills, personaje?.double_skills ?? [])
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)
 
@@ -948,12 +948,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
+ 
 
     return {
       id: personaje._id.toString(),
       img: personaje.img,
       name: personaje.name,
       race: personaje.race,
+      size: personaje.size,
       classes: clases,
       subclasses: personaje.subclasses,
       campaign: personaje?.campaign ? { index: personaje?.campaign, name: campaign?.name } : null,
@@ -965,7 +967,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
       abilities,
       HPMax: personaje?.HPMax,
       CA,
-      speed: speed + plusSpeed,
+      speed: {
+        walk: speed.walk + plusSpeed
+      },
       skills: habilidades,
       languages: {
         understands: idiomas_understands,
@@ -1131,7 +1135,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       form.getTextField('ProfBonus').setText('+' + personaje?.prof_bonus);
       form.getTextField('AC').setText(personaje?.CA + '');
       form.getTextField('Init').setText(this.formatNumber(bonus.dex) + '');
-      form.getTextField('Speed').setText(personaje?.speed + '');
+      form.getTextField('Speed').setText(personaje?.speed?.walk + '');
 
       form.getTextField('HitDiceTotal').setText(personaje.classes?.map(clase => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');
 

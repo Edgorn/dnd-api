@@ -4,7 +4,7 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
-import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubraceApi, SubraceMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
+import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubraceApi, SubraceMongo, SubracesApi, SubracesMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
 import { deepMerge, formatearAbilityBonusChoices, formatearAbilityBonuses, ordenarPorNombre } from '../../../../utils/formatters';
 import RazaSchema from '../schemas/Raza';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
@@ -49,16 +49,18 @@ export default class RazaRepository implements IRazaRepository {
       name: raza.name,
       description: raza.description ?? '',
       alignment: raza.alignment,
-      img: raza.image,
+      img: raza.img,
       ability_bonuses: raza.ability_bonuses,
       age: raza.age,
       size: raza.size,
       size_range: raza.size_range,
+      weight_range: raza.weight_range,
       speed: raza.speed,
       ruleset: raza.ruleset,
       traits: raza.traits,
       traits_data: raza.traits_data,
-      languages: raza.languages
+      languages: raza.languages,
+      subraces: raza.subraces
     })
 
     nuevaRaza.save()
@@ -76,16 +78,18 @@ export default class RazaRepository implements IRazaRepository {
         name: raza.name,
         description: raza.description ?? '',
         alignment: raza.alignment,
-        img: raza.image,
+        img: raza.img,
         ability_bonuses: raza.ability_bonuses,
         age: raza.age,
         size: raza.size,
         size_range: raza.size_range,
+        weight_range: raza.weight_range,
         speed: raza.speed,
         ruleset: raza.ruleset,
         traits: raza.traits,
         traits_data: raza.traits_data,
-        languages: raza.languages
+        languages: raza.languages,
+        subraces: raza.subraces
       }
 
       const razaActualizada = await RazaSchema.findByIdAndUpdate(
@@ -124,7 +128,7 @@ export default class RazaRepository implements IRazaRepository {
       this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages?.speaks ?? []),
       this.idiomaRepository.formatearOpcionesDeIdioma(raza.language_choices),
       this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
-      this.formatearSubrazas(raza?.subraces ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
+      this.formatearSubrazas(raza.subraces, { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.formatearVariantes(raza?.variants ?? [])
     ])
 
@@ -138,6 +142,7 @@ export default class RazaRepository implements IRazaRepository {
       speed: typeof raza.speed === 'number' ? { walk: raza.speed } : (raza.speed ?? { walk: 30 }),
       size: raza.size,
       size_range: raza.size_range,
+      weight_range: raza.weight_range,
       age: raza.age,
       ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
       ability_bonus_choices: formatearAbilityBonusChoices(raza?.ability_bonus_choices),
@@ -156,18 +161,27 @@ export default class RazaRepository implements IRazaRepository {
     };
   }
 
-  async formatearSubrazas(subrazas: SubraceMongo[], traitsData?: RasgoDataMongo): Promise<SubraceApi[]> {
-    const formateadas = await Promise.all(subrazas.map(subraza => this.formatearSubraza(subraza, traitsData)))
-    return ordenarPorNombre(formateadas);
+  async formatearSubrazas(subrazas?: SubracesMongo, traitsData?: RasgoDataMongo): Promise<SubracesApi | undefined> {
+    if (!subrazas) return undefined;
+
+    const formateadas = await Promise.all(subrazas?.list?.map(subraza => this.formatearSubraza(subraza, traitsData)) ?? [])
+    return {
+      name: subrazas.name,
+      list: ordenarPorNombre(formateadas)
+    };
   }
 
   async formatearSubraza(subraza: SubraceMongo, traitsData?: RasgoDataMongo): Promise<SubraceApi> {
     const [
       traits,
+      understands,
+      speaks,
       language_choices,
       spell_choices
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? [], deepMerge(subraza?.traits_data, traitsData)),
+      this.idiomaRepository.obtenerIdiomasPorIndices(subraza?.languages?.understands ?? []),
+      this.idiomaRepository.obtenerIdiomasPorIndices(subraza?.languages?.speaks ?? []),
       this.idiomaRepository.formatearOpcionesDeIdioma(subraza.language_choices),
       this.conjuroRepository.formatearOpcionesDeConjuros(subraza?.spell_choices)
     ])
@@ -176,13 +190,18 @@ export default class RazaRepository implements IRazaRepository {
       index: subraza.index,
       name: subraza.name,
       img: subraza.img,
-      desc: subraza.desc,
+      description: subraza.description,
       ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),
       traits,
       traits_data: subraza?.traits_data,
+      languages: {
+        speaks,
+        understands,
+        notes: subraza?.languages?.notes
+      },
       language_choices,
       spell_choices,
-      types: this.formatearTipos(subraza?.types)
+      types: this.formatearTipos(subraza?.types ?? [])
     }
   }
 

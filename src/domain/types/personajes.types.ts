@@ -3,7 +3,7 @@ import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 import { HabilidadPersonajeApi } from "./habilidades.types"
 import { IdiomasCriatura, IdiomasCriaturaCrear } from "./idiomas.types"
 import { CompetenciaApi } from "./competencias.types"
-import { DañoApi } from "."
+import { DañoApi, Speed } from "."
 import { EquipamientoPersonajeApi } from "./equipamientos.types"
 import { DoteApi } from "./dotes.types"
 import { ConjuroApi } from "./conjuros.types"
@@ -30,7 +30,7 @@ export interface TypeCrearPersonaje {
     god: string
   },
   img: string,
-  speed: number,
+  speed: Speed,
   size: string,
   appearance: {
     age: number,
@@ -130,7 +130,7 @@ export interface PersonajeBasico {
     wis: number,
     cha: number
   },
-  speed: number,
+  speed: Speed,
 }
 
 export interface PersonajeMongo {
@@ -152,7 +152,7 @@ export interface PersonajeMongo {
     god: string
   },
   img: string,
-  speed: number,
+  speed: Speed,
   size: string,
   appearance: {
     age: number,
@@ -216,6 +216,7 @@ export interface PersonajeApi {
   img: string,
   name: string,
   race: string,
+  size: string,
   classes: {
     class: string,
     level: number,
@@ -255,7 +256,7 @@ export interface PersonajeApi {
   abilities: Abilities,
   HPMax: number,
   CA: number,
-  speed: number,
+  speed: Speed,
   skills: HabilidadPersonajeApi[],
   languages: IdiomasCriatura,
   proficiencies: CompetenciaApi[],

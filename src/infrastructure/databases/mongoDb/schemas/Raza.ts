@@ -42,6 +42,10 @@ const razaSchema: Schema = new Schema<RaceMongo>({
     min: Number,
     max: Number
   },
+  weight_range: {
+    min: Number,
+    max: Number
+  },
   age: {
     maturity: Number,
     expectancy: Number
@@ -58,7 +62,7 @@ const razaSchema: Schema = new Schema<RaceMongo>({
     level: Number,
     traits_data: {}
   }],
-  subraces: [subrazaSchema],
+  subraces: {},
   variants: [varianteSchema]
 }, { collection: 'Razas' });
 

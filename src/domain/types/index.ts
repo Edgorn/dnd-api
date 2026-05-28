@@ -1,3 +1,4 @@
+import { Number } from "mongoose";
 import { CompetenciaApi } from "./competencias.types";
 import { IdiomaApi } from "./idiomas.types";
 
@@ -80,4 +81,8 @@ export interface PropiedadesArma {
   index: string,
   name: string,
   desc: string[],
+}
+
+export interface Speed {
+  walk: number
 }
