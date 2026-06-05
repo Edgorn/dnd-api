@@ -130,6 +130,8 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
   const rasgos = [...traits ?? [], ...invocations ?? [], ...disciplines ?? [], ...metamagic ?? [], ...dotes ?? []]
   const rasgosList = rasgos.map(rasg => rasg.index)
 
+  console.log(invocations)
+
   rasgos
     ?.filter((trait: any) => {
       let isDiscard = true
@@ -146,7 +148,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
     })?.forEach((trait: RasgoApi | DoteApi) => {
       const { textY, actualHeight: actualHeight1 } = escribirParrafo({
         titulo: trait?.name,
-        descripcion: trait?.summary?.join('\n'),
+        descripcion: trait?.summary?.join('\n') ?? trait?.description?.join('\n'),
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth: 178,  //174

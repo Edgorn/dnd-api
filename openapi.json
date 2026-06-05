@@ -1,0 +1,662 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "D&D API",
+    "version": "1.0.0",
+    "description": "Documentación de la API para gestión de campañas y fichas de D&D"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Servidor Local"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Introduce el token JWT recibido en el login (sin el prefijo \"Bearer \")"
+      }
+    },
+    "schemas": {
+      "SystemApi": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB del sistema."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del sistema."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del sistema."
+          },
+          "publisher": {
+            "type": "string",
+            "description": "Nombre o ID del publicador."
+          },
+          "isOpen": {
+            "type": "boolean",
+            "description": "Indica si el sistema es abierto/público."
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "Indica si el usuario autenticado tiene permisos de edición."
+          },
+          "racesCount": {
+            "type": "integer",
+            "description": "Cantidad de razas asociadas."
+          },
+          "languagesCount": {
+            "type": "integer",
+            "description": "Cantidad de idiomas asociados."
+          },
+          "traitsCount": {
+            "type": "integer",
+            "description": "Cantidad de rasgos asociados."
+          },
+          "caracteristicas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Caracteristica"
+            },
+            "description": "Características vinculadas a este sistema."
+          }
+        }
+      },
+      "TypeCrearSystem": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del sistema."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del sistema."
+          },
+          "isOpen": {
+            "type": "boolean",
+            "description": "Indica si es abierto."
+          }
+        }
+      },
+      "TypeModificarSystem": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "isOpen": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Caracteristica": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB de la característica."
+          },
+          "ruleset": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array de IDs o nombres de sistemas asociados."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la característica (e.g. Fuerza)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción detallada."
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave única identificadora (e.g. str, dex)."
+          },
+          "abbreviation": {
+            "type": "string",
+            "description": "Abreviación (e.g. FUE, DES)."
+          }
+        }
+      },
+      "InputCrearCaracteristica": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "name",
+          "description",
+          "key",
+          "abbreviation"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "ID o nombre del sistema inicial desde el que se crea."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la característica."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción."
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave identificadora única."
+          },
+          "abbreviation": {
+            "type": "string",
+            "description": "Abreviación."
+          }
+        }
+      },
+      "InputModificarCaracteristica": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/systems": {
+      "get": {
+        "summary": "Obtener los sistemas accesibles por el usuario",
+        "tags": [
+          "Sistemas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado de sistemas obtenidos exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SystemApi"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo sistema",
+        "tags": [
+          "Sistemas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TypeCrearSystem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sistema creado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nombre de sistema es obligatorio."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/systems/{id}": {
+      "put": {
+        "summary": "Modificar un sistema existente",
+        "tags": [
+          "Sistemas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del sistema."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TypeModificarSystem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sistema modificado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta ID del sistema."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "No tienes permisos de edición o sistema no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/caracteristicas": {
+      "post": {
+        "summary": "Crear una nueva característica",
+        "tags": [
+          "Características"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCrearCaracteristica"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Característica creada exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caracteristica"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan campos requeridos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/caracteristicas/{id}": {
+      "put": {
+        "summary": "Modificar una característica existente",
+        "tags": [
+          "Características"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la característica a editar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputModificarCaracteristica"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Característica modificada exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caracteristica"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta ID de característica."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/caracteristicas/{id}/sistemas": {
+      "post": {
+        "summary": "Asociar característica a un sistema (mediante body)",
+        "tags": [
+          "Características"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la característica."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "systemId"
+                ],
+                "properties": {
+                  "systemId": {
+                    "type": "string",
+                    "description": "ID o nombre del sistema a añadir."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sistema asociado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caracteristica"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan campos requeridos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Desasociar característica de un sistema (mediante body)",
+        "tags": [
+          "Características"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la característica."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "systemId"
+                ],
+                "properties": {
+                  "systemId": {
+                    "type": "string",
+                    "description": "ID o nombre del sistema a remover."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sistema desasociado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caracteristica"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan campos requeridos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/caracteristicas/{id}/sistemas/{systemId}": {
+      "post": {
+        "summary": "Asociar característica a un sistema (mediante URL)",
+        "tags": [
+          "Características"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la característica."
+          },
+          {
+            "in": "path",
+            "name": "systemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema a añadir."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sistema asociado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caracteristica"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan parámetros requeridos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Desasociar característica de un sistema (mediante URL)",
+        "tags": [
+          "Características"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la característica."
+          },
+          {
+            "in": "path",
+            "name": "systemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema a remover."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sistema desasociado exitosamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caracteristica"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan parámetros requeridos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    }
+  },
+  "tags": []
+}

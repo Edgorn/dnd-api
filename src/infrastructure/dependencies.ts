@@ -86,6 +86,14 @@ import CrearIdioma from "../application/use-cases/idioma/crearIdioma.use-case";
 import ModificarIdioma from "../application/use-cases/idioma/modificarIdioma.use-case";
 import IdiomaService from "../domain/services/idioma.service";
 
+import CrearCaracteristica from "../application/use-cases/caracteristica/crearCaracteristica.use-case";
+import ModificarCaracteristica from "../application/use-cases/caracteristica/modificarCaracteristica.use-case";
+import AñadirCaracteristicaASistema from "../application/use-cases/caracteristica/añadirCaracteristicaASistema.use-case";
+import EliminarCaracteristicaDeSistema from "../application/use-cases/caracteristica/eliminarCaracteristicaDeSistema.use-case";
+import CaracteristicaService from "../domain/services/caracteristica.service";
+import CaracteristicaRepository from "./databases/mongoDb/repositories/caracteristica.repository";
+import { CaracteristicaController } from "./http/controllers/caracteristica.controller";
+
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
 const competenciaRepository = new CompetenciaRepository()
@@ -157,6 +165,8 @@ const systemRepository = new SystemRepository(
   usuarioRepository
 )
 
+const caracteristicaRepository = new CaracteristicaRepository();
+
 const campañaService = new CampañaService(campañaRepository)
 const usuarioService = new UsuarioService(usuarioRepository)
 const razaService = new RazaService(razaRepository)
@@ -168,6 +178,7 @@ const conjuroService = new ConjuroService(conjuroRepository)
 const rasgoService = new RasgoService(rasgoRepository)
 const habilidadService = new HabilidadService(habilidadRepository)
 const systemService = new SystemService(systemRepository)
+const caracteristicaService = new CaracteristicaService(caracteristicaRepository);
 
 const crearCampaña = new CrearCampaña(campañaService)
 const obtenerCampañasPorUsuario = new ObtenerCampañasPorUsuario(campañaService)
@@ -207,6 +218,11 @@ const añadirForma = new AñadirForma(personajeService);
 const crearSistema = new CrearSistema(systemService);
 const obtenerSistemasPorUsuario = new ObtenerSistemasPorUsuario(systemService);
 const modificarSistema = new ModificarSistema(systemService);
+
+const crearCaracteristica = new CrearCaracteristica(caracteristicaService);
+const modificarCaracteristica = new ModificarCaracteristica(caracteristicaService);
+const añadirCaracteristicaASistema = new AñadirCaracteristicaASistema(caracteristicaService);
+const eliminarCaracteristicaDeSistema = new EliminarCaracteristicaDeSistema(caracteristicaService);
 
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
@@ -277,3 +293,10 @@ const crearIdioma = new CrearIdioma(idiomaService)
 const modificarIdioma = new ModificarIdioma(idiomaService)
 
 export const idiomaController = new IdiomaController(obtenerIdiomasPorSistemas, crearIdioma, modificarIdioma)
+
+export const caracteristicaController = new CaracteristicaController(
+  crearCaracteristica,
+  modificarCaracteristica,
+  añadirCaracteristicaASistema,
+  eliminarCaracteristicaDeSistema
+);

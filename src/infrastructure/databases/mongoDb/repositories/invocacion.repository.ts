@@ -82,11 +82,12 @@ export default class InvocacionRepository implements IInvocacionRepository {
     const traits = await this.rasgoRepository.obtenerRasgosPorIndices(invocacion?.requirements?.traits ?? [])
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.spells ?? [])
     const spells_required = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.requirements?.spells ?? [])
-
+ 
     return {
       index: invocacion.index,
       name: invocacion.name,
-      desc: invocacion?.desc,
+      description: invocacion?.desc,
+      summary: invocacion?.desc,
       spells,
       skills: invocacion?.skills ?? [],
       requirements: {

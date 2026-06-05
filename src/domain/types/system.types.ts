@@ -1,4 +1,5 @@
 import { ObjectId } from "mongoose";
+import { CaracteristicaApi } from "./caracteristica.types";
 
 export interface System {
   _id: ObjectId;
@@ -18,6 +19,7 @@ export interface SystemApi {
   racesCount: number;
   languagesCount: number;
   traitsCount: number;
+  caracteristicas: CaracteristicaApi[];
 }
 
 export interface TypeCrearSystem {

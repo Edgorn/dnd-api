@@ -6,11 +6,32 @@ import IUsuarioRepository from '../../../../domain/repositories/IUsuarioReposito
 import RaceModel from '../schemas/Raza';
 import IdiomaModel from '../schemas/Idioma';
 import RasgoModel from '../schemas/Rasgo';
+import CaracteristicaModel from '../schemas/Caracteristica';
+import { CaracteristicaApi } from '../../../../domain/types/caracteristica.types';
 
 export default class SystemRepository implements ISystemRepository {
   constructor(
     private readonly usuarioRepository: IUsuarioRepository
   ) {}
+
+  private async obtenerCaracteristicasSistema(sysId: string, sysName: string): Promise<CaracteristicaApi[]> {
+    const rulesetQuery = {
+      $or: [
+        { ruleset: sysId },
+        { ruleset: sysName }
+      ]
+    };
+
+    const docs = await CaracteristicaModel.find(rulesetQuery);
+    return docs.map(doc => ({
+      id: doc._id.toString(),
+      ruleset: doc.ruleset || [],
+      name: doc.name || '',
+      description: doc.description || '',
+      key: doc.key || '',
+      abbreviation: doc.abbreviation || ''
+    }));
+  }
 
   private async obtenerEstadisticasSistema(sysId: string, sysName: string) {
     const rulesetQuery = {
@@ -67,6 +88,11 @@ export default class SystemRepository implements ISystemRepository {
         sys.name
       );
 
+      const caracteristicas = await this.obtenerCaracteristicasSistema(
+        sys._id.toString(),
+        sys.name
+      );
+
       return {
         id: sys._id.toString(),
         name: sys.name || '',
@@ -76,7 +102,8 @@ export default class SystemRepository implements ISystemRepository {
         canEdit: isPublisher,
         racesCount,
         languagesCount,
-        traitsCount
+        traitsCount,
+        caracteristicas
       };
     }));
   }
@@ -104,6 +131,11 @@ export default class SystemRepository implements ISystemRepository {
       resultado.name
     );
 
+    const caracteristicas = await this.obtenerCaracteristicasSistema(
+      resultado._id.toString(),
+      resultado.name
+    );
+
     return {
       id: resultado._id.toString(),
       name: resultado.name || '',
@@ -113,7 +145,8 @@ export default class SystemRepository implements ISystemRepository {
       canEdit: true,
       racesCount,
       languagesCount,
-      traitsCount
+      traitsCount,
+      caracteristicas
     };
   }
 
@@ -146,6 +179,11 @@ export default class SystemRepository implements ISystemRepository {
       resultado.name
     );
 
+    const caracteristicas = await this.obtenerCaracteristicasSistema(
+      resultado._id.toString(),
+      resultado.name
+    );
+
     return {
       id: resultado._id.toString(),
       name: resultado.name || '',
@@ -155,7 +193,8 @@ export default class SystemRepository implements ISystemRepository {
       canEdit: resultado.publisher === data.userId,
       racesCount,
       languagesCount,
-      traitsCount
+      traitsCount,
+      caracteristicas
     };
   }
 

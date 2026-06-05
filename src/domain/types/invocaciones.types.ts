@@ -16,7 +16,8 @@ export interface InvocacionMongo {
 export interface InvocacionApi {
   index: string,
   name: string,
-  desc: string[],
+  description: string[],
+  summary: string[],
   spells: ConjuroApi[],
   skills: string[],
   requirements: {
