@@ -1,11 +1,12 @@
 import { ObjectId } from "mongoose"
-import { AbilityBonusesApi, AbilityBonusesMongo, ChoiceApi, ChoiceMongo, Speed } from "."
+import { AbilityBonusesMongo, ChoiceApi, ChoiceMongo, Speed } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
 import { HabilidadApi } from "./habilidades.types"
 import { IdiomaApi, IdiomasCriatura, IdiomasCriaturaCrear } from "./idiomas.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
+import { CaracteristicaBonus, CaracteristicaBonusCreate } from "./caracteristica.types"
 
 export interface RaceMongo {
   _id: ObjectId,
@@ -30,7 +31,7 @@ export interface RaceMongo {
     maturity: number;
     expectancy: number;
   },
-  ability_bonuses: AbilityBonusesMongo[],
+  ability_bonuses: CaracteristicaBonusCreate[],
   ability_bonus_choices: ChoiceMongo,
   traits: string[],
   traits_data: RasgoDataMongo,
@@ -59,7 +60,7 @@ export interface SubraceMongo {
   description: string[],
   desc: string,
   img: string,
-  ability_bonuses: AbilityBonusesMongo[],
+  ability_bonuses: CaracteristicaBonusCreate[],
   traits: string[],
   traits_data: RasgoDataMongo,
   languages: IdiomasCriaturaCrear,
@@ -76,7 +77,7 @@ export interface TypeMongo {
 
 export interface VarianteMongo {
   name: string,
-  ability_bonuses: AbilityBonusesMongo[],
+  ability_bonuses: CaracteristicaBonus[],
   skill_choices?: ChoiceMongo,
   ability_bonus_choices: ChoiceMongo,
   dotes?: number
@@ -103,8 +104,8 @@ export interface RaceApi {
     maturity: number;
     expectancy: number;
   },
-  ability_bonuses: AbilityBonusesApi[],
-  ability_bonus_choices?: ChoiceApi<AbilityBonusesApi>,
+  ability_bonuses: CaracteristicaBonus[],
+  ability_bonus_choices?: ChoiceApi<CaracteristicaBonus>,
   skill_choices?: ChoiceApi<HabilidadApi>,
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
@@ -126,7 +127,7 @@ export interface SubraceApi {
   name: string,
   description: string[],
   img: string,
-  ability_bonuses: AbilityBonusesApi[],
+  ability_bonuses: CaracteristicaBonus[],
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
   languages: IdiomasCriatura,
@@ -143,9 +144,9 @@ export interface TypeApi {
 
 export interface VarianteApi {
   name: string,
-  ability_bonuses: AbilityBonusesApi[],
+  ability_bonuses: CaracteristicaBonus[],
   skill_choices?: ChoiceApi<HabilidadApi>,
-  ability_bonus_choices?: ChoiceApi<AbilityBonusesApi>,
+  ability_bonus_choices?: ChoiceApi<CaracteristicaBonus>,
   dotes?: ChoiceApi<DoteApi>
 }
 
@@ -156,7 +157,7 @@ export interface CreateRace {
   alignment: string;
   ruleset: string;
   img: string;
-  ability_bonuses: AbilityBonusesMongo;
+  ability_bonuses: CaracteristicaBonusCreate;
   speed: {
     walk: number;
   };
@@ -189,7 +190,7 @@ export interface CreateSubrace {
   name: string
   description: string[]
   img: string;
-  ability_bonuses: AbilityBonusesMongo;
+  ability_bonuses: CaracteristicaBonusCreate;
   traits: string[];
   traits_data: RasgoDataMongo,
   languages: IdiomasCriaturaCrear

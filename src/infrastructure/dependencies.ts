@@ -105,6 +105,7 @@ const equipamientoRepository = new EquipamientoRepository(dañoRepository, propi
 const doteRepository = new DoteRepository()
 const idiomaRepository = new IdiomaRepository()
 const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
+const caracteristicaRepository = new CaracteristicaRepository()
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
 const claseRepository = new ClaseRepository(
   habilidadRepository,
@@ -123,7 +124,8 @@ const razaRepository = new RazaRepository(
   habilidadRepository,
   competenciaRepository,
   doteRepository,
-  rasgoRepository
+  rasgoRepository,
+  caracteristicaRepository
 )
 
 const transfondoRepository = new TransfondoRepository(
@@ -164,8 +166,6 @@ const campañaRepository = new CampañaRepository(
 const systemRepository = new SystemRepository(
   usuarioRepository
 )
-
-const caracteristicaRepository = new CaracteristicaRepository();
 
 const campañaService = new CampañaService(campañaRepository)
 const usuarioService = new UsuarioService(usuarioRepository)

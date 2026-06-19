@@ -63,7 +63,7 @@ export class CaracteristicaController {
   addSystem = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { id } = req.params;
-      const systemId = req.body.systemId || req.params.systemId;
+      const systemId = req.body?.systemId;
 
       if (!id || !systemId) {
         return res.status(400).json({ error: "Se requiere el ID de la característica y el ID del sistema" });
@@ -79,8 +79,7 @@ export class CaracteristicaController {
 
   removeSystem = async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { id } = req.params;
-      const systemId = req.body.systemId || req.params.systemId;
+      const { id, systemId } = req.params;
 
       if (!id || !systemId) {
         return res.status(400).json({ error: "Se requiere el ID de la característica y el ID del sistema" });

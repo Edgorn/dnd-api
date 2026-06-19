@@ -1,4 +1,5 @@
-import { CaracteristicaApi, InputCrearCaracteristica, InputModificarCaracteristica } from "../types/caracteristica.types";
+import { ChoiceMongo, ChoiceApi } from "../types";
+import { CaracteristicaApi, InputCrearCaracteristica, InputModificarCaracteristica, CaracteristicaBonus, CaracteristicaBonusCreate } from "../types/caracteristica.types";
 
 export default interface ICaracteristicaRepository {
   crear(data: InputCrearCaracteristica): Promise<CaracteristicaApi>;
@@ -6,4 +7,12 @@ export default interface ICaracteristicaRepository {
   añadirASistema(caracteristicaId: string, systemId: string): Promise<CaracteristicaApi>;
   eliminarDeSistema(caracteristicaId: string, systemId: string): Promise<CaracteristicaApi>;
   obtenerPorSistemas(rulesets: string[]): Promise<CaracteristicaApi[]>;
+  formatearAbilityBonuses(
+    ability_bonuses: CaracteristicaBonusCreate[] | CaracteristicaBonus[], 
+    ruleset: string
+  ): Promise<CaracteristicaBonus[]>;
+  formatearAbilityBonusChoices(
+    ability_bonus_choices: ChoiceMongo | undefined, 
+    ruleset: string
+  ): Promise<ChoiceApi<CaracteristicaBonus> | undefined>;
 }

@@ -130,8 +130,6 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
   const rasgos = [...traits ?? [], ...invocations ?? [], ...disciplines ?? [], ...metamagic ?? [], ...dotes ?? []]
   const rasgosList = rasgos.map(rasg => rasg.index)
 
-  console.log(invocations)
-
   rasgos
     ?.filter((trait: any) => {
       let isDiscard = true
@@ -735,7 +733,9 @@ const nombres: any = {
   'Agarre electrizante': 'Controlar llamas',
   Amistad: 'Saeta de fuego',
   'Descarga de fuego': 'Soplo de viento',
-  'Zancada prodigiosa': 'Absorber elementos'
+  'Zancada prodigiosa': 'Absorber elementos',
+  'Toque helado': 'Hoja de llamas verdes',
+  'Flecha ácida de Melf': 'Pirotecnia'
 }
 
 export async function escribirConjuros({ form, personaje }: { form: any, personaje: PersonajeApi }) {
@@ -745,7 +745,7 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
     if (!checkSpells[spell.level]) {
       checkSpells[spell.level] = 0
     }
-
+ 
     form.getTextField(spellsList[spell.level][checkSpells[spell.level]]).setText(spell.name + ' (' + personaje?.spells.race.type + ')');
 
     checkSpells[spell.level]++
@@ -758,7 +758,8 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
     if (clas.class === 'warlock') {
       spells.list.push(
         ...personaje.spells["pact-tome"]?.list ?? [],
-        ...personaje.spells["book-ancestral-secrets"]?.list ?? []
+        ...personaje.spells["book-ancestral-secrets"]?.list ?? [],
+        ...personaje.spells["warlock_infernal"]?.list ?? []
       )
     }
 

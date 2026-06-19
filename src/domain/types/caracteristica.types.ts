@@ -19,7 +19,7 @@ export interface CaracteristicaApi {
 }
 
 export interface InputCrearCaracteristica {
-  ruleset: string; // Recibido como string desde la vista de sistemas
+  ruleset: string;
   name: string;
   description: string;
   key: string;
@@ -32,4 +32,16 @@ export interface InputModificarCaracteristica {
   description?: string;
   key?: string;
   abbreviation?: string;
+}
+
+
+export interface CaracteristicaBonusCreate {
+  key: string;
+  bonus: number;
+}
+
+export interface CaracteristicaBonus {
+  key: string;
+  name: string;
+  bonus: number;
 }

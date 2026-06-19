@@ -1138,7 +1138,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       form.getTextField('Speed').setText(personaje?.speed?.walk + '');
 
       form.getTextField('HitDiceTotal').setText(personaje.classes?.map(clase => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');
-
+  
       const skillPerception = personaje?.skills?.find(skill => skill?.index === 'perception' && skill?.value)
 
       if (skillPerception) {
@@ -1146,7 +1146,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       } else {
         form.getTextField('PWP').setText(10 + bonus.wis + '');
       }
-
+   
       escribirRasgos({
         traits: personaje?.traits ?? [],
         invocations: personaje?.invocations ?? [],

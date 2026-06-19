@@ -4,8 +4,11 @@ import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepo
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
+import ICaracteristicaRepository from '../../../../domain/repositories/ICaracteristicaRepository';
 import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubraceApi, SubraceMongo, SubracesApi, SubracesMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
-import { deepMerge, formatearAbilityBonusChoices, formatearAbilityBonuses, ordenarPorNombre } from '../../../../utils/formatters';
+import { CaracteristicaBonus, CaracteristicaBonusCreate } from '../../../../domain/types/caracteristica.types';
+import { ChoiceMongo, ChoiceApi } from '../../../../domain/types';
+import { deepMerge, ordenarPorNombre } from '../../../../utils/formatters';
 import RazaSchema from '../schemas/Raza';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import { RasgoDataMongo } from '../../../../domain/types/rasgos.types';
@@ -17,7 +20,8 @@ export default class RazaRepository implements IRazaRepository {
     private readonly habilidadRepository: IHabilidadRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly doteRepository: IDoteRepository,
-    private readonly rasgoRepository: IRasgoRepository
+    private readonly rasgoRepository: IRasgoRepository,
+    private readonly caracteristicaRepository: ICaracteristicaRepository
   ) { }
 
   async obtenerTodas(): Promise<RaceApi[]> {
@@ -111,6 +115,7 @@ export default class RazaRepository implements IRazaRepository {
 
   async formatearRaza(raza: RaceMongo): Promise<RaceApi> {
     const dataLevel = raza?.levels?.find(level => level.level === 1)
+    const ruleset = raza.ruleset;
 
     const [
       traits,
@@ -120,7 +125,9 @@ export default class RazaRepository implements IRazaRepository {
       language_choices,
       proficiencies_choices,
       subraces,
-      variants
+      variants,
+      ability_bonuses,
+      ability_bonus_choices
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.habilidadRepository.formatearOpcionesDeHabilidad(raza.skill_choices),
@@ -128,8 +135,10 @@ export default class RazaRepository implements IRazaRepository {
       this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages?.speaks ?? []),
       this.idiomaRepository.formatearOpcionesDeIdioma(raza.language_choices),
       this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
-      this.formatearSubrazas(raza.subraces, { ...dataLevel?.traits_data, ...raza.traits_data }),
-      this.formatearVariantes(raza?.variants ?? [])
+      this.formatearSubrazas(raza.subraces, { ...dataLevel?.traits_data, ...raza.traits_data }, ruleset),
+      this.formatearVariantes(raza?.variants ?? [], ruleset),
+      this.caracteristicaRepository.formatearAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
+      this.caracteristicaRepository.formatearAbilityBonusChoices(raza?.ability_bonus_choices, ruleset)
     ])
 
     return {
@@ -144,8 +153,8 @@ export default class RazaRepository implements IRazaRepository {
       size_range: raza.size_range,
       weight_range: raza.weight_range,
       age: raza.age,
-      ability_bonuses: formatearAbilityBonuses(raza?.ability_bonuses ?? []),
-      ability_bonus_choices: formatearAbilityBonusChoices(raza?.ability_bonus_choices),
+      ability_bonuses,
+      ability_bonus_choices,
       skill_choices,
       traits,
       traits_data: { ...dataLevel?.traits_data, ...raza.traits_data },
@@ -161,29 +170,31 @@ export default class RazaRepository implements IRazaRepository {
     };
   }
 
-  async formatearSubrazas(subrazas?: SubracesMongo, traitsData?: RasgoDataMongo): Promise<SubracesApi | undefined> {
+  async formatearSubrazas(subrazas?: SubracesMongo, traitsData?: RasgoDataMongo, ruleset?: string): Promise<SubracesApi | undefined> {
     if (!subrazas) return undefined;
 
-    const formateadas = await Promise.all(subrazas?.list?.map(subraza => this.formatearSubraza(subraza, traitsData)) ?? [])
+    const formateadas = await Promise.all(subrazas?.list?.map(subraza => this.formatearSubraza(subraza, traitsData, ruleset)) ?? [])
     return {
       name: subrazas.name,
       list: ordenarPorNombre(formateadas)
     };
   }
 
-  async formatearSubraza(subraza: SubraceMongo, traitsData?: RasgoDataMongo): Promise<SubraceApi> {
+  async formatearSubraza(subraza: SubraceMongo, traitsData?: RasgoDataMongo, ruleset?: string): Promise<SubraceApi> {
     const [
       traits,
       understands,
       speaks,
       language_choices,
-      spell_choices
+      spell_choices,
+      ability_bonuses
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? [], deepMerge(subraza?.traits_data, traitsData)),
       this.idiomaRepository.obtenerIdiomasPorIndices(subraza?.languages?.understands ?? []),
       this.idiomaRepository.obtenerIdiomasPorIndices(subraza?.languages?.speaks ?? []),
       this.idiomaRepository.formatearOpcionesDeIdioma(subraza.language_choices),
-      this.conjuroRepository.formatearOpcionesDeConjuros(subraza?.spell_choices)
+      this.conjuroRepository.formatearOpcionesDeConjuros(subraza?.spell_choices),
+      ruleset ? this.caracteristicaRepository.formatearAbilityBonuses(subraza?.ability_bonuses ?? [], ruleset) : Promise.resolve([])
     ])
 
     return {
@@ -191,7 +202,7 @@ export default class RazaRepository implements IRazaRepository {
       name: subraza.name,
       img: subraza.img,
       description: subraza.description,
-      ability_bonuses: formatearAbilityBonuses(subraza?.ability_bonuses ?? []),
+      ability_bonuses,
       traits,
       traits_data: subraza?.traits_data,
       languages: {
@@ -218,24 +229,28 @@ export default class RazaRepository implements IRazaRepository {
     }
   }
 
-  async formatearVariantes(variantes: VarianteMongo[]): Promise<VarianteApi[]> {
-    const formateadas = await Promise.all(variantes.map(variante => this.formatearVariante(variante)))
+  async formatearVariantes(variantes: VarianteMongo[], ruleset?: string): Promise<VarianteApi[]> {
+    const formateadas = await Promise.all(variantes.map(variante => this.formatearVariante(variante, ruleset)))
     return ordenarPorNombre(formateadas);
   }
 
-  async formatearVariante(variante: VarianteMongo): Promise<VarianteApi> {
+  async formatearVariante(variante: VarianteMongo, ruleset?: string): Promise<VarianteApi> {
     const [
       skill_choices,
-      dotes
+      dotes,
+      ability_bonuses,
+      ability_bonus_choices
     ] = await Promise.all([
       this.habilidadRepository.formatearOpcionesDeHabilidad(variante.skill_choices),
-      this.doteRepository.formatearOpcionesDeDote(variante.dotes)
+      this.doteRepository.formatearOpcionesDeDote(variante.dotes),
+      ruleset ? this.caracteristicaRepository.formatearAbilityBonuses(variante?.ability_bonuses ?? [], ruleset) : Promise.resolve([]),
+      ruleset ? this.caracteristicaRepository.formatearAbilityBonusChoices(variante?.ability_bonus_choices, ruleset) : Promise.resolve(undefined)
     ])
 
     return {
       name: variante.name,
-      ability_bonuses: formatearAbilityBonuses(variante?.ability_bonuses ?? []),
-      ability_bonus_choices: formatearAbilityBonusChoices(variante?.ability_bonus_choices),
+      ability_bonuses,
+      ability_bonus_choices,
       skill_choices,
       dotes
     }
@@ -249,3 +264,5 @@ export default class RazaRepository implements IRazaRepository {
     return dataLevel;
   }
 }
+
+
