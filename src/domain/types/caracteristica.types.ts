@@ -34,7 +34,6 @@ export interface InputModificarCaracteristica {
   abbreviation?: string;
 }
 
-
 export interface CaracteristicaBonusCreate {
   key: string;
   bonus: number;

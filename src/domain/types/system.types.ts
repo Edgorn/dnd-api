@@ -7,6 +7,12 @@ export interface System {
   description: string;
   publisher: string;
   isOpen: boolean;
+  globalModifierFormula?: string;
+  maxAttributeValue?: number;
+  defaultMinAttributeValue?: number;
+  defaultMaxAttributeValue?: number;
+  creationMinAttributeValue?: number;
+  creationMaxAttributeValue?: number;
 }
 
 export interface SystemApi {
@@ -19,7 +25,12 @@ export interface SystemApi {
   racesCount: number;
   languagesCount: number;
   traitsCount: number;
-  caracteristicas: CaracteristicaApi[];
+  globalModifierFormula?: string;
+  defaultMinAttributeValue?: number;
+  defaultMaxAttributeValue?: number;
+  creationMinAttributeValue?: number;
+  creationMaxAttributeValue?: number;
+  attributes: CaracteristicaApi[];
 }
 
 export interface TypeCrearSystem {
@@ -27,6 +38,11 @@ export interface TypeCrearSystem {
   description: string;
   publisher: string;
   isOpen: boolean;
+  globalModifierFormula?: string;
+  defaultMinAttributeValue?: number;
+  defaultMaxAttributeValue?: number;
+  creationMinAttributeValue?: number;
+  creationMaxAttributeValue?: number;
 }
 
 export interface TypeModificarSystem {
@@ -35,4 +51,9 @@ export interface TypeModificarSystem {
   name?: string;
   description?: string;
   isOpen?: boolean;
+  globalModifierFormula?: string;
+  defaultMinAttributeValue?: number;
+  defaultMaxAttributeValue?: number;
+  creationMinAttributeValue?: number;
+  creationMaxAttributeValue?: number;
 }

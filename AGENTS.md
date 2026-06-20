@@ -59,3 +59,11 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
    - **Edición y Relación:** Para añadir o quitar una entidad de un sistema, se usan operaciones atómicas de MongoDB (`$addToSet` para añadir sin duplicados, `$pull` para quitar) sobre el array `ruleset`.
    - **Consulta de Sistemas:** Al consultar un sistema (`SystemApi`), este debe retornar el listado completo de características asociadas a él, buscando documentos donde el `ruleset` contenga el ID del sistema o su nombre.
 
+7. **Documentación de la API (Swagger / OpenAPI):**
+   - Siempre que se realice un desarrollo nuevo que modifique o añada endpoints, parámetros de petición o esquemas de respuesta, se debe actualizar la documentación Swagger (usando comentarios `@openapi`) en los archivos correspondientes dentro de `src/infrastructure/http/routes/*.routes.ts`.
+   - Tras realizar las modificaciones de Swagger, es obligatorio regenerar el archivo `openapi.json` estático en la raíz ejecutando el comando:
+     ```bash
+     pnpm exec tsx src/infrastructure/http/config/swagger.ts
+     ```
+
+

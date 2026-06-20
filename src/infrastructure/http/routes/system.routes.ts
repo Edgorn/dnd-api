@@ -38,7 +38,18 @@ const router = Router();
  *         traitsCount:
  *           type: integer
  *           description: Cantidad de rasgos asociados.
- *         caracteristicas:
+ *         globalModifierFormula:
+ *           type: string
+ *           description: Fórmula opcional para modificar características.
+ *         defaultMinAttributeValue:
+ *           type: number
+ *         defaultMaxAttributeValue:
+ *           type: number
+ *         creationMinAttributeValue:
+ *           type: number
+ *         creationMaxAttributeValue:
+ *           type: number
+ *         attributes:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Caracteristica'
@@ -57,6 +68,17 @@ const router = Router();
  *         isOpen:
  *           type: boolean
  *           description: Indica si es abierto.
+ *         globalModifierFormula:
+ *           type: string
+ *           description: Fórmula opcional para modificar características.
+ *         defaultMinAttributeValue:
+ *           type: number
+ *         defaultMaxAttributeValue:
+ *           type: number
+ *         creationMinAttributeValue:
+ *           type: number
+ *         creationMaxAttributeValue:
+ *           type: number
  *     TypeModificarSystem:
  *       type: object
  *       properties:
@@ -66,6 +88,17 @@ const router = Router();
  *           type: string
  *         isOpen:
  *           type: boolean
+ *         globalModifierFormula:
+ *           type: string
+ *           description: Fórmula opcional para modificar características.
+ *         defaultMinAttributeValue:
+ *           type: number
+ *         defaultMaxAttributeValue:
+ *           type: number
+ *         creationMinAttributeValue:
+ *           type: number
+ *         creationMaxAttributeValue:
+ *           type: number
  */
 
 /**

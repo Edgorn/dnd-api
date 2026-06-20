@@ -5,7 +5,12 @@ const system: Schema = new Schema<System>({
   name: String,
   description: String,
   publisher: String,
-  isOpen: Boolean
+  isOpen: Boolean,
+  globalModifierFormula: String,
+  defaultMinAttributeValue: Number,
+  defaultMaxAttributeValue: Number,
+  creationMinAttributeValue: Number,
+  creationMaxAttributeValue: Number
 }, { collection: 'Sistemas' });
 
 const SistemasModel = mongoose.model<System>("Sistemas", system);

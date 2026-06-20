@@ -60,7 +60,23 @@
             "type": "integer",
             "description": "Cantidad de rasgos asociados."
           },
-          "caracteristicas": {
+          "globalModifierFormula": {
+            "type": "string",
+            "description": "Fórmula opcional para modificar características."
+          },
+          "defaultMinAttributeValue": {
+            "type": "number"
+          },
+          "defaultMaxAttributeValue": {
+            "type": "number"
+          },
+          "creationMinAttributeValue": {
+            "type": "number"
+          },
+          "creationMaxAttributeValue": {
+            "type": "number"
+          },
+          "attributes": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Caracteristica"
@@ -86,6 +102,22 @@
           "isOpen": {
             "type": "boolean",
             "description": "Indica si es abierto."
+          },
+          "globalModifierFormula": {
+            "type": "string",
+            "description": "Fórmula opcional para modificar características."
+          },
+          "defaultMinAttributeValue": {
+            "type": "number"
+          },
+          "defaultMaxAttributeValue": {
+            "type": "number"
+          },
+          "creationMinAttributeValue": {
+            "type": "number"
+          },
+          "creationMaxAttributeValue": {
+            "type": "number"
           }
         }
       },
@@ -100,6 +132,22 @@
           },
           "isOpen": {
             "type": "boolean"
+          },
+          "globalModifierFormula": {
+            "type": "string",
+            "description": "Fórmula opcional para modificar características."
+          },
+          "defaultMinAttributeValue": {
+            "type": "number"
+          },
+          "defaultMaxAttributeValue": {
+            "type": "number"
+          },
+          "creationMinAttributeValue": {
+            "type": "number"
+          },
+          "creationMaxAttributeValue": {
+            "type": "number"
           }
         }
       },

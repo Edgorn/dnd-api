@@ -103,7 +103,12 @@ export default class SystemRepository implements ISystemRepository {
         racesCount,
         languagesCount,
         traitsCount,
-        caracteristicas
+        globalModifierFormula: sys.globalModifierFormula,
+        defaultMinAttributeValue: sys.defaultMinAttributeValue,
+        defaultMaxAttributeValue: sys.defaultMaxAttributeValue,
+        creationMinAttributeValue: sys.creationMinAttributeValue,
+        creationMaxAttributeValue: sys.creationMaxAttributeValue,
+        attributes: caracteristicas
       };
     }));
   }
@@ -113,7 +118,12 @@ export default class SystemRepository implements ISystemRepository {
       name: data.name,
       description: data.description,
       publisher: data.publisher,
-      isOpen: data.isOpen
+      isOpen: data.isOpen,
+      globalModifierFormula: data.globalModifierFormula,
+      defaultMinAttributeValue: data.defaultMinAttributeValue,
+      defaultMaxAttributeValue: data.defaultMaxAttributeValue,
+      creationMinAttributeValue: data.creationMinAttributeValue,
+      creationMaxAttributeValue: data.creationMaxAttributeValue
     });
 
     const resultado = await nuevoSistema.save();
@@ -146,17 +156,27 @@ export default class SystemRepository implements ISystemRepository {
       racesCount,
       languagesCount,
       traitsCount,
-      caracteristicas
+      globalModifierFormula: resultado.globalModifierFormula,
+      defaultMinAttributeValue: resultado.defaultMinAttributeValue,
+      defaultMaxAttributeValue: resultado.defaultMaxAttributeValue,
+      creationMinAttributeValue: resultado.creationMinAttributeValue,
+      creationMaxAttributeValue: resultado.creationMaxAttributeValue,
+      attributes: caracteristicas
     };
   }
 
   async modificar(data: TypeModificarSystem): Promise<SystemApi | null> {
-    const { id, name, description, isOpen } = data;
+    const { id, name, description, isOpen, globalModifierFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = data;
 
     const updateFields: any = {};
     if (name !== undefined) updateFields.name = name;
     if (description !== undefined) updateFields.description = description;
     if (isOpen !== undefined) updateFields.isOpen = isOpen;
+    if (globalModifierFormula !== undefined) updateFields.globalModifierFormula = globalModifierFormula;
+    if (defaultMinAttributeValue !== undefined) updateFields.defaultMinAttributeValue = defaultMinAttributeValue;
+    if (defaultMaxAttributeValue !== undefined) updateFields.defaultMaxAttributeValue = defaultMaxAttributeValue;
+    if (creationMinAttributeValue !== undefined) updateFields.creationMinAttributeValue = creationMinAttributeValue;
+    if (creationMaxAttributeValue !== undefined) updateFields.creationMaxAttributeValue = creationMaxAttributeValue;
 
     const resultado = await SistemasModel.findByIdAndUpdate(
       id,
@@ -194,7 +214,12 @@ export default class SystemRepository implements ISystemRepository {
       racesCount,
       languagesCount,
       traitsCount,
-      caracteristicas
+      globalModifierFormula: resultado.globalModifierFormula,
+      defaultMinAttributeValue: resultado.defaultMinAttributeValue,
+      defaultMaxAttributeValue: resultado.defaultMaxAttributeValue,
+      creationMinAttributeValue: resultado.creationMinAttributeValue,
+      creationMaxAttributeValue: resultado.creationMaxAttributeValue,
+      attributes: caracteristicas
     };
   }
 

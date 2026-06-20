@@ -24,7 +24,7 @@ export class SystemController {
   createSystem = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.user!;
-      const { name, description, isOpen } = req.body;
+      const { name, description, isOpen, globalModifierFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: 'El nombre del sistema es obligatorio' });
@@ -34,7 +34,12 @@ export class SystemController {
         name,
         description: description || '',
         publisher: userId,
-        isOpen: isOpen !== undefined ? isOpen : false
+        isOpen: isOpen !== undefined ? isOpen : false,
+        globalModifierFormula,
+        defaultMinAttributeValue,
+        defaultMaxAttributeValue,
+        creationMinAttributeValue,
+        creationMaxAttributeValue
       });
 
       res.status(201).json(data);
@@ -47,7 +52,7 @@ export class SystemController {
     try {
       const userId = req.user!;
       const { id } = req.params;
-      const { name, description, isOpen } = req.body;
+      const { name, description, isOpen, globalModifierFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'Se requiere el ID del sistema' });
@@ -58,7 +63,12 @@ export class SystemController {
         userId,
         name,
         description,
-        isOpen
+        isOpen,
+        globalModifierFormula,
+        defaultMinAttributeValue,
+        defaultMaxAttributeValue,
+        creationMinAttributeValue,
+        creationMaxAttributeValue
       });
 
       res.status(200).json(data);
