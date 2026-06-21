@@ -79,7 +79,7 @@
           "attributes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Caracteristica"
+              "$ref": "#/components/schemas/Attribute"
             },
             "description": "Características vinculadas a este sistema."
           }
@@ -726,39 +726,43 @@
           }
         }
       },
-      "Caracteristica": {
+      "Attribute": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "description": "ID de MongoDB de la característica."
+            "description": "MongoDB ID of the attribute."
           },
           "ruleset": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Array de IDs o nombres de sistemas asociados."
+            "description": "Array of system IDs or names associated."
           },
           "name": {
             "type": "string",
-            "description": "Nombre de la característica (e.g. Fuerza)."
+            "description": "Name of the attribute (e.g. Strength)."
           },
           "description": {
             "type": "string",
-            "description": "Descripción detallada."
+            "description": "Detailed description."
           },
           "key": {
             "type": "string",
-            "description": "Clave única identificadora (e.g. str, dex)."
+            "description": "Unique key identifier (e.g. str, dex)."
           },
           "abbreviation": {
             "type": "string",
-            "description": "Abreviación (e.g. FUE, DES)."
+            "description": "Abbreviation (e.g. STR, DEX)."
+          },
+          "icon": {
+            "type": "string",
+            "description": "Optional icon name or URL."
           }
         }
       },
-      "InputCrearCaracteristica": {
+      "InputCreateAttribute": {
         "type": "object",
         "required": [
           "ruleset",
@@ -770,27 +774,31 @@
         "properties": {
           "ruleset": {
             "type": "string",
-            "description": "ID o nombre del sistema inicial desde el que se crea."
+            "description": "Initial system ID or name from which it's created."
           },
           "name": {
             "type": "string",
-            "description": "Nombre de la característica."
+            "description": "Name of the attribute."
           },
           "description": {
             "type": "string",
-            "description": "Descripción."
+            "description": "Description."
           },
           "key": {
             "type": "string",
-            "description": "Clave identificadora única."
+            "description": "Unique identifier key."
           },
           "abbreviation": {
             "type": "string",
-            "description": "Abreviación."
+            "description": "Abbreviation."
+          },
+          "icon": {
+            "type": "string",
+            "description": "Optional icon name or URL."
           }
         }
       },
-      "InputModificarCaracteristica": {
+      "InputUpdateAttribute": {
         "type": "object",
         "properties": {
           "name": {
@@ -803,6 +811,9 @@
             "type": "string"
           },
           "abbreviation": {
+            "type": "string"
+          },
+          "icon": {
             "type": "string"
           }
         }
@@ -1073,11 +1084,11 @@
         }
       }
     },
-    "/caracteristicas": {
+    "/attributes": {
       "post": {
-        "summary": "Crear una nueva característica",
+        "summary": "Create a new attribute",
         "tags": [
-          "Características"
+          "Attributes"
         ],
         "security": [
           {
@@ -1089,39 +1100,39 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InputCrearCaracteristica"
+                "$ref": "#/components/schemas/InputCreateAttribute"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Característica creada exitosamente.",
+            "description": "Attribute created successfully.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Caracteristica"
+                  "$ref": "#/components/schemas/Attribute"
                 }
               }
             }
           },
           "400": {
-            "description": "Faltan campos requeridos."
+            "description": "Missing required fields."
           },
           "401": {
-            "description": "No autorizado."
+            "description": "Unauthorized."
           },
           "500": {
-            "description": "Error del servidor."
+            "description": "Server error."
           }
         }
       }
     },
-    "/caracteristicas/{id}": {
+    "/attributes/{id}": {
       "put": {
-        "summary": "Modificar una característica existente",
+        "summary": "Update an existing attribute",
         "tags": [
-          "Características"
+          "Attributes"
         ],
         "security": [
           {
@@ -1136,7 +1147,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID de la característica a editar."
+            "description": "ID of the attribute to edit."
           }
         ],
         "requestBody": {
@@ -1144,39 +1155,39 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InputModificarCaracteristica"
+                "$ref": "#/components/schemas/InputUpdateAttribute"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Característica modificada exitosamente.",
+            "description": "Attribute modified successfully.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Caracteristica"
+                  "$ref": "#/components/schemas/Attribute"
                 }
               }
             }
           },
           "400": {
-            "description": "Falta ID de característica."
+            "description": "Missing attribute ID."
           },
           "401": {
-            "description": "No autorizado."
+            "description": "Unauthorized."
           },
           "500": {
-            "description": "Error del servidor."
+            "description": "Server error."
           }
         }
       }
     },
-    "/caracteristicas/{id}/sistemas": {
+    "/attributes/{id}/systems": {
       "post": {
-        "summary": "Asociar característica a un sistema (mediante body)",
+        "summary": "Associate attribute to a system (via body)",
         "tags": [
-          "Características"
+          "Attributes"
         ],
         "security": [
           {
@@ -1191,7 +1202,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID de la característica."
+            "description": "Attribute ID."
           }
         ],
         "requestBody": {
@@ -1206,7 +1217,7 @@
                 "properties": {
                   "systemId": {
                     "type": "string",
-                    "description": "ID o nombre del sistema a añadir."
+                    "description": "System ID or name to add."
                   }
                 }
               }
@@ -1215,32 +1226,32 @@
         },
         "responses": {
           "200": {
-            "description": "Sistema asociado exitosamente.",
+            "description": "System associated successfully.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Caracteristica"
+                  "$ref": "#/components/schemas/Attribute"
                 }
               }
             }
           },
           "400": {
-            "description": "Faltan campos requeridos."
+            "description": "Missing required fields."
           },
           "401": {
-            "description": "No autorizado."
+            "description": "Unauthorized."
           },
           "500": {
-            "description": "Error del servidor."
+            "description": "Server error."
           }
         }
       }
     },
-    "/caracteristicas/{id}/sistemas/{systemId}": {
+    "/attributes/{id}/systems/{systemId}": {
       "delete": {
-        "summary": "Desasociar característica de un sistema (mediante URL)",
+        "summary": "Unassociate attribute from a system (via URL)",
         "tags": [
-          "Características"
+          "Attributes"
         ],
         "security": [
           {
@@ -1255,7 +1266,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID de la característica."
+            "description": "Attribute ID."
           },
           {
             "in": "path",
@@ -1264,28 +1275,28 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID o nombre del sistema a remover."
+            "description": "System ID or name to remove."
           }
         ],
         "responses": {
           "200": {
-            "description": "Sistema desasociado exitosamente.",
+            "description": "System unassociated successfully.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Caracteristica"
+                  "$ref": "#/components/schemas/Attribute"
                 }
               }
             }
           },
           "400": {
-            "description": "Faltan parámetros requeridos."
+            "description": "Missing required parameters."
           },
           "401": {
-            "description": "No autorizado."
+            "description": "Unauthorized."
           },
           "500": {
-            "description": "Error del servidor."
+            "description": "Server error."
           }
         }
       }

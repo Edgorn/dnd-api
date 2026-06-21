@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose";
-import { CaracteristicaApi } from "./caracteristica.types";
+import { AttributeApi } from "./attribute.types";
 
 export interface System {
   _id: ObjectId;
@@ -30,7 +30,7 @@ export interface SystemApi {
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
   creationMaxAttributeValue?: number;
-  attributes: CaracteristicaApi[];
+  attributes: AttributeApi[];
 }
 
 export interface TypeCrearSystem {

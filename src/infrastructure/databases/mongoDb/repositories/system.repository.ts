@@ -6,8 +6,8 @@ import IUsuarioRepository from '../../../../domain/repositories/IUsuarioReposito
 import RaceModel from '../schemas/Raza';
 import IdiomaModel from '../schemas/Idioma';
 import RasgoModel from '../schemas/Rasgo';
-import CaracteristicaModel from '../schemas/Caracteristica';
-import { CaracteristicaApi } from '../../../../domain/types/caracteristica.types';
+import AttributeModel from '../schemas/Attribute';
+import { AttributeApi } from '../../../../domain/types/attribute.types';
 
 export default class SystemRepository implements ISystemRepository {
   constructor(
@@ -32,7 +32,7 @@ export default class SystemRepository implements ISystemRepository {
     return undefined;
   }
 
-  private async obtenerCaracteristicasSistema(sysId: string, sysName: string): Promise<CaracteristicaApi[]> {
+  private async getSystemAttributes(sysId: string, sysName: string): Promise<AttributeApi[]> {
     const rulesetQuery = {
       $or: [
         { ruleset: sysId },
@@ -40,14 +40,15 @@ export default class SystemRepository implements ISystemRepository {
       ]
     };
 
-    const docs = await CaracteristicaModel.find(rulesetQuery);
+    const docs = await AttributeModel.find(rulesetQuery);
     return docs.map(doc => ({
       id: doc._id.toString(),
       ruleset: doc.ruleset || [],
       name: doc.name || '',
       description: doc.description || '',
       key: doc.key || '',
-      abbreviation: doc.abbreviation || ''
+      abbreviation: doc.abbreviation || '',
+      icon: doc.icon
     }));
   }
 
@@ -106,7 +107,7 @@ export default class SystemRepository implements ISystemRepository {
         sys.name
       );
 
-      const caracteristicas = await this.obtenerCaracteristicasSistema(
+      const attributes = await this.getSystemAttributes(
         sys._id.toString(),
         sys.name
       );
@@ -126,7 +127,7 @@ export default class SystemRepository implements ISystemRepository {
         defaultMaxAttributeValue: sys.defaultMaxAttributeValue,
         creationMinAttributeValue: sys.creationMinAttributeValue,
         creationMaxAttributeValue: sys.creationMaxAttributeValue,
-        attributes: caracteristicas
+        attributes
       };
     }));
   }
@@ -159,7 +160,7 @@ export default class SystemRepository implements ISystemRepository {
       resultado.name
     );
 
-    const caracteristicas = await this.obtenerCaracteristicasSistema(
+    const attributes = await this.getSystemAttributes(
       resultado._id.toString(),
       resultado.name
     );
@@ -179,7 +180,7 @@ export default class SystemRepository implements ISystemRepository {
       defaultMaxAttributeValue: resultado.defaultMaxAttributeValue,
       creationMinAttributeValue: resultado.creationMinAttributeValue,
       creationMaxAttributeValue: resultado.creationMaxAttributeValue,
-      attributes: caracteristicas
+      attributes
     };
   }
 
@@ -217,7 +218,7 @@ export default class SystemRepository implements ISystemRepository {
       resultado.name
     );
 
-    const caracteristicas = await this.obtenerCaracteristicasSistema(
+    const attributes = await this.getSystemAttributes(
       resultado._id.toString(),
       resultado.name
     );
@@ -237,7 +238,7 @@ export default class SystemRepository implements ISystemRepository {
       defaultMaxAttributeValue: resultado.defaultMaxAttributeValue,
       creationMinAttributeValue: resultado.creationMinAttributeValue,
       creationMaxAttributeValue: resultado.creationMaxAttributeValue,
-      attributes: caracteristicas
+      attributes
     };
   }
 

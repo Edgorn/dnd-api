@@ -66,4 +66,6 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
      pnpm exec tsx src/infrastructure/http/config/swagger.ts
      ```
 
+8. **Idioma (Ingl�s vs Spanglish):** Se ha decidido abandonar el uso del Spanglish en el c�digo y decantarse por el Ingl�s. Todo el c�digo nuevo, nombres de variables, archivos, esquemas e interfaces deben declararse estrictamente en Ingl�s (ej. Attribute en lugar de Caracteristica). 
+
 

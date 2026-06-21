@@ -1,51 +1,44 @@
-import { ObjectId } from "mongoose";
-
-export interface CaracteristicaMongo {
-  _id: ObjectId;
-  ruleset: string[];
-  name: string;
-  description: string;
-  key: string;
-  abbreviation: string;
-}
-
-export interface CaracteristicaApi {
+export interface AttributeApi {
   id: string;
   ruleset: string[];
   name: string;
   description: string;
   key: string;
   abbreviation: string;
+  icon?: string;
 }
 
-export interface InputCrearCaracteristica {
+export interface InputCreateAttribute {
   ruleset: string;
   name: string;
   description: string;
   key: string;
   abbreviation: string;
+  icon?: string;
 }
 
-export interface InputModificarCaracteristica {
+export interface InputUpdateAttribute {
   id: string;
   name?: string;
   description?: string;
   key?: string;
   abbreviation?: string;
+  icon?: string;
 }
 
-export interface CaracteristicaBonusCreate {
+export interface AttributeBonusCreate {
   key: string;
   bonus: number;
 }
 
-export interface CaracteristicaBonus {
+export interface AttributeBonus {
   key: string;
   name: string;
   bonus: number;
+  icon?: string;
 }
 
-export interface AtributoPersonajeApi {
+export interface CharacterAttributeApi {
   id: string;
   name: string;
   description: string;
@@ -53,4 +46,5 @@ export interface AtributoPersonajeApi {
   abbreviation: string;
   value: number;
   modifier?: number;
+  icon?: string;
 }

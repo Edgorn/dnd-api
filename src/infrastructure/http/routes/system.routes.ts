@@ -52,7 +52,7 @@ const router = Router();
  *         attributes:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Caracteristica'
+ *             $ref: '#/components/schemas/Attribute'
  *           description: Características vinculadas a este sistema.
  *     TypeCrearSystem:
  *       type: object

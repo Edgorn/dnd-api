@@ -17,7 +17,7 @@ import rasgosRoutes from "./routes/rasgo.routes";
 import habilidadRoutes from "./routes/habilidad.routes";
 import idiomaRoutes from "./routes/idioma.routes";
 import systemRoutes from "./routes/system.routes";
-import caracteristicaRoutes from "./routes/caracteristica.routes";
+import attributeRoutes from "./routes/attribute.routes";
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 
@@ -46,7 +46,7 @@ app.use(rasgosRoutes);
 app.use(habilidadRoutes);
 app.use(idiomaRoutes)
 app.use(systemRoutes);
-app.use(caracteristicaRoutes);
+app.use(attributeRoutes);
 
 // Documentación Swagger API
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

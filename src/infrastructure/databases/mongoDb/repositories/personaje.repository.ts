@@ -7,7 +7,7 @@ import IConjuroRepository from '../../../../domain/repositories/IConjuroReposito
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import Campaña from '../schemas/Campaña';
 import { DañoApi } from '../../../../domain/types';
-import ICaracteristicaRepository from '../../../../domain/repositories/ICaracteristicaRepository';
+import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
@@ -27,12 +27,12 @@ import ICriaturaRepository from '../../../../domain/repositories/ICriaturaReposi
 import fs from 'fs'
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
-import { AtributoPersonajeApi } from '../../../../domain/types/caracteristica.types';
+import { CharacterAttributeApi } from '../../../../domain/types/attribute.types';
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 const prof_bonus = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
 
-const caracteristicas: any = {
+const attributesLabels: any = {
   str: 'Fuerza',
   dex: 'Destreza',
   con: 'Constitucion',
@@ -59,7 +59,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly invocacionRepository: IInvocacionRepository,
     private readonly razaRepository: IRazaRepository,
     private readonly criaturaRepository: ICriaturaRepository,
-    private readonly caracteristicaRepository: ICaracteristicaRepository
+    private readonly attributeRepository: IAttributeRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -936,7 +936,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
         updatedSpells[groupSpells] = {
           list: dataList,
-          type: caracteristicas[type] ?? ''
+          type: attributesLabels[type] ?? ''
         }
       })
     )
@@ -944,7 +944,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const campaign = await Campaña.findById(personaje?.campaign)
     const dotes = await this.doteRepository.obtenerDotesPorIndices(personaje?.dotes ?? [])
     const modifiedAttributes = this.calcularAttributes(personaje)
-    const apiAttributes: AtributoPersonajeApi[] = await this.caracteristicaRepository.formatearAtributos(modifiedAttributes, personaje.systems ?? [])
+    const apiAttributes: CharacterAttributeApi[] = await this.attributeRepository.formatAttributes(modifiedAttributes, personaje.systems ?? [])
 
     const { CA, plusSpeed } = await this.calcularCA(personaje, traits)
 

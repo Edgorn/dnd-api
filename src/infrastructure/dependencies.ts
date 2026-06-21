@@ -86,13 +86,13 @@ import CrearIdioma from "../application/use-cases/idioma/crearIdioma.use-case";
 import ModificarIdioma from "../application/use-cases/idioma/modificarIdioma.use-case";
 import IdiomaService from "../domain/services/idioma.service";
 
-import CrearCaracteristica from "../application/use-cases/caracteristica/crearCaracteristica.use-case";
-import ModificarCaracteristica from "../application/use-cases/caracteristica/modificarCaracteristica.use-case";
-import AñadirCaracteristicaASistema from "../application/use-cases/caracteristica/añadirCaracteristicaASistema.use-case";
-import EliminarCaracteristicaDeSistema from "../application/use-cases/caracteristica/eliminarCaracteristicaDeSistema.use-case";
-import CaracteristicaService from "../domain/services/caracteristica.service";
-import CaracteristicaRepository from "./databases/mongoDb/repositories/caracteristica.repository";
-import { CaracteristicaController } from "./http/controllers/caracteristica.controller";
+import CreateAttribute from "../application/use-cases/attribute/createAttribute.use-case";
+import UpdateAttribute from "../application/use-cases/attribute/updateAttribute.use-case";
+import AddAttributeToSystem from "../application/use-cases/attribute/addAttributeToSystem.use-case";
+import RemoveAttributeFromSystem from "../application/use-cases/attribute/removeAttributeFromSystem.use-case";
+import AttributeService from "../domain/services/attribute.service";
+import AttributeRepository from "./databases/mongoDb/repositories/attribute.repository";
+import { AttributeController } from "./http/controllers/attribute.controller";
 
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
@@ -108,7 +108,7 @@ const equipamientoRepository = new EquipamientoRepository(dañoRepository, propi
 const doteRepository = new DoteRepository()
 const idiomaRepository = new IdiomaRepository()
 const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
-const caracteristicaRepository = new CaracteristicaRepository(systemRepository)
+const attributeRepository = new AttributeRepository(systemRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
 const claseRepository = new ClaseRepository(
   habilidadRepository,
@@ -128,7 +128,7 @@ const razaRepository = new RazaRepository(
   competenciaRepository,
   doteRepository,
   rasgoRepository,
-  caracteristicaRepository
+  attributeRepository
 )
 
 const transfondoRepository = new TransfondoRepository(
@@ -159,7 +159,7 @@ const personajeRepository = new PersonajeRepository(
   invocacionRepository,
   razaRepository,
   criaturaRepository,
-  caracteristicaRepository
+  attributeRepository
 )
 
 const campañaRepository = new CampañaRepository(
@@ -178,7 +178,7 @@ const conjuroService = new ConjuroService(conjuroRepository)
 const rasgoService = new RasgoService(rasgoRepository)
 const habilidadService = new HabilidadService(habilidadRepository)
 const systemService = new SystemService(systemRepository)
-const caracteristicaService = new CaracteristicaService(caracteristicaRepository);
+const attributeService = new AttributeService(attributeRepository);
 
 const crearCampaña = new CrearCampaña(campañaService)
 const obtenerCampañasPorUsuario = new ObtenerCampañasPorUsuario(campañaService)
@@ -219,10 +219,10 @@ const crearSistema = new CrearSistema(systemService);
 const obtenerSistemasPorUsuario = new ObtenerSistemasPorUsuario(systemService);
 const modificarSistema = new ModificarSistema(systemService);
 
-const crearCaracteristica = new CrearCaracteristica(caracteristicaService);
-const modificarCaracteristica = new ModificarCaracteristica(caracteristicaService);
-const añadirCaracteristicaASistema = new AñadirCaracteristicaASistema(caracteristicaService);
-const eliminarCaracteristicaDeSistema = new EliminarCaracteristicaDeSistema(caracteristicaService);
+const createAttribute = new CreateAttribute(attributeService);
+const updateAttribute = new UpdateAttribute(attributeService);
+const addAttributeToSystem = new AddAttributeToSystem(attributeService);
+const removeAttributeFromSystem = new RemoveAttributeFromSystem(attributeService);
 
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
@@ -294,9 +294,9 @@ const modificarIdioma = new ModificarIdioma(idiomaService)
 
 export const idiomaController = new IdiomaController(obtenerIdiomasPorSistemas, crearIdioma, modificarIdioma)
 
-export const caracteristicaController = new CaracteristicaController(
-  crearCaracteristica,
-  modificarCaracteristica,
-  añadirCaracteristicaASistema,
-  eliminarCaracteristicaDeSistema
+export const attributeController = new AttributeController(
+  createAttribute,
+  updateAttribute,
+  addAttributeToSystem,
+  removeAttributeFromSystem
 );

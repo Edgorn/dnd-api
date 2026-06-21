@@ -11,7 +11,7 @@ import { EstadoApi } from "./estados.types"
 import { ClaseLevelUp, SpellcastingLevel } from "./clases.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { CriaturaApi } from "./criaturas.types"
-import { AtributoPersonajeApi } from "./caracteristica.types"
+import { CharacterAttributeApi } from "./attribute.types"
 
 export interface TypeCrearPersonaje {
   name: string,
@@ -245,7 +245,7 @@ export interface PersonajeApi {
   level: number,
   XP: number,
   XPMax: number,
-  attributes: AtributoPersonajeApi[],
+  attributes: CharacterAttributeApi[],
   systems: string[],
   HPMax: number,
   CA: number,
