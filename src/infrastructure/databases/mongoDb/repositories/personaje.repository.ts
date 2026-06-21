@@ -1081,14 +1081,15 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
       const abilities: string[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
       const getAttrVal = (key: string) => personaje?.attributes?.find(a => a.key === key)?.value ?? 10
+      const getAttrMod = (key: string) => personaje?.attributes?.find(a => a.key === key)?.modifier ?? Math.floor((getAttrVal(key) / 2) - 5)
 
       const bonus: { [key: string]: number } = {
-        str: Math.floor((getAttrVal('str') / 2) - 5),
-        dex: Math.floor((getAttrVal('dex') / 2) - 5),
-        con: Math.floor((getAttrVal('con') / 2) - 5),
-        int: Math.floor((getAttrVal('int') / 2) - 5),
-        wis: Math.floor((getAttrVal('wis') / 2) - 5),
-        cha: Math.floor((getAttrVal('cha') / 2) - 5)
+        str: getAttrMod('str'),
+        dex: getAttrMod('dex'),
+        con: getAttrMod('con'),
+        int: getAttrMod('int'),
+        wis: getAttrMod('wis'),
+        cha: getAttrMod('cha')
       }
 
       abilities.forEach(ability => {
