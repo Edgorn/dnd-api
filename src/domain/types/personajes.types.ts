@@ -11,6 +11,7 @@ import { EstadoApi } from "./estados.types"
 import { ClaseLevelUp, SpellcastingLevel } from "./clases.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { CriaturaApi } from "./criaturas.types"
+import { AtributoPersonajeApi } from "./caracteristica.types"
 
 export interface TypeCrearPersonaje {
   name: string,
@@ -40,14 +41,11 @@ export interface TypeCrearPersonaje {
     hair: string,
     skin: string
   },
-  abilities: {
-    str: number,
-    dex: number,
-    con: number,
-    int: number,
-    wis: number,
-    cha: number
-  },
+  attributes: {
+    key: string,
+    value: number
+  }[],
+  systems: string[],
   race: string,
   raceId: string,
   subraceId: string,
@@ -87,7 +85,7 @@ export interface TypeSubirNivel {
     prof_bonus: number,
     subclaseId: string,
     subclase: string,
-    abilities: {}
+    attributes: { key: string, value: number }[]
   }
 }
 
@@ -122,14 +120,11 @@ export interface PersonajeBasico {
   HPActual: number,
   XP: number,
   XPMax: number,
-  abilities: {
-    str: number,
-    dex: number,
-    con: number,
-    int: number,
-    wis: number,
-    cha: number
-  },
+  attributes: {
+    key: string,
+    value: number
+  }[],
+  systems: string[],
   speed: Speed,
 }
 
@@ -162,14 +157,11 @@ export interface PersonajeMongo {
     hair: string,
     skin: string
   },
-  abilities: {
-    str: number,
-    dex: number,
-    con: number,
-    int: number,
-    wis: number,
-    cha: number
-  },
+  attributes: {
+    key: string,
+    value: number
+  }[],
+  systems: string[],
   race: string,
   raceId: string,
   subraceId: string,
@@ -253,7 +245,8 @@ export interface PersonajeApi {
   level: number,
   XP: number,
   XPMax: number,
-  abilities: Abilities,
+  attributes: AtributoPersonajeApi[],
+  systems: string[],
   HPMax: number,
   CA: number,
   speed: Speed,
@@ -299,7 +292,7 @@ export interface TypeSubirNivel {
   traits_data: RasgoDataMongo,
   prof_bonus: number,
   subclase?: string,
-  abilities: Record<AbilityKey, number> | null,
+  attributes: { key: string, value: number }[] | null,
   dotes: string[],
   skills: string[],
   double_skills: string[],

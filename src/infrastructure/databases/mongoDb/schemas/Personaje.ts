@@ -8,7 +8,12 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   img: String,
   background: {},
   appearance: {},
-  abilities: {},
+  attributes: [{
+    _id: false,
+    key: String,
+    value: Number
+  }],
+  systems: [String],
   raceId: String,
   subraceId: String,
   type: String,

@@ -5,4 +5,5 @@ export default interface ISystemRepository {
   crear(data: TypeCrearSystem): Promise<SystemApi | null>;
   modificar(data: TypeModificarSystem): Promise<SystemApi | null>;
   obtenerPorId(id: string): Promise<System | null>;
+  obtenerFormulaModificadorGlobal(systems: string[]): Promise<string | undefined>;
 }

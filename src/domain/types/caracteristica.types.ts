@@ -44,3 +44,13 @@ export interface CaracteristicaBonus {
   name: string;
   bonus: number;
 }
+
+export interface AtributoPersonajeApi {
+  id: string;
+  name: string;
+  description: string;
+  key: string;
+  abbreviation: string;
+  value: number;
+  modifier?: number;
+}

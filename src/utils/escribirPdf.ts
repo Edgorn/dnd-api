@@ -624,7 +624,8 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
         }
 
         if (equip?.armor?.class?.dex_bonus) {
-          CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex / 2) - 5), equip?.armor?.class?.max_bonus ?? 99), 0)
+          const dexVal = personaje.attributes?.find(a => a.key === 'dex')?.value ?? 10
+          CA += Math.max(Math.min(Math.floor((dexVal / 2) - 5), equip?.armor?.class?.max_bonus ?? 99), 0)
         }
 
         escribirParrafo({
@@ -722,7 +723,8 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
 }
 
 const calcularAtaque = (character: any, spellcasting: string) => {
-  return (character.prof_bonus ?? 0) + (Math.floor((character.abilities[spellcasting] / 2) - 5) ?? 0)
+  const attrVal = character.attributes?.find((a: any) => a.key === spellcasting)?.value ?? 10
+  return (character.prof_bonus ?? 0) + (Math.floor((attrVal / 2) - 5) ?? 0)
 }
 
 function formatNumber(num: any) {

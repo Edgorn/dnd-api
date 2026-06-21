@@ -1,9 +1,13 @@
 import ICaracteristicaRepository from "../../../../domain/repositories/ICaracteristicaRepository";
-import { CaracteristicaApi, CaracteristicaMongo, InputCrearCaracteristica, InputModificarCaracteristica, CaracteristicaBonus, CaracteristicaBonusCreate } from "../../../../domain/types/caracteristica.types";
+import { CaracteristicaApi, CaracteristicaMongo, InputCrearCaracteristica, InputModificarCaracteristica, CaracteristicaBonus, CaracteristicaBonusCreate, AtributoPersonajeApi } from "../../../../domain/types/caracteristica.types";
 import { ChoiceMongo, ChoiceApi } from "../../../../domain/types";
 import CaracteristicaSchema from "../schemas/Caracteristica";
+import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 
 export default class CaracteristicaRepository implements ICaracteristicaRepository {
+  constructor(
+    private readonly systemRepository: ISystemRepository
+  ) { }
   async crear(data: InputCrearCaracteristica): Promise<CaracteristicaApi> {
     const nuevaCaracteristica = new CaracteristicaSchema({
       ruleset: [data.ruleset], // Al crear se pasa ruleset como string y se almacena en el array
@@ -70,7 +74,7 @@ export default class CaracteristicaRepository implements ICaracteristicaReposito
   }
 
   async formatearAbilityBonuses(
-    ability_bonuses: CaracteristicaBonusCreate[], 
+    ability_bonuses: CaracteristicaBonusCreate[],
     ruleset: string
   ): Promise<CaracteristicaBonus[]> {
     if (!ability_bonuses || ability_bonuses.length === 0) return [];
@@ -90,9 +94,9 @@ export default class CaracteristicaRepository implements ICaracteristicaReposito
       };
     });
   }
- 
+
   async formatearAbilityBonusChoices(
-    ability_bonus_choices: ChoiceMongo | undefined, 
+    ability_bonus_choices: ChoiceMongo | undefined,
     ruleset: string
   ): Promise<ChoiceApi<CaracteristicaBonus> | undefined> {
     if (!ability_bonus_choices) return undefined;
@@ -111,7 +115,7 @@ export default class CaracteristicaRepository implements ICaracteristicaReposito
           bonus: 1
         }
       });
-      
+
       return {
         choose: ability_bonus_choices.choose,
         options
@@ -119,6 +123,37 @@ export default class CaracteristicaRepository implements ICaracteristicaReposito
     }
 
     return undefined;
+  }
+
+  async formatearAtributos(attributes: { key: string, value: number }[], systems: string[]): Promise<AtributoPersonajeApi[]> {
+    const characteristics = await this.obtenerPorSistemas(systems);
+    const globalModifierFormula = await this.systemRepository.obtenerFormulaModificadorGlobal(systems);
+
+    return characteristics.map(c => {
+      const dbAttr = attributes.find(a => a.key === c.key);
+      const value = dbAttr ? dbAttr.value : 10;
+
+      let modifier = undefined;
+
+      if (globalModifierFormula) {
+        try {
+          const calcFunc = new Function('valor', `return ${globalModifierFormula}`);
+          modifier = calcFunc(value);
+        } catch (e) {
+          console.error("Error al evaluar globalModifierFormula:", e);
+        }
+      }
+
+      return {
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        key: c.key,
+        abbreviation: c.abbreviation,
+        value,
+        modifier
+      };
+    });
   }
 
   private formatearCaracteristica(caracteristica: CaracteristicaMongo): CaracteristicaApi {

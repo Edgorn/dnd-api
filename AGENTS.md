@@ -44,7 +44,7 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
 
 3. **Arquitectura Hexagonal / DDD:**
    - **Los Casos de Uso (`application/use-cases/`)** deben orquestar la lógica. Solo deben comunicarse con los servicios de dominio o repositorios inyectados, sin acoplarse a Express (`req`, `res`).
-   - **Los Repositorios (`infrastructure/databases/mongoDb/repositories/`)** encapsulan toda la lógica específica de Mongoose. No expongas objetos o métodos de Mongoose en capas superiores.
+   - **Los Repositorios (`infrastructure/databases/mongoDb/repositories/`)** encapsulan toda la lógica específica de Mongoose. No expongas objetos o métodos de Mongoose en capas superiores. Además, **respeta la arquitectura hexagonal**: un repositorio no debe importar y usar directamente el Modelo/Schema de Mongoose que pertenezca a otra entidad. Si necesitas datos de otra entidad, inyecta su respectivo repositorio a través del constructor.
    - **El Dominio (`domain/`)** no debe tener dependencias de infraestructura (ni Express, ni Mongoose, etc.).
 
 4. **Validaciones:**

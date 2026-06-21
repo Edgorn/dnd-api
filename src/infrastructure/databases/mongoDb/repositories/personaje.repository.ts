@@ -4,9 +4,10 @@ import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganiz
 import axios from 'axios';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import { AbilityKey, ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
+import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import Campaña from '../schemas/Campaña';
 import { DañoApi } from '../../../../domain/types';
+import ICaracteristicaRepository from '../../../../domain/repositories/ICaracteristicaRepository';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
@@ -26,6 +27,7 @@ import ICriaturaRepository from '../../../../domain/repositories/ICriaturaReposi
 import fs from 'fs'
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
+import { AtributoPersonajeApi } from '../../../../domain/types/caracteristica.types';
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 const prof_bonus = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
@@ -56,7 +58,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly claseRepository: IClaseRepository,
     private readonly invocacionRepository: IInvocacionRepository,
     private readonly razaRepository: IRazaRepository,
-    private readonly criaturaRepository: ICriaturaRepository
+    private readonly criaturaRepository: ICriaturaRepository,
+    private readonly caracteristicaRepository: ICaracteristicaRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -82,7 +85,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       speed,
       size,
       appearance,
-      abilities,
+      attributes,
+      systems,
       race,
       raceId,
       subraceId,
@@ -117,7 +121,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       HP += 1
     }
 
-    HP += Math.floor((abilities.con / 2) - 5)
+    const conVal = attributes.find(a => a.key === 'con')?.value ?? 10;
+    HP += Math.floor((conVal / 2) - 5)
 
     const moneyAux: any = {
       pc: 0,
@@ -137,7 +142,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       img,
       background: dataBackground,
       appearance,
-      abilities,
+      attributes,
+      systems,
       raceId: raceId,
       subraceId: subraceId,
       type,
@@ -424,7 +430,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   async subirNivel(data: TypeSubirNivel): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { id, hit, clase, traits, traits_data, prof_bonus, subclase, abilities, dotes, skills, double_skills, spells, proficiencies, invocations, /*,disciplines, metamagic*/ } = data
+    const { id, hit, clase, traits, traits_data, prof_bonus, subclase, attributes, dotes, skills, double_skills, spells, proficiencies, invocations, /*,disciplines, metamagic*/ } = data
     const personaje = await Personaje.findById(id);
     //const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
@@ -499,7 +505,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spellsData[clase] = spells
     }
 
-    let HP = hit + Math.floor(((personaje?.abilities?.con ?? 10) / 2) - 5)
+    const conVal = personaje?.attributes?.find(a => a.key === 'con')?.value ?? 10
+    let HP = hit + Math.floor(((conVal) / 2) - 5)
 
     if (traits.includes('dwarven-toughness')) {
       HP += 1
@@ -522,7 +529,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           traits: traitsSinRepetidos,
           traits_data: { ...personaje?.traits_data, ...traits_data },
           subclasses: [...personaje?.subclasses ?? [], ...subclaseArray ?? []],
-          abilities: abilities ?? personaje?.abilities,
+          attributes: attributes ?? personaje?.attributes,
           dotes: [
             ...personaje?.dotes ?? [], ...dotes ?? []
           ],
@@ -696,7 +703,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
   private async formatearPersonajesBasicos(personajes: PersonajeMongo[], userName?: string): Promise<PersonajeBasico[]> {
     const campaignIds = [...new Set(personajes.map(p => p.campaign).filter(id => id))];
-    
+
     const campaigns = await Campaña.find().where('_id').in(campaignIds)
     const campaignMap = new Map(campaigns.map(c => [c._id.toString(), c.name]));
 
@@ -724,7 +731,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       img: personaje.img,
       name: personaje.name,
       user,
-      abilities: personaje.abilities,
+      attributes: personaje.attributes,
+      systems: personaje.systems ?? [],
       speed: personaje.speed,
       race: personaje.race,
       campaign: finalCampaignName,
@@ -765,7 +773,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
           }
 
           if (armor?.armor?.class?.dex_bonus) {
-            CA += Math.max(Math.min(Math.floor((personaje?.abilities.dex / 2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
+            const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
+            CA += Math.max(Math.min(Math.floor((dexVal / 2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
           }
 
           armadura = true
@@ -787,11 +796,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     if (!armadura) {
       if (personaje.traits.includes('barbarian-unarmored-defense')) {
-        CA += Math.floor((personaje?.abilities.con / 2) - 5) + Math.floor((personaje?.abilities.dex / 2) - 5)
+        const conVal = personaje.attributes.find(a => a.key === 'con')?.value ?? 10
+        const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
+        CA += Math.floor((conVal / 2) - 5) + Math.floor((dexVal / 2) - 5)
       } else if (personaje.traits.includes('monk-unarmored-defense')) {
-        CA += Math.floor((personaje.abilities.wis / 2) - 5) + Math.floor((personaje.abilities.dex / 2) - 5)
+        const wisVal = personaje.attributes.find(a => a.key === 'wis')?.value ?? 10
+        const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
+        CA += Math.floor((wisVal / 2) - 5) + Math.floor((dexVal / 2) - 5)
       } else if (personaje.traits.includes('draconid-resistance')) {
-        CA += 3 + Math.floor((personaje.abilities.dex / 2) - 5)
+        const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
+        CA += 3 + Math.floor((dexVal / 2) - 5)
       }
     }
 
@@ -929,10 +943,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const campaign = await Campaña.findById(personaje?.campaign)
     const dotes = await this.doteRepository.obtenerDotesPorIndices(personaje?.dotes ?? [])
-    const abilities = this.calcularAbilites(personaje)
+    const modifiedAttributes = this.calcularAttributes(personaje)
+    const apiAttributes: AtributoPersonajeApi[] = await this.caracteristicaRepository.formatearAtributos(modifiedAttributes, personaje.systems ?? [])
+
     const { CA, plusSpeed } = await this.calcularCA(personaje, traits)
-  
-    let cargaMaxima = abilities.str * 15
+
+    const strVal = apiAttributes.find(a => a.key === 'str')?.value ?? 10
+    let cargaMaxima = strVal * 15
 
     if (traits?.find(trait => trait.id === "semblance-beast-bear")) {
       cargaMaxima *= 2
@@ -948,7 +965,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
- 
+
 
     return {
       id: personaje._id.toString(),
@@ -964,7 +981,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       level,
       XP: personaje.XP,
       XPMax: nivel[level - 1],
-      abilities,
+      attributes: apiAttributes,
+      systems: personaje.systems ?? [],
       HPMax: personaje?.HPMax,
       CA,
       speed: {
@@ -1061,19 +1079,20 @@ export default class PersonajeRepository implements IPersonajeRepository {
       form.getTextField('Weight').setText((personaje?.appearance?.weight ?? 0) + ' kg');
       form.getTextField('Hair').setText(personaje?.appearance?.hair);
 
-      const abilities: AbilityKey[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
+      const abilities: string[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
+      const getAttrVal = (key: string) => personaje?.attributes?.find(a => a.key === key)?.value ?? 10
 
       const bonus: { [key: string]: number } = {
-        str: Math.floor((personaje?.abilities?.str / 2) - 5),
-        dex: Math.floor((personaje?.abilities?.dex / 2) - 5),
-        con: Math.floor((personaje?.abilities?.con / 2) - 5),
-        int: Math.floor((personaje?.abilities?.int / 2) - 5),
-        wis: Math.floor((personaje?.abilities?.wis / 2) - 5),
-        cha: Math.floor((personaje?.abilities?.cha / 2) - 5)
+        str: Math.floor((getAttrVal('str') / 2) - 5),
+        dex: Math.floor((getAttrVal('dex') / 2) - 5),
+        con: Math.floor((getAttrVal('con') / 2) - 5),
+        int: Math.floor((getAttrVal('int') / 2) - 5),
+        wis: Math.floor((getAttrVal('wis') / 2) - 5),
+        cha: Math.floor((getAttrVal('cha') / 2) - 5)
       }
 
       abilities.forEach(ability => {
-        form.getTextField(ability.toUpperCase() + 'score').setText(personaje?.abilities[ability] + '');
+        form.getTextField(ability.toUpperCase() + 'score').setText(getAttrVal(ability) + '');
         form.getTextField(ability.toUpperCase() + 'bonus').setText(this.formatNumber(bonus[ability]) + '');
 
         if (personaje?.saving_throws?.includes(ability)) {
@@ -1102,7 +1121,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
       if (monkTrait) {
         const dado = parseInt(monkTrait.summary.join(' ').split('1d')[1][0])
-        const max = Math.max(personaje?.abilities?.str, personaje?.abilities?.dex)
+        const strVal = personaje?.attributes?.find(a => a.key === 'str')?.value ?? 10
+        const dexVal = personaje?.attributes?.find(a => a.key === 'dex')?.value ?? 10
+        const max = Math.max(strVal, dexVal)
         const daño = Math.floor((max / 2) - 5)
 
         form.getTextField('Attack1').setText('Cuerpo a cuerpo');
@@ -1138,7 +1159,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       form.getTextField('Speed').setText(personaje?.speed?.walk + '');
 
       form.getTextField('HitDiceTotal').setText(personaje.classes?.map(clase => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');
-  
+
       const skillPerception = personaje?.skills?.find(skill => skill?.index === 'perception' && skill?.value)
 
       if (skillPerception) {
@@ -1146,7 +1167,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       } else {
         form.getTextField('PWP').setText(10 + bonus.wis + '');
       }
-   
+
       escribirRasgos({
         traits: personaje?.traits ?? [],
         invocations: personaje?.invocations ?? [],
@@ -1245,31 +1266,38 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return pdfBytes
   }
 
-  private calcularAbilites(personaje: PersonajeMongo) {
-    const { abilities } = personaje
+  private calcularAttributes(personaje: PersonajeMongo): { key: string, value: number }[] {
+    const attributes = personaje.attributes ?? []
 
     if (personaje?.traits?.includes('primal-champion')) {
-      abilities.str += 4
-      abilities.con += 4
+      return attributes.map(attr => {
+        let val = attr.value
+        if (attr.key === 'str' || attr.key === 'con') {
+          val += 4
+        }
+        return { key: attr.key, value: val }
+      })
     }
 
-    return abilities
+    return attributes
   }
 
   private sumaDaño(character: PersonajeApi, equip: EquipamientoPersonajeApi) {
     let suma = equip?.isMagic ? 1 : 0
 
+    const getAttrVal = (key: string) => character.attributes?.find(a => a.key === key)?.value ?? 10
+
     if (equip?.weapon?.properties.find(prop => prop.index === 'finesse')) {
-      const max = Math.max(character?.abilities?.str, character?.abilities?.dex)
+      const max = Math.max(getAttrVal('str'), getAttrVal('dex'))
 
       suma += Math.floor((max / 2) - 5)
     } else if (equip?.weapon?.range === 'Distancia') {
-      suma += Math.floor((character?.abilities?.dex / 2) - 5)
+      suma += Math.floor((getAttrVal('dex') / 2) - 5)
       if (character?.traits?.map(trait => trait.id)?.includes("fighter-fighting-style-archery")) {
         suma += 2
       }
     } else {
-      suma += Math.floor((character?.abilities?.str / 2) - 5)
+      suma += Math.floor((getAttrVal('str') / 2) - 5)
     }
 
     return suma

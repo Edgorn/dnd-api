@@ -96,6 +96,9 @@ import { CaracteristicaController } from "./http/controllers/caracteristica.cont
 
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
+const systemRepository = new SystemRepository(
+  usuarioRepository
+)
 const competenciaRepository = new CompetenciaRepository()
 const conjuroRepository = new ConjuroRepository()
 const habilidadRepository = new HabilidadRepository()
@@ -105,7 +108,7 @@ const equipamientoRepository = new EquipamientoRepository(dañoRepository, propi
 const doteRepository = new DoteRepository()
 const idiomaRepository = new IdiomaRepository()
 const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
-const caracteristicaRepository = new CaracteristicaRepository()
+const caracteristicaRepository = new CaracteristicaRepository(systemRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
 const claseRepository = new ClaseRepository(
   habilidadRepository,
@@ -155,16 +158,13 @@ const personajeRepository = new PersonajeRepository(
   claseRepository,
   invocacionRepository,
   razaRepository,
-  criaturaRepository
+  criaturaRepository,
+  caracteristicaRepository
 )
 
 const campañaRepository = new CampañaRepository(
   usuarioRepository,
   personajeRepository
-)
-
-const systemRepository = new SystemRepository(
-  usuarioRepository
 )
 
 const campañaService = new CampañaService(campañaRepository)

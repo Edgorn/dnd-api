@@ -14,6 +14,24 @@ export default class SystemRepository implements ISystemRepository {
     private readonly usuarioRepository: IUsuarioRepository
   ) {}
 
+  async obtenerFormulaModificadorGlobal(systems: string[]): Promise<string | undefined> {
+    if (!systems || systems.length === 0) return undefined;
+
+    const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
+    const systemsDocs = await SistemasModel.find({
+      $or: [
+        { _id: { $in: validIds as any[] } },
+        { name: { $in: systems } }
+      ],
+      globalModifierFormula: { $exists: true, $ne: "" }
+    });
+
+    if (systemsDocs.length > 0) {
+      return systemsDocs[0].globalModifierFormula;
+    }
+    return undefined;
+  }
+
   private async obtenerCaracteristicasSistema(sysId: string, sysName: string): Promise<CaracteristicaApi[]> {
     const rulesetQuery = {
       $or: [
