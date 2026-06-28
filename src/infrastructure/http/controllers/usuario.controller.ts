@@ -1,10 +1,11 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import Logear from "../../../application/use-cases/usuario/login.use-case";
+import { AppError } from "../../../domain/errors/AppError";
 
 export class UsuarioController {
   constructor(private readonly logearUseCase: Logear) { }
 
-  login = async (req: Request, res: Response): Promise<void> => {
+  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { user, password } = req.body
 
@@ -12,15 +13,12 @@ export class UsuarioController {
 
       if (!data) {
         console.warn(`[AUTH] Intento de login fallido: ${user}`);
-        res.status(401).json({ error: "Usuario o contraseña incorrectos" });
-        return;
+        throw new AppError("Usuario o contraseña incorrectos", 401);
       }
 
       res.status(200).json(data);
-
     } catch (error) {
-      console.error("[AUTH] Error crítico en login:", error)
-      res.status(500).json({ error: 'Error interno al intentar iniciar sesión' });
+      next(error);
     }
   };
 }

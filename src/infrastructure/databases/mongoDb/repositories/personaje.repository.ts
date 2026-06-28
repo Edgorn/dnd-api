@@ -14,7 +14,7 @@ import IEquipamientoRepository from '../../../../domain/repositories/IEquipamien
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
-import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
+import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { ConjuroApi } from '../../../../domain/types/conjuros.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
 import { TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
@@ -28,6 +28,7 @@ import fs from 'fs'
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import { CharacterAttributeApi } from '../../../../domain/types/attribute.types';
+import { evaluateFormula } from '../../../../utils/formulaEvaluator';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
@@ -53,7 +54,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly rasgoRepository: IRasgoRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly idiomaRepository: IIdiomaRepository,
-    private readonly habilidadRepository: IHabilidadRepository,
+    private readonly skillRepository: ISkillRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly claseRepository: IClaseRepository,
@@ -899,7 +900,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const idiomas_understands = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId?.understands ?? [])
     const idiomas_speaks = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId?.speaks ?? [])
-    let habilidades = await this.habilidadRepository.obtenerHabilidadesPersonaje(skills, personaje?.double_skills ?? [])
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)
 
     const clases = personaje.classes
@@ -951,24 +951,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const initiativeBonusFormula = await this.systemRepository.obtenerFormulaBonoIniciativa(personaje.systems ?? []);
     let initiativeBonus = 0;
     if (initiativeBonusFormula) {
-      const regexFormula = /@attributes\.(\w+)\.(modifier|value)/g;
-      const evaluatedFormula = initiativeBonusFormula.replace(regexFormula, (match, key, prop) => {
-        const attr = apiAttributes.find(a => a.key === key);
-        if (!attr) return '0';
-        const val = attr[prop as 'modifier' | 'value'];
-        return val !== undefined ? String(val) : '0';
-      });
-
-      if (/^[0-9+\-**/().\s]+$/.test(evaluatedFormula)) {
-        try {
-          const calcFunc = new Function(`return ${evaluatedFormula}`);
-          initiativeBonus = calcFunc();
-        } catch (e) {
-          console.error("Error evaluating initiativeBonusFormula:", e);
-        }
-      } else {
-        console.error("Unsafe formula detected for initiativeBonusFormula:", evaluatedFormula);
-      }
+      initiativeBonus = evaluateFormula(initiativeBonusFormula, apiAttributes);
     } else {
       const dexAttr = apiAttributes.find(a => a.key === 'dex');
       initiativeBonus = dexAttr?.modifier ?? 0;
@@ -983,17 +966,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
       cargaMaxima *= 2
     }
 
-    if (traits?.find(trait => trait.id === "jack-of-all-trades")) {
-      habilidades = habilidades.map(habilidad => {
-        return {
-          ...habilidad,
-          value: habilidad.value ? habilidad.value : 0.5
-        }
-      })
-    }
+    const hasJackOfAllTrades = !!traits?.find(trait => trait.id === "jack-of-all-trades");
+    const skillsListEvaluated = await this.skillRepository.getCharacterSkills(
+      skills,
+      personaje?.double_skills ?? [],
+      apiAttributes,
+      personaje?.prof_bonus ?? 0,
+      hasJackOfAllTrades
+    );
 
     const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
-
 
     return {
       id: personaje._id.toString(),
@@ -1017,7 +999,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       speed: {
         walk: speed.walk + plusSpeed
       },
-      skills: habilidades,
+      skills: skillsListEvaluated,
       languages: {
         understands: idiomas_understands,
         speaks: idiomas_speaks,
@@ -1135,11 +1117,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
       personaje?.skills?.forEach(skill => {
         if (skill?.value) {
-          form.getCheckBox(datos[skill?.index][0]).check()
-          form.getTextField(datos[skill?.index][1]).setText(this.formatNumber(bonus[skill.ability_score] + (personaje?.prof_bonus * skill?.value)) + '');
-        } else {
-          form.getTextField(datos[skill?.index][1]).setText(this.formatNumber(bonus[skill.ability_score]) + '');
+          form.getCheckBox(datos[skill?.key][0]).check()
         }
+        form.getTextField(datos[skill?.key][1]).setText(this.formatNumber(skill?.modifier) + '');
       })
 
       if (personaje?.equipment?.find(equi => equi.name === 'Escudo' && equi.equipped)) {
@@ -1190,10 +1170,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
       form.getTextField('HitDiceTotal').setText(personaje.classes?.map(clase => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');
 
-      const skillPerception = personaje?.skills?.find(skill => skill?.index === 'perception' && skill?.value)
+      const skillPerception = personaje?.skills?.find(skill => skill?.key === 'perception')
 
       if (skillPerception) {
-        form.getTextField('PWP').setText(10 + bonus.wis + (personaje?.prof_bonus * skillPerception.value) + '');
+        form.getTextField('PWP').setText(10 + skillPerception.modifier + '');
       } else {
         form.getTextField('PWP').setText(10 + bonus.wis + '');
       }

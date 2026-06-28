@@ -1,7 +1,8 @@
 import IAttributeRepository from "../../../../domain/repositories/IAttributeRepository";
-import { AttributeApi, InputCreateAttribute, InputUpdateAttribute, AttributeBonus, AttributeBonusCreate, CharacterAttributeApi } from "../../../../domain/types/attribute.types";
+import { NotFoundError } from "../../../../domain/errors/AppError";
+import { AttributeApi, InputCreateAttribute, InputUpdateAttribute, AttributeBonus, AttributeBonusCreate, CharacterAttributeApi, AttributeMongo } from "../../../../domain/types/attribute.types";
 import { ChoiceMongo, ChoiceApi } from "../../../../domain/types";
-import AttributeSchema, { AttributeMongo } from "../schemas/Attribute";
+import AttributeSchema from "../schemas/Attribute";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 
 export default class AttributeRepository implements IAttributeRepository {
@@ -32,7 +33,7 @@ export default class AttributeRepository implements IAttributeRepository {
     );
 
     if (!updatedAttribute) {
-      throw new Error(`No attribute found with id: ${id}`);
+      throw new NotFoundError(`No attribute found with id: ${id}`);
     }
 
     return this.formatAttribute(updatedAttribute);
@@ -46,7 +47,7 @@ export default class AttributeRepository implements IAttributeRepository {
     );
 
     if (!attribute) {
-      throw new Error(`No attribute found with id: ${attributeId}`);
+      throw new NotFoundError(`No attribute found with id: ${attributeId}`);
     }
 
     return this.formatAttribute(attribute);
@@ -60,7 +61,7 @@ export default class AttributeRepository implements IAttributeRepository {
     );
 
     if (!attribute) {
-      throw new Error(`No attribute found with id: ${attributeId}`);
+      throw new NotFoundError(`No attribute found with id: ${attributeId}`);
     }
 
     if (!attribute.ruleset || attribute.ruleset.length === 0) {
@@ -154,6 +155,7 @@ export default class AttributeRepository implements IAttributeRepository {
 
       return {
         id: c.id,
+        ruleset: c.ruleset,
         name: c.name,
         description: c.description,
         key: c.key,

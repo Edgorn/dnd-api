@@ -5,7 +5,7 @@ import DañoRepository from "../../databases/mongoDb/repositories/daño.reposito
 import EstadoRepository from "../../databases/mongoDb/repositories/estado.repository";
 import IdiomaRepository from "../../databases/mongoDb/repositories/idioma.repository";
 import NpcRepository from "../../databases/mongoDb/repositories/npc.repository";
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 
 const npcRepository = new NpcRepository(
   new DañoRepository(),
@@ -17,13 +17,12 @@ const npcRepository = new NpcRepository(
 const npcService = new NpcService(npcRepository)
 const obtenerTodosLosNpcs = new ObtenerTodosLosNpc(npcService)
 
-const getNpcs = async (req: Request, res: Response) => {
+const getNpcs = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await obtenerTodosLosNpcs.execute()
     res.status(200).json(data);
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ error: 'Error al consultar pnjs unicos' });
+    next(e);
   }
 };
 

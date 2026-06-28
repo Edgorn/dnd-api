@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
+import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import SistemasModel from '../schemas/System';
 import { System, SystemApi, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
 import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
@@ -11,7 +12,8 @@ import { AttributeApi } from '../../../../domain/types/attribute.types';
 
 export default class SystemRepository implements ISystemRepository {
   constructor(
-    private readonly usuarioRepository: IUsuarioRepository
+    private readonly usuarioRepository: IUsuarioRepository,
+    private readonly skillRepository: ISkillRepository
   ) {}
 
   async obtenerFormulaModificadorGlobal(systems: string[]): Promise<string | undefined> {
@@ -130,6 +132,11 @@ export default class SystemRepository implements ISystemRepository {
         sys.name
       );
 
+      const skills = await this.skillRepository.getBySystems([
+        sys._id.toString(),
+        sys.name
+      ]);
+
       return {
         id: sys._id.toString(),
         name: sys.name || '',
@@ -146,7 +153,8 @@ export default class SystemRepository implements ISystemRepository {
         defaultMaxAttributeValue: sys.defaultMaxAttributeValue,
         creationMinAttributeValue: sys.creationMinAttributeValue,
         creationMaxAttributeValue: sys.creationMaxAttributeValue,
-        attributes
+        attributes,
+        skills
       };
     }));
   }
@@ -185,6 +193,11 @@ export default class SystemRepository implements ISystemRepository {
       resultado.name
     );
 
+    const skills = await this.skillRepository.getBySystems([
+      resultado._id.toString(),
+      resultado.name
+    ]);
+
     return {
       id: resultado._id.toString(),
       name: resultado.name || '',
@@ -201,7 +214,8 @@ export default class SystemRepository implements ISystemRepository {
       defaultMaxAttributeValue: resultado.defaultMaxAttributeValue,
       creationMinAttributeValue: resultado.creationMinAttributeValue,
       creationMaxAttributeValue: resultado.creationMaxAttributeValue,
-      attributes
+      attributes,
+      skills
     };
   }
 
@@ -245,6 +259,11 @@ export default class SystemRepository implements ISystemRepository {
       resultado.name
     );
 
+    const skills = await this.skillRepository.getBySystems([
+      resultado._id.toString(),
+      resultado.name
+    ]);
+
     return {
       id: resultado._id.toString(),
       name: resultado.name || '',
@@ -261,7 +280,8 @@ export default class SystemRepository implements ISystemRepository {
       defaultMaxAttributeValue: resultado.defaultMaxAttributeValue,
       creationMinAttributeValue: resultado.creationMinAttributeValue,
       creationMaxAttributeValue: resultado.creationMaxAttributeValue,
-      attributes
+      attributes,
+      skills
     };
   }
 

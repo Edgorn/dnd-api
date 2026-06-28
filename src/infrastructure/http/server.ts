@@ -14,12 +14,13 @@ import criaturasRoutes from "./routes/criaturas.routes";
 import npcsRoutes from "./routes/npcs.routes";
 import conjuroRoutes from "./routes/conjuro.routes";
 import rasgosRoutes from "./routes/rasgo.routes";
-import habilidadRoutes from "./routes/habilidad.routes";
+import skillRoutes from "./routes/skill.routes";
 import idiomaRoutes from "./routes/idioma.routes";
 import systemRoutes from "./routes/system.routes";
 import attributeRoutes from "./routes/attribute.routes";
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import { errorHandler } from "./middlewares/errorHandler.middleware";
 
 const app: Application = express();
 
@@ -43,10 +44,12 @@ app.use(criaturasRoutes);
 app.use(npcsRoutes);
 app.use(conjuroRoutes);
 app.use(rasgosRoutes);
-app.use(habilidadRoutes);
+app.use(skillRoutes);
 app.use(idiomaRoutes)
 app.use(systemRoutes);
 app.use(attributeRoutes);
+
+app.use(errorHandler);
 
 // Documentación Swagger API
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

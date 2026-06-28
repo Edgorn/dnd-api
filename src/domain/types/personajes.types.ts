@@ -1,6 +1,6 @@
 import { ObjectId } from "mongoose"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
-import { HabilidadPersonajeApi } from "./habilidades.types"
+import { SkillPersonajeApi } from "./skill.types"
 import { IdiomasCriatura, IdiomasCriaturaCrear } from "./idiomas.types"
 import { CompetenciaApi } from "./competencias.types"
 import { DañoApi, Speed } from "."
@@ -251,7 +251,7 @@ export interface PersonajeApi {
   HPMax: number,
   CA: number,
   speed: Speed,
-  skills: HabilidadPersonajeApi[],
+  skills: SkillPersonajeApi[],
   languages: IdiomasCriatura,
   proficiencies: CompetenciaApi[],
   traits: RasgoApi[],

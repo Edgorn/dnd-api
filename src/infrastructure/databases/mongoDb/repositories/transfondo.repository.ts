@@ -1,6 +1,6 @@
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
-import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
+import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
@@ -11,7 +11,7 @@ import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
 
 export default class TransfondoRepository implements ITransfondoRepository {
   constructor(
-    private readonly habilidadRepository: IHabilidadRepository,
+    private readonly skillRepository: ISkillRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly idiomaRepository: IIdiomaRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
@@ -50,7 +50,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits ?? []),
       this.rasgoRepository.obtenerRasgosOptions(transfondo?.traits_options),
-      this.habilidadRepository.obtenerHabilidadesPorIndices(transfondo?.skills ?? []),
+      this.skillRepository.getSkillsByKeys(transfondo?.skills ?? []),
       this.idiomaRepository.formatearOpcionesDeIdioma(transfondo?.language_choices),
       this.competenciaRepository.obtenerCompetenciasPorIndices(transfondo?.proficiencies ?? []),
       this.competenciaRepository.formatearOpcionesDeCompetencias(transfondo?.proficiencies_choices),

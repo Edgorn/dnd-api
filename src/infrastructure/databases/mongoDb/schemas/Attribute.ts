@@ -1,14 +1,5 @@
 import mongoose, { Schema, ObjectId } from "mongoose";
-
-export interface AttributeMongo {
-  _id: ObjectId;
-  ruleset: string[];
-  name: string;
-  description: string;
-  key: string;
-  abbreviation: string;
-  icon?: string;
-}
+import { AttributeMongo } from "../../../../domain/types/attribute.types";
 
 const attributeSchema: Schema = new Schema<AttributeMongo>({
   ruleset: [String],
@@ -17,7 +8,7 @@ const attributeSchema: Schema = new Schema<AttributeMongo>({
   key: String,
   abbreviation: String,
   icon: String
-}, { collection: 'Attributes' });
+}, { collection: 'attributes' });
 
-const AttributeModel = mongoose.model<AttributeMongo>("Attributes", attributeSchema);
+const AttributeModel = mongoose.model<AttributeMongo>("attributes", attributeSchema);
 export default AttributeModel;

@@ -1,6 +1,6 @@
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import IHabilidadRepository from '../../../../domain/repositories/IHabilidadRepository';
+import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
@@ -16,7 +16,7 @@ export default class RazaRepository implements IRazaRepository {
   constructor(
     private readonly idiomaRepository: IIdiomaRepository,
     private readonly conjuroRepository: IConjuroRepository,
-    private readonly habilidadRepository: IHabilidadRepository,
+    private readonly skillRepository: ISkillRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly rasgoRepository: IRasgoRepository,
@@ -120,7 +120,7 @@ export default class RazaRepository implements IRazaRepository {
       this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.attributeRepository.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
       this.attributeRepository.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
-      this.habilidadRepository.formatearOpcionesDeHabilidad(raza.skill_choices),
+      this.skillRepository.formatSkillChoices(raza.skill_choices),
       this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages?.understands ?? []),
       this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
       this.formatearSubrazas(raza.subraces, { ...dataLevel?.traits_data, ...raza.traits_data }, ruleset),
@@ -222,7 +222,7 @@ export default class RazaRepository implements IRazaRepository {
 
   async formatearVariante(variante: VarianteMongo, ruleset?: string): Promise<VarianteApi> {
     const [skill_choices, dotes, ability_bonuses, ability_bonus_choices] = await Promise.all([
-      ruleset ? this.habilidadRepository.formatearOpcionesDeHabilidad(variante?.skill_choices) : Promise.resolve(undefined),
+      ruleset ? this.skillRepository.formatSkillChoices(variante?.skill_choices) : Promise.resolve(undefined),
       this.doteRepository.formatearOpcionesDeDote(variante.dotes),
       ruleset ? this.attributeRepository.formatAbilityBonuses(variante?.ability_bonuses ?? [], ruleset) : Promise.resolve([]),
       ruleset ? this.attributeRepository.formatAbilityBonusChoices(variante?.ability_bonus_choices, ruleset) : Promise.resolve(undefined)

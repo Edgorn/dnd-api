@@ -3,7 +3,7 @@ import { AbilityBonusesMongo, ChoiceApi, ChoiceMongo, Speed } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
-import { HabilidadApi } from "./habilidades.types"
+import { SkillApi } from "./skill.types"
 import { IdiomaApi, IdiomasCriatura, IdiomasCriaturaCrear } from "./idiomas.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 import { AttributeBonus, AttributeBonusCreate } from "./attribute.types"
@@ -106,7 +106,7 @@ export interface RaceApi {
   },
   ability_bonuses: AttributeBonus[],
   ability_bonus_choices?: ChoiceApi<AttributeBonus>,
-  skill_choices?: ChoiceApi<HabilidadApi>,
+  skill_choices?: ChoiceApi<SkillApi>,
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
   languages: IdiomasCriatura,
@@ -145,7 +145,7 @@ export interface TypeApi {
 export interface VarianteApi {
   name: string,
   ability_bonuses: AttributeBonus[],
-  skill_choices?: ChoiceApi<HabilidadApi>,
+  skill_choices?: ChoiceApi<SkillApi>,
   ability_bonus_choices?: ChoiceApi<AttributeBonus>,
   dotes?: ChoiceApi<DoteApi>
 }

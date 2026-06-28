@@ -1,4 +1,4 @@
-import { Response } from "express"
+import { Response, NextFunction } from "express"
 import ObtenerRasgosPorSistemas from "../../../application/use-cases/rasgo/obtenerRasgosPorSistemas.use-case"
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import CrearRasgo from "../../../application/use-cases/rasgo/crearRasgo.use-case";
@@ -11,34 +11,31 @@ export class RasgoController {
     private readonly updateRasgoUseCase: ModificarRasgo
   ) { }
 
-  obtenerRasgosPorSistemas = async (req: AuthenticatedRequest, res: Response) => {
+  obtenerRasgosPorSistemas = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { ruleset } = req.query;
       const rasgos = await this.obtenerRasgosPorSistemasUseCase.execute(ruleset as string[])
       return res.status(200).json(rasgos)
-    } catch (error: any) {
-      console.error(error)
-      return res.status(500).json({ message: error.message })
+    } catch (error) {
+      next(error);
     }
   }
 
-  create = async (req: AuthenticatedRequest, res: Response) => {
+  create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const rasgo = await this.createRasgoUseCase.execute(req.body);
       return res.status(201).json(rasgo);
-    } catch (error: any) {
-      console.error("Error al crear el rasgo:", error);
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 
-  update = async (req: AuthenticatedRequest, res: Response) => {
+  update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const rasgo = await this.updateRasgoUseCase.execute(req.body);
       return res.status(200).json(rasgo);
-    } catch (error: any) {
-      console.error("Error al actualizar el rasgo:", error);
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 }

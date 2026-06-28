@@ -47,7 +47,7 @@ import CompetenciaRepository from "./databases/mongoDb/repositories/competencia.
 import ConjuroRepository from "./databases/mongoDb/repositories/conjuros.repository";
 import DoteRepository from "./databases/mongoDb/repositories/dote.repository";
 import EquipamientoRepository from "./databases/mongoDb/repositories/equipamiento.repository";
-import HabilidadRepository from "./databases/mongoDb/repositories/habilidad.repository";
+import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
 import IdiomaRepository from "./databases/mongoDb/repositories/idioma.repository";
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
 import RasgoRepository from "./databases/mongoDb/repositories/rasgo.repository";
@@ -76,9 +76,13 @@ import ObtenerRasgosPorSistemas from "../application/use-cases/rasgo/obtenerRasg
 import RasgoService from "../domain/services/rasgo.service";
 import CrearRasgo from "../application/use-cases/rasgo/crearRasgo.use-case";
 import ModificarRasgo from "../application/use-cases/rasgo/modificarRasgo.use-case";
-import { HabilidadController } from "./http/controllers/habilidad.controller";
-import HabilidadService from "../domain/services/habilidad.service";
-import ObtenerTodasLasHabilidades from "../application/use-cases/habilidad/obtenerHabilidadesPorSIstemas.use-case";
+import { SkillController } from "./http/controllers/skill.controller";
+import SkillService from "../domain/services/skill.service";
+import GetSkillsBySystems from "../application/use-cases/skill/getSkillsBySystems.use-case";
+import CreateSkill from "../application/use-cases/skill/createSkill.use-case";
+import UpdateSkill from "../application/use-cases/skill/updateSkill.use-case";
+import AddSystemToSkill from "../application/use-cases/skill/addSystemToSkill.use-case";
+import RemoveSystemFromSkill from "../application/use-cases/skill/removeSystemFromSkill.use-case";
 import ActualizarRaza from "../application/use-cases/raza/actualizarRaza.use-case";
 import { IdiomaController } from "./http/controllers/idioma.controller";
 import ObtenerIdiomasPorSistemas from "../application/use-cases/idioma/obtenerIdiomaPorSistema.use-case";
@@ -96,12 +100,13 @@ import { AttributeController } from "./http/controllers/attribute.controller";
 
 const estadoRepository = new EstadoRepository()
 const usuarioRepository = new UsuarioRepository()
+const skillRepository = new SkillRepository()
 const systemRepository = new SystemRepository(
-  usuarioRepository
+  usuarioRepository,
+  skillRepository
 )
 const competenciaRepository = new CompetenciaRepository()
 const conjuroRepository = new ConjuroRepository()
-const habilidadRepository = new HabilidadRepository()
 const dañoRepository = new DañoRepository()
 const propiedadArmaRepository = new PropiedadArmaRepository()
 const equipamientoRepository = new EquipamientoRepository(dañoRepository, propiedadArmaRepository)
@@ -111,7 +116,7 @@ const rasgoRepository = new RasgoRepository(dañoRepository, competenciaReposito
 const attributeRepository = new AttributeRepository(systemRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
 const claseRepository = new ClaseRepository(
-  habilidadRepository,
+  skillRepository,
   competenciaRepository,
   equipamientoRepository,
   rasgoRepository,
@@ -124,7 +129,7 @@ const claseRepository = new ClaseRepository(
 const razaRepository = new RazaRepository(
   idiomaRepository,
   conjuroRepository,
-  habilidadRepository,
+  skillRepository,
   competenciaRepository,
   doteRepository,
   rasgoRepository,
@@ -132,7 +137,7 @@ const razaRepository = new RazaRepository(
 )
 
 const transfondoRepository = new TransfondoRepository(
-  habilidadRepository,
+  skillRepository,
   competenciaRepository,
   idiomaRepository,
   equipamientoRepository,
@@ -152,7 +157,7 @@ const personajeRepository = new PersonajeRepository(
   rasgoRepository,
   competenciaRepository,
   idiomaRepository,
-  habilidadRepository,
+  skillRepository,
   conjuroRepository,
   doteRepository,
   claseRepository,
@@ -177,7 +182,7 @@ const equipamientoService = new EquipamientoService(equipamientoRepository)
 const personajeService = new PersonajeService(personajeRepository)
 const conjuroService = new ConjuroService(conjuroRepository)
 const rasgoService = new RasgoService(rasgoRepository)
-const habilidadService = new HabilidadService(habilidadRepository)
+const skillService = new SkillService(skillRepository)
 const systemService = new SystemService(systemRepository)
 const attributeService = new AttributeService(attributeRepository);
 
@@ -232,7 +237,11 @@ const obtenerRasgosPorSistemasUseCase = new ObtenerRasgosPorSistemas(rasgoServic
 const crearRasgoUseCase = new CrearRasgo(rasgoService)
 const modificarRasgoUseCase = new ModificarRasgo(rasgoService)
 
-const obtenerTodasLasHabilidades = new ObtenerTodasLasHabilidades(habilidadService)
+const getSkillsBySystems = new GetSkillsBySystems(skillService)
+const createSkill = new CreateSkill(skillService)
+const updateSkill = new UpdateSkill(skillService)
+const addSystemToSkill = new AddSystemToSkill(skillService)
+const removeSystemFromSkill = new RemoveSystemFromSkill(skillService)
 
 export const razaController = new RazaController(obtenerTodasLasRazas, crearRaza, actualizarRaza)
 
@@ -285,7 +294,13 @@ export const systemController = new SystemController(
 
 export const rasgoController = new RasgoController(obtenerRasgosPorSistemasUseCase, crearRasgoUseCase, modificarRasgoUseCase)
 
-export const habilidadController = new HabilidadController(obtenerTodasLasHabilidades)
+export const skillController = new SkillController(
+  getSkillsBySystems,
+  createSkill,
+  updateSkill,
+  addSystemToSkill,
+  removeSystemFromSkill
+)
 
 const idiomaService = new IdiomaService(idiomaRepository)
 

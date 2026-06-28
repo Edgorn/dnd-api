@@ -1,7 +1,7 @@
 import { ChoiceApi, ChoiceMongo, EquipamientoOpcionesApi, MixedChoicesApi, MixedChoicesMongo, OptionSelectApi } from ".";
 import { CompetenciaApi } from "./competencias.types";
 import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types";
-import { HabilidadApi } from "./habilidades.types";
+import { SkillApi } from "./skill.types";
 import { IdiomaApi } from "./idiomas.types";
 import { RasgoApi, TraitsOptionsApi, TraitsOptionsMongo } from "./rasgos.types";
 
@@ -59,7 +59,7 @@ export interface TransfondoApi {
   img: string,
   traits: RasgoApi[],
   traits_options?: TraitsOptionsApi,
-  skills?: HabilidadApi[],
+  skills?: SkillApi[],
   language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies: CompetenciaApi[],
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],

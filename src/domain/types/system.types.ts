@@ -1,5 +1,6 @@
 import { ObjectId } from "mongoose";
 import { AttributeApi } from "./attribute.types";
+import { SkillApi } from "./skill.types";
 
 export interface System {
   _id: ObjectId;
@@ -33,6 +34,7 @@ export interface SystemApi {
   creationMinAttributeValue?: number;
   creationMaxAttributeValue?: number;
   attributes: AttributeApi[];
+  skills: SkillApi[];
 }
 
 export interface TypeCrearSystem {

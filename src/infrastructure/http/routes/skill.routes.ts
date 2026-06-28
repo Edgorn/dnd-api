@@ -1,9 +1,8 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/auth.middleware";
-import { attributeController } from "../../dependencies";
-
+import { skillController } from "../../dependencies";
 import { validateSchema } from "../middlewares/validateSchema";
-import { CreateAttributeSchema, UpdateAttributeSchema, AddSystemSchema } from "../schemas/attribute.schema";
+import { CreateSkillSchema, UpdateSkillSchema, AddSystemSchema } from "../schemas/skill.schema";
 
 const router = Router();
 
@@ -11,12 +10,12 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
- *     Attribute:
+ *     Skill:
  *       type: object
  *       properties:
  *         id:
  *           type: string
- *           description: ID de MongoDB de la característica.
+ *           description: ID de MongoDB de la habilidad.
  *         ruleset:
  *           type: array
  *           items:
@@ -24,47 +23,47 @@ const router = Router();
  *           description: Array de IDs o nombres de sistemas asociados.
  *         name:
  *           type: string
- *           description: Nombre de la característica (ej. Fuerza).
+ *           description: Nombre de la habilidad.
  *         description:
  *           type: string
  *           description: Descripción detallada.
  *         key:
  *           type: string
- *           description: Clave identificadora única (ej. str, dex).
- *         abbreviation:
+ *           description: Clave identificadora única.
+ *         bonusFormula:
  *           type: string
- *           description: Abreviatura (ej. FUE, DES).
- *         icon:
- *           type: string
- *           description: Nombre o URL del icono opcional.
- *     InputCreateAttribute:
+ *           description: Fórmula utilizada para calcular el modificador de la habilidad.
+ *         attributeScore:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Claves de atributos asociados.
+ *     InputCreateSkill:
  *       type: object
  *       required:
  *         - ruleset
  *         - name
  *         - description
  *         - key
- *         - abbreviation
+ *         - bonusFormula
+ *         - attributeScore
  *       properties:
  *         ruleset:
  *           type: string
  *           description: ID o nombre del sistema inicial desde el que se crea.
  *         name:
  *           type: string
- *           description: Nombre de la característica.
  *         description:
  *           type: string
- *           description: Descripción.
  *         key:
  *           type: string
- *           description: Clave identificadora única.
- *         abbreviation:
+ *         bonusFormula:
  *           type: string
- *           description: Abreviatura.
- *         icon:
- *           type: string
- *           description: Nombre o URL del icono opcional.
- *     InputUpdateAttribute:
+ *         attributeScore:
+ *           type: array
+ *           items:
+ *             type: string
+ *     InputUpdateSkill:
  *       type: object
  *       properties:
  *         name:
@@ -73,19 +72,21 @@ const router = Router();
  *           type: string
  *         key:
  *           type: string
- *         abbreviation:
+ *         bonusFormula:
  *           type: string
- *         icon:
- *           type: string
+ *         attributeScore:
+ *           type: array
+ *           items:
+ *             type: string
  */
 
 /**
  * @openapi
- * /attributes:
+ * /skills:
  *   post:
- *     summary: Crear una nueva característica
+ *     summary: Crear una nueva habilidad
  *     tags:
- *       - Caracteristicas
+ *       - Habilidades
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -93,14 +94,14 @@ const router = Router();
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/InputCreateAttribute'
+ *             $ref: '#/components/schemas/InputCreateSkill'
  *     responses:
  *       201:
- *         description: Característica creada con éxito.
+ *         description: Habilidad creada con éxito.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Attribute'
+ *               $ref: '#/components/schemas/Skill'
  *       400:
  *         description: Faltan campos obligatorios.
  *       401:
@@ -108,15 +109,15 @@ const router = Router();
  *       500:
  *         description: Error del servidor.
  */
-router.post('/attributes', authMiddleware, validateSchema(CreateAttributeSchema), attributeController.create);
+router.post('/skills', authMiddleware, validateSchema(CreateSkillSchema), skillController.create);
 
 /**
  * @openapi
- * /attributes/{id}:
+ * /skills/{id}:
  *   put:
- *     summary: Actualizar una característica existente
+ *     summary: Actualizar una habilidad existente
  *     tags:
- *       - Caracteristicas
+ *       - Habilidades
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -125,36 +126,36 @@ router.post('/attributes', authMiddleware, validateSchema(CreateAttributeSchema)
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la característica a editar.
+ *         description: ID de la habilidad a editar.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/InputUpdateAttribute'
+ *             $ref: '#/components/schemas/InputUpdateSkill'
  *     responses:
  *       200:
- *         description: Característica modificada con éxito.
+ *         description: Habilidad modificada con éxito.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Attribute'
+ *               $ref: '#/components/schemas/Skill'
  *       400:
- *         description: Falta el ID de la característica.
+ *         description: Falta el ID de la habilidad.
  *       401:
  *         description: No autorizado.
  *       500:
  *         description: Error del servidor.
  */
-router.put('/attributes/:id', authMiddleware, validateSchema(UpdateAttributeSchema), attributeController.update);
+router.put('/skills/:id', authMiddleware, validateSchema(UpdateSkillSchema), skillController.update);
 
 /**
  * @openapi
- * /attributes/{id}/systems:
+ * /skills/{id}/systems:
  *   post:
- *     summary: Asociar característica a un sistema (a través del cuerpo)
+ *     summary: Asociar habilidad a un sistema (a través del cuerpo)
  *     tags:
- *       - Caracteristicas
+ *       - Habilidades
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -163,7 +164,7 @@ router.put('/attributes/:id', authMiddleware, validateSchema(UpdateAttributeSche
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la característica.
+ *         description: ID de la habilidad.
  *     requestBody:
  *       required: true
  *       content:
@@ -182,7 +183,7 @@ router.put('/attributes/:id', authMiddleware, validateSchema(UpdateAttributeSche
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Attribute'
+ *               $ref: '#/components/schemas/Skill'
  *       400:
  *         description: Faltan campos obligatorios.
  *       401:
@@ -190,15 +191,15 @@ router.put('/attributes/:id', authMiddleware, validateSchema(UpdateAttributeSche
  *       500:
  *         description: Error del servidor.
  */
-router.post('/attributes/:id/systems', authMiddleware, validateSchema(AddSystemSchema), attributeController.addSystem);
+router.post('/skills/:id/systems', authMiddleware, validateSchema(AddSystemSchema), skillController.addSystem);
 
 /**
  * @openapi
- * /attributes/{id}/systems/{systemId}:
+ * /skills/{id}/systems/{systemId}:
  *   delete:
- *     summary: Desasociar característica de un sistema (a través de URL)
+ *     summary: Desasociar habilidad de un sistema (a través de URL)
  *     tags:
- *       - Caracteristicas
+ *       - Habilidades
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -207,7 +208,7 @@ router.post('/attributes/:id/systems', authMiddleware, validateSchema(AddSystemS
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la característica.
+ *         description: ID de la habilidad.
  *       - in: path
  *         name: systemId
  *         required: true
@@ -220,7 +221,7 @@ router.post('/attributes/:id/systems', authMiddleware, validateSchema(AddSystemS
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Attribute'
+ *               $ref: '#/components/schemas/Skill'
  *       400:
  *         description: Faltan parámetros obligatorios.
  *       401:
@@ -228,6 +229,6 @@ router.post('/attributes/:id/systems', authMiddleware, validateSchema(AddSystemS
  *       500:
  *         description: Error del servidor.
  */
-router.delete('/attributes/:id/systems/:systemId', authMiddleware, attributeController.removeSystem);
+router.delete('/skills/:id/systems/:systemId', authMiddleware, skillController.removeSystem);
 
 export default router;

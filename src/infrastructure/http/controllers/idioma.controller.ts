@@ -1,4 +1,4 @@
-import { Response } from "express"
+import { Response, NextFunction } from "express"
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import ObtenerIdiomasPorSistemas from "../../../application/use-cases/idioma/obtenerIdiomaPorSistema.use-case";
 import CrearIdioma from "../../../application/use-cases/idioma/crearIdioma.use-case";
@@ -11,35 +11,32 @@ export class IdiomaController {
     private readonly updateIdiomaUseCase: ModificarIdioma
   ) { }
 
-  obtenerIdiomasPorSistemas = async (req: AuthenticatedRequest, res: Response) => {
+  obtenerIdiomasPorSistemas = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { ruleset } = req.query;
       
       const idiomas = await this.obtenerIdiomasPorSistemasUseCase.execute(ruleset as string[])
       return res.status(200).json(idiomas)
-    } catch (error: any) {
-      console.error(error)
-      return res.status(500).json({ message: error.message })
+    } catch (error) {
+      next(error);
     }
   }
 
-  create = async (req: AuthenticatedRequest, res: Response) => {
+  create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const idiomas = await this.createIdiomaUseCase.execute(req.body);
       return res.status(201).json(idiomas);
-    } catch (error: any) {
-      console.error("Error al crear el idiomas:", error);
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 
-  update = async (req: AuthenticatedRequest, res: Response) => {
+  update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const idiomas = await this.updateIdiomaUseCase.execute(req.body);
       return res.status(200).json(idiomas);
-    } catch (error: any) {
-      console.error("Error al actualizar el idiomas:", error);
-      return res.status(500).json({ message: error.message });
+    } catch (error) {
+      next(error);
     }
   }
 }

@@ -12,7 +12,7 @@ const system: Schema = new Schema<System>({
   defaultMaxAttributeValue: Number,
   creationMinAttributeValue: Number,
   creationMaxAttributeValue: Number
-}, { collection: 'Sistemas' });
+}, { collection: 'systems' });
 
-const SistemasModel = mongoose.model<System>("Sistemas", system);
+const SistemasModel = mongoose.model<System>("systems", system);
 export default SistemasModel

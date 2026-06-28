@@ -1,5 +1,4 @@
-import { Response } from "express";
-
+import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import ObtenerEquipamientosPorTipos from "../../../application/use-cases/equipamiento/obtenerEquipamientosPorTipos.use-case";
 
@@ -8,25 +7,23 @@ export class EquipamientoController {
     private readonly obtenerEquipamientosPorTipos: ObtenerEquipamientosPorTipos
   ) { }
 
-  getEquipamientosPorTipo = async (req: AuthenticatedRequest, res: Response) => {
+  getEquipamientosPorTipo = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { type } = req.params;
       const data = await this.obtenerEquipamientosPorTipos.execute([type])
       res.status(200).json(data);
     } catch (e) {
-      console.error(e)
-      res.status(500).json({ error: 'Error al consultar equipamiento' });
+      next(e);
     }
   }
   
-  getEquipamientosPorTipos = async (req: AuthenticatedRequest, res: Response) => {
+  getEquipamientosPorTipos = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { types } = req.body;
       const data = await this.obtenerEquipamientosPorTipos.execute(types)
       res.status(200).json(data);
     } catch (e) {
-      console.error(e)
-      res.status(500).json({ error: 'Error al consultar equipamiento' });
+      next(e);
     }
   }
 }

@@ -3,7 +3,7 @@ import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
 import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types"
-import { HabilidadApi } from "./habilidades.types"
+import { SkillApi } from "./skill.types"
 import { IdiomaApi } from "./idiomas.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
@@ -109,7 +109,7 @@ export interface ClaseApi {
   hit_die: number,
   proficiencies: CompetenciaApi[],
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
-  skill_choices?: ChoiceApi<HabilidadApi>,
+  skill_choices?: ChoiceApi<SkillApi>,
   spells?: ConjuroApi[],
   spell_choices?: ChoiceApi<ConjuroApi>[],
   traits: RasgoApi[],
@@ -143,8 +143,8 @@ export interface SubclaseApi {
     options: RasgoApi[]
   },
   mixed_spell_choices?: ChoiceApi<ConjuroApi>[][],
-  skill_choices?: ChoiceApi<HabilidadApi>,
-  double_skill_choices?: ChoiceApi<HabilidadApi>,
+  skill_choices?: ChoiceApi<SkillApi>,
+  double_skill_choices?: ChoiceApi<SkillApi>,
   language_choices?: ChoiceApi<IdiomaApi>,
   proficiencies?: CompetenciaApi[],
   spells?: ConjuroApi[],
@@ -167,7 +167,7 @@ export interface ClaseLevelUp {
   spell_choices?: ChoiceApi<ConjuroApi>[],
   mixed_spell_choices?: ChoiceApi<ConjuroApi>[][],
   spell_changes?: ChoiceApi<ConjuroApi>[][],
-  skill_choices?: ChoiceApi<HabilidadApi>,
+  skill_choices?: ChoiceApi<SkillApi>,
   invocations_choices?: ChoiceApi<InvocacionApi>,
   invocations_change?: ChoiceApi<InvocacionApi>
 }

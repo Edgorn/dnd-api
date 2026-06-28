@@ -163,6 +163,103 @@
           }
         }
       },
+      "Skill": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB de la habilidad."
+          },
+          "ruleset": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array de IDs o nombres de sistemas asociados."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la habilidad."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción detallada."
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave identificadora única."
+          },
+          "bonusFormula": {
+            "type": "string",
+            "description": "Fórmula utilizada para calcular el modificador de la habilidad."
+          },
+          "attributeScore": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Claves de atributos asociados."
+          }
+        }
+      },
+      "InputCreateSkill": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "name",
+          "description",
+          "key",
+          "bonusFormula",
+          "attributeScore"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "ID o nombre del sistema inicial desde el que se crea."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "bonusFormula": {
+            "type": "string"
+          },
+          "attributeScore": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "InputUpdateSkill": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "bonusFormula": {
+            "type": "string"
+          },
+          "attributeScore": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "AtributoPersonajeApi": {
         "type": "object",
         "properties": {
@@ -746,34 +843,34 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "MongoDB ID of the attribute."
+            "description": "ID de MongoDB de la característica."
           },
           "ruleset": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Array of system IDs or names associated."
+            "description": "Array de IDs o nombres de sistemas asociados."
           },
           "name": {
             "type": "string",
-            "description": "Name of the attribute (e.g. Strength)."
+            "description": "Nombre de la característica (ej. Fuerza)."
           },
           "description": {
             "type": "string",
-            "description": "Detailed description."
+            "description": "Descripción detallada."
           },
           "key": {
             "type": "string",
-            "description": "Unique key identifier (e.g. str, dex)."
+            "description": "Clave identificadora única (ej. str, dex)."
           },
           "abbreviation": {
             "type": "string",
-            "description": "Abbreviation (e.g. STR, DEX)."
+            "description": "Abreviatura (ej. FUE, DES)."
           },
           "icon": {
             "type": "string",
-            "description": "Optional icon name or URL."
+            "description": "Nombre o URL del icono opcional."
           }
         }
       },
@@ -789,27 +886,27 @@
         "properties": {
           "ruleset": {
             "type": "string",
-            "description": "Initial system ID or name from which it's created."
+            "description": "ID o nombre del sistema inicial desde el que se crea."
           },
           "name": {
             "type": "string",
-            "description": "Name of the attribute."
+            "description": "Nombre de la característica."
           },
           "description": {
             "type": "string",
-            "description": "Description."
+            "description": "Descripción."
           },
           "key": {
             "type": "string",
-            "description": "Unique identifier key."
+            "description": "Clave identificadora única."
           },
           "abbreviation": {
             "type": "string",
-            "description": "Abbreviation."
+            "description": "Abreviatura."
           },
           "icon": {
             "type": "string",
-            "description": "Optional icon name or URL."
+            "description": "Nombre o URL del icono opcional."
           }
         }
       },
@@ -975,6 +1072,223 @@
         }
       }
     },
+    "/skills": {
+      "post": {
+        "summary": "Crear una nueva habilidad",
+        "tags": [
+          "Habilidades"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateSkill"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Habilidad creada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Skill"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan campos obligatorios."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/skills/{id}": {
+      "put": {
+        "summary": "Actualizar una habilidad existente",
+        "tags": [
+          "Habilidades"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la habilidad a editar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateSkill"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Habilidad modificada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Skill"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta el ID de la habilidad."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/skills/{id}/systems": {
+      "post": {
+        "summary": "Asociar habilidad a un sistema (a través del cuerpo)",
+        "tags": [
+          "Habilidades"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la habilidad."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "systemId"
+                ],
+                "properties": {
+                  "systemId": {
+                    "type": "string",
+                    "description": "ID o nombre del sistema a añadir."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sistema asociado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Skill"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan campos obligatorios."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/skills/{id}/systems/{systemId}": {
+      "delete": {
+        "summary": "Desasociar habilidad de un sistema (a través de URL)",
+        "tags": [
+          "Habilidades"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la habilidad."
+          },
+          {
+            "in": "path",
+            "name": "systemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema a eliminar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sistema desasociado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Skill"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Faltan parámetros obligatorios."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
     "/character": {
       "get": {
         "summary": "Obtener el listado de personajes del usuario autenticado",
@@ -1101,9 +1415,9 @@
     },
     "/attributes": {
       "post": {
-        "summary": "Create a new attribute",
+        "summary": "Crear una nueva característica",
         "tags": [
-          "Attributes"
+          "Caracteristicas"
         ],
         "security": [
           {
@@ -1122,7 +1436,7 @@
         },
         "responses": {
           "201": {
-            "description": "Attribute created successfully.",
+            "description": "Característica creada con éxito.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1132,22 +1446,22 @@
             }
           },
           "400": {
-            "description": "Missing required fields."
+            "description": "Faltan campos obligatorios."
           },
           "401": {
-            "description": "Unauthorized."
+            "description": "No autorizado."
           },
           "500": {
-            "description": "Server error."
+            "description": "Error del servidor."
           }
         }
       }
     },
     "/attributes/{id}": {
       "put": {
-        "summary": "Update an existing attribute",
+        "summary": "Actualizar una característica existente",
         "tags": [
-          "Attributes"
+          "Caracteristicas"
         ],
         "security": [
           {
@@ -1162,7 +1476,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID of the attribute to edit."
+            "description": "ID de la característica a editar."
           }
         ],
         "requestBody": {
@@ -1177,7 +1491,7 @@
         },
         "responses": {
           "200": {
-            "description": "Attribute modified successfully.",
+            "description": "Característica modificada con éxito.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1187,22 +1501,22 @@
             }
           },
           "400": {
-            "description": "Missing attribute ID."
+            "description": "Falta el ID de la característica."
           },
           "401": {
-            "description": "Unauthorized."
+            "description": "No autorizado."
           },
           "500": {
-            "description": "Server error."
+            "description": "Error del servidor."
           }
         }
       }
     },
     "/attributes/{id}/systems": {
       "post": {
-        "summary": "Associate attribute to a system (via body)",
+        "summary": "Asociar característica a un sistema (a través del cuerpo)",
         "tags": [
-          "Attributes"
+          "Caracteristicas"
         ],
         "security": [
           {
@@ -1217,7 +1531,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Attribute ID."
+            "description": "ID de la característica."
           }
         ],
         "requestBody": {
@@ -1232,7 +1546,7 @@
                 "properties": {
                   "systemId": {
                     "type": "string",
-                    "description": "System ID or name to add."
+                    "description": "ID o nombre del sistema a añadir."
                   }
                 }
               }
@@ -1241,7 +1555,7 @@
         },
         "responses": {
           "200": {
-            "description": "System associated successfully.",
+            "description": "Sistema asociado con éxito.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1251,22 +1565,22 @@
             }
           },
           "400": {
-            "description": "Missing required fields."
+            "description": "Faltan campos obligatorios."
           },
           "401": {
-            "description": "Unauthorized."
+            "description": "No autorizado."
           },
           "500": {
-            "description": "Server error."
+            "description": "Error del servidor."
           }
         }
       }
     },
     "/attributes/{id}/systems/{systemId}": {
       "delete": {
-        "summary": "Unassociate attribute from a system (via URL)",
+        "summary": "Desasociar característica de un sistema (a través de URL)",
         "tags": [
-          "Attributes"
+          "Caracteristicas"
         ],
         "security": [
           {
@@ -1281,7 +1595,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Attribute ID."
+            "description": "ID de la característica."
           },
           {
             "in": "path",
@@ -1290,12 +1604,12 @@
             "schema": {
               "type": "string"
             },
-            "description": "System ID or name to remove."
+            "description": "ID o nombre del sistema a eliminar."
           }
         ],
         "responses": {
           "200": {
-            "description": "System unassociated successfully.",
+            "description": "Sistema desasociado con éxito.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1305,13 +1619,13 @@
             }
           },
           "400": {
-            "description": "Missing required parameters."
+            "description": "Faltan parámetros obligatorios."
           },
           "401": {
-            "description": "Unauthorized."
+            "description": "No autorizado."
           },
           "500": {
-            "description": "Server error."
+            "description": "Error del servidor."
           }
         }
       }
