@@ -8,6 +8,7 @@ export interface System {
   publisher: string;
   isOpen: boolean;
   globalModifierFormula?: string;
+  initiativeBonusFormula?: string;
   maxAttributeValue?: number;
   defaultMinAttributeValue?: number;
   defaultMaxAttributeValue?: number;
@@ -26,6 +27,7 @@ export interface SystemApi {
   languagesCount: number;
   traitsCount: number;
   globalModifierFormula?: string;
+  initiativeBonusFormula?: string;
   defaultMinAttributeValue?: number;
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
@@ -39,6 +41,7 @@ export interface TypeCrearSystem {
   publisher: string;
   isOpen: boolean;
   globalModifierFormula?: string;
+  initiativeBonusFormula?: string;
   defaultMinAttributeValue?: number;
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
@@ -52,6 +55,7 @@ export interface TypeModificarSystem {
   description?: string;
   isOpen?: boolean;
   globalModifierFormula?: string;
+  initiativeBonusFormula?: string;
   defaultMinAttributeValue?: number;
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;

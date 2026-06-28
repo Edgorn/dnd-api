@@ -32,6 +32,24 @@ export default class SystemRepository implements ISystemRepository {
     return undefined;
   }
 
+  async obtenerFormulaBonoIniciativa(systems: string[]): Promise<string | undefined> {
+    if (!systems || systems.length === 0) return undefined;
+
+    const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
+    const systemsDocs = await SistemasModel.find({
+      $or: [
+        { _id: { $in: validIds as any[] } },
+        { name: { $in: systems } }
+      ],
+      initiativeBonusFormula: { $exists: true, $ne: "" }
+    });
+
+    if (systemsDocs.length > 0) {
+      return systemsDocs[0].initiativeBonusFormula;
+    }
+    return undefined;
+  }
+
   private async getSystemAttributes(sysId: string, sysName: string): Promise<AttributeApi[]> {
     const rulesetQuery = {
       $or: [
@@ -123,6 +141,7 @@ export default class SystemRepository implements ISystemRepository {
         languagesCount,
         traitsCount,
         globalModifierFormula: sys.globalModifierFormula,
+        initiativeBonusFormula: sys.initiativeBonusFormula,
         defaultMinAttributeValue: sys.defaultMinAttributeValue,
         defaultMaxAttributeValue: sys.defaultMaxAttributeValue,
         creationMinAttributeValue: sys.creationMinAttributeValue,
@@ -139,6 +158,7 @@ export default class SystemRepository implements ISystemRepository {
       publisher: data.publisher,
       isOpen: data.isOpen,
       globalModifierFormula: data.globalModifierFormula,
+      initiativeBonusFormula: data.initiativeBonusFormula,
       defaultMinAttributeValue: data.defaultMinAttributeValue,
       defaultMaxAttributeValue: data.defaultMaxAttributeValue,
       creationMinAttributeValue: data.creationMinAttributeValue,
@@ -176,6 +196,7 @@ export default class SystemRepository implements ISystemRepository {
       languagesCount,
       traitsCount,
       globalModifierFormula: resultado.globalModifierFormula,
+      initiativeBonusFormula: resultado.initiativeBonusFormula,
       defaultMinAttributeValue: resultado.defaultMinAttributeValue,
       defaultMaxAttributeValue: resultado.defaultMaxAttributeValue,
       creationMinAttributeValue: resultado.creationMinAttributeValue,
@@ -185,13 +206,14 @@ export default class SystemRepository implements ISystemRepository {
   }
 
   async modificar(data: TypeModificarSystem): Promise<SystemApi | null> {
-    const { id, name, description, isOpen, globalModifierFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = data;
+    const { id, name, description, isOpen, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = data;
 
     const updateFields: any = {};
     if (name !== undefined) updateFields.name = name;
     if (description !== undefined) updateFields.description = description;
     if (isOpen !== undefined) updateFields.isOpen = isOpen;
     if (globalModifierFormula !== undefined) updateFields.globalModifierFormula = globalModifierFormula;
+    if (initiativeBonusFormula !== undefined) updateFields.initiativeBonusFormula = initiativeBonusFormula;
     if (defaultMinAttributeValue !== undefined) updateFields.defaultMinAttributeValue = defaultMinAttributeValue;
     if (defaultMaxAttributeValue !== undefined) updateFields.defaultMaxAttributeValue = defaultMaxAttributeValue;
     if (creationMinAttributeValue !== undefined) updateFields.creationMinAttributeValue = creationMinAttributeValue;
@@ -234,6 +256,7 @@ export default class SystemRepository implements ISystemRepository {
       languagesCount,
       traitsCount,
       globalModifierFormula: resultado.globalModifierFormula,
+      initiativeBonusFormula: resultado.initiativeBonusFormula,
       defaultMinAttributeValue: resultado.defaultMinAttributeValue,
       defaultMaxAttributeValue: resultado.defaultMaxAttributeValue,
       creationMinAttributeValue: resultado.creationMinAttributeValue,

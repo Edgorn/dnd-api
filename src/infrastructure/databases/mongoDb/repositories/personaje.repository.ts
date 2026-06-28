@@ -28,6 +28,7 @@ import fs from 'fs'
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import { CharacterAttributeApi } from '../../../../domain/types/attribute.types';
+import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 const prof_bonus = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
@@ -59,7 +60,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly invocacionRepository: IInvocacionRepository,
     private readonly razaRepository: IRazaRepository,
     private readonly criaturaRepository: ICriaturaRepository,
-    private readonly attributeRepository: IAttributeRepository
+    private readonly attributeRepository: IAttributeRepository,
+    private readonly systemRepository: ISystemRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -946,6 +948,32 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const modifiedAttributes = this.calcularAttributes(personaje)
     const apiAttributes: CharacterAttributeApi[] = await this.attributeRepository.formatAttributes(modifiedAttributes, personaje.systems ?? [])
 
+    const initiativeBonusFormula = await this.systemRepository.obtenerFormulaBonoIniciativa(personaje.systems ?? []);
+    let initiativeBonus = 0;
+    if (initiativeBonusFormula) {
+      const regexFormula = /@attributes\.(\w+)\.(modifier|value)/g;
+      const evaluatedFormula = initiativeBonusFormula.replace(regexFormula, (match, key, prop) => {
+        const attr = apiAttributes.find(a => a.key === key);
+        if (!attr) return '0';
+        const val = attr[prop as 'modifier' | 'value'];
+        return val !== undefined ? String(val) : '0';
+      });
+
+      if (/^[0-9+\-**/().\s]+$/.test(evaluatedFormula)) {
+        try {
+          const calcFunc = new Function(`return ${evaluatedFormula}`);
+          initiativeBonus = calcFunc();
+        } catch (e) {
+          console.error("Error evaluating initiativeBonusFormula:", e);
+        }
+      } else {
+        console.error("Unsafe formula detected for initiativeBonusFormula:", evaluatedFormula);
+      }
+    } else {
+      const dexAttr = apiAttributes.find(a => a.key === 'dex');
+      initiativeBonus = dexAttr?.modifier ?? 0;
+    }
+
     const { CA, plusSpeed } = await this.calcularCA(personaje, traits)
 
     const strVal = apiAttributes.find(a => a.key === 'str')?.value ?? 10
@@ -983,6 +1011,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       XPMax: nivel[level - 1],
       attributes: apiAttributes,
       systems: personaje.systems ?? [],
+      initiativeBonus,
       HPMax: personaje?.HPMax,
       CA,
       speed: {
@@ -1156,7 +1185,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       form.getTextField('HPMax').setText(personaje?.HPMax + '');
       form.getTextField('ProfBonus').setText('+' + personaje?.prof_bonus);
       form.getTextField('AC').setText(personaje?.CA + '');
-      form.getTextField('Init').setText(this.formatNumber(bonus.dex) + '');
+      form.getTextField('Init').setText(this.formatNumber(personaje.initiativeBonus) + '');
       form.getTextField('Speed').setText(personaje?.speed?.walk + '');
 
       form.getTextField('HitDiceTotal').setText(personaje.classes?.map(clase => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');

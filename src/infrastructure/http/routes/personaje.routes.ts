@@ -201,6 +201,8 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
+ *         initiativeBonus:
+ *           type: number
  *         HPMax:
  *           type: number
  *         CA:

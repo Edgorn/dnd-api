@@ -247,6 +247,7 @@ export interface PersonajeApi {
   XPMax: number,
   attributes: CharacterAttributeApi[],
   systems: string[],
+  initiativeBonus: number,
   HPMax: number,
   CA: number,
   speed: Speed,

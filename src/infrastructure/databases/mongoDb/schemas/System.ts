@@ -7,6 +7,7 @@ const system: Schema = new Schema<System>({
   publisher: String,
   isOpen: Boolean,
   globalModifierFormula: String,
+  initiativeBonusFormula: String,
   defaultMinAttributeValue: Number,
   defaultMaxAttributeValue: Number,
   creationMinAttributeValue: Number,

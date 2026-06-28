@@ -41,6 +41,9 @@ const router = Router();
  *         globalModifierFormula:
  *           type: string
  *           description: Fórmula opcional para modificar características.
+ *         initiativeBonusFormula:
+ *           type: string
+ *           description: Fórmula opcional para calcular el bono de iniciativa.
  *         defaultMinAttributeValue:
  *           type: number
  *         defaultMaxAttributeValue:
@@ -71,6 +74,9 @@ const router = Router();
  *         globalModifierFormula:
  *           type: string
  *           description: Fórmula opcional para modificar características.
+ *         initiativeBonusFormula:
+ *           type: string
+ *           description: Fórmula opcional para calcular el bono de iniciativa.
  *         defaultMinAttributeValue:
  *           type: number
  *         defaultMaxAttributeValue:
@@ -91,6 +97,9 @@ const router = Router();
  *         globalModifierFormula:
  *           type: string
  *           description: Fórmula opcional para modificar características.
+ *         initiativeBonusFormula:
+ *           type: string
+ *           description: Fórmula opcional para calcular el bono de iniciativa.
  *         defaultMinAttributeValue:
  *           type: number
  *         defaultMaxAttributeValue:

@@ -159,7 +159,8 @@ const personajeRepository = new PersonajeRepository(
   invocacionRepository,
   razaRepository,
   criaturaRepository,
-  attributeRepository
+  attributeRepository,
+  systemRepository
 )
 
 const campañaRepository = new CampañaRepository(

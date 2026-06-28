@@ -66,6 +66,10 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
      pnpm exec tsx src/infrastructure/http/config/swagger.ts
      ```
 
-8. **Idioma (Ingl�s vs Spanglish):** Se ha decidido abandonar el uso del Spanglish en el c�digo y decantarse por el Ingl�s. Todo el c�digo nuevo, nombres de variables, archivos, esquemas e interfaces deben declararse estrictamente en Ingl�s (ej. Attribute en lugar de Caracteristica). 
+8. **Idioma (Inglés vs Spanglish):** Se ha decidido abandonar el uso del Spanglish en el código y decantarse por el Inglés. Todo el código nuevo, nombres de variables, archivos, esquemas e interfaces deben declararse estrictamente en Inglés (ej. Attribute en lugar de Caracteristica). 
 
-
+9. **Registro del Desarrollo (COMMIT_MESSAGE.md):**
+   - Cuando se haga un desarrollo se debe crear (en caso de no existir) un archivo `COMMIT_MESSAGE.md` en la raíz del proyecto.
+   - En este archivo se debe escribir un resumen del desarrollo, cuyo contenido será el texto que irá en el commit de git.
+   - En caso de ya existir el archivo, se debe añadir la información del nuevo desarrollo al final. Si el nuevo desarrollo tiene relación directa con lo que ya estaba escrito en el archivo, se puede modificar o ampliar el texto existente para añadir más detalles.
+   - Este archivo debe estar excluido en el archivo `.gitignore` (como `/COMMIT_MESSAGE.md`).

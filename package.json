@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node dist/app.js",
     "build": "tsc",
-    "dev": "tsx watch src/app.ts"
+    "dev": "tsx watch src/app.ts",
+    "commit:ai": "git commit -F COMMIT_MESSAGE.md && rm COMMIT_MESSAGE.md"
   },
   "keywords": [],
   "author": "",

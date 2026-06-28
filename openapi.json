@@ -64,6 +64,10 @@
             "type": "string",
             "description": "Fórmula opcional para modificar características."
           },
+          "initiativeBonusFormula": {
+            "type": "string",
+            "description": "Fórmula opcional para calcular el bono de iniciativa."
+          },
           "defaultMinAttributeValue": {
             "type": "number"
           },
@@ -107,6 +111,10 @@
             "type": "string",
             "description": "Fórmula opcional para modificar características."
           },
+          "initiativeBonusFormula": {
+            "type": "string",
+            "description": "Fórmula opcional para calcular el bono de iniciativa."
+          },
           "defaultMinAttributeValue": {
             "type": "number"
           },
@@ -136,6 +144,10 @@
           "globalModifierFormula": {
             "type": "string",
             "description": "Fórmula opcional para modificar características."
+          },
+          "initiativeBonusFormula": {
+            "type": "string",
+            "description": "Fórmula opcional para calcular el bono de iniciativa."
           },
           "defaultMinAttributeValue": {
             "type": "number"
@@ -430,6 +442,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "initiativeBonus": {
+            "type": "number"
           },
           "HPMax": {
             "type": "number"
