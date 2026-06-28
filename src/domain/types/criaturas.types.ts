@@ -44,6 +44,7 @@ export interface CriaturaMongo {
   special_abilities: [],
   actions: [],
   actions_aditional: [],
+  actions_legendary: [],
   reactions: [],
   spell_slots: { [key: string]: string[] }
 }
@@ -88,6 +89,7 @@ export interface CriaturaApi {
   special_abilities: [],
   actions: [],
   actions_aditional: [],
+  actions_legendary: [],
   reactions: [],
   spell_slots: { [key: string]: ConjuroApi[] }
 }

@@ -26,6 +26,7 @@ const criaturaSchema: Schema = new Schema<CriaturaMongo>({
   special_abilities: [],
   actions: [],
   actions_aditional: [],
+  actions_legendary: [],
   reactions: [],
   spell_slots: {}
 }, { collection: 'Criaturas' });

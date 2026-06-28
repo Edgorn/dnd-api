@@ -103,6 +103,7 @@ export default class CriaturaRepository implements ICriaturaRepository {
       special_abilities: criatura?.special_abilities ?? [],
       actions: criatura.actions,
       actions_aditional: criatura.actions_aditional,
+      actions_legendary: criatura.actions_legendary,
       reactions: criatura.reactions,
       spell_slots
     }

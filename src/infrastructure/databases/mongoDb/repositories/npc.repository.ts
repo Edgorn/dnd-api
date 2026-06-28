@@ -79,6 +79,7 @@ export default class NpcRepository implements INpcRepository {
       special_abilities: npc?.special_abilities ?? [],
       actions: npc.actions,
       actions_aditional: npc.actions_aditional,
+      actions_legendary: npc.actions_legendary,
       reactions: npc.reactions,
       spell_slots
     }
