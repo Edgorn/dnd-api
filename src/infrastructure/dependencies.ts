@@ -208,7 +208,7 @@ const obtenerTodasLasClases = new ObtenerTodasLasClases(claseService);
 const obtenerEquipamientosPorTipo = new ObtenerEquipamientosPorTipo(equipamientoService);
 
 const obtenerPersonajesPorUsuario = new ObtenerPersonajesPorUsuario(personajeService);
-const crearPersonaje = new CrearPersonaje(personajeService);
+const crearPersonaje = new CrearPersonaje(personajeService, systemRepository);
 const obtenerPersonajePorId = new ObtenerPersonajePorId(personajeService);
 const modificarXp = new ModificarXp(personajeService)
 const subirNivelDatos = new SubirNivelDatos(personajeService)

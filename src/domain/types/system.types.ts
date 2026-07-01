@@ -8,6 +8,8 @@ export interface System {
   description: string;
   publisher: string;
   isOpen: boolean;
+  isBase: boolean;
+  parentId?: ObjectId;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
   maxAttributeValue?: number;
@@ -23,6 +25,8 @@ export interface SystemApi {
   description: string;
   publisher: string;
   isOpen: boolean;
+  isBase: boolean;
+  parentId?: string;
   canEdit: boolean;
   racesCount: number;
   languagesCount: number;
@@ -42,6 +46,8 @@ export interface TypeCrearSystem {
   description: string;
   publisher: string;
   isOpen: boolean;
+  isBase: boolean;
+  parentId?: string;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
   defaultMinAttributeValue?: number;
@@ -56,6 +62,8 @@ export interface TypeModificarSystem {
   name?: string;
   description?: string;
   isOpen?: boolean;
+  isBase?: boolean;
+  parentId?: string;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
   defaultMinAttributeValue?: number;

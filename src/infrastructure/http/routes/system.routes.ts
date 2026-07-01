@@ -26,18 +26,24 @@ const router = Router();
  *         isOpen:
  *           type: boolean
  *           description: Indica si el sistema es abierto/público.
+ *         isBase:
+ *           type: boolean
+ *           description: Indica si el sistema es una plantilla base (reglas únicamente).
+ *         parentId:
+ *           type: string
+ *           description: ID del sistema del que hereda (si lo tiene).
  *         canEdit:
  *           type: boolean
  *           description: Indica si el usuario autenticado tiene permisos de edición.
  *         racesCount:
  *           type: integer
- *           description: Cantidad de razas asociadas.
+ *           description: Cantidad de razas asociadas (incluyendo heredadas).
  *         languagesCount:
  *           type: integer
- *           description: Cantidad de idiomas asociados.
+ *           description: Cantidad de idiomas asociados (incluyendo heredados).
  *         traitsCount:
  *           type: integer
- *           description: Cantidad de rasgos asociados.
+ *           description: Cantidad de rasgos asociados (incluyendo heredados).
  *         globalModifierFormula:
  *           type: string
  *           description: Fórmula opcional para modificar características.
@@ -56,7 +62,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Attribute'
- *           description: Características vinculadas a este sistema.
+ *           description: Características vinculadas a este sistema (incluyendo heredadas).
  *     TypeCrearSystem:
  *       type: object
  *       required:
@@ -71,6 +77,12 @@ const router = Router();
  *         isOpen:
  *           type: boolean
  *           description: Indica si es abierto.
+ *         isBase:
+ *           type: boolean
+ *           description: Indica si es una plantilla base.
+ *         parentId:
+ *           type: string
+ *           description: ID de MongoDB del sistema padre.
  *         globalModifierFormula:
  *           type: string
  *           description: Fórmula opcional para modificar características.
@@ -94,6 +106,10 @@ const router = Router();
  *           type: string
  *         isOpen:
  *           type: boolean
+ *         isBase:
+ *           type: boolean
+ *         parentId:
+ *           type: string
  *         globalModifierFormula:
  *           type: string
  *           description: Fórmula opcional para modificar características.

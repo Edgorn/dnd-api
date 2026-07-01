@@ -7,4 +7,5 @@ export default interface ISystemRepository {
   obtenerPorId(id: string): Promise<System | null>;
   obtenerFormulaModificadorGlobal(systems: string[]): Promise<string | undefined>;
   obtenerFormulaBonoIniciativa(systems: string[]): Promise<string | undefined>;
+  verificarSistemasNoBase(systems: string[]): Promise<void>;
 }

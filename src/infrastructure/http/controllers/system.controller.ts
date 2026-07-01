@@ -25,7 +25,7 @@ export class SystemController {
   createSystem = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!;
-      const { name, description, isOpen, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = req.body;
+      const { name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = req.body;
 
       if (!name) {
         throw new ValidationError('El nombre del sistema es obligatorio');
@@ -36,6 +36,8 @@ export class SystemController {
         description: description || '',
         publisher: userId,
         isOpen: isOpen !== undefined ? isOpen : false,
+        isBase: isBase !== undefined ? !!isBase : false,
+        parentId,
         globalModifierFormula,
         initiativeBonusFormula,
         defaultMinAttributeValue,
@@ -54,7 +56,7 @@ export class SystemController {
     try {
       const userId = req.user!;
       const { id } = req.params;
-      const { name, description, isOpen, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = req.body;
+      const { name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = req.body;
 
       if (!id) {
         throw new ValidationError('Se requiere el ID del sistema');
@@ -66,6 +68,8 @@ export class SystemController {
         name,
         description,
         isOpen,
+        isBase,
+        parentId,
         globalModifierFormula,
         initiativeBonusFormula,
         defaultMinAttributeValue,

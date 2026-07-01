@@ -6,6 +6,8 @@ const system: Schema = new Schema<System>({
   description: String,
   publisher: String,
   isOpen: Boolean,
+  isBase: { type: Boolean, default: false },
+  parentId: { type: Schema.Types.ObjectId, ref: 'systems' },
   globalModifierFormula: String,
   initiativeBonusFormula: String,
   defaultMinAttributeValue: Number,
