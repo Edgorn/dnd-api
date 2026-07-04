@@ -1,12 +1,12 @@
 import ICampañaRepository from '../../../../domain/repositories/ICampañaRepository';
 import Campaña from '../schemas/Campaña';
 import { CampañaApi, CampañaBasica, CampañaMongo, TypeCrearCampaña, TypeEntradaCampaña, TypeEntradaPersonajeCampaña, TypeModificarLocalizaciones } from '../../../../domain/types/campañas.types';
-import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
+import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
 
 export default class CampañaRepository implements ICampañaRepository {
   constructor(
-    private readonly usuarioRepository: IUsuarioRepository,
+    private readonly userRepository: IUserRepository,
     private readonly personajeRepository: IPersonajeRepository
   ) { }
 
@@ -174,7 +174,7 @@ export default class CampañaRepository implements ICampañaRepository {
   }
 
   private async formatearCampañaBasica(campaña: CampañaMongo, idUser: string): Promise<CampañaBasica> {
-    const userMaster = await this.usuarioRepository.buscarUsuarioPorId(campaña.master)
+    const userMaster = await this.userRepository.getUserById(campaña.master)
 
     return {
       id: campaña._id.toString(),
@@ -193,10 +193,10 @@ export default class CampañaRepository implements ICampañaRepository {
 
   private async formatearCampaña(campaña: CampañaMongo, idUser: string): Promise<CampañaApi> {
     const isMaster = idUser === campaña.master
-    const master = await this.usuarioRepository.buscarUsuarioPorId(campaña.master)
+    const master = await this.userRepository.getUserById(campaña.master)
 
-    const players_requesting = isMaster ? await this.usuarioRepository.consultarUsuarios(campaña?.players_requesting ?? []) : []
-    const players = await this.usuarioRepository.consultarUsuarios(campaña?.players ?? [])
+    const players_requesting = isMaster ? await this.userRepository.getUsers(campaña?.players_requesting ?? []) : []
+    const players = await this.userRepository.getUsers(campaña?.players ?? [])
     const characters = await this.personajeRepository.consultarPorIds(campaña?.characters ?? [])
 
     return {

@@ -2,6 +2,9 @@
 
 Este archivo sirve como referencia principal para agentes de IA (y desarrolladores) sobre la arquitectura, el stack tecnológico y las convenciones de este proyecto.
 
+**IMPORTANTE:** Es obligatorio que los agentes de IA sigan todas las directivas, guías, habilidades (skills) y configuraciones adicionales definidas en el directorio [.agents](./.agents) del proyecto.
+
+
 ## 🛠️ Stack Tecnológico
 
 - **Entorno y Gestor de Paquetes:** Node.js con **pnpm** (obligatorio usar siempre `pnpm` en lugar de `npm` o `yarn`).

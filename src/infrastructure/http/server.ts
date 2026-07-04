@@ -1,9 +1,10 @@
 import express, { Application } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import connectDB from '../databases/mongoDb/mongodb';
 
 //Importacion de rutas
-import userRoutes from "./routes/usuario.routes";
+import userRoutes from "./routes/user.routes";
 import transfondoRoutes from "./routes/transfondo.routes";
 import razaRoutes from "./routes/raza.routes";
 import claseRoutes from "./routes/clase.routes";
@@ -25,9 +26,19 @@ import { errorHandler } from "./middlewares/errorHandler.middleware";
 const app: Application = express();
 
 // Middlewares
-app.use(cors());
+app.use(helmet());
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()) ?? ['http://localhost:3000'];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
 
 // Conexión a la Base de Datos
 connectDB();

@@ -1,16 +1,16 @@
 import CrearCampaña from "../application/use-cases/campaña/crearCampaña.use-case";
-import ObtenerCampañasPorUsuario from "../application/use-cases/campaña/obtenerCampañasPorUsuario.use-case";
+import GetCampaignsByUser from "../application/use-cases/campaña/getCampaignsByUser.use-case";
 import SolicitarEntradaACampaña from "../application/use-cases/campaña/solicitarEntradaACampaña.use-case";
 import ObtenerCampañaPorId from "../application/use-cases/campaña/obtenerCampañaPorId.use-case";
 import AceptarEntradaACampaña from "../application/use-cases/campaña/aceptarEntradaACampaña.use-case";
 import DenegarEntradaACampaña from "../application/use-cases/campaña/denegarEntradaACampaña.use-case";
 import AñadirPersonajeACampaña from "../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
-import Logear from "../application/use-cases/usuario/login.use-case";
+import LoginUseCase from "../application/use-cases/user/login.use-case";
 import ObtenerTodosLosTransfondos from "../application/use-cases/transfondo/obtenerTodosLosTransfondos.use-case";
 import ObtenerTodasLasRazas from "../application/use-cases/raza/obtenerTodasLasRazas.use-case";
 import ObtenerTodasLasClases from "../application/use-cases/clase/obtenerTodasLasClases.use-case";
 import ObtenerEquipamientosPorTipo from "../application/use-cases/equipamiento/obtenerEquipamientosPorTipos.use-case";
-import ObtenerPersonajesPorUsuario from "../application/use-cases/personaje/obtenerPersonajesPorUsuario.use-case";
+import GetCharactersByUser from "../application/use-cases/personaje/getCharactersByUser.use-case";
 import CrearPersonaje from "../application/use-cases/personaje/crearPersonaje.use-case";
 import ObtenerPersonajePorId from "../application/use-cases/personaje/obtenerPersonajePorId.use-case";
 import ModificarXp from "../application/use-cases/personaje/modificarXp.use-case";
@@ -28,11 +28,11 @@ import ObtenerConjurosRituales from "../application/use-cases/conjuro/obtenerCon
 import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 import CrearSistema from "../application/use-cases/system/crearSistema.use-case";
-import ObtenerSistemasPorUsuario from "../application/use-cases/system/obtenerSistemasPorUsuario.use-case";
+import GetSystemsByUser from "../application/use-cases/system/getSystemsByUser.use-case";
 import ModificarSistema from "../application/use-cases/system/modificarSistema.use-case";
 
 import CampañaService from "../domain/services/campaña.service";
-import UsuarioService from "../domain/services/usuario.service";
+import UserService from "../domain/services/user.service";
 import RazaService from "../domain/services/raza.service";
 import TransfondoService from "../domain/services/transfondo.service";
 import ClaseService from "../domain/services/clase.service";
@@ -51,7 +51,7 @@ import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
 import IdiomaRepository from "./databases/mongoDb/repositories/idioma.repository";
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
 import RasgoRepository from "./databases/mongoDb/repositories/rasgo.repository";
-import UsuarioRepository from "./databases/mongoDb/repositories/usuario.repository";
+import UserRepository from "./databases/mongoDb/repositories/user.repository";
 import RazaRepository from "./databases/mongoDb/repositories/raza.repository";
 import TransfondoRepository from "./databases/mongoDb/repositories/transfondo.repository";
 import DañoRepository from "./databases/mongoDb/repositories/daño.repository";
@@ -59,9 +59,20 @@ import PropiedadArmaRepository from "./databases/mongoDb/repositories/propiedade
 import EstadoRepository from "./databases/mongoDb/repositories/estado.repository";
 import InvocacionRepository from "./databases/mongoDb/repositories/invocacion.repository";
 import SystemRepository from "./databases/mongoDb/repositories/system.repository";
+import { BcryptPasswordHasher } from "./security/BcryptPasswordHasher";
+import { JwtTokenService } from "./security/JwtTokenService";
+import { InMemoryUserCache } from "./cache/InMemoryUserCache";
+import RefreshTokenRepository from "./databases/mongoDb/repositories/refreshToken.repository";
+import RefreshTokenUseCase from "../application/use-cases/user/refreshToken.use-case";
+import LogoutUseCase from "../application/use-cases/user/logout.use-case";
+import { createAuthorizeSystemMiddleware } from "./http/middlewares/authorizeSystem.middleware";
+
+
+
+
 
 import { CampañaController } from "./http/controllers/campaña.controller";
-import { UsuarioController } from "./http/controllers/usuario.controller";
+import { UserController } from "./http/controllers/user.controller";
 import { RazaController } from "./http/controllers/raza.controller";
 import { TransfondoController } from "./http/controllers/transfondo.controller";
 import { ClaseController } from "./http/controllers/clase.controller";
@@ -99,10 +110,10 @@ import AttributeRepository from "./databases/mongoDb/repositories/attribute.repo
 import { AttributeController } from "./http/controllers/attribute.controller";
 
 const estadoRepository = new EstadoRepository()
-const usuarioRepository = new UsuarioRepository()
+const userRepository = new UserRepository()
 const skillRepository = new SkillRepository()
 const systemRepository = new SystemRepository(
-  usuarioRepository,
+  userRepository,
   skillRepository
 )
 const competenciaRepository = new CompetenciaRepository()
@@ -152,7 +163,7 @@ const criaturaRepository = new CriaturaRepository(
 )
 
 const personajeRepository = new PersonajeRepository(
-  usuarioRepository,
+  userRepository,
   equipamientoRepository,
   rasgoRepository,
   competenciaRepository,
@@ -169,12 +180,23 @@ const personajeRepository = new PersonajeRepository(
 )
 
 const campañaRepository = new CampañaRepository(
-  usuarioRepository,
+  userRepository,
   personajeRepository
 )
 
 const campañaService = new CampañaService(campañaRepository)
-const usuarioService = new UsuarioService(usuarioRepository)
+const passwordHasher = new BcryptPasswordHasher()
+const tokenService = new JwtTokenService(process.env.JWT_SECRET ?? '')
+const userCache = new InMemoryUserCache()
+const refreshTokenRepository = new RefreshTokenRepository()
+const userService = new UserService(userRepository, passwordHasher, tokenService, refreshTokenRepository, userCache)
+
+const loginUseCase = new LoginUseCase(userService)
+const refreshTokenUseCase = new RefreshTokenUseCase(userService)
+const logoutUseCase = new LogoutUseCase(userService)
+
+
+
 const razaService = new RazaService(razaRepository)
 const transfondoService = new TransfondoService(transfondoRepository)
 const claseService = new ClaseService(claseRepository)
@@ -187,15 +209,13 @@ const systemService = new SystemService(systemRepository)
 const attributeService = new AttributeService(attributeRepository);
 
 const crearCampaña = new CrearCampaña(campañaService)
-const obtenerCampañasPorUsuario = new ObtenerCampañasPorUsuario(campañaService)
+const getCampaignsByUser = new GetCampaignsByUser(campañaService)
 const obtenerCampañaPorId = new ObtenerCampañaPorId(campañaService)
 const solicitarEntradaACampaña = new SolicitarEntradaACampaña(campañaService)
 const aceptarEntradaACampaña = new AceptarEntradaACampaña(campañaService)
 const denegarEntradaACampaña = new DenegarEntradaACampaña(campañaService)
 const añadirPersonajeACampaña = new AñadirPersonajeACampaña(campañaService)
 const modificarLocalizacionesCampaña = new ModificarLocalizacionesCampaña(campañaService)
-
-const logearUseCase = new Logear(usuarioService)
 
 const obtenerTodasLasRazas = new ObtenerTodasLasRazas(razaService);
 const crearRaza = new CrearRaza(razaService);
@@ -207,7 +227,7 @@ const obtenerTodasLasClases = new ObtenerTodasLasClases(claseService);
 
 const obtenerEquipamientosPorTipo = new ObtenerEquipamientosPorTipo(equipamientoService);
 
-const obtenerPersonajesPorUsuario = new ObtenerPersonajesPorUsuario(personajeService);
+const getCharactersByUser = new GetCharactersByUser(personajeService);
 const crearPersonaje = new CrearPersonaje(personajeService, systemRepository);
 const obtenerPersonajePorId = new ObtenerPersonajePorId(personajeService);
 const modificarXp = new ModificarXp(personajeService)
@@ -222,7 +242,7 @@ const vincularPacto = new VincularPacto(personajeService);
 const aprenderConjuros = new AprenderConjuros(personajeService);
 const añadirForma = new AñadirForma(personajeService);
 const crearSistema = new CrearSistema(systemService);
-const obtenerSistemasPorUsuario = new ObtenerSistemasPorUsuario(systemService);
+const getSystemsByUser = new GetSystemsByUser(systemService);
 const modificarSistema = new ModificarSistema(systemService);
 
 const createAttribute = new CreateAttribute(attributeService);
@@ -247,7 +267,7 @@ export const razaController = new RazaController(obtenerTodasLasRazas, crearRaza
 
 export const campañaController = new CampañaController(
   crearCampaña,
-  obtenerCampañasPorUsuario,
+  getCampaignsByUser,
   obtenerCampañaPorId,
   solicitarEntradaACampaña,
   aceptarEntradaACampaña,
@@ -256,7 +276,7 @@ export const campañaController = new CampañaController(
   modificarLocalizacionesCampaña
 )
 
-export const usuarioController = new UsuarioController(logearUseCase)
+export const userController = new UserController(loginUseCase, refreshTokenUseCase, logoutUseCase)
 
 export const transfondoController = new TransfondoController(obtenerTodosLosTransfondos)
 
@@ -265,7 +285,7 @@ export const claseController = new ClaseController(obtenerTodasLasClases)
 export const equipamientoController = new EquipamientoController(obtenerEquipamientosPorTipo)
 
 export const personajeController = new PersonajeController(
-  obtenerPersonajesPorUsuario,
+  getCharactersByUser,
   crearPersonaje,
   obtenerPersonajePorId,
   modificarXp,
@@ -287,7 +307,7 @@ export const conjuroController = new ConjuroController(
 )
 
 export const systemController = new SystemController(
-  obtenerSistemasPorUsuario,
+  getSystemsByUser,
   crearSistema,
   modificarSistema
 )
@@ -316,3 +336,5 @@ export const attributeController = new AttributeController(
   addAttributeToSystem,
   removeAttributeFromSystem
 );
+
+export const authorizeSystemMiddleware = createAuthorizeSystemMiddleware(userRepository);

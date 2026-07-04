@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import axios from 'axios';
-import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
+import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import Campaña from '../schemas/Campaña';
@@ -49,7 +49,7 @@ const nameTraits: any = {
 
 export default class PersonajeRepository implements IPersonajeRepository {
   constructor(
-    private readonly usuarioRepository: IUsuarioRepository,
+    private readonly userRepository: IUserRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly rasgoRepository: IRasgoRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
@@ -71,7 +71,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
 
-      const userName = await this.usuarioRepository.consultarNombreUsuario(id);
+      const userName = await this.userRepository.getUserName(id);
       return this.formatearPersonajesBasicos(personajes, userName)
     } catch (error) {
       console.error("Error obteniendo personajes:", error);
@@ -718,7 +718,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
   private async formatearPersonajeBasico(personaje: PersonajeMongo, userName?: string, campaignName?: string): Promise<PersonajeBasico> {
     const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
-    const user = userName ?? await this.usuarioRepository.consultarNombreUsuario(personaje?.user ?? null)
+    const user = userName ?? await this.userRepository.getUserName(personaje?.user ?? null)
 
     const traits = await this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits, personaje?.traits_data)
     const { CA } = await this.calcularCA(personaje, traits)
@@ -1067,7 +1067,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       });*/
       //console.log('_________________');
 
-      const usuario = await this.usuarioRepository.consultarNombreUsuario(idUser)
+      const usuario = await this.userRepository.getUserName(idUser)
 
       const background = personaje?.background?.type ? personaje?.background?.name + ' (' + personaje?.background?.type + ')' : personaje?.background?.name
 

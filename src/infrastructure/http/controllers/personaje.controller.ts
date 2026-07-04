@@ -1,5 +1,5 @@
 import CrearPersonaje from "../../../application/use-cases/personaje/crearPersonaje.use-case";
-import ObtenerPersonajesPorUsuario from "../../../application/use-cases/personaje/obtenerPersonajesPorUsuario.use-case";
+import GetCharactersByUser from "../../../application/use-cases/personaje/getCharactersByUser.use-case";
 import ConsultarPersonaje from "../../../application/use-cases/personaje/obtenerPersonajePorId.use-case";
 import ModificarXp from "../../../application/use-cases/personaje/modificarXp.use-case";
 import SubirNivelDatos from "../../../application/use-cases/personaje/subirNivelDatos.use-case";
@@ -18,7 +18,7 @@ import { ValidationError } from "../../../domain/errors/AppError";
 
 export class PersonajeController {
   constructor(
-    private readonly obtenerPersonajesPorUsuario: ObtenerPersonajesPorUsuario,
+    private readonly getCharactersByUser: GetCharactersByUser,
     private readonly crearPersonaje: CrearPersonaje,
     private readonly consultarPersonaje: ConsultarPersonaje,
     private readonly modificarXp: ModificarXp,
@@ -36,7 +36,7 @@ export class PersonajeController {
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.obtenerPersonajesPorUsuario.execute(req.user!)
+      const data = await this.getCharactersByUser.execute(req.user!)
       res.status(200).json(data);
     } catch (e) {
       next(e);

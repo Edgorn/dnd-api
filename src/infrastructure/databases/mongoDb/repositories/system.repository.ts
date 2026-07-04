@@ -3,7 +3,7 @@ import ISystemRepository from '../../../../domain/repositories/ISystemRepository
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import SistemasModel from '../schemas/System';
 import { System, SystemApi, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
-import IUsuarioRepository from '../../../../domain/repositories/IUsuarioRepository';
+import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import RaceModel from '../schemas/Raza';
 import IdiomaModel from '../schemas/Idioma';
 import RasgoModel from '../schemas/Rasgo';
@@ -14,7 +14,7 @@ import { ValidationError } from '../../../../domain/errors/AppError';
 
 export default class SystemRepository implements ISystemRepository {
   constructor(
-    private readonly usuarioRepository: IUsuarioRepository,
+    private readonly userRepository: IUserRepository,
     private readonly skillRepository: ISkillRepository
   ) {}
 
@@ -72,7 +72,7 @@ export default class SystemRepository implements ISystemRepository {
 
     let publisherName = sys.publisher;
     if (mongoose.Types.ObjectId.isValid(sys.publisher)) {
-      const user = await this.usuarioRepository.buscarUsuarioPorId(sys.publisher);
+      const user = await this.userRepository.getUserById(sys.publisher);
       if (user) {
         publisherName = user.name;
       }
@@ -188,7 +188,7 @@ export default class SystemRepository implements ISystemRepository {
   }
 
   async consultarSistemasPorUsuario(userId: string): Promise<SystemApi[] | any> {
-    const usuario = await this.usuarioRepository.buscarUsuarioPorId(userId);
+    const usuario = await this.userRepository.getUserById(userId);
     const accessibleSystemIds = usuario?.accessibleSystems || [];
 
     const query: any = {

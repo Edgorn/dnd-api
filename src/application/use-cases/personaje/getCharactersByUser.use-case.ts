@@ -1,7 +1,7 @@
 import PersonajeService from "../../../domain/services/personaje.service";
 import { PersonajeBasico } from "../../../domain/types/personajes.types";
 
-export default class ObtenerPersonajesPorUsuario {
+export default class GetCharactersByUser {
   constructor(private readonly personajeService: PersonajeService) { }
 
   execute(id: string): Promise<PersonajeBasico[]> {

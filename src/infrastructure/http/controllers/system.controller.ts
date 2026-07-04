@@ -1,13 +1,13 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
-import ObtenerSistemasPorUsuario from "../../../application/use-cases/system/obtenerSistemasPorUsuario.use-case";
+import GetSystemsByUser from "../../../application/use-cases/system/getSystemsByUser.use-case";
 import CrearSistema from "../../../application/use-cases/system/crearSistema.use-case";
 import ModificarSistema from "../../../application/use-cases/system/modificarSistema.use-case";
 import { ValidationError, AppError } from "../../../domain/errors/AppError";
 
 export class SystemController {
   constructor(
-    private readonly obtenerSistemasPorUsuario: ObtenerSistemasPorUsuario,
+    private readonly getSystemsByUser: GetSystemsByUser,
     private readonly crearSistema: CrearSistema,
     private readonly modificarSistema: ModificarSistema
   ) {}
@@ -15,8 +15,8 @@ export class SystemController {
   getSystems = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!;
-      const data = await this.obtenerSistemasPorUsuario.execute(userId);
-      res.status(200).json(data);
+      const systems = await this.getSystemsByUser.execute(userId);
+      res.status(200).json(systems);
     } catch (e) {
       next(e);
     }
