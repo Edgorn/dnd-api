@@ -8,4 +8,5 @@ export default interface ISystemRepository {
   obtenerFormulaModificadorGlobal(systems: string[]): Promise<string | undefined>;
   obtenerFormulaBonoIniciativa(systems: string[]): Promise<string | undefined>;
   verificarSistemasNoBase(systems: string[]): Promise<void>;
+  getSystemsAndAncestors(systems: string[]): Promise<string[]>;
 }

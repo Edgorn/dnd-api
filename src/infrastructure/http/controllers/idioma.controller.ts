@@ -14,8 +14,14 @@ export class IdiomaController {
   obtenerIdiomasPorSistemas = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { ruleset } = req.query;
-      
-      const idiomas = await this.obtenerIdiomasPorSistemasUseCase.execute(ruleset as string[])
+      let rulesetArray: string[] = [];
+      if (typeof ruleset === 'string') {
+        rulesetArray = [ruleset];
+      } else if (Array.isArray(ruleset)) {
+        rulesetArray = ruleset.map(r => String(r));
+      }
+
+      const idiomas = await this.obtenerIdiomasPorSistemasUseCase.execute(rulesetArray)
       return res.status(200).json(idiomas)
     } catch (error) {
       next(error);

@@ -16,7 +16,10 @@ export class RazaController {
     const { ruleset } = req.query;
 
     try {
-      const data = await this.obtenerTodasLasRazas.execute(ruleset as string)
+      const parsedRuleset = Array.isArray(ruleset)
+        ? String(ruleset[0])
+        : (ruleset ? String(ruleset) : undefined);
+      const data = await this.obtenerTodasLasRazas.execute(parsedRuleset as string)
       res.status(200).json(data);
     } catch (e) {
       next(e);

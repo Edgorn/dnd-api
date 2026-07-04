@@ -23,4 +23,8 @@ export default class SkillService {
   getAll(): Promise<SkillApi[]> {
     return this.skillRepository.getAll();
   }
+
+  getBySystems(rulesets: string[]): Promise<SkillApi[]> {
+    return this.skillRepository.getBySystems(rulesets);
+  }
 }

@@ -5,16 +5,21 @@ import { CrearIdioma, IdiomaApi, IdiomaMongo } from '../../../../domain/types/id
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import IdiomaSchema from '../schemas/Idioma';
 
+import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
+
 export default class IdiomaRepository implements IIdiomaRepository {
   private idiomasMap: Record<string, IdiomaMongo>
   private todosConsultados = false
 
-  constructor() {
+  constructor(private readonly systemRepository?: ISystemRepository) {
     this.idiomasMap = {}
   }
 
   async obtenerIdiomasPorSistemas(ruleset: string[]): Promise<IdiomaApi[]> {
-    const idiomas = await IdiomaSchema.find({ ruleset: { $in: ruleset } })
+    const expandedRulesets = this.systemRepository
+      ? await this.systemRepository.getSystemsAndAncestors(ruleset)
+      : ruleset;
+    const idiomas = await IdiomaSchema.find({ ruleset: { $in: expandedRulesets } })
     return this.formatearIdiomas(idiomas);
   }
 

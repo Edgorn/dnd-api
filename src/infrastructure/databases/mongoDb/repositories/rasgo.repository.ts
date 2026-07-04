@@ -12,6 +12,8 @@ import { CreateRasgo, RasgoApi, RasgoDataMongo, RasgoMongo, TraitsOptionsApi, Tr
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import { Types } from 'mongoose';
 
+import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
+
 export default class RasgoRepository implements IRasgoRepository {
   rasgosMap: { [key: string]: RasgoMongo }
 
@@ -19,13 +21,21 @@ export default class RasgoRepository implements IRasgoRepository {
   competenciaRepository: ICompetenciaRepository
   conjuroRepository: IConjuroRepository
   estadoRepository: IEstadoRepository
+  systemRepository?: ISystemRepository
 
-  constructor(dañoRepository?: IDañoRepository, competenciaRepository?: ICompetenciaRepository, conjuroRepository?: IConjuroRepository, estadoRepository?: IEstadoRepository) {
+  constructor(
+    dañoRepository?: IDañoRepository,
+    competenciaRepository?: ICompetenciaRepository,
+    conjuroRepository?: IConjuroRepository,
+    estadoRepository?: IEstadoRepository,
+    systemRepository?: ISystemRepository
+  ) {
     this.rasgosMap = {}
     this.dañoRepository = dañoRepository ?? this.crearDañoRepositorioPorDefecto()
     this.competenciaRepository = competenciaRepository ?? this.crearCompetenciaRepositorioPorDefecto()
     this.conjuroRepository = conjuroRepository ?? this.crearConjuroRepositorioPorDefecto()
     this.estadoRepository = estadoRepository ?? this.crearEstadoRepositorioPorDefecto()
+    this.systemRepository = systemRepository
   }
 
   private crearDañoRepositorioPorDefecto(): IDañoRepository {
@@ -45,7 +55,10 @@ export default class RasgoRepository implements IRasgoRepository {
   }
 
   async obtenerPorSistemas(ruleset: string[]): Promise<RasgoApi[]> {
-    const rasgos = await RasgoSchema.find({ ruleset: { $in: ruleset } })
+    const expandedRulesets = this.systemRepository
+      ? await this.systemRepository.getSystemsAndAncestors(ruleset)
+      : ruleset;
+    const rasgos = await RasgoSchema.find({ ruleset: { $in: expandedRulesets } })
     return this.formatearRasgos(rasgos, {});
   }
 

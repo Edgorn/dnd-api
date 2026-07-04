@@ -9,7 +9,7 @@ export default class AttributeRepository implements IAttributeRepository {
   constructor(
     private readonly systemRepository: ISystemRepository
   ) { }
-  
+
   async create(data: InputCreateAttribute): Promise<AttributeApi> {
     const newAttribute = new AttributeSchema({
       ruleset: [data.ruleset],
@@ -72,7 +72,8 @@ export default class AttributeRepository implements IAttributeRepository {
   }
 
   async getBySystems(rulesets: string[]): Promise<AttributeApi[]> {
-    const attributes = await AttributeSchema.find({ ruleset: { $in: rulesets } });
+    const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
+    const attributes = await AttributeSchema.find({ ruleset: { $in: expandedRulesets } });
     return attributes.map(a => this.formatAttribute(a));
   }
 
@@ -133,6 +134,9 @@ export default class AttributeRepository implements IAttributeRepository {
   async formatAttributes(attributes: { key: string, value: number }[], systems: string[]): Promise<CharacterAttributeApi[]> {
     const charAttributes = await this.getBySystems(systems);
     const globalModifierFormula = await this.systemRepository.obtenerFormulaModificadorGlobal(systems);
+    console.log("globalModifierFormula", globalModifierFormula)
+
+    console.log("charAttributes", charAttributes)
 
     return charAttributes.map(c => {
       const dbAttr = attributes.find(a => a.key === c.key);

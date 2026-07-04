@@ -12,6 +12,8 @@ import RazaSchema from '../schemas/Raza';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import { RasgoDataMongo } from '../../../../domain/types/rasgos.types';
 
+import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
+
 export default class RazaRepository implements IRazaRepository {
   constructor(
     private readonly idiomaRepository: IIdiomaRepository,
@@ -20,7 +22,8 @@ export default class RazaRepository implements IRazaRepository {
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly rasgoRepository: IRasgoRepository,
-    private readonly attributeRepository: IAttributeRepository
+    private readonly attributeRepository: IAttributeRepository,
+    private readonly systemRepository?: ISystemRepository
   ) { }
 
   async obtenerTodas(): Promise<RaceApi[]> {
@@ -37,7 +40,10 @@ export default class RazaRepository implements IRazaRepository {
 
   async obtenerPorSistema(ruleset: string): Promise<RaceApi[]> {
     try {
-      const razas = await RazaSchema.find({ ruleset: ruleset })
+      const expandedRulesets = this.systemRepository
+        ? await this.systemRepository.getSystemsAndAncestors([ruleset])
+        : [ruleset];
+      const razas = await RazaSchema.find({ ruleset: { $in: expandedRulesets } })
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
       return this.formatearRazas(razas);

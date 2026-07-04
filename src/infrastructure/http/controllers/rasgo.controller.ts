@@ -14,7 +14,14 @@ export class RasgoController {
   obtenerRasgosPorSistemas = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { ruleset } = req.query;
-      const rasgos = await this.obtenerRasgosPorSistemasUseCase.execute(ruleset as string[])
+      let rulesetArray: string[] = [];
+      if (typeof ruleset === 'string') {
+        rulesetArray = [ruleset];
+      } else if (Array.isArray(ruleset)) {
+        rulesetArray = ruleset.map(r => String(r));
+      }
+
+      const rasgos = await this.obtenerRasgosPorSistemasUseCase.execute(rulesetArray)
       return res.status(200).json(rasgos)
     } catch (error) {
       next(error);

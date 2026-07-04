@@ -290,4 +290,28 @@ export default class SystemRepository implements ISystemRepository {
       }
     }
   }
+
+  async getSystemsAndAncestors(systems: string[]): Promise<string[]> {
+    if (!systems || systems.length === 0) return [];
+
+    const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
+    const systemsDocs = await SistemasModel.find({
+      $or: [
+        { _id: { $in: validIds as any[] } },
+        { name: { $in: systems } }
+      ]
+    });
+
+    const resultSet = new Set<string>(systems);
+
+    for (const sys of systemsDocs) {
+      const ancestry = await this.getSystemAncestry(sys._id.toString());
+      for (const ancestor of ancestry) {
+        if (ancestor._id) resultSet.add(ancestor._id.toString());
+        if (ancestor.name) resultSet.add(ancestor.name);
+      }
+    }
+
+    return Array.from(resultSet);
+  }
 }

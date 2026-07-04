@@ -122,8 +122,8 @@ const dañoRepository = new DañoRepository()
 const propiedadArmaRepository = new PropiedadArmaRepository()
 const equipamientoRepository = new EquipamientoRepository(dañoRepository, propiedadArmaRepository)
 const doteRepository = new DoteRepository()
-const idiomaRepository = new IdiomaRepository()
-const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
+const idiomaRepository = new IdiomaRepository(systemRepository)
+const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository, systemRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
 const claseRepository = new ClaseRepository(
@@ -144,7 +144,8 @@ const razaRepository = new RazaRepository(
   competenciaRepository,
   doteRepository,
   rasgoRepository,
-  attributeRepository
+  attributeRepository,
+  systemRepository
 )
 
 const transfondoRepository = new TransfondoRepository(
@@ -257,7 +258,7 @@ const obtenerRasgosPorSistemasUseCase = new ObtenerRasgosPorSistemas(rasgoServic
 const crearRasgoUseCase = new CrearRasgo(rasgoService)
 const modificarRasgoUseCase = new ModificarRasgo(rasgoService)
 
-const getSkillsBySystems = new GetSkillsBySystems(skillService)
+const getSkillsBySystems = new GetSkillsBySystems(skillService, systemService)
 const createSkill = new CreateSkill(skillService)
 const updateSkill = new UpdateSkill(skillService)
 const addSystemToSkill = new AddSystemToSkill(skillService)

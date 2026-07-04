@@ -18,7 +18,14 @@ export class SkillController {
 
   obtenerTodas = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.getSkillsBySystemsUseCase.execute();
+      const rulesetQuery = req.query.ruleset;
+      let rulesets: string[] | undefined = undefined;
+      if (typeof rulesetQuery === 'string') {
+        rulesets = [rulesetQuery];
+      } else if (Array.isArray(rulesetQuery)) {
+        rulesets = rulesetQuery.map(r => String(r));
+      }
+      const data = await this.getSkillsBySystemsUseCase.execute(rulesets);
       return res.status(200).json(data);
     } catch (e) {
       next(e);

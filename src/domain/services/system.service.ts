@@ -24,4 +24,8 @@ export default class SystemService {
 
     return this.systemRepository.modificar(data);
   }
+
+  getSystemsAndAncestors(systems: string[]): Promise<string[]> {
+    return this.systemRepository.getSystemsAndAncestors(systems);
+  }
 }
