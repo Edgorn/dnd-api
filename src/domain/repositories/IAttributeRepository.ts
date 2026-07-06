@@ -15,5 +15,4 @@ export default interface IAttributeRepository {
     bonus_choices: ChoiceMongo | undefined, 
     system: string
   ): Promise<ChoiceApi<AttributeBonus> | undefined>;
-  formatAttributes(attributes: {key: string, value: number}[], systems: string[]): Promise<CharacterAttributeApi[]>;
 }

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import npcsController from '../controllers/npcs.controller';
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { authMiddleware } from "../../dependencies";
  
 const router = Router();
 

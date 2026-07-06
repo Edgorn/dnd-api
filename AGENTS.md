@@ -64,12 +64,13 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
 
 7. **Documentación de la API (Swagger / OpenAPI):**
    - Siempre que se realice un desarrollo nuevo que modifique o añada endpoints, parámetros de petición o esquemas de respuesta, se debe actualizar la documentación Swagger (usando comentarios `@openapi`) en los archivos correspondientes dentro de `src/infrastructure/http/routes/*.routes.ts`.
+   - **Idioma de Swagger:** La documentación expuesta en Swagger (resúmenes, descripciones, etiquetas/tags y mensajes de respuesta) debe redactarse estrictamente en **Español** para los usuarios de la API.
    - Tras realizar las modificaciones de Swagger, es obligatorio regenerar el archivo `openapi.json` estático en la raíz ejecutando el comando:
      ```bash
      pnpm exec tsx src/infrastructure/http/config/swagger.ts
      ```
 
-8. **Idioma (Inglés vs Spanglish):** Se ha decidido abandonar el uso del Spanglish en el código y decantarse por el Inglés. Todo el código nuevo, nombres de variables, archivos, esquemas e interfaces deben declararse estrictamente en Inglés (ej. Attribute en lugar de Caracteristica). 
+8. **Idioma (Inglés vs Spanglish):** Se ha decidido abandonar el uso del Spanglish en el código fuente y decantarse por el Inglés. Todo el código nuevo, nombres de variables, archivos, esquemas e interfaces TypeScript deben declararse estrictamente en Inglés (ej. Attribute en lugar de Caracteristica). La única excepción es la **documentación de Swagger/OpenAPI**, la cual debe ser en **Español**. 
 
 9. **Registro del Desarrollo (COMMIT_MESSAGE.md):**
    - Cuando se haga un desarrollo se debe crear (en caso de no existir) un archivo `COMMIT_MESSAGE.md` en la raíz del proyecto.

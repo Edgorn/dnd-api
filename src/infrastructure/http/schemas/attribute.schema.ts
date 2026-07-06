@@ -10,10 +10,10 @@ export const CreateAttributeSchema = z.object({
 });
 
 export const UpdateAttributeSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-  key: z.string().optional(),
-  abbreviation: z.string().optional(),
+  name: z.string().min(1, "El nombre no puede estar vacío").optional(),
+  description: z.string().min(1, "La descripción no puede estar vacía").optional(),
+  key: z.string().min(1, "La clave no puede estar vacía").optional(),
+  abbreviation: z.string().min(1, "La abreviatura no puede estar vacía").optional(),
   icon: z.string().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"

@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "../middlewares/auth.middleware";
-import { skillController } from "../../dependencies";
+import { skillController, authMiddleware } from "../../dependencies";
 import { validateSchema } from "../middlewares/validateSchema";
 import { CreateSkillSchema, UpdateSkillSchema, AddSystemSchema } from "../schemas/skill.schema";
 

@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "../middlewares/auth.middleware";
-import { rasgoController } from "../../dependencies";
+import { rasgoController, authMiddleware } from "../../dependencies";
 
 const router = Router();
 

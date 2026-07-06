@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "../middlewares/auth.middleware";
-import { attributeController } from "../../dependencies";
+import { attributeController, authMiddleware } from "../../dependencies";
 
 import { validateSchema } from "../middlewares/validateSchema";
 import { CreateAttributeSchema, UpdateAttributeSchema, AddSystemSchema } from "../schemas/attribute.schema";
@@ -105,6 +104,8 @@ const router = Router();
  *         description: Faltan campos obligatorios.
  *       401:
  *         description: No autorizado.
+ *       409:
+ *         description: Ya existe una característica con esta clave en el sistema.
  *       500:
  *         description: Error del servidor.
  */
@@ -143,6 +144,8 @@ router.post('/attributes', authMiddleware, validateSchema(CreateAttributeSchema)
  *         description: Falta el ID de la característica.
  *       401:
  *         description: No autorizado.
+ *       404:
+ *         description: No se encontró la característica.
  *       500:
  *         description: Error del servidor.
  */
@@ -187,6 +190,8 @@ router.put('/attributes/:id', authMiddleware, validateSchema(UpdateAttributeSche
  *         description: Faltan campos obligatorios.
  *       401:
  *         description: No autorizado.
+ *       409:
+ *         description: Ya existe una característica con esta clave en el sistema a añadir.
  *       500:
  *         description: Error del servidor.
  */
@@ -225,6 +230,8 @@ router.post('/attributes/:id/systems', authMiddleware, validateSchema(AddSystemS
  *         description: Faltan parámetros obligatorios.
  *       401:
  *         description: No autorizado.
+ *       404:
+ *         description: No se encontró la característica.
  *       500:
  *         description: Error del servidor.
  */

@@ -1,5 +1,5 @@
 import IAttributeRepository from "../../../../domain/repositories/IAttributeRepository";
-import { NotFoundError } from "../../../../domain/errors/AppError";
+import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
 import { AttributeApi, InputCreateAttribute, InputUpdateAttribute, AttributeBonus, AttributeBonusCreate, CharacterAttributeApi, AttributeMongo } from "../../../../domain/types/attribute.types";
 import { ChoiceMongo, ChoiceApi } from "../../../../domain/types";
 import AttributeSchema from "../schemas/Attribute";
@@ -11,17 +11,24 @@ export default class AttributeRepository implements IAttributeRepository {
   ) { }
 
   async create(data: InputCreateAttribute): Promise<AttributeApi> {
-    const newAttribute = new AttributeSchema({
-      ruleset: [data.ruleset],
-      name: data.name,
-      description: data.description,
-      key: data.key,
-      abbreviation: data.abbreviation,
-      icon: data.icon
-    });
+    try {
+      const newAttribute = new AttributeSchema({
+        ruleset: [data.ruleset],
+        name: data.name,
+        description: data.description,
+        key: data.key,
+        abbreviation: data.abbreviation,
+        icon: data.icon
+      });
 
-    await newAttribute.save();
-    return this.formatAttribute(newAttribute);
+      await newAttribute.save();
+      return this.formatAttribute(newAttribute);
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new ConflictError(`An attribute with key '${data.key}' already exists in system '${data.ruleset}'`);
+      }
+      throw error;
+    }
   }
 
   async update(data: InputUpdateAttribute): Promise<AttributeApi> {
@@ -40,17 +47,24 @@ export default class AttributeRepository implements IAttributeRepository {
   }
 
   async addSystem(attributeId: string, systemId: string): Promise<AttributeApi> {
-    const attribute = await AttributeSchema.findByIdAndUpdate(
-      attributeId,
-      { $addToSet: { ruleset: systemId } },
-      { new: true }
-    );
+    try {
+      const attribute = await AttributeSchema.findByIdAndUpdate(
+        attributeId,
+        { $addToSet: { ruleset: systemId } },
+        { new: true }
+      );
 
-    if (!attribute) {
-      throw new NotFoundError(`No attribute found with id: ${attributeId}`);
+      if (!attribute) {
+        throw new NotFoundError(`No attribute found with id: ${attributeId}`);
+      }
+
+      return this.formatAttribute(attribute);
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new ConflictError(`An attribute with this key already exists in system '${systemId}'`);
+      }
+      throw error;
     }
-
-    return this.formatAttribute(attribute);
   }
 
   async removeSystem(attributeId: string, systemId: string): Promise<AttributeApi> {
@@ -131,45 +145,7 @@ export default class AttributeRepository implements IAttributeRepository {
     return undefined;
   }
 
-  async formatAttributes(attributes: { key: string, value: number }[], systems: string[]): Promise<CharacterAttributeApi[]> {
-    const charAttributes = await this.getBySystems(systems);
-    const globalModifierFormula = await this.systemRepository.obtenerFormulaModificadorGlobal(systems);
-    console.log("globalModifierFormula", globalModifierFormula)
 
-    console.log("charAttributes", charAttributes)
-
-    return charAttributes.map(c => {
-      const dbAttr = attributes.find(a => a.key === c.key);
-      const value = dbAttr ? dbAttr.value : 10;
-
-      let modifier = undefined;
-
-      if (globalModifierFormula) {
-        if (/^[0-9+\-*/().\svalue]+$/.test(globalModifierFormula) || globalModifierFormula.includes('Math.')) {
-          try {
-            const calcFunc = new Function('value', `return ${globalModifierFormula.replace(/valor/g, 'value')}`);
-            modifier = calcFunc(value);
-          } catch (e) {
-            console.error("Error evaluating globalModifierFormula:", e);
-          }
-        } else {
-          console.error("Unsafe formula detected:", globalModifierFormula);
-        }
-      }
-
-      return {
-        id: c.id,
-        ruleset: c.ruleset,
-        name: c.name,
-        description: c.description,
-        key: c.key,
-        abbreviation: c.abbreviation,
-        value: value,
-        modifier: modifier,
-        icon: c.icon
-      };
-    });
-  }
 
   private formatAttribute(attribute: AttributeMongo): AttributeApi {
     return {

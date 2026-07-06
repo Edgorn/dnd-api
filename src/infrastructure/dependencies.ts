@@ -6,6 +6,8 @@ import AceptarEntradaACampaña from "../application/use-cases/campaña/aceptarEn
 import DenegarEntradaACampaña from "../application/use-cases/campaña/denegarEntradaACampaña.use-case";
 import AñadirPersonajeACampaña from "../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
 import LoginUseCase from "../application/use-cases/user/login.use-case";
+import ValidateTokenUseCase from "../application/use-cases/user/validateToken.use-case";
+import { createAuthMiddleware } from "./http/middlewares/auth.middleware";
 import ObtenerTodosLosTransfondos from "../application/use-cases/transfondo/obtenerTodosLosTransfondos.use-case";
 import ObtenerTodasLasRazas from "../application/use-cases/raza/obtenerTodasLasRazas.use-case";
 import ObtenerTodasLasClases from "../application/use-cases/clase/obtenerTodasLasClases.use-case";
@@ -125,6 +127,7 @@ const doteRepository = new DoteRepository()
 const idiomaRepository = new IdiomaRepository(systemRepository)
 const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository, systemRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
+const attributeService = new AttributeService(attributeRepository, systemRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
 const claseRepository = new ClaseRepository(
   skillRepository,
@@ -176,7 +179,7 @@ const personajeRepository = new PersonajeRepository(
   invocacionRepository,
   razaRepository,
   criaturaRepository,
-  attributeRepository,
+  attributeService,
   systemRepository
 )
 
@@ -195,6 +198,9 @@ const userService = new UserService(userRepository, passwordHasher, tokenService
 const loginUseCase = new LoginUseCase(userService)
 const refreshTokenUseCase = new RefreshTokenUseCase(userService)
 const logoutUseCase = new LogoutUseCase(userService)
+const validateTokenUseCase = new ValidateTokenUseCase(userService)
+
+export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
 
 
 
@@ -207,7 +213,6 @@ const conjuroService = new ConjuroService(conjuroRepository)
 const rasgoService = new RasgoService(rasgoRepository)
 const skillService = new SkillService(skillRepository)
 const systemService = new SystemService(systemRepository)
-const attributeService = new AttributeService(attributeRepository);
 
 const crearCampaña = new CrearCampaña(campañaService)
 const getCampaignsByUser = new GetCampaignsByUser(campañaService)

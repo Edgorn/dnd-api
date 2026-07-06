@@ -1,6 +1,6 @@
 import { Router } from "express";
 import monstruosController from '../controllers/criaturas.controller';
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { authMiddleware } from "../../dependencies";
 
 const router = Router();
 

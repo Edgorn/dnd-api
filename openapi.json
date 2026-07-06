@@ -1642,6 +1642,9 @@
           "401": {
             "description": "No autorizado."
           },
+          "409": {
+            "description": "Ya existe una característica con esta clave en el sistema."
+          },
           "500": {
             "description": "Error del servidor."
           }
@@ -1696,6 +1699,9 @@
           },
           "401": {
             "description": "No autorizado."
+          },
+          "404": {
+            "description": "No se encontró la característica."
           },
           "500": {
             "description": "Error del servidor."
@@ -1761,6 +1767,9 @@
           "401": {
             "description": "No autorizado."
           },
+          "409": {
+            "description": "Ya existe una característica con esta clave en el sistema a añadir."
+          },
           "500": {
             "description": "Error del servidor."
           }
@@ -1814,6 +1823,9 @@
           },
           "401": {
             "description": "No autorizado."
+          },
+          "404": {
+            "description": "No se encontró la característica."
           },
           "500": {
             "description": "Error del servidor."

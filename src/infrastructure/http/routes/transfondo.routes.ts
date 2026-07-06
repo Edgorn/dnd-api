@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "../middlewares/auth.middleware";
-import { transfondoController } from "../../dependencies";
+import { transfondoController, authMiddleware } from "../../dependencies";
 
 const router = Router();
 

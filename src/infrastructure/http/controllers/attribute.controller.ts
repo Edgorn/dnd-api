@@ -19,6 +19,7 @@ export class AttributeController {
       const data = await this.createAttributeUseCase.execute(req.body);
       return res.status(201).json(data);
     } catch (e) {
+      console.error("[AttributeController.create] Error:", e);
       next(e);
     }
   };
@@ -38,6 +39,7 @@ export class AttributeController {
 
       return res.status(200).json(data);
     } catch (e) {
+      console.error("[AttributeController.update] Error:", e);
       next(e);
     }
   };
@@ -54,6 +56,7 @@ export class AttributeController {
       const data = await this.addAttributeToSystemUseCase.execute(id, systemId);
       return res.status(200).json(data);
     } catch (e) {
+      console.error("[AttributeController.addSystem] Error:", e);
       next(e);
     }
   };
@@ -69,6 +72,7 @@ export class AttributeController {
       const data = await this.removeAttributeFromSystemUseCase.execute(id, systemId);
       return res.status(200).json(data);
     } catch (e) {
+      console.error("[AttributeController.removeSystem] Error:", e);
       next(e);
     }
   };

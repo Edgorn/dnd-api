@@ -1,7 +1,6 @@
 import { Router } from "express";
 
-import { authMiddleware } from "../middlewares/auth.middleware";
-import { equipamientoController } from "../../dependencies";
+import { equipamientoController, authMiddleware } from "../../dependencies";
 
 const router = Router();
 

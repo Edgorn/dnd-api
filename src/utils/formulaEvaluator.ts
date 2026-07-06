@@ -47,3 +47,37 @@ export function evaluateFormula(
 
   return 0;
 }
+
+/**
+ * Evalúa de forma segura la fórmula de modificador de atributo global (ej. Math.floor((value - 10) / 2))
+ * 
+ * @param formula Fórmula matemática con variable 'value' o 'valor'
+ * @param value Valor numérico del atributo
+ * @returns Modificador calculado o undefined en caso de error/fórmula insegura
+ */
+export function evaluateAttributeModifier(
+  formula: string,
+  value: number
+): number | undefined {
+  if (!formula) return undefined;
+
+  const evaluated = formula.replace(/valor/g, 'value').replace(/value/g, String(value));
+
+  // Sanitizar: verificar que solo contenga Math.floor/ceil/round/trunc/abs, números, espacios y operadores básicos
+  const sanitized = evaluated
+    .replace(/Math\.(floor|ceil|round|trunc|abs)/g, '')
+    .replace(/[0-9+\-*/().\s]/g, '');
+
+  if (sanitized === '') {
+    try {
+      const calcFunc = new Function(`"use strict"; return (${evaluated});`);
+      return calcFunc();
+    } catch (e) {
+      console.error("Error al evaluar la fórmula de modificador global:", formula, e);
+    }
+  } else {
+    console.error("Fórmula de modificador global insegura detectada:", formula);
+  }
+
+  return undefined;
+}

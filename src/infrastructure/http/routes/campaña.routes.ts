@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "../middlewares/auth.middleware";
-import { campañaController } from "../../dependencies";
+import { campañaController, authMiddleware } from "../../dependencies";
 
 const router = Router();
 

@@ -10,5 +10,7 @@ const attributeSchema: Schema = new Schema<AttributeMongo>({
   icon: String
 }, { collection: 'attributes' });
 
+attributeSchema.index({ key: 1, ruleset: 1 }, { unique: true });
+
 const AttributeModel = mongoose.model<AttributeMongo>("attributes", attributeSchema);
 export default AttributeModel;

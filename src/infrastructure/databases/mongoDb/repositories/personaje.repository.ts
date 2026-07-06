@@ -7,7 +7,7 @@ import IConjuroRepository from '../../../../domain/repositories/IConjuroReposito
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import Campaña from '../schemas/Campaña';
 import { DañoApi } from '../../../../domain/types';
-import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
+import AttributeService from '../../../../domain/services/attribute.service';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
@@ -61,7 +61,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly invocacionRepository: IInvocacionRepository,
     private readonly razaRepository: IRazaRepository,
     private readonly criaturaRepository: ICriaturaRepository,
-    private readonly attributeRepository: IAttributeRepository,
+    private readonly attributeService: AttributeService,
     private readonly systemRepository: ISystemRepository
   ) { }
 
@@ -946,7 +946,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const campaign = await Campaña.findById(personaje?.campaign)
     const dotes = await this.doteRepository.obtenerDotesPorIndices(personaje?.dotes ?? [])
     const modifiedAttributes = this.calcularAttributes(personaje)
-    const apiAttributes: CharacterAttributeApi[] = await this.attributeRepository.formatAttributes(modifiedAttributes, personaje.systems ?? [])
+    const apiAttributes: CharacterAttributeApi[] = await this.attributeService.formatAttributes(modifiedAttributes, personaje.systems ?? [])
 
     const initiativeBonusFormula = await this.systemRepository.obtenerFormulaBonoIniciativa(personaje.systems ?? []);
     let initiativeBonus = 0;
