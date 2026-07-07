@@ -150,9 +150,9 @@ router.put('/skills/:id', authMiddleware, validateSchema(UpdateSkillSchema), ski
 
 /**
  * @openapi
- * /skills/{id}/systems:
- *   post:
- *     summary: Asociar habilidad a un sistema (a través del cuerpo)
+ * /skills/{id}:
+ *   delete:
+ *     summary: Realizar un borrado lógico de una habilidad
  *     tags:
  *       - Habilidades
  *     security:
@@ -163,40 +163,26 @@ router.put('/skills/:id', authMiddleware, validateSchema(UpdateSkillSchema), ski
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la habilidad.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - systemId
- *             properties:
- *               systemId:
- *                 type: string
- *                 description: ID o nombre del sistema a añadir.
+ *         description: ID de la habilidad a borrar.
  *     responses:
- *       200:
- *         description: Sistema asociado con éxito.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Skill'
+ *       204:
+ *         description: Habilidad borrada exitosamente.
  *       400:
- *         description: Faltan campos obligatorios.
- *       401:
- *         description: No autorizado.
+ *         description: ID de habilidad requerido.
+ *       403:
+ *         description: No tienes permisos para borrar esta habilidad.
+ *       404:
+ *         description: Habilidad no encontrada.
  *       500:
  *         description: Error del servidor.
  */
-router.post('/skills/:id/systems', authMiddleware, validateSchema(AddSystemSchema), skillController.addSystem);
+router.delete('/skills/:id', authMiddleware, skillController.delete);
 
 /**
  * @openapi
- * /skills/{id}/systems/{systemId}:
- *   delete:
- *     summary: Desasociar habilidad de un sistema (a través de URL)
+ * /skills/{id}/restore:
+ *   patch:
+ *     summary: Restaurar una habilidad borrada lógicamente
  *     tags:
  *       - Habilidades
  *     security:
@@ -207,27 +193,19 @@ router.post('/skills/:id/systems', authMiddleware, validateSchema(AddSystemSchem
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la habilidad.
- *       - in: path
- *         name: systemId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID o nombre del sistema a eliminar.
+ *         description: ID de la habilidad a restaurar.
  *     responses:
  *       200:
- *         description: Sistema desasociado con éxito.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Skill'
+ *         description: Habilidad restaurada exitosamente.
  *       400:
- *         description: Faltan parámetros obligatorios.
- *       401:
- *         description: No autorizado.
+ *         description: ID de habilidad requerido.
+ *       403:
+ *         description: No tienes permisos para restaurar esta habilidad.
+ *       404:
+ *         description: Habilidad no encontrada.
  *       500:
  *         description: Error del servidor.
  */
-router.delete('/skills/:id/systems/:systemId', authMiddleware, skillController.removeSystem);
+router.patch('/skills/:id/restore', authMiddleware, skillController.restore);
 
 export default router;

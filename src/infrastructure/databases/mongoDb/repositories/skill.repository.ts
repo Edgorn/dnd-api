@@ -8,11 +8,11 @@ import { CharacterAttributeApi } from "../../../../domain/types/attribute.types"
 import { evaluateFormula } from "../../../../utils/formulaEvaluator";
 
 export default class SkillRepository implements ISkillRepository {
-  constructor() {}
+  constructor() { }
 
   async create(data: InputCreateSkill): Promise<SkillApi> {
     const newSkill = new SkillSchema({
-      ruleset: [data.ruleset],
+      ruleset: data.ruleset,
       name: data.name,
       description: data.description,
       key: data.key,
@@ -39,62 +39,34 @@ export default class SkillRepository implements ISkillRepository {
     return this.formatSkill(updatedSkill);
   }
 
-  async addSystem(skillId: string, systemId: string): Promise<SkillApi> {
-    const skill = await SkillSchema.findByIdAndUpdate(
-      skillId,
-      { $addToSet: { ruleset: systemId } },
-      { new: true }
-    );
-
-    if (!skill) {
-      throw new NotFoundError(`No skill found with id: ${skillId}`);
+  async getBySystems(rulesets: string[], includeDeleted: boolean = false): Promise<SkillApi[]> {
+    const rulesetQuery: any = { ruleset: { $in: rulesets } };
+    if (!includeDeleted) {
+      rulesetQuery.deletedAt = null;
     }
-
-    return this.formatSkill(skill);
-  }
-
-  async removeSystem(skillId: string, systemId: string): Promise<SkillApi> {
-    const skill = await SkillSchema.findByIdAndUpdate(
-      skillId,
-      { $pull: { ruleset: systemId } },
-      { new: true }
-    );
-
-    if (!skill) {
-      throw new NotFoundError(`No skill found with id: ${skillId}`);
-    }
-
-    if (!skill.ruleset || skill.ruleset.length === 0) {
-      await SkillSchema.findByIdAndDelete(skillId);
-    }
-
-    return this.formatSkill(skill);
-  }
-
-  async getBySystems(rulesets: string[]): Promise<SkillApi[]> {
-    const skills = await SkillSchema.find({ ruleset: { $in: rulesets } });
+    const skills = await SkillSchema.find(rulesetQuery);
     return skills.map(s => this.formatSkill(s));
   }
 
   async getSkillsByKeys(keys: string[]): Promise<SkillApi[]> {
     if (!keys.length) return [];
-    const skills = await SkillSchema.find({ key: { $in: keys } });
+    const skills = await SkillSchema.find({ key: { $in: keys }, deletedAt: null });
     return ordenarPorNombre(this.formatSkills(skills));
   }
 
   async getAll(): Promise<SkillApi[]> {
-    const skills = await SkillSchema.find();
+    const skills = await SkillSchema.find({ deletedAt: null });
     return ordenarPorNombre(this.formatSkills(skills));
   }
 
   async getCharacterSkills(
-    skillsKeys: string[], 
+    skillsKeys: string[],
     doubleSkillsKeys: string[],
     attributes: CharacterAttributeApi[],
     profBonus: number,
     hasJackOfAllTrades: boolean
   ): Promise<SkillPersonajeApi[]> {
-    const allSkills = await SkillSchema.find()
+    const allSkills = await SkillSchema.find({ deletedAt: null })
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
 
@@ -169,12 +141,27 @@ export default class SkillRepository implements ISkillRepository {
   private formatSkill(skill: SkillMongo): SkillApi {
     return {
       id: skill._id.toString(),
-      ruleset: skill.ruleset || [],
+      ruleset: skill.ruleset || '',
       name: skill.name,
       description: skill.description,
       key: skill.key,
       bonusFormula: skill.bonusFormula,
-      attributeScore: skill.attributeScore || []
+      attributeScore: skill.attributeScore || [],
+      deletedAt: skill.deletedAt
     };
+  }
+
+  async getById(id: string): Promise<SkillApi | null> {
+    const skill = await SkillSchema.findById(id);
+    if (!skill) return null;
+    return this.formatSkill(skill);
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await SkillSchema.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } });
+  }
+
+  async restore(id: string): Promise<void> {
+    await SkillSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
 }

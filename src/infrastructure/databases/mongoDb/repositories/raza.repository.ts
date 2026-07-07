@@ -1,7 +1,7 @@
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
-import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
@@ -16,7 +16,7 @@ import ISystemRepository from '../../../../domain/repositories/ISystemRepository
 
 export default class RazaRepository implements IRazaRepository {
   constructor(
-    private readonly idiomaRepository: IIdiomaRepository,
+    private readonly languageRepository: ILanguageRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly skillRepository: ISkillRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
@@ -127,7 +127,7 @@ export default class RazaRepository implements IRazaRepository {
       this.attributeRepository.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
       this.attributeRepository.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
       this.skillRepository.formatSkillChoices(raza.skill_choices),
-      this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages?.understands ?? []),
+      this.languageRepository.getLanguagesByIndex(raza?.languages?.understands ?? []),
       this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
       this.formatearSubrazas(raza.subraces, { ...dataLevel?.traits_data, ...raza.traits_data }, ruleset),
       this.formatearVariantes(raza?.variants ?? [], ruleset)
@@ -152,10 +152,10 @@ export default class RazaRepository implements IRazaRepository {
       traits_data: { ...dataLevel?.traits_data, ...raza.traits_data },
       languages: {
         understands: languages,
-        speaks: await this.idiomaRepository.obtenerIdiomasPorIndices(raza?.languages?.speaks ?? []),
+        speaks: await this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
         notes: raza?.languages?.notes  ?? ""
       },
-      language_choices: await this.idiomaRepository.formatearOpcionesDeIdioma(raza.language_choices),
+      language_choices: await this.languageRepository.formatLanguageChoices(raza.language_choices),
       proficiencies_choices,
       subraces,
       variants
@@ -182,9 +182,9 @@ export default class RazaRepository implements IRazaRepository {
       ability_bonuses
     ] = await Promise.all([
       this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? [], deepMerge(subraza?.traits_data, traitsData)),
-      this.idiomaRepository.obtenerIdiomasPorIndices(subraza?.languages?.understands ?? []),
-      this.idiomaRepository.obtenerIdiomasPorIndices(subraza?.languages?.speaks ?? []),
-      this.idiomaRepository.formatearOpcionesDeIdioma(subraza.language_choices),
+      this.languageRepository.getLanguagesByIndex(subraza?.languages?.understands ?? []),
+      this.languageRepository.getLanguagesByIndex(subraza?.languages?.speaks ?? []),
+      this.languageRepository.formatLanguageChoices(subraza.language_choices),
       this.conjuroRepository.formatearOpcionesDeConjuros(subraza?.spell_choices),
       ruleset ? this.attributeRepository.formatAbilityBonuses(subraza?.ability_bonuses ?? [], ruleset) : Promise.resolve([])
     ])

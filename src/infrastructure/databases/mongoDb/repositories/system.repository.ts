@@ -5,9 +5,10 @@ import SistemasModel from '../schemas/System';
 import { System, SystemApi, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import RaceModel from '../schemas/Raza';
-import IdiomaModel from '../schemas/Idioma';
+import LanguageModel from '../schemas/Language';
 import RasgoModel from '../schemas/Rasgo';
 import AttributeModel from '../schemas/Attribute';
+import SkillModel from '../schemas/Skill';
 import { AttributeApi } from '../../../../domain/types/attribute.types';
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { ValidationError } from '../../../../domain/errors/AppError';
@@ -33,34 +34,39 @@ export default class SystemRepository implements ISystemRepository {
     return ancestry;
   }
 
-  private async getDirectSystemAttributes(sysId: string, sysName: string): Promise<AttributeApi[]> {
-    const rulesetQuery = {
+  private async getDirectSystemAttributes(sysId: string, sysName: string, includeDeleted: boolean = false): Promise<AttributeApi[]> {
+    const rulesetQuery: any = {
       $or: [
         { ruleset: sysId },
         { ruleset: sysName }
       ]
     };
+    if (!includeDeleted) {
+      rulesetQuery.deletedAt = null;
+    }
 
     const docs = await AttributeModel.find(rulesetQuery);
     return docs.map(doc => ({
       id: doc._id.toString(),
-      ruleset: doc.ruleset || [],
+      ruleset: doc.ruleset || '',
       name: doc.name || '',
       description: doc.description || '',
       key: doc.key || '',
       abbreviation: doc.abbreviation || '',
-      icon: doc.icon
+      icon: doc.icon,
+      deletedAt: doc.deletedAt
     }));
   }
 
   private async obtenerEstadisticasSistemaMulti(rulesets: string[]) {
     const rulesetQuery = {
-      ruleset: { $in: rulesets }
+      ruleset: { $in: rulesets },
+      deletedAt: null
     };
 
     const [racesCount, languagesCount, traitsCount] = await Promise.all([
       RaceModel.countDocuments(rulesetQuery),
-      IdiomaModel.countDocuments(rulesetQuery),
+      LanguageModel.countDocuments(rulesetQuery),
       RasgoModel.countDocuments(rulesetQuery)
     ]);
 
@@ -93,7 +99,12 @@ export default class SystemRepository implements ISystemRepository {
     const attributesMap = new Map<string, AttributeApi>();
     for (let i = ancestry.length - 1; i >= 0; i--) {
       const ancestor = ancestry[i];
-      const sysAttrs = await this.getDirectSystemAttributes(ancestor._id.toString(), ancestor.name);
+      // Determine if we should include deleted items: only if the user is publisher of THIS ancestor!
+      // But we don't have isPublisher of ancestor, we only have isPublisher of the requested system.
+      // Wait! If the user owns the child system, should they see deleted attributes of the ancestor? NO!
+      // They should only see deleted attributes if they own the ancestor!
+      const isAncestorPublisher = userId ? ancestor.publisher === userId : false;
+      const sysAttrs = await this.getDirectSystemAttributes(ancestor._id.toString(), ancestor.name, isAncestorPublisher);
       for (const attr of sysAttrs) {
         attributesMap.set(attr.key, attr);
       }
@@ -103,7 +114,8 @@ export default class SystemRepository implements ISystemRepository {
     const skillsMap = new Map<string, SkillApi>();
     for (let i = ancestry.length - 1; i >= 0; i--) {
       const ancestor = ancestry[i];
-      const sysSkills = await this.skillRepository.getBySystems([ancestor._id.toString(), ancestor.name]);
+      const isAncestorPublisher = userId ? ancestor.publisher === userId : false;
+      const sysSkills = await this.skillRepository.getBySystems([ancestor._id.toString(), ancestor.name], isAncestorPublisher);
       for (const skill of sysSkills) {
         skillsMap.set(skill.key, skill);
       }
@@ -139,7 +151,8 @@ export default class SystemRepository implements ISystemRepository {
       creationMinAttributeValue: getMergedScalar<number>('creationMinAttributeValue'),
       creationMaxAttributeValue: getMergedScalar<number>('creationMaxAttributeValue'),
       attributes,
-      skills
+      skills,
+      deletedAt: sys.deletedAt
     };
   }
 
@@ -151,7 +164,8 @@ export default class SystemRepository implements ISystemRepository {
       $or: [
         { _id: { $in: validIds as any[] } },
         { name: { $in: systems } }
-      ]
+      ],
+      deletedAt: null
     });
 
     for (const sys of systemsDocs) {
@@ -173,7 +187,8 @@ export default class SystemRepository implements ISystemRepository {
       $or: [
         { _id: { $in: validIds as any[] } },
         { name: { $in: systems } }
-      ]
+      ],
+      deletedAt: null
     });
 
     for (const sys of systemsDocs) {
@@ -194,7 +209,7 @@ export default class SystemRepository implements ISystemRepository {
     const query: any = {
       $or: [
         { publisher: userId },
-        { isOpen: true }
+        { isOpen: true, deletedAt: null }
       ]
     };
 
@@ -272,7 +287,7 @@ export default class SystemRepository implements ISystemRepository {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return null;
     }
-    return SistemasModel.findById(id).lean();
+    return SistemasModel.findOne({ _id: id, deletedAt: null } as any).lean();
   }
 
   async verificarSistemasNoBase(systems: string[]): Promise<void> {
@@ -313,5 +328,22 @@ export default class SystemRepository implements ISystemRepository {
     }
 
     return Array.from(resultSet);
+  }
+
+  async softDelete(id: string): Promise<void> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return;
+    const now = new Date();
+    await SistemasModel.findByIdAndUpdate(id, { $set: { deletedAt: now } });
+    await AttributeModel.updateMany({ ruleset: id }, { $set: { deletedAt: now } });
+    await SkillModel.updateMany({ ruleset: id }, { $set: { deletedAt: now } });
+    await LanguageModel.updateMany({ ruleset: id }, { $set: { deletedAt: now } });
+  }
+
+  async restore(id: string): Promise<void> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return;
+    await SistemasModel.findByIdAndUpdate(id, { $set: { deletedAt: null } });
+    await AttributeModel.updateMany({ ruleset: id }, { $set: { deletedAt: null } });
+    await SkillModel.updateMany({ ruleset: id }, { $set: { deletedAt: null } });
+    await LanguageModel.updateMany({ ruleset: id }, { $set: { deletedAt: null } });
   }
 }

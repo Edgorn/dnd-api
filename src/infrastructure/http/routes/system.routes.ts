@@ -221,4 +221,64 @@ router.post('/systems', authMiddleware, systemController.createSystem);
  */
 router.put('/systems/:id', authMiddleware, systemController.updateSystem);
 
+/**
+ * @openapi
+ * /systems/{id}:
+ *   delete:
+ *     summary: Realizar un borrado lógico de un sistema
+ *     tags:
+ *       - Sistemas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del sistema a borrar.
+ *     responses:
+ *       204:
+ *         description: Sistema borrado exitosamente.
+ *       400:
+ *         description: ID de sistema requerido.
+ *       403:
+ *         description: No tienes permisos para borrar este sistema.
+ *       404:
+ *         description: Sistema no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.delete('/systems/:id', authMiddleware, systemController.deleteSystem);
+
+/**
+ * @openapi
+ * /systems/{id}/restore:
+ *   patch:
+ *     summary: Restaurar un sistema borrado lógicamente
+ *     tags:
+ *       - Sistemas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del sistema a restaurar.
+ *     responses:
+ *       200:
+ *         description: Sistema restaurado exitosamente.
+ *       400:
+ *         description: ID de sistema requerido.
+ *       403:
+ *         description: No tienes permisos para restaurar este sistema.
+ *       404:
+ *         description: Sistema no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/systems/:id/restore', authMiddleware, systemController.restore);
+
 export default router;

@@ -1,19 +1,20 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
+import { ValidationError } from "../../../domain/errors/AppError";
 import GetSkillsBySystems from "../../../application/use-cases/skill/getSkillsBySystems.use-case";
 import CreateSkill from "../../../application/use-cases/skill/createSkill.use-case";
 import UpdateSkill from "../../../application/use-cases/skill/updateSkill.use-case";
-import AddSystemToSkill from "../../../application/use-cases/skill/addSystemToSkill.use-case";
-import RemoveSystemFromSkill from "../../../application/use-cases/skill/removeSystemFromSkill.use-case";
-import { ValidationError } from "../../../domain/errors/AppError";
+import SoftDeleteSkill from "../../../application/use-cases/skill/softDeleteSkill.use-case";
+import RestoreSkill from "../../../application/use-cases/skill/restoreSkill.use-case";
+import { AppError } from "../../../domain/errors/AppError";
 
 export class SkillController {
   constructor(
     private readonly getSkillsBySystemsUseCase: GetSkillsBySystems,
     private readonly createSkillUseCase: CreateSkill,
     private readonly updateSkillUseCase: UpdateSkill,
-    private readonly addSystemToSkillUseCase: AddSystemToSkill,
-    private readonly removeSystemFromSkillUseCase: RemoveSystemFromSkill
+    private readonly softDeleteSkillUseCase: SoftDeleteSkill,
+    private readonly restoreSkillUseCase: RestoreSkill
   ) {}
 
   obtenerTodas = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -60,33 +61,40 @@ export class SkillController {
     }
   };
 
-  addSystem = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  delete = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user!;
       const { id } = req.params;
-      const { systemId } = req.body;
-
+      
       if (!id) {
         throw new ValidationError("Skill ID is required");
       }
 
-      const data = await this.addSystemToSkillUseCase.execute(id, systemId);
-      return res.status(200).json(data);
-    } catch (e) {
+      await this.softDeleteSkillUseCase.execute(id, userId);
+      return res.status(204).send();
+    } catch (e: any) {
+      if (e.message === 'No tienes permisos para borrar esta habilidad' || e.message === 'Sistema asociado no encontrado' || e.message === 'Habilidad no encontrada') {
+        return next(new AppError(e.message, e.message.includes('encontrad') ? 404 : 403));
+      }
       next(e);
     }
   };
 
-  removeSystem = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  restore = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { id, systemId } = req.params;
-
-      if (!id || !systemId) {
-        throw new ValidationError("Skill ID and system ID are required");
+      const userId = req.user!;
+      const { id } = req.params;
+      
+      if (!id) {
+        throw new ValidationError("Skill ID is required");
       }
 
-      const data = await this.removeSystemFromSkillUseCase.execute(id, systemId);
-      return res.status(200).json(data);
-    } catch (e) {
+      await this.restoreSkillUseCase.execute(id, userId);
+      return res.status(200).json({ message: 'Habilidad restaurada con éxito' });
+    } catch (e: any) {
+      if (e.message === 'No tienes permisos para restaurar esta habilidad' || e.message === 'Sistema asociado no encontrado' || e.message === 'Habilidad no encontrada') {
+        return next(new AppError(e.message, e.message.includes('encontrad') ? 404 : 403));
+      }
       next(e);
     }
   };

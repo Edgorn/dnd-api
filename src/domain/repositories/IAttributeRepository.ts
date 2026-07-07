@@ -4,15 +4,16 @@ import { AttributeApi, InputCreateAttribute, InputUpdateAttribute, AttributeBonu
 export default interface IAttributeRepository {
   create(data: InputCreateAttribute): Promise<AttributeApi>;
   update(data: InputUpdateAttribute): Promise<AttributeApi>;
-  addSystem(attributeId: string, systemId: string): Promise<AttributeApi>;
-  removeSystem(attributeId: string, systemId: string): Promise<AttributeApi>;
   getBySystems(rulesets: string[]): Promise<AttributeApi[]>;
   formatAbilityBonuses(
-    bonuses: AttributeBonusCreate[] | AttributeBonus[], 
+    bonuses: AttributeBonusCreate[], 
     system: string
   ): Promise<AttributeBonus[]>;
   formatAbilityBonusChoices(
     bonus_choices: ChoiceMongo | undefined, 
     system: string
   ): Promise<ChoiceApi<AttributeBonus> | undefined>;
+  getById(id: string): Promise<AttributeApi | null>;
+  softDelete(id: string): Promise<void>;
+  restore(id: string): Promise<void>;
 }

@@ -925,6 +925,91 @@
           }
         }
       },
+      "Language": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB del idioma."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del idioma."
+          },
+          "type": {
+            "type": "string",
+            "description": "Tipo de idioma (ej. Estándar, Exótico)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del idioma."
+          },
+          "script": {
+            "type": "string",
+            "description": "Alfabeto o escritura del idioma."
+          },
+          "ruleset": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array de IDs de los sistemas a los que pertenece el idioma."
+          }
+        }
+      },
+      "InputCreateLanguage": {
+        "type": "object",
+        "required": [
+          "name",
+          "ruleset"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del idioma."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción."
+          },
+          "type": {
+            "type": "string",
+            "description": "Tipo de idioma."
+          },
+          "script": {
+            "type": "string",
+            "description": "Alfabeto del idioma."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID o nombre del sistema inicial asociado al idioma."
+          }
+        }
+      },
+      "InputUpdateLanguage": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID del idioma a actualizar."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "script": {
+            "type": "string"
+          }
+        }
+      },
       "Attribute": {
         "type": "object",
         "properties": {
@@ -1261,6 +1346,86 @@
             "description": "Error del servidor."
           }
         }
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de un sistema",
+        "tags": [
+          "Sistemas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del sistema a borrar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sistema borrado exitosamente."
+          },
+          "400": {
+            "description": "ID de sistema requerido."
+          },
+          "403": {
+            "description": "No tienes permisos para borrar este sistema."
+          },
+          "404": {
+            "description": "Sistema no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/systems/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar un sistema borrado lógicamente",
+        "tags": [
+          "Sistemas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del sistema a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sistema restaurado exitosamente."
+          },
+          "400": {
+            "description": "ID de sistema requerido."
+          },
+          "403": {
+            "description": "No tienes permisos para restaurar este sistema."
+          },
+          "404": {
+            "description": "Sistema no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
       }
     },
     "/skills": {
@@ -1360,11 +1525,9 @@
             "description": "Error del servidor."
           }
         }
-      }
-    },
-    "/skills/{id}/systems": {
-      "post": {
-        "summary": "Asociar habilidad a un sistema (a través del cuerpo)",
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de una habilidad",
         "tags": [
           "Habilidades"
         ],
@@ -1381,44 +1544,21 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID de la habilidad."
+            "description": "ID de la habilidad a borrar."
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "systemId"
-                ],
-                "properties": {
-                  "systemId": {
-                    "type": "string",
-                    "description": "ID o nombre del sistema a añadir."
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
-          "200": {
-            "description": "Sistema asociado con éxito.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Skill"
-                }
-              }
-            }
+          "204": {
+            "description": "Habilidad borrada exitosamente."
           },
           "400": {
-            "description": "Faltan campos obligatorios."
+            "description": "ID de habilidad requerido."
           },
-          "401": {
-            "description": "No autorizado."
+          "403": {
+            "description": "No tienes permisos para borrar esta habilidad."
+          },
+          "404": {
+            "description": "Habilidad no encontrada."
           },
           "500": {
             "description": "Error del servidor."
@@ -1426,9 +1566,9 @@
         }
       }
     },
-    "/skills/{id}/systems/{systemId}": {
-      "delete": {
-        "summary": "Desasociar habilidad de un sistema (a través de URL)",
+    "/skills/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar una habilidad borrada lógicamente",
         "tags": [
           "Habilidades"
         ],
@@ -1445,34 +1585,21 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID de la habilidad."
-          },
-          {
-            "in": "path",
-            "name": "systemId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ID o nombre del sistema a eliminar."
+            "description": "ID de la habilidad a restaurar."
           }
         ],
         "responses": {
           "200": {
-            "description": "Sistema desasociado con éxito.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Skill"
-                }
-              }
-            }
+            "description": "Habilidad restaurada exitosamente."
           },
           "400": {
-            "description": "Faltan parámetros obligatorios."
+            "description": "ID de habilidad requerido."
           },
-          "401": {
-            "description": "No autorizado."
+          "403": {
+            "description": "No tienes permisos para restaurar esta habilidad."
+          },
+          "404": {
+            "description": "Habilidad no encontrada."
           },
           "500": {
             "description": "Error del servidor."
@@ -1604,6 +1731,244 @@
         }
       }
     },
+    "/languages": {
+      "get": {
+        "summary": "Obtener los idiomas asociados a ciertos sistemas",
+        "tags": [
+          "Idiomas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "description": "Sistema o sistemas para los cuales filtrar los idiomas."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de idiomas obtenida con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Language"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo idioma",
+        "tags": [
+          "Idiomas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateLanguage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Idioma creado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Language"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros incorrectos o idioma ya existente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "409": {
+            "description": "Conflicto, el idioma ya existe."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/languages/{id}": {
+      "put": {
+        "summary": "Actualizar un idioma existente",
+        "tags": [
+          "Idiomas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del idioma a actualizar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateLanguage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Idioma actualizado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Language"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros incorrectos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Idioma no encontrado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de un idioma",
+        "tags": [
+          "Idiomas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del idioma a borrar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Idioma borrado exitosamente."
+          },
+          "400": {
+            "description": "ID de idioma requerido."
+          },
+          "403": {
+            "description": "No tienes permisos para borrar este idioma."
+          },
+          "404": {
+            "description": "Idioma no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/languages/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar un idioma borrado lógicamente",
+        "tags": [
+          "Idiomas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del idioma a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Idioma restaurado exitosamente."
+          },
+          "400": {
+            "description": "ID de idioma requerido."
+          },
+          "403": {
+            "description": "No tienes permisos para restaurar este idioma."
+          },
+          "404": {
+            "description": "Idioma no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
     "/attributes": {
       "post": {
         "summary": "Crear una nueva característica",
@@ -1707,11 +2072,9 @@
             "description": "Error del servidor."
           }
         }
-      }
-    },
-    "/attributes/{id}/systems": {
-      "post": {
-        "summary": "Asociar característica a un sistema (a través del cuerpo)",
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de una característica",
         "tags": [
           "Caracteristicas"
         ],
@@ -1728,47 +2091,21 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID de la característica."
+            "description": "ID de la característica a borrar."
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "systemId"
-                ],
-                "properties": {
-                  "systemId": {
-                    "type": "string",
-                    "description": "ID o nombre del sistema a añadir."
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
-          "200": {
-            "description": "Sistema asociado con éxito.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Attribute"
-                }
-              }
-            }
+          "204": {
+            "description": "Característica borrada exitosamente."
           },
           "400": {
-            "description": "Faltan campos obligatorios."
+            "description": "ID de característica requerido."
           },
-          "401": {
-            "description": "No autorizado."
+          "403": {
+            "description": "No tienes permisos para borrar esta característica."
           },
-          "409": {
-            "description": "Ya existe una característica con esta clave en el sistema a añadir."
+          "404": {
+            "description": "Característica no encontrada."
           },
           "500": {
             "description": "Error del servidor."
@@ -1776,9 +2113,9 @@
         }
       }
     },
-    "/attributes/{id}/systems/{systemId}": {
-      "delete": {
-        "summary": "Desasociar característica de un sistema (a través de URL)",
+    "/attributes/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar una característica borrada lógicamente",
         "tags": [
           "Caracteristicas"
         ],
@@ -1795,37 +2132,21 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID de la característica."
-          },
-          {
-            "in": "path",
-            "name": "systemId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ID o nombre del sistema a eliminar."
+            "description": "ID de la característica a restaurar."
           }
         ],
         "responses": {
           "200": {
-            "description": "Sistema desasociado con éxito.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Attribute"
-                }
-              }
-            }
+            "description": "Característica restaurada exitosamente."
           },
           "400": {
-            "description": "Faltan parámetros obligatorios."
+            "description": "ID de característica requerido."
           },
-          "401": {
-            "description": "No autorizado."
+          "403": {
+            "description": "No tienes permisos para restaurar esta característica."
           },
           "404": {
-            "description": "No se encontró la característica."
+            "description": "Característica no encontrada."
           },
           "500": {
             "description": "Error del servidor."

@@ -13,7 +13,8 @@ const system: Schema = new Schema<System>({
   defaultMinAttributeValue: Number,
   defaultMaxAttributeValue: Number,
   creationMinAttributeValue: Number,
-  creationMaxAttributeValue: Number
+  creationMaxAttributeValue: Number,
+  deletedAt: { type: Date, default: null }
 }, { collection: 'systems' });
 
 const SistemasModel = mongoose.model<System>("systems", system);

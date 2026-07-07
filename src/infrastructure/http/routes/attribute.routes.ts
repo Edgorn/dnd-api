@@ -153,9 +153,9 @@ router.put('/attributes/:id', authMiddleware, validateSchema(UpdateAttributeSche
 
 /**
  * @openapi
- * /attributes/{id}/systems:
- *   post:
- *     summary: Asociar característica a un sistema (a través del cuerpo)
+ * /attributes/{id}:
+ *   delete:
+ *     summary: Realizar un borrado lógico de una característica
  *     tags:
  *       - Caracteristicas
  *     security:
@@ -166,42 +166,26 @@ router.put('/attributes/:id', authMiddleware, validateSchema(UpdateAttributeSche
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la característica.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - systemId
- *             properties:
- *               systemId:
- *                 type: string
- *                 description: ID o nombre del sistema a añadir.
+ *         description: ID de la característica a borrar.
  *     responses:
- *       200:
- *         description: Sistema asociado con éxito.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Attribute'
+ *       204:
+ *         description: Característica borrada exitosamente.
  *       400:
- *         description: Faltan campos obligatorios.
- *       401:
- *         description: No autorizado.
- *       409:
- *         description: Ya existe una característica con esta clave en el sistema a añadir.
+ *         description: ID de característica requerido.
+ *       403:
+ *         description: No tienes permisos para borrar esta característica.
+ *       404:
+ *         description: Característica no encontrada.
  *       500:
  *         description: Error del servidor.
  */
-router.post('/attributes/:id/systems', authMiddleware, validateSchema(AddSystemSchema), attributeController.addSystem);
+router.delete('/attributes/:id', authMiddleware, attributeController.delete);
 
 /**
  * @openapi
- * /attributes/{id}/systems/{systemId}:
- *   delete:
- *     summary: Desasociar característica de un sistema (a través de URL)
+ * /attributes/{id}/restore:
+ *   patch:
+ *     summary: Restaurar una característica borrada lógicamente
  *     tags:
  *       - Caracteristicas
  *     security:
@@ -212,29 +196,19 @@ router.post('/attributes/:id/systems', authMiddleware, validateSchema(AddSystemS
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la característica.
- *       - in: path
- *         name: systemId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID o nombre del sistema a eliminar.
+ *         description: ID de la característica a restaurar.
  *     responses:
  *       200:
- *         description: Sistema desasociado con éxito.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Attribute'
+ *         description: Característica restaurada exitosamente.
  *       400:
- *         description: Faltan parámetros obligatorios.
- *       401:
- *         description: No autorizado.
+ *         description: ID de característica requerido.
+ *       403:
+ *         description: No tienes permisos para restaurar esta característica.
  *       404:
- *         description: No se encontró la característica.
+ *         description: Característica no encontrada.
  *       500:
  *         description: Error del servidor.
  */
-router.delete('/attributes/:id/systems/:systemId', authMiddleware, attributeController.removeSystem);
+router.patch('/attributes/:id/restore', authMiddleware, attributeController.restore);
 
 export default router;

@@ -16,7 +16,7 @@ import npcsRoutes from "./routes/npcs.routes";
 import conjuroRoutes from "./routes/conjuro.routes";
 import rasgosRoutes from "./routes/rasgo.routes";
 import skillRoutes from "./routes/skill.routes";
-import idiomaRoutes from "./routes/idioma.routes";
+import languageRoutes from "./routes/language.routes";
 import systemRoutes from "./routes/system.routes";
 import attributeRoutes from "./routes/attribute.routes";
 import swaggerUi from 'swagger-ui-express';
@@ -56,7 +56,7 @@ app.use(npcsRoutes);
 app.use(conjuroRoutes);
 app.use(rasgosRoutes);
 app.use(skillRoutes);
-app.use(idiomaRoutes)
+app.use(languageRoutes);
 app.use(systemRoutes);
 app.use(attributeRoutes);
 

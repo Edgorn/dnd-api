@@ -13,7 +13,7 @@ export default class AttributeRepository implements IAttributeRepository {
   async create(data: InputCreateAttribute): Promise<AttributeApi> {
     try {
       const newAttribute = new AttributeSchema({
-        ruleset: [data.ruleset],
+        ruleset: data.ruleset,
         name: data.name,
         description: data.description,
         key: data.key,
@@ -46,48 +46,11 @@ export default class AttributeRepository implements IAttributeRepository {
     return this.formatAttribute(updatedAttribute);
   }
 
-  async addSystem(attributeId: string, systemId: string): Promise<AttributeApi> {
-    try {
-      const attribute = await AttributeSchema.findByIdAndUpdate(
-        attributeId,
-        { $addToSet: { ruleset: systemId } },
-        { new: true }
-      );
 
-      if (!attribute) {
-        throw new NotFoundError(`No attribute found with id: ${attributeId}`);
-      }
-
-      return this.formatAttribute(attribute);
-    } catch (error: any) {
-      if (error?.code === 11000) {
-        throw new ConflictError(`An attribute with this key already exists in system '${systemId}'`);
-      }
-      throw error;
-    }
-  }
-
-  async removeSystem(attributeId: string, systemId: string): Promise<AttributeApi> {
-    const attribute = await AttributeSchema.findByIdAndUpdate(
-      attributeId,
-      { $pull: { ruleset: systemId } },
-      { new: true }
-    );
-
-    if (!attribute) {
-      throw new NotFoundError(`No attribute found with id: ${attributeId}`);
-    }
-
-    if (!attribute.ruleset || attribute.ruleset.length === 0) {
-      await AttributeSchema.findByIdAndDelete(attributeId);
-    }
-
-    return this.formatAttribute(attribute);
-  }
 
   async getBySystems(rulesets: string[]): Promise<AttributeApi[]> {
     const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
-    const attributes = await AttributeSchema.find({ ruleset: { $in: expandedRulesets } });
+    const attributes = await AttributeSchema.find({ ruleset: { $in: expandedRulesets }, deletedAt: null });
     return attributes.map(a => this.formatAttribute(a));
   }
 
@@ -150,12 +113,25 @@ export default class AttributeRepository implements IAttributeRepository {
   private formatAttribute(attribute: AttributeMongo): AttributeApi {
     return {
       id: attribute._id.toString(),
-      ruleset: attribute.ruleset || [],
+      ruleset: attribute.ruleset || '',
       name: attribute.name,
       description: attribute.description,
       key: attribute.key,
       abbreviation: attribute.abbreviation,
       icon: attribute.icon
     };
+  }
+  async getById(id: string): Promise<AttributeApi | null> {
+    const attribute = await AttributeSchema.findById(id);
+    if (!attribute) return null;
+    return this.formatAttribute(attribute);
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await AttributeSchema.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } });
+  }
+
+  async restore(id: string): Promise<void> {
+    await AttributeSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
 }

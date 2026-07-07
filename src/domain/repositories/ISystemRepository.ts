@@ -9,4 +9,6 @@ export default interface ISystemRepository {
   obtenerFormulaBonoIniciativa(systems: string[]): Promise<string | undefined>;
   verificarSistemasNoBase(systems: string[]): Promise<void>;
   getSystemsAndAncestors(systems: string[]): Promise<string[]>;
+  softDelete(id: string): Promise<void>;
+  restore(id: string): Promise<void>;
 }

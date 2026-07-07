@@ -25,7 +25,19 @@ export default class SystemService {
     return this.systemRepository.modificar(data);
   }
 
+  obtenerPorId(id: string): Promise<any> {
+    return this.systemRepository.obtenerPorId(id);
+  }
+
   getSystemsAndAncestors(systems: string[]): Promise<string[]> {
     return this.systemRepository.getSystemsAndAncestors(systems);
+  }
+
+  softDelete(id: string): Promise<void> {
+    return this.systemRepository.softDelete(id);
+  }
+
+  restore(id: string): Promise<void> {
+    return this.systemRepository.restore(id);
   }
 }

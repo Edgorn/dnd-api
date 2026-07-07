@@ -2,22 +2,24 @@ import { ObjectId } from "mongoose"
 
 export interface SkillMongo {
   _id: ObjectId,
-  ruleset: string[],
+  ruleset: string,
   name: string,
-  description: string,
+  description?: string,
   key: string,
-  bonusFormula: string,
-  attributeScore: string[]
+  bonusFormula?: string,
+  attributeScore: string[],
+  deletedAt?: Date
 }
 
 export interface SkillApi {
   id: string,
-  ruleset: string[],
+  ruleset: string,
   name: string,
-  description: string,
+  description?: string,
   key: string,
-  bonusFormula: string,
-  attributeScore: string[]
+  bonusFormula?: string,
+  attributeScore: string[],
+  deletedAt?: Date
 } 
 
 export interface SkillPersonajeApi extends Omit<SkillApi, 'ruleset' | 'bonusFormula'> {
@@ -28,9 +30,9 @@ export interface SkillPersonajeApi extends Omit<SkillApi, 'ruleset' | 'bonusForm
 export interface InputCreateSkill {
   ruleset: string,
   name: string,
-  description: string,
+  description?: string,
   key: string,
-  bonusFormula: string,
+  bonusFormula?: string,
   attributeScore: string[]
 }
 

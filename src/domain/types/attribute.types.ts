@@ -2,30 +2,32 @@ import { ObjectId } from "mongoose";
 
 export interface AttributeMongo {
   _id: ObjectId;
-  ruleset: string[];
+  ruleset: string;
   name: string;
-  description: string;
+  description?: string;
   key: string;
-  abbreviation: string;
+  abbreviation?: string;
   icon?: string;
+  deletedAt?: Date;
 }
 
 export interface AttributeApi {
   id: string;
-  ruleset: string[];
+  ruleset: string;
   name: string;
-  description: string;
+  description?: string;
   key: string;
-  abbreviation: string;
+  abbreviation?: string;
   icon?: string;
+  deletedAt?: Date;
 }
 
 export interface InputCreateAttribute {
   ruleset: string;
   name: string;
-  description: string;
+  description?: string;
   key: string;
-  abbreviation: string;
+  abbreviation?: string;
   icon?: string;
 }
 

@@ -12,13 +12,7 @@ export default class SkillService {
     return this.skillRepository.update(data);
   }
 
-  addSystem(skillId: string, systemId: string): Promise<SkillApi> {
-    return this.skillRepository.addSystem(skillId, systemId);
-  }
 
-  removeSystem(skillId: string, systemId: string): Promise<SkillApi> {
-    return this.skillRepository.removeSystem(skillId, systemId);
-  }
 
   getAll(): Promise<SkillApi[]> {
     return this.skillRepository.getAll();
@@ -26,5 +20,17 @@ export default class SkillService {
 
   getBySystems(rulesets: string[]): Promise<SkillApi[]> {
     return this.skillRepository.getBySystems(rulesets);
+  }
+
+  getById(id: string): Promise<SkillApi | null> {
+    return this.skillRepository.getById(id);
+  }
+
+  softDelete(id: string): Promise<void> {
+    return this.skillRepository.softDelete(id);
+  }
+
+  restore(id: string): Promise<void> {
+    return this.skillRepository.restore(id);
   }
 }

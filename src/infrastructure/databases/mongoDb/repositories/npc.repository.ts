@@ -1,7 +1,7 @@
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
-import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import INpcRepository from '../../../../domain/repositories/INpcRepository';
 import { ConjuroApi } from '../../../../domain/types/conjuros.types';
 import { CriaturaApi, CriaturaMongo } from '../../../../domain/types/criaturas.types';
@@ -11,7 +11,7 @@ export default class NpcRepository implements INpcRepository {
   constructor(
     private readonly dañoRepository: IDañoRepository,
     private readonly estadoRepository: IEstadoRepository,
-    private readonly idiomasRepository: IIdiomaRepository,
+    private readonly languageRepository: ILanguageRepository,
     private readonly conjurosRepository: IConjuroRepository,
   ) { }
 
@@ -45,8 +45,8 @@ export default class NpcRepository implements INpcRepository {
       this.dañoRepository.obtenerDañosPorIndices(npc?.damage_immunities ?? []),
       this.dañoRepository.obtenerDañosPorIndices(npc?.damage_resistances ?? []),
       this.estadoRepository.obtenerEstadosPorIndices(npc?.condition_immunities ?? []),
-      this.idiomasRepository.obtenerIdiomasPorIndices(npc?.languages?.speaks ?? []),
-      this.idiomasRepository.obtenerIdiomasPorIndices(npc?.languages?.understands ?? []),
+      this.languageRepository.getLanguagesByIndex(npc?.languages?.speaks ?? []),
+      this.languageRepository.getLanguagesByIndex(npc?.languages?.understands ?? []),
       this.formatearConjurosCriatura(npc?.spell_slots ?? [])
     ])
        

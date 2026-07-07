@@ -17,6 +17,7 @@ export interface System {
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
   creationMaxAttributeValue?: number;
+  deletedAt?: Date;
 }
 
 export interface SystemApi {
@@ -39,6 +40,7 @@ export interface SystemApi {
   creationMaxAttributeValue?: number;
   attributes: AttributeApi[];
   skills: SkillApi[];
+  deletedAt?: Date;
 }
 
 export interface TypeCrearSystem {

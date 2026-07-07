@@ -2,12 +2,13 @@ import mongoose, { Schema, ObjectId } from "mongoose";
 import { AttributeMongo } from "../../../../domain/types/attribute.types";
 
 const attributeSchema: Schema = new Schema<AttributeMongo>({
-  ruleset: [String],
+  ruleset: String,
   name: String,
   description: String,
   key: String,
   abbreviation: String,
-  icon: String
+  icon: String,
+  deletedAt: { type: Date, default: null }
 }, { collection: 'attributes' });
 
 attributeSchema.index({ key: 1, ruleset: 1 }, { unique: true });

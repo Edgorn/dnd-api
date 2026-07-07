@@ -1,7 +1,7 @@
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
-import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
 import { mapStringArrayToLabelValue } from '../../../../utils/formatters';
@@ -13,7 +13,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
   constructor(
     private readonly skillRepository: ISkillRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
-    private readonly idiomaRepository: IIdiomaRepository,
+    private readonly languageRepository: ILanguageRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly rasgoRepository: IRasgoRepository
   ) { }
@@ -51,7 +51,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
       this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits ?? []),
       this.rasgoRepository.obtenerRasgosOptions(transfondo?.traits_options),
       this.skillRepository.getSkillsByKeys(transfondo?.skills ?? []),
-      this.idiomaRepository.formatearOpcionesDeIdioma(transfondo?.language_choices),
+      this.languageRepository.formatLanguageChoices(transfondo.language_choices),
       this.competenciaRepository.obtenerCompetenciasPorIndices(transfondo?.proficiencies ?? []),
       this.competenciaRepository.formatearOpcionesDeCompetencias(transfondo?.proficiencies_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(transfondo?.equipment),
@@ -158,7 +158,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
       } else if (mixedChoice.type === "choice") {
         if (mixedChoice.value === "language_choices" && mixedChoice.language_choices) {
           // Resolver idiomas
-          const idiomas = await this.idiomaRepository.formatearOpcionesDeIdioma(mixedChoice.language_choices);
+          const idiomas = await this.languageRepository.formatLanguageChoices(mixedChoice.language_choices);
           if (idiomas) {
             return {
               type: "choice",

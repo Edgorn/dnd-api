@@ -4,7 +4,7 @@ import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
 import { SkillApi } from "./skill.types"
-import { IdiomaApi, IdiomasCriatura, IdiomasCriaturaCrear } from "./idiomas.types"
+import { LanguageApi, CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
 import { AttributeBonus, AttributeBonusCreate } from "./attribute.types"
 
@@ -36,7 +36,7 @@ export interface RaceMongo {
   traits: string[],
   traits_data: RasgoDataMongo,
   skill_choices?: ChoiceMongo,
-  languages: IdiomasCriaturaCrear,
+  languages: CreatureLanguagesCreate,
   language_choices?: ChoiceMongo,
   proficiencies_choices?: ChoiceMongo[],
   subraces?: SubracesMongo,
@@ -63,7 +63,7 @@ export interface SubraceMongo {
   ability_bonuses: AttributeBonusCreate[],
   traits: string[],
   traits_data: RasgoDataMongo,
-  languages: IdiomasCriaturaCrear,
+  languages: CreatureLanguagesCreate,
   language_choices?: ChoiceMongo,
   spell_choices?: ChoiceSpell[],
   types: TypeMongo[],
@@ -109,8 +109,8 @@ export interface RaceApi {
   skill_choices?: ChoiceApi<SkillApi>,
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
-  languages: IdiomasCriatura,
-  language_choices?: ChoiceApi<IdiomaApi>,
+  languages: CreatureLanguages,
+  language_choices?: ChoiceApi<LanguageApi>,
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
   spell_choices?: ChoiceApi<ConjuroApi>,
   subraces?: SubracesApi,
@@ -130,8 +130,8 @@ export interface SubraceApi {
   ability_bonuses: AttributeBonus[],
   traits: RasgoApi[],
   traits_data: RasgoDataMongo,
-  languages: IdiomasCriatura,
-  language_choices?: ChoiceApi<IdiomaApi>,
+  languages: CreatureLanguages,
+  language_choices?: ChoiceApi<LanguageApi>,
   spell_choices?: ChoiceApi<ConjuroApi>[],
   types: TypeApi[],
 }
@@ -176,7 +176,7 @@ export interface CreateRace {
   };
   traits: string[];
   traits_data: RasgoDataMongo,
-  languages: IdiomasCriaturaCrear,
+  languages: CreatureLanguagesCreate,
   subraces: CreateSubraces
 }
 
@@ -193,5 +193,5 @@ export interface CreateSubrace {
   ability_bonuses: AttributeBonusCreate;
   traits: string[];
   traits_data: RasgoDataMongo,
-  languages: IdiomasCriaturaCrear
+  languages: CreatureLanguagesCreate
 }

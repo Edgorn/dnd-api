@@ -13,7 +13,7 @@ import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
-import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { ConjuroApi } from '../../../../domain/types/conjuros.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
@@ -53,7 +53,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly rasgoRepository: IRasgoRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
-    private readonly idiomaRepository: IIdiomaRepository,
+    private readonly languageRepository: ILanguageRepository,
     private readonly skillRepository: ISkillRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
@@ -898,8 +898,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ...new Map(proficienciesFiltrados.map(item => [item.index, item])).values()
     ];
 
-    const idiomas_understands = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId?.understands ?? [])
-    const idiomas_speaks = await this.idiomaRepository.obtenerIdiomasPorIndices(idiomasId?.speaks ?? [])
+    const idiomas_understands = await this.languageRepository.getLanguagesByIndex(personaje.languages?.understands ?? [])
+    const idiomas_speaks = await this.languageRepository.getLanguagesByIndex(personaje.languages?.speaks ?? [])
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)
 
     const clases = personaje.classes

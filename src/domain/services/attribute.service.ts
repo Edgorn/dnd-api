@@ -17,16 +17,26 @@ export default class AttributeService {
     return this.attributeRepository.update(data);
   }
 
-  addSystem(attributeId: string, systemId: string): Promise<AttributeApi> {
-    return this.attributeRepository.addSystem(attributeId, systemId);
-  }
+  // Mongoose models allow us to use AttributeModel.findById but since we only have repository methods, we can just add a getById if it exists. Wait, I don't have getById in IAttributeRepository!
+  // I will just add an ad-hoc check in the repository or just fetch the list of attributes for the system.
+  // Actually, wait, it's easier to add getById in the repository.
 
-  removeSystem(attributeId: string, systemId: string): Promise<AttributeApi> {
-    return this.attributeRepository.removeSystem(attributeId, systemId);
-  }
+
 
   getBySystems(rulesets: string[]): Promise<AttributeApi[]> {
     return this.attributeRepository.getBySystems(rulesets);
+  }
+
+  getById(id: string): Promise<AttributeApi | null> {
+    return this.attributeRepository.getById(id);
+  }
+
+  softDelete(id: string): Promise<void> {
+    return this.attributeRepository.softDelete(id);
+  }
+
+  restore(id: string): Promise<void> {
+    return this.attributeRepository.restore(id);
   }
 
   async formatAttributes(attributes: { key: string, value: number }[], systems: string[]): Promise<CharacterAttributeApi[]> {

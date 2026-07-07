@@ -5,10 +5,7 @@ import { CharacterAttributeApi } from "../types/attribute.types";
 export default interface ISkillRepository {
   create(data: InputCreateSkill): Promise<SkillApi>;
   update(data: InputUpdateSkill): Promise<SkillApi>;
-  addSystem(skillId: string, systemId: string): Promise<SkillApi>;
-  removeSystem(skillId: string, systemId: string): Promise<SkillApi>;
-  
-  getBySystems(rulesets: string[]): Promise<SkillApi[]>;
+  getBySystems(rulesets: string[], includeDeleted?: boolean): Promise<SkillApi[]>;
   getSkillsByKeys(keys: string[]): Promise<SkillApi[]>;
   getAll(): Promise<SkillApi[]>;
   getCharacterSkills(
@@ -19,4 +16,7 @@ export default interface ISkillRepository {
     hasJackOfAllTrades: boolean
   ): Promise<SkillPersonajeApi[]>;
   formatSkillChoices(options: ChoiceMongo | undefined): Promise<ChoiceApi<SkillApi> | undefined>;
+  getById(id: string): Promise<SkillApi | null>;
+  softDelete(id: string): Promise<void>;
+  restore(id: string): Promise<void>;
 }

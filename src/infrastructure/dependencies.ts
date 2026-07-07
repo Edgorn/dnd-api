@@ -50,7 +50,7 @@ import ConjuroRepository from "./databases/mongoDb/repositories/conjuros.reposit
 import DoteRepository from "./databases/mongoDb/repositories/dote.repository";
 import EquipamientoRepository from "./databases/mongoDb/repositories/equipamiento.repository";
 import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
-import IdiomaRepository from "./databases/mongoDb/repositories/idioma.repository";
+import LanguageRepository from "./databases/mongoDb/repositories/language.repository";
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
 import RasgoRepository from "./databases/mongoDb/repositories/rasgo.repository";
 import UserRepository from "./databases/mongoDb/repositories/user.repository";
@@ -94,22 +94,27 @@ import SkillService from "../domain/services/skill.service";
 import GetSkillsBySystems from "../application/use-cases/skill/getSkillsBySystems.use-case";
 import CreateSkill from "../application/use-cases/skill/createSkill.use-case";
 import UpdateSkill from "../application/use-cases/skill/updateSkill.use-case";
-import AddSystemToSkill from "../application/use-cases/skill/addSystemToSkill.use-case";
-import RemoveSystemFromSkill from "../application/use-cases/skill/removeSystemFromSkill.use-case";
 import ActualizarRaza from "../application/use-cases/raza/actualizarRaza.use-case";
-import { IdiomaController } from "./http/controllers/idioma.controller";
-import ObtenerIdiomasPorSistemas from "../application/use-cases/idioma/obtenerIdiomaPorSistema.use-case";
-import CrearIdioma from "../application/use-cases/idioma/crearIdioma.use-case";
-import ModificarIdioma from "../application/use-cases/idioma/modificarIdioma.use-case";
-import IdiomaService from "../domain/services/idioma.service";
+import { LanguageController } from "./http/controllers/language.controller";
+import GetLanguagesBySystem from "../application/use-cases/language/getLanguagesBySystem.use-case";
+import CreateLanguage from "../application/use-cases/language/createLanguage.use-case";
+import UpdateLanguage from "../application/use-cases/language/updateLanguage.use-case";
+import LanguageService from "../domain/services/language.service";
 
 import CreateAttribute from "../application/use-cases/attribute/createAttribute.use-case";
 import UpdateAttribute from "../application/use-cases/attribute/updateAttribute.use-case";
-import AddAttributeToSystem from "../application/use-cases/attribute/addAttributeToSystem.use-case";
-import RemoveAttributeFromSystem from "../application/use-cases/attribute/removeAttributeFromSystem.use-case";
 import AttributeService from "../domain/services/attribute.service";
 import AttributeRepository from "./databases/mongoDb/repositories/attribute.repository";
 import { AttributeController } from "./http/controllers/attribute.controller";
+
+import SoftDeleteSystem from "../application/use-cases/system/softDeleteSystem.use-case";
+import RestoreSystem from "../application/use-cases/system/restoreSystem.use-case";
+import SoftDeleteAttribute from "../application/use-cases/attribute/softDeleteAttribute.use-case";
+import RestoreAttribute from "../application/use-cases/attribute/restoreAttribute.use-case";
+import SoftDeleteSkill from "../application/use-cases/skill/softDeleteSkill.use-case";
+import RestoreSkill from "../application/use-cases/skill/restoreSkill.use-case";
+import SoftDeleteLanguage from "../application/use-cases/language/softDeleteLanguage.use-case";
+import RestoreLanguage from "../application/use-cases/language/restoreLanguage.use-case";
 
 const estadoRepository = new EstadoRepository()
 const userRepository = new UserRepository()
@@ -124,7 +129,7 @@ const dañoRepository = new DañoRepository()
 const propiedadArmaRepository = new PropiedadArmaRepository()
 const equipamientoRepository = new EquipamientoRepository(dañoRepository, propiedadArmaRepository)
 const doteRepository = new DoteRepository()
-const idiomaRepository = new IdiomaRepository(systemRepository)
+const languageRepository = new LanguageRepository(systemRepository)
 const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository, systemRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
@@ -137,11 +142,11 @@ const claseRepository = new ClaseRepository(
   conjuroRepository,
   doteRepository,
   invocacionRepository,
-  idiomaRepository
+  languageRepository
 )
 
 const razaRepository = new RazaRepository(
-  idiomaRepository,
+  languageRepository,
   conjuroRepository,
   skillRepository,
   competenciaRepository,
@@ -154,7 +159,7 @@ const razaRepository = new RazaRepository(
 const transfondoRepository = new TransfondoRepository(
   skillRepository,
   competenciaRepository,
-  idiomaRepository,
+  languageRepository,
   equipamientoRepository,
   rasgoRepository
 );
@@ -162,7 +167,7 @@ const transfondoRepository = new TransfondoRepository(
 const criaturaRepository = new CriaturaRepository(
   dañoRepository,
   estadoRepository,
-  idiomaRepository,
+  languageRepository,
   conjuroRepository
 )
 
@@ -171,7 +176,7 @@ const personajeRepository = new PersonajeRepository(
   equipamientoRepository,
   rasgoRepository,
   competenciaRepository,
-  idiomaRepository,
+  languageRepository,
   skillRepository,
   conjuroRepository,
   doteRepository,
@@ -253,8 +258,6 @@ const modificarSistema = new ModificarSistema(systemService);
 
 const createAttribute = new CreateAttribute(attributeService);
 const updateAttribute = new UpdateAttribute(attributeService);
-const addAttributeToSystem = new AddAttributeToSystem(attributeService);
-const removeAttributeFromSystem = new RemoveAttributeFromSystem(attributeService);
 
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
@@ -266,8 +269,13 @@ const modificarRasgoUseCase = new ModificarRasgo(rasgoService)
 const getSkillsBySystems = new GetSkillsBySystems(skillService, systemService)
 const createSkill = new CreateSkill(skillService)
 const updateSkill = new UpdateSkill(skillService)
-const addSystemToSkill = new AddSystemToSkill(skillService)
-const removeSystemFromSkill = new RemoveSystemFromSkill(skillService)
+
+const softDeleteSystem = new SoftDeleteSystem(systemService);
+const restoreSystem = new RestoreSystem(systemService);
+const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
+const restoreAttribute = new RestoreAttribute(attributeService, systemService);
+const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
+const restoreSkill = new RestoreSkill(skillService, systemService);
 
 export const razaController = new RazaController(obtenerTodasLasRazas, crearRaza, actualizarRaza)
 
@@ -315,7 +323,9 @@ export const conjuroController = new ConjuroController(
 export const systemController = new SystemController(
   getSystemsByUser,
   crearSistema,
-  modificarSistema
+  modificarSistema,
+  softDeleteSystem,
+  restoreSystem
 )
 
 export const rasgoController = new RasgoController(obtenerRasgosPorSistemasUseCase, crearRasgoUseCase, modificarRasgoUseCase)
@@ -324,23 +334,31 @@ export const skillController = new SkillController(
   getSkillsBySystems,
   createSkill,
   updateSkill,
-  addSystemToSkill,
-  removeSystemFromSkill
+  softDeleteSkill,
+  restoreSkill
 )
 
-const idiomaService = new IdiomaService(idiomaRepository)
+const languageService = new LanguageService(languageRepository)
 
-const obtenerIdiomasPorSistemas = new ObtenerIdiomasPorSistemas(idiomaService)
-const crearIdioma = new CrearIdioma(idiomaService)
-const modificarIdioma = new ModificarIdioma(idiomaService)
+const getLanguagesBySystems = new GetLanguagesBySystem(languageService)
+const createLanguage = new CreateLanguage(languageService)
+const updateLanguage = new UpdateLanguage(languageService)
+const softDeleteLanguage = new SoftDeleteLanguage(languageService, systemService);
+const restoreLanguage = new RestoreLanguage(languageService, systemService);
 
-export const idiomaController = new IdiomaController(obtenerIdiomasPorSistemas, crearIdioma, modificarIdioma)
+export const languageController = new LanguageController(
+  getLanguagesBySystems, 
+  createLanguage, 
+  updateLanguage,
+  softDeleteLanguage,
+  restoreLanguage
+)
 
 export const attributeController = new AttributeController(
   createAttribute,
   updateAttribute,
-  addAttributeToSystem,
-  removeAttributeFromSystem
+  softDeleteAttribute,
+  restoreAttribute
 );
 
 export const authorizeSystemMiddleware = createAuthorizeSystemMiddleware(userRepository);

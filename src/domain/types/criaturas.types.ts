@@ -1,7 +1,7 @@
 import { DañoApi } from "."
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
-import { IdiomaApi } from "./idiomas.types"
+import { LanguageApi } from "./language.types"
 
 export interface CriaturaMongo {
   index: string,
@@ -95,7 +95,7 @@ export interface CriaturaApi {
 }
 
 export interface LanguagesCriaturaApi {
-  understands: IdiomaApi[],
-  speaks: IdiomaApi[],
+  understands: LanguageApi[],
+  speaks: LanguageApi[],
   notes?: string
 }

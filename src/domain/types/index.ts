@@ -1,6 +1,6 @@
 import { Number } from "mongoose";
 import { CompetenciaApi } from "./competencias.types";
-import { IdiomaApi } from "./idiomas.types";
+import { LanguageApi } from "./language.types";
 
 export interface ChoiceMongo {
   choose: number;
@@ -35,7 +35,7 @@ export interface MixedChoiceOptionNested {
 
 export type MixedChoicesApi =
   | { type: "proficiency"; value: CompetenciaApi }
-  | { type: "choice"; value: "language_choices"; language_choices: ChoiceApi<IdiomaApi> }
+  | { type: "choice"; value: "language_choices"; language_choices: ChoiceApi<LanguageApi> }
   | { type: "choice"; value: "proficiencies_choices"; proficiencies_choices: ChoiceApi<CompetenciaApi>[] };
 
 export interface AbilityBonusesMongo {

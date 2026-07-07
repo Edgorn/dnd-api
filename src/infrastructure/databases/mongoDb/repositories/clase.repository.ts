@@ -4,7 +4,7 @@ import IConjuroRepository from '../../../../domain/repositories/IConjuroReposito
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
-import IIdiomaRepository from '../../../../domain/repositories/IIdiomaRepository';
+import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
 import { ChoiceApi } from '../../../../domain/types';
@@ -22,7 +22,7 @@ export default class ClaseRepository implements IClaseRepository {
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly invocacionRepository: IInvocacionRepository,
-    private readonly idiomaRepository: IIdiomaRepository
+    private readonly languageRepository: ILanguageRepository
   ) { }
 
   async obtenerTodas(): Promise<ClaseApi[]> {
@@ -404,7 +404,7 @@ export default class ClaseRepository implements IClaseRepository {
     const skill_choices = await this.skillRepository.formatSkillChoices(subclase.skill_choices)
     const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(subclase?.proficiencies ?? [])
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(subclase?.spells ?? [])
-    const languagesOptions = await this.idiomaRepository.formatearOpcionesDeIdioma(subclase?.language_choices)
+    const languagesOptions = await this.languageRepository.formatLanguageChoices(subclase?.language_choices)
     const double_skill_choices = await this.skillRepository.formatSkillChoices(subclase?.double_skill_choices)
     const spell_choices = await this.conjuroRepository.formatearOpcionesDeConjuros(subclase?.spell_choices)
 
