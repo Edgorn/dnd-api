@@ -5,7 +5,7 @@ export interface InputCreateLanguage {
   description?: string,
   type?: string,
   script?: string,
-  ruleset?: string,
+  ruleset: string,
   deletedAt?: Date
 }
 
@@ -14,7 +14,8 @@ export interface InputUpdateLanguage {
   name?: string,
   description?: string,
   type?: string,
-  script?: string
+  script?: string,
+  ruleset: string
 }
 
 export interface LanguageMongo {

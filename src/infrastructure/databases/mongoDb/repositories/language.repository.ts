@@ -71,8 +71,6 @@ export default class LanguageRepository implements ILanguageRepository {
     return this.formatLanguage(updatedLanguage);
   }
 
-
-
   async getLanguagesByIndex(indexes: string[]): Promise<LanguageApi[]> {
     if (!indexes.length) return [];
 

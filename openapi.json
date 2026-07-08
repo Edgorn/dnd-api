@@ -989,13 +989,9 @@
       "InputUpdateLanguage": {
         "type": "object",
         "required": [
-          "id"
+          "ruleset"
         ],
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "ID del idioma a actualizar."
-          },
           "name": {
             "type": "string"
           },
@@ -1006,6 +1002,9 @@
             "type": "string"
           },
           "script": {
+            "type": "string"
+          },
+          "ruleset": {
             "type": "string"
           }
         }

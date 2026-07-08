@@ -56,11 +56,8 @@ const router = Router();
  *     InputUpdateLanguage:
  *       type: object
  *       required:
- *         - id
+ *         - ruleset
  *       properties:
- *         id:
- *           type: string
- *           description: ID del idioma a actualizar.
  *         name:
  *           type: string
  *         description:
@@ -68,6 +65,8 @@ const router = Router();
  *         type:
  *           type: string
  *         script:
+ *           type: string
+ *         ruleset:
  *           type: string
  */
 

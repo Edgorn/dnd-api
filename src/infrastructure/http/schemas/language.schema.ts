@@ -12,7 +12,8 @@ export const updateLanguageSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters long").optional(),
   description: z.string().optional(),
   type: z.string().optional(),
-  script: z.string().optional()
+  script: z.string().optional(),
+  ruleset: z.string({ message: "Ruleset is required" })
 });
 
 export type CreateLanguageType = z.infer<typeof createLanguageSchema>;
