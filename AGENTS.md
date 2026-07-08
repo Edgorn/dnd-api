@@ -143,6 +143,7 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
 9. **Registro del Desarrollo (COMMIT_MESSAGE.md):**
    - Cuando se haga un desarrollo se debe crear (en caso de no existir) un archivo `COMMIT_MESSAGE.md` en la raíz del proyecto.
    - En este archivo se debe escribir un resumen del desarrollo, cuyo contenido será el texto que irá en el commit de git.
+   - El contenido de este archivo debe redactarse estrictamente en **Español**.
    - En caso de ya existir el archivo, se debe añadir la información del nuevo desarrollo al final. Si el nuevo desarrollo tiene relación directa con lo que ya estaba escrito en el archivo, se puede modificar o ampliar el texto existente para añadir más detalles.
    - Este archivo debe estar excluido en el archivo `.gitignore` (como `/COMMIT_MESSAGE.md`).
 

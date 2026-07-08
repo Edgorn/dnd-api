@@ -14,6 +14,8 @@ const system: Schema = new Schema<System>({
   defaultMaxAttributeValue: Number,
   creationMinAttributeValue: Number,
   creationMaxAttributeValue: Number,
+  maxLevel: Number,
+  maxSpellLevel: Number,
   deletedAt: { type: Date, default: null }
 }, { collection: 'systems' });
 

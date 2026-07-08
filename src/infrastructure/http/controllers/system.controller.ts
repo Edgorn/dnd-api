@@ -30,7 +30,7 @@ export class SystemController {
   createSystem = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!;
-      const { name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = req.body;
+      const { name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue, maxLevel, maxSpellLevel } = req.body;
 
       if (!name) {
         throw new ValidationError('El nombre del sistema es obligatorio');
@@ -48,7 +48,9 @@ export class SystemController {
         defaultMinAttributeValue,
         defaultMaxAttributeValue,
         creationMinAttributeValue,
-        creationMaxAttributeValue
+        creationMaxAttributeValue,
+        maxLevel,
+        maxSpellLevel
       });
 
       res.status(201).json(data);
@@ -61,7 +63,7 @@ export class SystemController {
     try {
       const userId = req.user!;
       const { id } = req.params;
-      const { name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = req.body;
+      const { name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue, maxLevel, maxSpellLevel } = req.body;
 
       if (!id) {
         throw new ValidationError('Se requiere el ID del sistema');
@@ -80,7 +82,9 @@ export class SystemController {
         defaultMinAttributeValue,
         defaultMaxAttributeValue,
         creationMinAttributeValue,
-        creationMaxAttributeValue
+        creationMaxAttributeValue,
+        maxLevel,
+        maxSpellLevel
       });
 
       res.status(200).json(data);

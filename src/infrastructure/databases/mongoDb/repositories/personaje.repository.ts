@@ -231,7 +231,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           equipment
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) {
@@ -277,7 +277,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           equipment
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) {
@@ -328,7 +328,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           equipment
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) {
@@ -352,7 +352,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           money
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) {
@@ -376,7 +376,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           XP
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) {
@@ -563,7 +563,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       },
       {
         arrayFilters: [{ 'elem.class': clase }],
-        new: true
+        returnDocument: 'after'
       }
     );
 
@@ -626,7 +626,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           equipment
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) {
@@ -663,7 +663,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           spells: personaje.spells
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) {
@@ -692,7 +692,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           forms: personaje.forms
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) {

@@ -239,7 +239,7 @@ export default class CampañaRepository implements ICampañaRepository {
           initialMapId: initialMapId
         } 
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     return !!resultado;

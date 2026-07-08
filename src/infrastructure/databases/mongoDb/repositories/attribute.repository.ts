@@ -36,7 +36,7 @@ export default class AttributeRepository implements IAttributeRepository {
     const updatedAttribute = await AttributeSchema.findByIdAndUpdate(
       id,
       { $set: updateFields },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedAttribute) {

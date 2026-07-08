@@ -17,6 +17,8 @@ export interface System {
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
   creationMaxAttributeValue?: number;
+  maxLevel?: number;
+  maxSpellLevel?: number;
   deletedAt?: Date;
 }
 
@@ -38,6 +40,8 @@ export interface SystemApi {
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
   creationMaxAttributeValue?: number;
+  maxLevel?: number;
+  maxSpellLevel?: number;
   attributes: AttributeApi[];
   skills: SkillApi[];
   deletedAt?: Date;
@@ -56,6 +60,8 @@ export interface TypeCrearSystem {
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
   creationMaxAttributeValue?: number;
+  maxLevel?: number;
+  maxSpellLevel?: number;
 }
 
 export interface TypeModificarSystem {
@@ -72,4 +78,6 @@ export interface TypeModificarSystem {
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
   creationMaxAttributeValue?: number;
+  maxLevel?: number;
+  maxSpellLevel?: number;
 }

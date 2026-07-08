@@ -29,7 +29,7 @@ export default class SkillRepository implements ISkillRepository {
     const updatedSkill = await SkillSchema.findByIdAndUpdate(
       id,
       { $set: updateFields },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedSkill) {

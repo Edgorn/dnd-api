@@ -119,7 +119,7 @@ export default class RasgoRepository implements IRasgoRepository {
   }
 
   async update(rasgo: UpdateRasgo): Promise<RasgoApi> {
-    const rasgoUpdated = await RasgoSchema.findByIdAndUpdate(rasgo.id, rasgo, { new: true });
+    const rasgoUpdated = await RasgoSchema.findByIdAndUpdate(rasgo.id, rasgo, { returnDocument: 'after' });
     if (!rasgoUpdated) {
       throw new Error("Rasgo no encontrado");
     }

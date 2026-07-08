@@ -61,7 +61,7 @@ export default class LanguageRepository implements ILanguageRepository {
     const updatedLanguage = await LanguageSchema.findByIdAndUpdate(
       id,
       { $set: updateFields },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedLanguage) {

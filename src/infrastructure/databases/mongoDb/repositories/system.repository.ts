@@ -150,6 +150,8 @@ export default class SystemRepository implements ISystemRepository {
       defaultMaxAttributeValue: getMergedScalar<number>('defaultMaxAttributeValue'),
       creationMinAttributeValue: getMergedScalar<number>('creationMinAttributeValue'),
       creationMaxAttributeValue: getMergedScalar<number>('creationMaxAttributeValue'),
+      maxLevel: getMergedScalar<number>('maxLevel'),
+      maxSpellLevel: getMergedScalar<number>('maxSpellLevel'),
       attributes,
       skills,
       deletedAt: sys.deletedAt
@@ -246,7 +248,9 @@ export default class SystemRepository implements ISystemRepository {
       defaultMinAttributeValue: data.defaultMinAttributeValue,
       defaultMaxAttributeValue: data.defaultMaxAttributeValue,
       creationMinAttributeValue: data.creationMinAttributeValue,
-      creationMaxAttributeValue: data.creationMaxAttributeValue
+      creationMaxAttributeValue: data.creationMaxAttributeValue,
+      maxLevel: data.maxLevel,
+      maxSpellLevel: data.maxSpellLevel
     });
 
     const resultado = await nuevoSistema.save();
@@ -254,7 +258,7 @@ export default class SystemRepository implements ISystemRepository {
   }
 
   async modificar(data: TypeModificarSystem): Promise<SystemApi | null> {
-    const { id, name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue } = data;
+    const { id, name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue, maxLevel, maxSpellLevel } = data;
 
     const updateFields: any = {};
     if (name !== undefined) updateFields.name = name;
@@ -272,11 +276,13 @@ export default class SystemRepository implements ISystemRepository {
     if (defaultMaxAttributeValue !== undefined) updateFields.defaultMaxAttributeValue = defaultMaxAttributeValue;
     if (creationMinAttributeValue !== undefined) updateFields.creationMinAttributeValue = creationMinAttributeValue;
     if (creationMaxAttributeValue !== undefined) updateFields.creationMaxAttributeValue = creationMaxAttributeValue;
+    if (maxLevel !== undefined) updateFields.maxLevel = maxLevel;
+    if (maxSpellLevel !== undefined) updateFields.maxSpellLevel = maxSpellLevel;
 
     const resultado = await SistemasModel.findByIdAndUpdate(
       id,
       { $set: updateFields },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!resultado) return null;

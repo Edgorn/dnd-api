@@ -153,6 +153,14 @@
           "creationMaxAttributeValue": {
             "type": "number"
           },
+          "maxLevel": {
+            "type": "integer",
+            "description": "Nivel máximo del personaje en el sistema."
+          },
+          "maxSpellLevel": {
+            "type": "integer",
+            "description": "Nivel máximo de conjuro en el sistema."
+          },
           "attributes": {
             "type": "array",
             "items": {
@@ -207,6 +215,14 @@
           },
           "creationMaxAttributeValue": {
             "type": "number"
+          },
+          "maxLevel": {
+            "type": "integer",
+            "description": "Nivel máximo del personaje en el sistema."
+          },
+          "maxSpellLevel": {
+            "type": "integer",
+            "description": "Nivel máximo de conjuro en el sistema."
           }
         }
       },
@@ -247,6 +263,14 @@
           },
           "creationMaxAttributeValue": {
             "type": "number"
+          },
+          "maxLevel": {
+            "type": "integer",
+            "description": "Nivel máximo del personaje en el sistema."
+          },
+          "maxSpellLevel": {
+            "type": "integer",
+            "description": "Nivel máximo de conjuro en el sistema."
           }
         }
       },

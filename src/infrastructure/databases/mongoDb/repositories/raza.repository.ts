@@ -104,7 +104,7 @@ export default class RazaRepository implements IRazaRepository {
       const razaActualizada = await RazaSchema.findByIdAndUpdate(
         raza.id,
         update,
-        { new: true }
+        { returnDocument: 'after' }
       ).exec();
 
       return razaActualizada ? this.formatearRaza(razaActualizada) : undefined

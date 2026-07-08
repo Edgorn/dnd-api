@@ -57,6 +57,12 @@ const router = Router();
  *           type: number
  *         creationMaxAttributeValue:
  *           type: number
+ *         maxLevel:
+ *           type: integer
+ *           description: Nivel máximo del personaje en el sistema.
+ *         maxSpellLevel:
+ *           type: integer
+ *           description: Nivel máximo de conjuro en el sistema.
  *         attributes:
  *           type: array
  *           items:
@@ -96,6 +102,12 @@ const router = Router();
  *           type: number
  *         creationMaxAttributeValue:
  *           type: number
+ *         maxLevel:
+ *           type: integer
+ *           description: Nivel máximo del personaje en el sistema.
+ *         maxSpellLevel:
+ *           type: integer
+ *           description: Nivel máximo de conjuro en el sistema.
  *     TypeModificarSystem:
  *       type: object
  *       properties:
@@ -123,6 +135,12 @@ const router = Router();
  *           type: number
  *         creationMaxAttributeValue:
  *           type: number
+ *         maxLevel:
+ *           type: integer
+ *           description: Nivel máximo del personaje en el sistema.
+ *         maxSpellLevel:
+ *           type: integer
+ *           description: Nivel máximo de conjuro en el sistema.
  */
 
 /**
