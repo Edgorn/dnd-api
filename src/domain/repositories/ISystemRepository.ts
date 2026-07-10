@@ -1,14 +1,16 @@
-import { System, SystemApi, TypeCrearSystem, TypeModificarSystem } from "../types/system.types";
+import { System, TypeCrearSystem, TypeModificarSystem } from "../types/system.types";
 
 export default interface ISystemRepository {
-  consultarSistemasPorUsuario(userId: string): Promise<SystemApi[]>;
-  crear(data: TypeCrearSystem): Promise<SystemApi | null>;
-  modificar(data: TypeModificarSystem): Promise<SystemApi | null>;
+  getByUserId(userId: string, accessibleSystemIds: string[]): Promise<System[]>;
+  create(data: TypeCrearSystem): Promise<System | null>;
+  update(data: TypeModificarSystem): Promise<System | null>;
+  getById(id: string): Promise<System | null>;
   obtenerPorId(id: string): Promise<System | null>;
-  obtenerFormulaModificadorGlobal(systems: string[]): Promise<string | undefined>;
-  obtenerFormulaBonoIniciativa(systems: string[]): Promise<string | undefined>;
-  verificarSistemasNoBase(systems: string[]): Promise<void>;
+  getByIdWithDeleted(id: string): Promise<System | null>;
+  getGlobalModifierFormula(systems: string[]): Promise<string | undefined>;
+  getInitiativeBonusFormula(systems: string[]): Promise<string | undefined>;
+  verifySystemsNotBase(systems: string[]): Promise<void>;
   getSystemsAndAncestors(systems: string[]): Promise<string[]>;
-  softDelete(id: string): Promise<void>;
+  softDelete(id: string, deletedAt: Date): Promise<void>;
   restore(id: string): Promise<void>;
 }

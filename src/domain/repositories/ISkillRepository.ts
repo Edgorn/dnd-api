@@ -19,4 +19,6 @@ export default interface ISkillRepository {
   getById(id: string): Promise<SkillApi | null>;
   softDelete(id: string): Promise<void>;
   restore(id: string): Promise<void>;
+  softDeleteByRuleset(ruleset: string, deletedAt: Date): Promise<void>;
+  restoreByRuleset(ruleset: string, deletedAt: Date): Promise<void>;
 }

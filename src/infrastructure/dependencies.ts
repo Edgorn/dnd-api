@@ -29,9 +29,12 @@ import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuro
 import ObtenerConjurosRituales from "../application/use-cases/conjuro/obtenerConjurosRituales.use-case";
 import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
-import CrearSistema from "../application/use-cases/system/crearSistema.use-case";
+import CreateSystem from "../application/use-cases/system/createSystem.use-case";
 import GetSystemsByUser from "../application/use-cases/system/getSystemsByUser.use-case";
-import ModificarSistema from "../application/use-cases/system/modificarSistema.use-case";
+import UpdateSystem from "../application/use-cases/system/updateSystem.use-case";
+import GetSystemApi from "../application/use-cases/system/getSystemApi.use-case";
+import CascadeSoftDeleteSystem from "../application/use-cases/system/cascadeSoftDeleteSystem.use-case";
+import CascadeRestoreSystem from "../application/use-cases/system/cascadeRestoreSystem.use-case";
 
 import CampañaService from "../domain/services/campaña.service";
 import UserService from "../domain/services/user.service";
@@ -107,8 +110,7 @@ import AttributeService from "../domain/services/attribute.service";
 import AttributeRepository from "./databases/mongoDb/repositories/attribute.repository";
 import { AttributeController } from "./http/controllers/attribute.controller";
 
-import SoftDeleteSystem from "../application/use-cases/system/softDeleteSystem.use-case";
-import RestoreSystem from "../application/use-cases/system/restoreSystem.use-case";
+
 import SoftDeleteAttribute from "../application/use-cases/attribute/softDeleteAttribute.use-case";
 import RestoreAttribute from "../application/use-cases/attribute/restoreAttribute.use-case";
 import SoftDeleteSkill from "../application/use-cases/skill/softDeleteSkill.use-case";
@@ -119,10 +121,7 @@ import RestoreLanguage from "../application/use-cases/language/restoreLanguage.u
 const estadoRepository = new EstadoRepository()
 const userRepository = new UserRepository()
 const skillRepository = new SkillRepository()
-const systemRepository = new SystemRepository(
-  userRepository,
-  skillRepository
-)
+const systemRepository = new SystemRepository()
 const competenciaRepository = new CompetenciaRepository()
 const conjuroRepository = new ConjuroRepository()
 const dañoRepository = new DañoRepository()
@@ -218,6 +217,15 @@ const conjuroService = new ConjuroService(conjuroRepository)
 const rasgoService = new RasgoService(rasgoRepository)
 const skillService = new SkillService(skillRepository)
 const systemService = new SystemService(systemRepository)
+const getSystemApi = new GetSystemApi(
+  systemRepository,
+  userRepository,
+  razaRepository,
+  languageRepository,
+  rasgoRepository,
+  attributeRepository,
+  skillRepository
+)
 
 const crearCampaña = new CrearCampaña(campañaService)
 const getCampaignsByUser = new GetCampaignsByUser(campañaService)
@@ -252,9 +260,9 @@ const obtenerPdf = new ObtenerPdf(personajeService);
 const vincularPacto = new VincularPacto(personajeService);
 const aprenderConjuros = new AprenderConjuros(personajeService);
 const añadirForma = new AñadirForma(personajeService);
-const crearSistema = new CrearSistema(systemService);
-const getSystemsByUser = new GetSystemsByUser(systemService);
-const modificarSistema = new ModificarSistema(systemService);
+const createSystem = new CreateSystem(systemService, getSystemApi);
+const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, getSystemApi);
+const updateSystem = new UpdateSystem(systemService, getSystemApi);
 
 const createAttribute = new CreateAttribute(attributeService);
 const updateAttribute = new UpdateAttribute(attributeService);
@@ -270,8 +278,8 @@ const getSkillsBySystems = new GetSkillsBySystems(skillService, systemService)
 const createSkill = new CreateSkill(skillService)
 const updateSkill = new UpdateSkill(skillService)
 
-const softDeleteSystem = new SoftDeleteSystem(systemService);
-const restoreSystem = new RestoreSystem(systemService);
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -322,10 +330,10 @@ export const conjuroController = new ConjuroController(
 
 export const systemController = new SystemController(
   getSystemsByUser,
-  crearSistema,
-  modificarSistema,
-  softDeleteSystem,
-  restoreSystem
+  createSystem,
+  updateSystem,
+  cascadeSoftDeleteSystem,
+  cascadeRestoreSystem
 )
 
 export const rasgoController = new RasgoController(obtenerRasgosPorSistemasUseCase, crearRasgoUseCase, modificarRasgoUseCase)

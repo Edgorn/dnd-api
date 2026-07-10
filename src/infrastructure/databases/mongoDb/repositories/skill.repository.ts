@@ -164,4 +164,12 @@ export default class SkillRepository implements ISkillRepository {
   async restore(id: string): Promise<void> {
     await SkillSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
+
+  async softDeleteByRuleset(ruleset: string, deletedAt: Date): Promise<void> {
+    await SkillSchema.updateMany({ ruleset, deletedAt: null }, { $set: { deletedAt } });
+  }
+
+  async restoreByRuleset(ruleset: string, deletedAt: Date): Promise<void> {
+    await SkillSchema.updateMany({ ruleset, deletedAt }, { $set: { deletedAt: null } });
+  }
 }

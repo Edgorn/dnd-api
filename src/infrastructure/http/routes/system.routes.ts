@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { systemController, authMiddleware } from "../../dependencies";
+import { validateSchema } from "../middlewares/validateSchema";
+import { CreateSystemSchema, UpdateSystemSchema } from "../schemas/system.schema";
 
 const router = Router();
 
@@ -197,7 +199,7 @@ router.get('/systems', authMiddleware, systemController.getSystems);
  *       500:
  *         description: Error del servidor.
  */
-router.post('/systems', authMiddleware, systemController.createSystem);
+router.post('/systems', authMiddleware, validateSchema(CreateSystemSchema), systemController.createSystem);
 
 /**
  * @openapi
@@ -237,7 +239,7 @@ router.post('/systems', authMiddleware, systemController.createSystem);
  *       500:
  *         description: Error del servidor.
  */
-router.put('/systems/:id', authMiddleware, systemController.updateSystem);
+router.put('/systems/:id', authMiddleware, validateSchema(UpdateSystemSchema), systemController.updateSystem);
 
 /**
  * @openapi

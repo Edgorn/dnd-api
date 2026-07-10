@@ -46,8 +46,6 @@ export default class AttributeRepository implements IAttributeRepository {
     return this.formatAttribute(updatedAttribute);
   }
 
-
-
   async getBySystems(rulesets: string[]): Promise<AttributeApi[]> {
     const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
     const attributes = await AttributeSchema.find({ ruleset: { $in: expandedRulesets }, deletedAt: null });
@@ -108,8 +106,6 @@ export default class AttributeRepository implements IAttributeRepository {
     return undefined;
   }
 
-
-
   private formatAttribute(attribute: AttributeMongo): AttributeApi {
     return {
       id: attribute._id.toString(),
@@ -121,6 +117,7 @@ export default class AttributeRepository implements IAttributeRepository {
       icon: attribute.icon
     };
   }
+
   async getById(id: string): Promise<AttributeApi | null> {
     const attribute = await AttributeSchema.findById(id);
     if (!attribute) return null;
@@ -133,5 +130,13 @@ export default class AttributeRepository implements IAttributeRepository {
 
   async restore(id: string): Promise<void> {
     await AttributeSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
+  }
+
+  async softDeleteByRuleset(ruleset: string, deletedAt: Date): Promise<void> {
+    await AttributeSchema.updateMany({ ruleset, deletedAt: null }, { $set: { deletedAt } });
+  }
+
+  async restoreByRuleset(ruleset: string, deletedAt: Date): Promise<void> {
+    await AttributeSchema.updateMany({ ruleset, deletedAt }, { $set: { deletedAt: null } });
   }
 }

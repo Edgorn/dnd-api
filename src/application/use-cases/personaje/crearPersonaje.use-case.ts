@@ -9,7 +9,7 @@ export default class CrearPersonaje {
   ) { }
 
   async execute(data: TypeCrearPersonaje): Promise<PersonajeBasico | null> {
-    await this.systemRepository.verificarSistemasNoBase(data.systems || []);
+    await this.systemRepository.verifySystemsNotBase(data.systems || []);
     return this.personajeService.crear(data);
   }
 }

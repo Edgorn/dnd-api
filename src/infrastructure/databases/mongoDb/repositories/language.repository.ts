@@ -163,4 +163,12 @@ export default class LanguageRepository implements ILanguageRepository {
       await LanguageSchema.findOneAndUpdate({ index: id }, { $set: { deletedAt: null } });
     }
   }
+
+  async softDeleteByRuleset(ruleset: string, deletedAt: Date): Promise<void> {
+    await LanguageSchema.updateMany({ ruleset, deletedAt: null }, { $set: { deletedAt } });
+  }
+
+  async restoreByRuleset(ruleset: string, deletedAt: Date): Promise<void> {
+    await LanguageSchema.updateMany({ ruleset, deletedAt }, { $set: { deletedAt: null } });
+  }
 }

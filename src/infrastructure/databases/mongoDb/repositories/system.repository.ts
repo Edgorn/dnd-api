@@ -1,32 +1,20 @@
 import mongoose from 'mongoose';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
-import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import SistemasModel from '../schemas/System';
-import { System, SystemApi, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
-import IUserRepository from '../../../../domain/repositories/IUserRepository';
-import RaceModel from '../schemas/Raza';
-import LanguageModel from '../schemas/Language';
-import RasgoModel from '../schemas/Rasgo';
-import AttributeModel from '../schemas/Attribute';
-import SkillModel from '../schemas/Skill';
-import { AttributeApi } from '../../../../domain/types/attribute.types';
-import { SkillApi } from '../../../../domain/types/skill.types';
+import { System, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
 import { ValidationError } from '../../../../domain/errors/AppError';
 
 export default class SystemRepository implements ISystemRepository {
-  constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly skillRepository: ISkillRepository
-  ) {}
+  constructor() {}
 
-  private async getSystemAncestry(systemId: string): Promise<System[]> {
+  private async getAncestry(systemId: string): Promise<System[]> {
     const ancestry: System[] = [];
     let currentId = systemId;
     const visited = new Set<string>();
 
     while (currentId && !visited.has(currentId)) {
       visited.add(currentId);
-      const sys = await this.obtenerPorId(currentId);
+      const sys = await this.getById(currentId);
       if (!sys) break;
       ancestry.push(sys);
       currentId = sys.parentId ? sys.parentId.toString() : '';
@@ -34,131 +22,7 @@ export default class SystemRepository implements ISystemRepository {
     return ancestry;
   }
 
-  private async getDirectSystemAttributes(sysId: string, sysName: string, includeDeleted: boolean = false): Promise<AttributeApi[]> {
-    const rulesetQuery: any = {
-      $or: [
-        { ruleset: sysId },
-        { ruleset: sysName }
-      ]
-    };
-    if (!includeDeleted) {
-      rulesetQuery.deletedAt = null;
-    }
-
-    const docs = await AttributeModel.find(rulesetQuery);
-    return docs.map(doc => ({
-      id: doc._id.toString(),
-      ruleset: doc.ruleset || '',
-      name: doc.name || '',
-      description: doc.description || '',
-      key: doc.key || '',
-      abbreviation: doc.abbreviation || '',
-      icon: doc.icon,
-      deletedAt: doc.deletedAt
-    }));
-  }
-
-  private async obtenerEstadisticasSistemaMulti(rulesets: string[]) {
-    const rulesetQuery = {
-      ruleset: { $in: rulesets },
-      deletedAt: null
-    };
-
-    const [racesCount, languagesCount, traitsCount] = await Promise.all([
-      RaceModel.countDocuments(rulesetQuery),
-      LanguageModel.countDocuments(rulesetQuery),
-      RasgoModel.countDocuments(rulesetQuery)
-    ]);
-
-    return { racesCount, languagesCount, traitsCount };
-  }
-
-  private async buildSystemApi(sys: any, userId?: string): Promise<SystemApi> {
-    const ancestry = await this.getSystemAncestry(sys._id.toString());
-
-    let publisherName = sys.publisher;
-    if (mongoose.Types.ObjectId.isValid(sys.publisher)) {
-      const user = await this.userRepository.getUserById(sys.publisher);
-      if (user) {
-        publisherName = user.name;
-      }
-    }
-
-    const isPublisher = userId ? sys.publisher === userId : false;
-
-    const ancestryRulesets: string[] = [];
-    for (const ancestor of ancestry) {
-      ancestryRulesets.push(ancestor._id.toString());
-      if (ancestor.name) {
-        ancestryRulesets.push(ancestor.name);
-      }
-    }
-
-    const { racesCount, languagesCount, traitsCount } = await this.obtenerEstadisticasSistemaMulti(ancestryRulesets);
-
-    const attributesMap = new Map<string, AttributeApi>();
-    for (let i = ancestry.length - 1; i >= 0; i--) {
-      const ancestor = ancestry[i];
-      // Determine if we should include deleted items: only if the user is publisher of THIS ancestor!
-      // But we don't have isPublisher of ancestor, we only have isPublisher of the requested system.
-      // Wait! If the user owns the child system, should they see deleted attributes of the ancestor? NO!
-      // They should only see deleted attributes if they own the ancestor!
-      const isAncestorPublisher = userId ? ancestor.publisher === userId : false;
-      const sysAttrs = await this.getDirectSystemAttributes(ancestor._id.toString(), ancestor.name, isAncestorPublisher);
-      for (const attr of sysAttrs) {
-        attributesMap.set(attr.key, attr);
-      }
-    }
-    const attributes = Array.from(attributesMap.values());
-
-    const skillsMap = new Map<string, SkillApi>();
-    for (let i = ancestry.length - 1; i >= 0; i--) {
-      const ancestor = ancestry[i];
-      const isAncestorPublisher = userId ? ancestor.publisher === userId : false;
-      const sysSkills = await this.skillRepository.getBySystems([ancestor._id.toString(), ancestor.name], isAncestorPublisher);
-      for (const skill of sysSkills) {
-        skillsMap.set(skill.key, skill);
-      }
-    }
-    const skills = Array.from(skillsMap.values());
-
-    const getMergedScalar = <T>(key: keyof System, defaultValue?: T): T | undefined => {
-      for (const ancestor of ancestry) {
-        const val = ancestor[key];
-        if (val !== undefined && val !== null && val !== '') {
-          return val as unknown as T;
-        }
-      }
-      return defaultValue;
-    };
-
-    return {
-      id: sys._id.toString(),
-      name: sys.name || '',
-      description: sys.description || '',
-      publisher: publisherName,
-      isOpen: !!sys.isOpen,
-      isBase: !!sys.isBase,
-      parentId: sys.parentId ? sys.parentId.toString() : undefined,
-      canEdit: isPublisher,
-      racesCount,
-      languagesCount,
-      traitsCount,
-      globalModifierFormula: getMergedScalar<string>('globalModifierFormula'),
-      initiativeBonusFormula: getMergedScalar<string>('initiativeBonusFormula'),
-      defaultMinAttributeValue: getMergedScalar<number>('defaultMinAttributeValue'),
-      defaultMaxAttributeValue: getMergedScalar<number>('defaultMaxAttributeValue'),
-      creationMinAttributeValue: getMergedScalar<number>('creationMinAttributeValue'),
-      creationMaxAttributeValue: getMergedScalar<number>('creationMaxAttributeValue'),
-      maxLevel: getMergedScalar<number>('maxLevel'),
-      maxSpellLevel: getMergedScalar<number>('maxSpellLevel'),
-      attributes,
-      skills,
-      deletedAt: sys.deletedAt
-    };
-  }
-
-  async obtenerFormulaModificadorGlobal(systems: string[]): Promise<string | undefined> {
+  async getGlobalModifierFormula(systems: string[]): Promise<string | undefined> {
     if (!systems || systems.length === 0) return undefined;
 
     const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
@@ -171,7 +35,7 @@ export default class SystemRepository implements ISystemRepository {
     });
 
     for (const sys of systemsDocs) {
-      const ancestry = await this.getSystemAncestry(sys._id.toString());
+      const ancestry = await this.getAncestry(sys._id.toString());
       for (const ancestor of ancestry) {
         if (ancestor.globalModifierFormula) {
           return ancestor.globalModifierFormula;
@@ -181,7 +45,7 @@ export default class SystemRepository implements ISystemRepository {
     return undefined;
   }
 
-  async obtenerFormulaBonoIniciativa(systems: string[]): Promise<string | undefined> {
+  async getInitiativeBonusFormula(systems: string[]): Promise<string | undefined> {
     if (!systems || systems.length === 0) return undefined;
 
     const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
@@ -194,7 +58,7 @@ export default class SystemRepository implements ISystemRepository {
     });
 
     for (const sys of systemsDocs) {
-      const ancestry = await this.getSystemAncestry(sys._id.toString());
+      const ancestry = await this.getAncestry(sys._id.toString());
       for (const ancestor of ancestry) {
         if (ancestor.initiativeBonusFormula) {
           return ancestor.initiativeBonusFormula;
@@ -204,10 +68,7 @@ export default class SystemRepository implements ISystemRepository {
     return undefined;
   }
 
-  async consultarSistemasPorUsuario(userId: string): Promise<SystemApi[] | any> {
-    const usuario = await this.userRepository.getUserById(userId);
-    const accessibleSystemIds = usuario?.accessibleSystems || [];
-
+  async getByUserId(userId: string, accessibleSystemIds: string[]): Promise<System[]> {
     const query: any = {
       $or: [
         { publisher: userId },
@@ -222,16 +83,13 @@ export default class SystemRepository implements ISystemRepository {
       }
     }
 
-    const sistemas = await SistemasModel.find(query)
+    return SistemasModel.find(query)
       .collation({ locale: 'es', strength: 1 })
-      .sort({ name: 1 });
-
-    return Promise.all(sistemas.map(async (sys) => {
-      return this.buildSystemApi(sys, userId);
-    }));
+      .sort({ name: 1 })
+      .lean();
   }
 
-  async crear(data: TypeCrearSystem): Promise<SystemApi | null> {
+  async create(data: TypeCrearSystem): Promise<System | null> {
     const parentIdObj = data.parentId && mongoose.Types.ObjectId.isValid(data.parentId)
       ? new mongoose.Types.ObjectId(data.parentId)
       : undefined;
@@ -254,10 +112,10 @@ export default class SystemRepository implements ISystemRepository {
     });
 
     const resultado = await nuevoSistema.save();
-    return this.buildSystemApi(resultado, data.publisher);
+    return resultado ? resultado.toObject() : null;
   }
 
-  async modificar(data: TypeModificarSystem): Promise<SystemApi | null> {
+  async update(data: TypeModificarSystem): Promise<System | null> {
     const { id, name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue, maxLevel, maxSpellLevel } = data;
 
     const updateFields: any = {};
@@ -285,18 +143,28 @@ export default class SystemRepository implements ISystemRepository {
       { returnDocument: 'after' }
     );
 
-    if (!resultado) return null;
-    return this.buildSystemApi(resultado, data.userId);
+    return resultado ? resultado.toObject() : null;
   }
 
-  async obtenerPorId(id: string): Promise<System | null> {
+  async getById(id: string): Promise<System | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return null;
     }
     return SistemasModel.findOne({ _id: id, deletedAt: null } as any).lean();
   }
 
-  async verificarSistemasNoBase(systems: string[]): Promise<void> {
+  async obtenerPorId(id: string): Promise<System | null> {
+    return this.getById(id);
+  }
+
+  async getByIdWithDeleted(id: string): Promise<System | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return null;
+    }
+    return SistemasModel.findOne({ _id: id } as any).lean();
+  }
+
+  async verifySystemsNotBase(systems: string[]): Promise<void> {
     if (!systems || systems.length === 0) return;
     const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
     const systemsDocs = await SistemasModel.find({
@@ -326,7 +194,7 @@ export default class SystemRepository implements ISystemRepository {
     const resultSet = new Set<string>(systems);
 
     for (const sys of systemsDocs) {
-      const ancestry = await this.getSystemAncestry(sys._id.toString());
+      const ancestry = await this.getAncestry(sys._id.toString());
       for (const ancestor of ancestry) {
         if (ancestor._id) resultSet.add(ancestor._id.toString());
         if (ancestor.name) resultSet.add(ancestor.name);
@@ -336,20 +204,13 @@ export default class SystemRepository implements ISystemRepository {
     return Array.from(resultSet);
   }
 
-  async softDelete(id: string): Promise<void> {
+  async softDelete(id: string, deletedAt: Date): Promise<void> {
     if (!mongoose.Types.ObjectId.isValid(id)) return;
-    const now = new Date();
-    await SistemasModel.findByIdAndUpdate(id, { $set: { deletedAt: now } });
-    await AttributeModel.updateMany({ ruleset: id }, { $set: { deletedAt: now } });
-    await SkillModel.updateMany({ ruleset: id }, { $set: { deletedAt: now } });
-    await LanguageModel.updateMany({ ruleset: id }, { $set: { deletedAt: now } });
+    await SistemasModel.findByIdAndUpdate(id, { $set: { deletedAt } });
   }
 
   async restore(id: string): Promise<void> {
     if (!mongoose.Types.ObjectId.isValid(id)) return;
     await SistemasModel.findByIdAndUpdate(id, { $set: { deletedAt: null } });
-    await AttributeModel.updateMany({ ruleset: id }, { $set: { deletedAt: null } });
-    await SkillModel.updateMany({ ruleset: id }, { $set: { deletedAt: null } });
-    await LanguageModel.updateMany({ ruleset: id }, { $set: { deletedAt: null } });
   }
 }

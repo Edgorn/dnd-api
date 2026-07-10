@@ -948,7 +948,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const modifiedAttributes = this.calcularAttributes(personaje)
     const apiAttributes: CharacterAttributeApi[] = await this.attributeService.formatAttributes(modifiedAttributes, personaje.systems ?? [])
 
-    const initiativeBonusFormula = await this.systemRepository.obtenerFormulaBonoIniciativa(personaje.systems ?? []);
+    const initiativeBonusFormula = await this.systemRepository.getInitiativeBonusFormula(personaje.systems ?? []);
     let initiativeBonus = 0;
     if (initiativeBonusFormula) {
       initiativeBonus = evaluateFormula(initiativeBonusFormula, apiAttributes);

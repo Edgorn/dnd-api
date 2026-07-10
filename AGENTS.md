@@ -155,3 +155,9 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
    - Todo endpoint encargado de modificar un recurso específico debe recibir el identificador único (`id`) como parámetro en la ruta de la URL (ej. `PUT /recurso/:id`) y no a través del cuerpo de la petición (`body`).
    - Los esquemas de validación (Zod) no deben exigir el `id` dentro del `req.body`.
    - Los controladores deben capturar `req.params.id` y combinarlo con `req.body` antes de enviarlo al respectivo Caso de Uso.
+
+12. **Casos de Uso Orquestadores (Regla de Desacoplamiento):**
+   - Para mantener la separación de conceptos y la Arquitectura Hexagonal pura, los repositorios no deben importar ni utilizar directamente esquemas/modelos de Mongoose de otras entidades.
+   - Si una operación requiere coordinar lógica que involucra múltiples entidades (por ejemplo, conteo de estadísticas cruzadas o borrado lógico en cascada de sub-entidades), se debe crear un **Caso de Uso Orquestador** en la capa de aplicación.
+   - Este Caso de Uso Orquestador inyectará los servicios o repositorios de las distintas entidades implicadas y coordinará la ejecución del proceso paso a paso, evitando así dependencias circulares y acoplamientos innecesarios entre repositorios.
+

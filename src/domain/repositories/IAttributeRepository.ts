@@ -16,4 +16,6 @@ export default interface IAttributeRepository {
   getById(id: string): Promise<AttributeApi | null>;
   softDelete(id: string): Promise<void>;
   restore(id: string): Promise<void>;
+  softDeleteByRuleset(ruleset: string, deletedAt: Date): Promise<void>;
+  restoreByRuleset(ruleset: string, deletedAt: Date): Promise<void>;
 }

@@ -11,4 +11,6 @@ export default interface ILanguageRepository {
   getById(id: string): Promise<LanguageApi | null>
   softDelete(id: string): Promise<void>
   restore(id: string): Promise<void>
+  softDeleteByRuleset(ruleset: string, deletedAt: Date): Promise<void>;
+  restoreByRuleset(ruleset: string, deletedAt: Date): Promise<void>;
 }

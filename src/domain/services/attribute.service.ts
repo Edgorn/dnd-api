@@ -42,7 +42,7 @@ export default class AttributeService {
   async formatAttributes(attributes: { key: string, value: number }[], systems: string[]): Promise<CharacterAttributeApi[]> {
     const charAttributes = await this.getBySystems(systems);
     const globalModifierFormula = this.systemRepository
-      ? await this.systemRepository.obtenerFormulaModificadorGlobal(systems)
+      ? await this.systemRepository.getGlobalModifierFormula(systems)
       : undefined;
 
     return charAttributes.map(c => {
