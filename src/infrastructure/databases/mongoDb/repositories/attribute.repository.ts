@@ -1,6 +1,6 @@
 import IAttributeRepository from "../../../../domain/repositories/IAttributeRepository";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
-import { AttributeApi, InputCreateAttribute, InputUpdateAttribute, AttributeBonus, AttributeBonusCreate, CharacterAttributeApi, AttributeMongo } from "../../../../domain/types/attribute.types";
+import { AttributeApi, InputCreateAttribute, InputUpdateAttribute, AttributeBonus, AttributeBonusCreate, AttributeMongo } from "../../../../domain/types/attribute.types";
 import { ChoiceMongo, ChoiceApi } from "../../../../domain/types";
 import AttributeSchema from "../schemas/Attribute";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";

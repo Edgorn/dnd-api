@@ -39,12 +39,6 @@ const router = Router();
  *         racesCount:
  *           type: integer
  *           description: Cantidad de razas asociadas (incluyendo heredadas).
- *         languagesCount:
- *           type: integer
- *           description: Cantidad de idiomas asociados (incluyendo heredados).
- *         traitsCount:
- *           type: integer
- *           description: Cantidad de rasgos asociados (incluyendo heredados).
  *         globalModifierFormula:
  *           type: string
  *           description: Fórmula opcional para modificar características.

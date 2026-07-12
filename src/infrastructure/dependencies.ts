@@ -221,8 +221,6 @@ const getSystemApi = new GetSystemApi(
   systemRepository,
   userRepository,
   razaRepository,
-  languageRepository,
-  rasgoRepository,
   attributeRepository,
   skillRepository
 )

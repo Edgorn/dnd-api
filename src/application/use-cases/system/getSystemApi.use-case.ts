@@ -1,8 +1,6 @@
 import ISystemRepository from "../../../domain/repositories/ISystemRepository";
 import IUserRepository from "../../../domain/repositories/IUserRepository";
 import IRazaRepository from "../../../domain/repositories/IRazaRepository";
-import ILanguageRepository from "../../../domain/repositories/ILanguageRepository";
-import IRasgoRepository from "../../../domain/repositories/IRasgoRepository";
 import IAttributeRepository from "../../../domain/repositories/IAttributeRepository";
 import ISkillRepository from "../../../domain/repositories/ISkillRepository";
 import { System, SystemApi } from "../../../domain/types/system.types";
@@ -14,8 +12,6 @@ export default class GetSystemApi {
     private readonly systemRepository: ISystemRepository,
     private readonly userRepository: IUserRepository,
     private readonly razaRepository: IRazaRepository,
-    private readonly languageRepository: ILanguageRepository,
-    private readonly rasgoRepository: IRasgoRepository,
     private readonly attributeRepository: IAttributeRepository,
     private readonly skillRepository: ISkillRepository
   ) {}
@@ -57,12 +53,6 @@ export default class GetSystemApi {
     // 4. Statistics Counts
     const races = await this.razaRepository.obtenerPorSistema(sys._id.toString());
     const racesCount = races.length;
-
-    const languages = await this.languageRepository.getBySystems(ancestryRulesets);
-    const languagesCount = languages.length;
-
-    const traits = await this.rasgoRepository.obtenerPorSistemas(ancestryRulesets);
-    const traitsCount = traits.length;
 
     // 5. Attributes (handling ancestry override and deleted status)
     const attributesMap = new Map<string, AttributeApi>();
@@ -110,8 +100,6 @@ export default class GetSystemApi {
       parentId: sys.parentId ? sys.parentId.toString() : undefined,
       canEdit: isPublisher,
       racesCount,
-      languagesCount,
-      traitsCount,
       globalModifierFormula: getMergedScalar<string>('globalModifierFormula'),
       initiativeBonusFormula: getMergedScalar<string>('initiativeBonusFormula'),
       defaultMinAttributeValue: getMergedScalar<number>('defaultMinAttributeValue'),

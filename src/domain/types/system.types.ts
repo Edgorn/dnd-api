@@ -32,8 +32,6 @@ export interface SystemApi {
   parentId?: string;
   canEdit: boolean;
   racesCount: number;
-  languagesCount: number;
-  traitsCount: number;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
   defaultMinAttributeValue?: number;
