@@ -104,6 +104,12 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
    - If una operación requiere coordinar lógica que involucra múltiples entidades (por ejemplo, conteo de estadísticas cruzadas o borrado lógico en cascada de sub-entidades), se debe crear un **Caso de Uso Orquestador** en la capa de aplicación.
    - Este Caso de Uso Orquestador inyectará los servicios o repositorios de las distintas entidades implicadas y coordinará la ejecución del proceso paso a paso, evitando así dependencias circulares y acoplamientos innecesarios entre repositorios.
 
+13. **Borrado Lógico (Soft Delete):**
+   - Cuando se realicen borrados lógicos, **siempre** se debe utilizar la estrategia basada en el campo `deletedAt: Date | null` (como se hace en `attributes`, `skills` y `systems`).
+   - El Schema de Mongoose debe incluir `deletedAt: { type: Date, default: null }`.
+   - Las consultas de obtención (`find`, `getBySystems`, etc.) deben filtrar excluyendo los borrados: `{ deletedAt: null }`.
+   - Se deben crear endpoints para el borrado `DELETE /recurso/:id` y, opcionalmente, para la restauración `PATCH /recurso/:id/restore`.
+
 ## 🧪 Pruebas Unitarias e Integración (Testing)
 
 - **Framework:** Se utiliza **Vitest** como framework de pruebas para el proyecto.

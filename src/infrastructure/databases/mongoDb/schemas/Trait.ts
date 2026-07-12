@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
-import { RasgoMongo } from "../../../../domain/types/rasgos.types";
+import { TraitMongo } from "../../../../domain/types/traits.types";
 
-const rasgoSchema: Schema = new Schema<RasgoMongo>({
+const traitSchema: Schema = new Schema<TraitMongo>({
   index: String,
   name: String,
   description: [String],
@@ -23,20 +23,9 @@ const rasgoSchema: Schema = new Schema<RasgoMongo>({
   spells: [],
   bonuses: {
     armor_class: Number
-  }
-  /*type: String,
-  languages: [String],
-  
-  proficiencies: [],*/
-  /*
-  tables?: [{
-    title: String,
-    data: {
-      titles: [String],
-      rows: [[String]]
-    }
-  }]*/
-}, { collection: 'Rasgos' });
+  },
+  deletedAt: { type: Date, default: null }
+}, { collection: 'traits' });
 
-const RasgoModel = mongoose.model<RasgoMongo>("Rasgos", rasgoSchema);
-export default RasgoModel;
+const TraitModel = mongoose.model<TraitMongo>("traits", traitSchema);
+export default TraitModel;

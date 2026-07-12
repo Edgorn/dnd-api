@@ -5,7 +5,7 @@ import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi, CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
-import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
+import { TraitApi, TraitDataMongo } from "./traits.types"
 import { AttributeBonus, AttributeBonusCreate } from "./attribute.types"
 
 export interface RaceMongo {
@@ -34,7 +34,7 @@ export interface RaceMongo {
   ability_bonuses: AttributeBonusCreate[],
   ability_bonus_choices: ChoiceMongo,
   traits: string[],
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   skill_choices?: ChoiceMongo,
   languages: CreatureLanguagesCreate,
   language_choices?: ChoiceMongo,
@@ -46,7 +46,7 @@ export interface RaceMongo {
 
 export interface RaceLevelMongo {
   level: number,
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
 }
 
 export interface SubracesMongo {
@@ -62,7 +62,7 @@ export interface SubraceMongo {
   img: string,
   ability_bonuses: AttributeBonusCreate[],
   traits: string[],
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   languages: CreatureLanguagesCreate,
   language_choices?: ChoiceMongo,
   spell_choices?: ChoiceSpell[],
@@ -107,8 +107,8 @@ export interface RaceApi {
   ability_bonuses: AttributeBonus[],
   ability_bonus_choices?: ChoiceApi<AttributeBonus>,
   skill_choices?: ChoiceApi<SkillApi>,
-  traits: RasgoApi[],
-  traits_data: RasgoDataMongo,
+  traits: TraitApi[],
+  traits_data: TraitDataMongo,
   languages: CreatureLanguages,
   language_choices?: ChoiceApi<LanguageApi>,
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
@@ -128,8 +128,8 @@ export interface SubraceApi {
   description: string[],
   img: string,
   ability_bonuses: AttributeBonus[],
-  traits: RasgoApi[],
-  traits_data: RasgoDataMongo,
+  traits: TraitApi[],
+  traits_data: TraitDataMongo,
   languages: CreatureLanguages,
   language_choices?: ChoiceApi<LanguageApi>,
   spell_choices?: ChoiceApi<ConjuroApi>[],
@@ -175,7 +175,7 @@ export interface CreateRace {
     expectancy: number;
   };
   traits: string[];
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   languages: CreatureLanguagesCreate,
   subraces: CreateSubraces
 }
@@ -192,6 +192,6 @@ export interface CreateSubrace {
   img: string;
   ability_bonuses: AttributeBonusCreate;
   traits: string[];
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   languages: CreatureLanguagesCreate
 }

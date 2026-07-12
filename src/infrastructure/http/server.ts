@@ -14,7 +14,7 @@ import campañaRoutes from "./routes/campaña.routes";
 import criaturasRoutes from "./routes/criaturas.routes";
 import npcsRoutes from "./routes/npcs.routes";
 import conjuroRoutes from "./routes/conjuro.routes";
-import rasgosRoutes from "./routes/rasgo.routes";
+import traitsRoutes from "./routes/trait.routes";
 import skillRoutes from "./routes/skill.routes";
 import languageRoutes from "./routes/language.routes";
 import systemRoutes from "./routes/system.routes";
@@ -54,7 +54,7 @@ app.use(campañaRoutes)
 app.use(criaturasRoutes);
 app.use(npcsRoutes);
 app.use(conjuroRoutes);
-app.use(rasgosRoutes);
+app.use(traitsRoutes);
 app.use(skillRoutes);
 app.use(languageRoutes);
 app.use(systemRoutes);

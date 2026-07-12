@@ -55,7 +55,7 @@ import EquipamientoRepository from "./databases/mongoDb/repositories/equipamient
 import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
 import LanguageRepository from "./databases/mongoDb/repositories/language.repository";
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
-import RasgoRepository from "./databases/mongoDb/repositories/rasgo.repository";
+import TraitRepository from "./databases/mongoDb/repositories/trait.repository";
 import UserRepository from "./databases/mongoDb/repositories/user.repository";
 import RazaRepository from "./databases/mongoDb/repositories/raza.repository";
 import TransfondoRepository from "./databases/mongoDb/repositories/transfondo.repository";
@@ -86,17 +86,19 @@ import { PersonajeController } from "./http/controllers/personaje.controller";
 import { ConjuroController } from "./http/controllers/conjuro.controller";
 import { SystemController } from "./http/controllers/system.controller";
 import CriaturaRepository from "./databases/mongoDb/repositories/criaturas.repository";
-import { RasgoController } from "./http/controllers/rasgo.controller";
-import CrearRaza from "../application/use-cases/raza/crearRaza.use-case";
-import ObtenerRasgosPorSistemas from "../application/use-cases/rasgo/obtenerRasgosPorSistemas.use-case";
-import RasgoService from "../domain/services/rasgo.service";
-import CrearRasgo from "../application/use-cases/rasgo/crearRasgo.use-case";
-import ModificarRasgo from "../application/use-cases/rasgo/modificarRasgo.use-case";
+import { TraitController } from "./http/controllers/trait.controller";
+import GetTraitsBySystemsUseCase from "../application/use-cases/trait/getTraitsBySystems.use-case";
+import TraitService from "../domain/services/trait.service";
+import CreateTraitUseCase from "../application/use-cases/trait/createTrait.use-case";
+import UpdateTraitUseCase from "../application/use-cases/trait/updateTrait.use-case";
+import SoftDeleteTraitUseCase from "../application/use-cases/trait/softDeleteTrait.use-case";
+import RestoreTraitUseCase from "../application/use-cases/trait/restoreTrait.use-case";
 import { SkillController } from "./http/controllers/skill.controller";
 import SkillService from "../domain/services/skill.service";
 import GetSkillsBySystems from "../application/use-cases/skill/getSkillsBySystems.use-case";
 import CreateSkill from "../application/use-cases/skill/createSkill.use-case";
 import UpdateSkill from "../application/use-cases/skill/updateSkill.use-case";
+import CrearRaza from "../application/use-cases/raza/crearRaza.use-case";
 import ActualizarRaza from "../application/use-cases/raza/actualizarRaza.use-case";
 import { LanguageController } from "./http/controllers/language.controller";
 import GetLanguagesBySystem from "../application/use-cases/language/getLanguagesBySystem.use-case";
@@ -129,15 +131,15 @@ const propiedadArmaRepository = new PropiedadArmaRepository()
 const equipamientoRepository = new EquipamientoRepository(dañoRepository, propiedadArmaRepository)
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
-const rasgoRepository = new RasgoRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository, systemRepository)
+const traitRepository = new TraitRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository, systemRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
-const invocacionRepository = new InvocacionRepository(conjuroRepository, rasgoRepository)
+const invocacionRepository = new InvocacionRepository(conjuroRepository, traitRepository)
 const claseRepository = new ClaseRepository(
   skillRepository,
   competenciaRepository,
   equipamientoRepository,
-  rasgoRepository,
+  traitRepository,
   conjuroRepository,
   doteRepository,
   invocacionRepository,
@@ -150,7 +152,7 @@ const razaRepository = new RazaRepository(
   skillRepository,
   competenciaRepository,
   doteRepository,
-  rasgoRepository,
+  traitRepository,
   attributeRepository,
   systemRepository
 )
@@ -160,7 +162,7 @@ const transfondoRepository = new TransfondoRepository(
   competenciaRepository,
   languageRepository,
   equipamientoRepository,
-  rasgoRepository
+  traitRepository
 );
 
 const criaturaRepository = new CriaturaRepository(
@@ -173,7 +175,7 @@ const criaturaRepository = new CriaturaRepository(
 const personajeRepository = new PersonajeRepository(
   userRepository,
   equipamientoRepository,
-  rasgoRepository,
+  traitRepository,
   competenciaRepository,
   languageRepository,
   skillRepository,
@@ -206,15 +208,13 @@ const validateTokenUseCase = new ValidateTokenUseCase(userService)
 
 export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
 
-
-
 const razaService = new RazaService(razaRepository)
 const transfondoService = new TransfondoService(transfondoRepository)
 const claseService = new ClaseService(claseRepository)
 const equipamientoService = new EquipamientoService(equipamientoRepository)
 const personajeService = new PersonajeService(personajeRepository)
 const conjuroService = new ConjuroService(conjuroRepository)
-const rasgoService = new RasgoService(rasgoRepository)
+const traitService = new TraitService(traitRepository)
 const skillService = new SkillService(skillRepository)
 const systemService = new SystemService(systemRepository)
 const getSystemApi = new GetSystemApi(
@@ -268,9 +268,11 @@ const updateAttribute = new UpdateAttribute(attributeService);
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
 
-const obtenerRasgosPorSistemasUseCase = new ObtenerRasgosPorSistemas(rasgoService)
-const crearRasgoUseCase = new CrearRasgo(rasgoService)
-const modificarRasgoUseCase = new ModificarRasgo(rasgoService)
+const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService)
+const createTraitUseCase = new CreateTraitUseCase(traitService)
+const updateTraitUseCase = new UpdateTraitUseCase(traitService)
+const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
+const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 
 const getSkillsBySystems = new GetSkillsBySystems(skillService, systemService)
 const createSkill = new CreateSkill(skillService)
@@ -334,7 +336,7 @@ export const systemController = new SystemController(
   cascadeRestoreSystem
 )
 
-export const rasgoController = new RasgoController(obtenerRasgosPorSistemasUseCase, crearRasgoUseCase, modificarRasgoUseCase)
+export const traitController = new TraitController(getTraitsBySystemsUseCase, createTraitUseCase, updateTraitUseCase, softDeleteTrait, restoreTrait)
 
 export const skillController = new SkillController(
   getSkillsBySystems,
@@ -353,8 +355,8 @@ const softDeleteLanguage = new SoftDeleteLanguage(languageService, systemService
 const restoreLanguage = new RestoreLanguage(languageService, systemService);
 
 export const languageController = new LanguageController(
-  getLanguagesBySystems, 
-  createLanguage, 
+  getLanguagesBySystems,
+  createLanguage,
   updateLanguage,
   softDeleteLanguage,
   restoreLanguage
@@ -367,4 +369,4 @@ export const attributeController = new AttributeController(
   restoreAttribute
 );
 
-export const authorizeSystemMiddleware = createAuthorizeSystemMiddleware(userRepository);
+export const authorizeSystemMiddleware = createAuthorizeSystemMiddleware(userRepository);

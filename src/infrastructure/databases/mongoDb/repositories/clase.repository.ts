@@ -6,7 +6,7 @@ import IEquipamientoRepository from '../../../../domain/repositories/IEquipamien
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
-import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
+import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import { ChoiceApi } from '../../../../domain/types';
 import { ClaseApi, ClaseLevelUp, ClaseMongo, SpellcastingLevel, SubclaseApi, SubclaseMongo, SubclaseOptionApi, SubclasesMongo, SubclasesOptionsMongo, SubclasesOptionsMongoOption } from '../../../../domain/types/clases.types';
 import { DoteApi } from '../../../../domain/types/dotes.types';
@@ -18,7 +18,7 @@ export default class ClaseRepository implements IClaseRepository {
     private readonly skillRepository: ISkillRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
-    private readonly rasgoRepository: IRasgoRepository,
+    private readonly traitRepository: ITraitRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly invocacionRepository: IInvocacionRepository,
@@ -65,7 +65,7 @@ export default class ClaseRepository implements IClaseRepository {
     traitsId.push(...dataLevel?.traits ?? [])
 
     const traitsSinRepetidos = [...new Set(traitsId)];
-    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(traitsSinRepetidos, dataLevel?.traits_data)
+    const traits = await this.traitRepository.getTraitsByIndexes(traitsSinRepetidos, dataLevel?.traits_data)
 
     const subclasesData = await this.formatearSubclaseType(dataLevel.subclasses_options, dataLevel.subclasses)
 
@@ -101,7 +101,7 @@ export default class ClaseRepository implements IClaseRepository {
     let traits_options = undefined
 
     if (dataLevel?.traits_options) {
-      const traitsAux = await this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits_options?.options ?? [])
+      const traitsAux = await this.traitRepository.getTraitsByIndexes(dataLevel?.traits_options?.options ?? [])
       traits_options = {
         ...dataLevel.traits_options,
         options: traitsAux
@@ -205,7 +205,7 @@ export default class ClaseRepository implements IClaseRepository {
       equipment,
       equipment_choices
     ] = await Promise.all([
-      this.rasgoRepository.obtenerRasgosPorIndices(dataLevel?.traits ?? [], dataLevel?.traits_data),
+      this.traitRepository.getTraitsByIndexes(dataLevel?.traits ?? [], dataLevel?.traits_data),
       this.competenciaRepository.obtenerCompetenciasPorIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]),
       this.competenciaRepository.formatearOpcionesDeCompetencias(clase?.proficiencies_choices ?? []),
       this.skillRepository.formatSkillChoices(clase.skill_choices),
@@ -386,12 +386,12 @@ export default class ClaseRepository implements IClaseRepository {
       traitsId.push(t)
     })
 
-    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(traitsId, subclase?.traits_data ?? {})
+    const traits = await this.traitRepository.getTraitsByIndexes(traitsId, subclase?.traits_data ?? {})
 
     let traits_options = undefined
 
     if (subclase?.traits_options) {
-      const traitsAux = await this.rasgoRepository.obtenerRasgosPorIndices(subclase?.traits_options?.options ?? [])
+      const traitsAux = await this.traitRepository.getTraitsByIndexes(subclase?.traits_options?.options ?? [])
       traits_options = {
         ...subclase.traits_options,
         options: traitsAux
@@ -561,7 +561,7 @@ if (clase) {
     traitsId.push(...dataLevel?.traits ?? [])
 
     const traitsSinRepetidos = [...new Set(traitsId)];
-    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(traitsSinRepetidos, dataLevel?.traits_data)
+    const traits = await this.traitRepository.getTraitsByIndexes(traitsSinRepetidos, dataLevel?.traits_data)
 
     const subclasesData = await this.formatearSubclaseType(dataLevel.subclasses_options, dataLevel.subclasses)
 
@@ -679,12 +679,12 @@ languages: this.idiomaRepository.obtenerIdiomasPorIndices(subclaseData?.language
 }
  
 async formatearSubclase(subclase: SubclaseMongo): Promise<SubclaseApi> {
-const traits = await this.rasgoRepository.obtenerRasgosPorIndices(subclase?.traits ?? [])
+const traits = await this.traitRepository.getTraitsByIndexes(subclase?.traits ?? [])
  
 let traits_options = undefined
  
 if (subclase?.traits_options) {
-const traitsAux = await this.rasgoRepository.obtenerRasgosPorIndices(subclase?.traits_options?.options ?? [])
+const traitsAux = await this.traitRepository.getTraitsByIndexes(subclase?.traits_options?.options ?? [])
 traits_options = {
 ...subclase.traits_options,
 options: traitsAux

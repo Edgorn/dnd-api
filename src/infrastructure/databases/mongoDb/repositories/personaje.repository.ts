@@ -10,7 +10,7 @@ import AttributeService from '../../../../domain/services/attribute.service';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
-import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
+import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
@@ -21,7 +21,7 @@ import { EquipamientoPersonajeApi } from '../../../../domain/types/equipamientos
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 import { deepMerge } from '../../../../utils/formatters';
-import { RasgoApi } from '../../../../domain/types/rasgos.types';
+import { TraitApi } from '../../../../domain/types/traits.types';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
 import fs from 'fs'
 import path from 'path';
@@ -50,7 +50,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
-    private readonly rasgoRepository: IRasgoRepository,
+    private readonly traitRepository: ITraitRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly skillRepository: ISkillRepository,
@@ -719,7 +719,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
     const user = userName ?? await this.userRepository.getUserName(personaje?.user ?? null)
 
-    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits, personaje?.traits_data)
+    const traits = await this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data)
     const { CA } = await this.calcularCA(personaje, traits)
 
     let finalCampaignName = campaignName;
@@ -747,7 +747,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  private async calcularCA(personaje: PersonajeMongo, traits: RasgoApi[]) {
+  private async calcularCA(personaje: PersonajeMongo, traits: TraitApi[]) {
     let armadura = false
     let armaduraPesada = false
     let CA = 10
@@ -830,7 +830,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   private async formatearPersonaje(personaje: PersonajeMongo): Promise<PersonajeApi> {
     const level = personaje.classes.map(cl => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
 
-    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(personaje?.traits, personaje?.traits_data)
+    const traits = await this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data)
     const invocations = await this.invocacionRepository.obtenerPorIndices(personaje.invocations)
     const skills = personaje?.skills ?? []
 

@@ -6,7 +6,7 @@ import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonaje
 import { SkillApi } from "./skill.types"
 import { LanguageApi } from "./language.types"
 import { InvocacionApi } from "./invocaciones.types"
-import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
+import { TraitApi, TraitDataMongo } from "./traits.types"
 
 export interface ClaseMongo {
   index: string,
@@ -32,7 +32,7 @@ export interface ClaseLevelMongo {
     name: string,
     options: string[]
   },
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   spell_choices?: ChoiceSpell[],
   mixed_spell_choices?: {
     number: number,
@@ -84,7 +84,7 @@ export interface SubclasesMongo {
 
 export interface SubclaseMongo {
   traits: string[],
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   traits_options?: {
     name: string,
     options: string[]
@@ -112,8 +112,8 @@ export interface ClaseApi {
   skill_choices?: ChoiceApi<SkillApi>,
   spells?: ConjuroApi[],
   spell_choices?: ChoiceApi<ConjuroApi>[],
-  traits: RasgoApi[],
-  traits_data: RasgoDataMongo,
+  traits: TraitApi[],
+  traits_data: TraitDataMongo,
   saving_throws: {
     index: string,
     name: string
@@ -137,10 +137,10 @@ export interface SubclaseOptionApi extends SubclaseApi {
 }
 
 export interface SubclaseApi {
-  traits: RasgoApi[],
+  traits: TraitApi[],
   traits_options?: {
     name: string,
-    options: RasgoApi[]
+    options: TraitApi[]
   },
   mixed_spell_choices?: ChoiceApi<ConjuroApi>[][],
   skill_choices?: ChoiceApi<SkillApi>,
@@ -153,11 +153,11 @@ export interface SubclaseApi {
 
 export interface ClaseLevelUp {
   hit_die: number,
-  traits: RasgoApi[],
-  traits_data: RasgoDataMongo,
+  traits: TraitApi[],
+  traits_data: TraitDataMongo,
   traits_options?: {
     name: string,
-    options: RasgoApi[]
+    options: TraitApi[]
   },
   ability_score: boolean,
   dotes: ChoiceApi<DoteApi> | undefined,

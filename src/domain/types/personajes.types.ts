@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { RasgoApi, RasgoDataMongo } from "./rasgos.types"
+import { TraitApi, TraitDataMongo } from "./traits.types"
 import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { CompetenciaApi } from "./competencias.types"
@@ -65,7 +65,7 @@ export interface TypeCrearPersonaje {
     quantity: number
   }[],
   traits: string[],
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   money: {
     unit: string,
     quantity: number
@@ -81,7 +81,7 @@ export interface TypeSubirNivel {
     hit: number,
     clase: string,
     traits: string[],
-    traits_data: RasgoDataMongo,
+    traits_data: TraitDataMongo,
     prof_bonus: number,
     subclaseId: string,
     subclase: string,
@@ -175,7 +175,7 @@ export interface PersonajeMongo {
   saving_throws: string[],
   subclasses: string[],
   traits: string[],
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   money: {
     pc: number;   // piezas de cobre
     pp: number;   // piezas de plata
@@ -254,8 +254,8 @@ export interface PersonajeApi {
   skills: SkillPersonajeApi[],
   languages: CreatureLanguages,
   proficiencies: CompetenciaApi[],
-  traits: RasgoApi[],
-  traits_data: RasgoDataMongo,
+  traits: TraitApi[],
+  traits_data: TraitDataMongo,
   resistances: DañoApi[],
   conditional_resistances: { name: string, resistances: DañoApi[] }[],
   condition_inmunities: { name: string, estados: EstadoApi[] }[]
@@ -290,7 +290,7 @@ export interface TypeSubirNivel {
   hit: number,
   clase: string,
   traits: string[],
-  traits_data: RasgoDataMongo,
+  traits_data: TraitDataMongo,
   prof_bonus: number,
   subclase?: string,
   attributes: { key: string, value: number }[] | null,

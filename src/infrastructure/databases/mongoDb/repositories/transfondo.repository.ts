@@ -2,7 +2,7 @@ import ICompetenciaRepository from '../../../../domain/repositories/ICompetencia
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
-import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
+import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import ITransfondoRepository from '../../../../domain/repositories/ITransfondoRepository';
 import { mapStringArrayToLabelValue } from '../../../../utils/formatters';
 import TransfondoSchema from '../schemas/Transfondo';
@@ -15,7 +15,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
-    private readonly rasgoRepository: IRasgoRepository
+    private readonly traitRepository: ITraitRepository
   ) { }
 
   async obtenerTodos(): Promise<TransfondoApi[]> {
@@ -48,8 +48,8 @@ export default class TransfondoRepository implements ITransfondoRepository {
       equipment_choices,
       variantes
     ] = await Promise.all([
-      this.rasgoRepository.obtenerRasgosPorIndices(transfondo?.traits ?? []),
-      this.rasgoRepository.obtenerRasgosOptions(transfondo?.traits_options),
+      this.traitRepository.getTraitsByIndexes(transfondo?.traits ?? []),
+      this.traitRepository.getTraitsOptions(transfondo?.traits_options),
       this.skillRepository.getSkillsByKeys(transfondo?.skills ?? []),
       this.languageRepository.formatLanguageChoices(transfondo.language_choices),
       this.competenciaRepository.obtenerCompetenciasPorIndices(transfondo?.proficiencies ?? []),
@@ -104,9 +104,9 @@ export default class TransfondoRepository implements ITransfondoRepository {
       equipment_choices
     ] = await Promise.all([
       variante?.traits
-        ? this.rasgoRepository.obtenerRasgosPorIndices(variante?.traits ?? [])
+        ? this.traitRepository.getTraitsByIndexes(variante?.traits ?? [])
         : Promise.resolve(undefined),
-      this.rasgoRepository.obtenerRasgosOptions(variante?.traits_options),
+      this.traitRepository.getTraitsOptions(variante?.traits_options),
       this.competenciaRepository.formatearOpcionesDeCompetencias(variante?.proficiencies_choices),
       this.formatearMixedChoices(variante.mixed_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(variante?.equipment),

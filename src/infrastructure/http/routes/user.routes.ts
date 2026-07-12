@@ -7,9 +7,9 @@ import { userController } from "../../dependencies";
 const router = Router();
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 10,                   // 10 intentos por ventana
-  message: { error: "Too many login attempts. Please try again in 15 minutes." },
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: "Demasiados intentos de inicio de sesión. Intente de nuevo en 15 minutos." },
   standardHeaders: true,
   legacyHeaders: false,
 });

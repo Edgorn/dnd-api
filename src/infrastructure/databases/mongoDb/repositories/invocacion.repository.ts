@@ -1,6 +1,6 @@
 import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
 import IInvocacionRepository from "../../../../domain/repositories/IInvocacionRepository";
-import IRasgoRepository from "../../../../domain/repositories/IRasgoRepository";
+import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
 import InvocacionSchema from "../schemas/Invocacion";
 import { InvocacionApi, InvocacionMongo } from "../../../../domain/types/invocaciones.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
@@ -12,7 +12,7 @@ export default class InvocacionRepository implements IInvocacionRepository {
 
   constructor(
     private readonly conjuroRepository: IConjuroRepository,
-    private readonly rasgoRepository: IRasgoRepository
+    private readonly traitRepository: ITraitRepository
   ) {
     this.invocacionesMap = {}
   }
@@ -79,7 +79,7 @@ export default class InvocacionRepository implements IInvocacionRepository {
   }
 
   private async formatearInvocacion(invocacion: InvocacionMongo): Promise<InvocacionApi> {
-    const traits = await this.rasgoRepository.obtenerRasgosPorIndices(invocacion?.requirements?.traits ?? [])
+    const traits = await this.traitRepository.getTraitsByIndexes(invocacion?.requirements?.traits ?? [])
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.spells ?? [])
     const spells_required = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.requirements?.spells ?? [])
  

@@ -2,7 +2,7 @@ import { rgb, StandardFonts } from "pdf-lib";
 import { PersonajeApi } from "../domain/types/personajes.types";
 import { EquipamientoPersonajeApi } from "../domain/types/equipamientos.types";
 import { DoteApi } from "../domain/types/dotes.types";
-import { RasgoApi } from "../domain/types/rasgos.types";
+import { TraitApi } from "../domain/types/traits.types";
 
 const abilities: { [key: string]: string } = {
   str: 'FUE',
@@ -110,7 +110,7 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
   return { textY: textY - 1, actualHeight }
 }
 
-export async function escribirRasgos({ traits, invocations, disciplines, metamagic, dotes, pdfDoc }: { traits: RasgoApi[], invocations: any, disciplines: any, metamagic: any, dotes: DoteApi[], pdfDoc: any }) {
+export async function escribirRasgos({ traits, invocations, disciplines, metamagic, dotes, pdfDoc }: { traits: TraitApi[], invocations: any, disciplines: any, metamagic: any, dotes: DoteApi[], pdfDoc: any }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -143,7 +143,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
 
       return trait.type !== 'spell' && !trait.hidden && isDiscard
 
-    })?.forEach((trait: RasgoApi | DoteApi) => {
+    })?.forEach((trait: TraitApi | DoteApi) => {
       const { textY, actualHeight: actualHeight1 } = escribirParrafo({
         titulo: trait?.name,
         descripcion: trait?.summary?.join('\n') ?? trait?.description?.join('\n'),
@@ -243,7 +243,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
 
   traits
     ?.filter((trait: any) => trait.type === 'spell')
-    ?.forEach((trait: RasgoApi) => {
+    ?.forEach((trait: TraitApi) => {
       const { textY } = escribirParrafo({
         titulo: trait?.name,
         descripcion: trait?.summary,

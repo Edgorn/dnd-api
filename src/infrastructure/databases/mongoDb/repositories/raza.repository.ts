@@ -2,7 +2,7 @@ import ICompetenciaRepository from '../../../../domain/repositories/ICompetencia
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
-import IRasgoRepository from '../../../../domain/repositories/IRasgoRepository';
+import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
 import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
 import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubraceApi, SubraceMongo, SubracesApi, SubracesMongo, TypeApi, TypeMongo, VarianteApi, VarianteMongo } from '../../../../domain/types/razas.types';
@@ -10,7 +10,7 @@ import { ChoiceMongo, ChoiceApi } from '../../../../domain/types';
 import { deepMerge, ordenarPorNombre } from '../../../../utils/formatters';
 import RazaSchema from '../schemas/Raza';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
-import { RasgoDataMongo } from '../../../../domain/types/rasgos.types';
+import { TraitDataMongo } from '../../../../domain/types/traits.types';
 
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 
@@ -21,7 +21,7 @@ export default class RazaRepository implements IRazaRepository {
     private readonly skillRepository: ISkillRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly doteRepository: IDoteRepository,
-    private readonly rasgoRepository: IRasgoRepository,
+    private readonly traitRepository: ITraitRepository,
     private readonly attributeRepository: IAttributeRepository,
     private readonly systemRepository?: ISystemRepository
   ) { }
@@ -123,7 +123,7 @@ export default class RazaRepository implements IRazaRepository {
     const ruleset = raza.ruleset;
 
     const [traits, ability_bonuses, ability_bonus_choices, skill_choices, languages, proficiencies_choices, subraces, variants] = await Promise.all([
-      this.rasgoRepository.obtenerRasgosPorIndices(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
+      this.traitRepository.getTraitsByIndexes(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.attributeRepository.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
       this.attributeRepository.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
       this.skillRepository.formatSkillChoices(raza.skill_choices),
@@ -162,7 +162,7 @@ export default class RazaRepository implements IRazaRepository {
     };
   }
 
-  async formatearSubrazas(subrazas?: SubracesMongo, traitsData?: RasgoDataMongo, ruleset?: string): Promise<SubracesApi | undefined> {
+  async formatearSubrazas(subrazas?: SubracesMongo, traitsData?: TraitDataMongo, ruleset?: string): Promise<SubracesApi | undefined> {
     if (!subrazas) return undefined;
 
     const formateadas = await Promise.all(subrazas?.list?.map(subraza => this.formatearSubraza(subraza, traitsData, ruleset)) ?? [])
@@ -172,7 +172,7 @@ export default class RazaRepository implements IRazaRepository {
     };
   }
 
-  async formatearSubraza(subraza: SubraceMongo, traitsData?: RasgoDataMongo, ruleset?: string): Promise<SubraceApi> {
+  async formatearSubraza(subraza: SubraceMongo, traitsData?: TraitDataMongo, ruleset?: string): Promise<SubraceApi> {
     const [
       traits,
       understands,
@@ -181,7 +181,7 @@ export default class RazaRepository implements IRazaRepository {
       spell_choices,
       ability_bonuses
     ] = await Promise.all([
-      this.rasgoRepository.obtenerRasgosPorIndices(subraza?.traits ?? [], deepMerge(subraza?.traits_data, traitsData)),
+      this.traitRepository.getTraitsByIndexes(subraza?.traits ?? [], deepMerge(subraza?.traits_data, traitsData)),
       this.languageRepository.getLanguagesByIndex(subraza?.languages?.understands ?? []),
       this.languageRepository.getLanguagesByIndex(subraza?.languages?.speaks ?? []),
       this.languageRepository.formatLanguageChoices(subraza.language_choices),

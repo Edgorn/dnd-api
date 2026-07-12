@@ -4,7 +4,7 @@ import { CompetenciaApi } from "./competencias.types"
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
 
-export interface RasgoMongo {
+export interface TraitMongo {
   _id: ObjectId,
   index: string,
   name: string,
@@ -26,21 +26,11 @@ export interface RasgoMongo {
   spells?: [],
   bonuses?: {
     armor_class: number
-  }
-  /*type?: string,
-  languages?: string[],
-  */
-  /*proficiencies?: string[],*//*
-  tables?: {
-    title: string,
-    data: {
-      titles: string[],
-      rows: string[][]
-    }
-  }[]*/
+  },
+  deletedAt?: Date | null
 }
 
-export interface RasgoDataMongo {
+export interface TraitDataMongo {
   [key: string]: {
     [key: string]: string
   }
@@ -51,13 +41,13 @@ export interface TraitsOptionsMongo {
   options: string[]
 }
 
-export interface RasgoApi {
+export interface TraitApi {
   id: string,
   name: string,
   description: string[],
   summary: string[],
   ruleset: string,
-  incompatible_traits: RasgoApi[],
+  incompatible_traits: TraitApi[],
   hidden?: boolean,
   resistances: DañoApi[],
   conditional_resistances: DañoApi[],
@@ -70,36 +60,29 @@ export interface RasgoApi {
   bonuses?: {
     armor_class: number
   },
-  /*languages?: any[],
-  tables?: {
-    title: string,
-    data: {
-      titles: string[],
-      rows: string[][]
-    }
-  }[]*/
+  deletedAt?: Date | null
 }
 
 export interface TraitsOptionsApi {
   name: string,
-  options: RasgoApi[]
+  options: TraitApi[]
 }
 
-
-
-export interface CreateRasgo {
+export interface CreateTrait {
   name: string,
   description: string[],
   summary: string[],
   ruleset: string,
-  incompatible_traits: string[]
+  incompatible_traits: string[],
+  skills?: string[]
 }
 
-export interface UpdateRasgo {
+export interface UpdateTrait {
   id: string,
   name: string,
   description: string[],
   summary: string[],
   ruleset: string,
-  incompatible_traits: string[]
+  incompatible_traits: string[],
+  skills?: string[]
 }
