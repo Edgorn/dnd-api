@@ -1,8 +1,7 @@
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
 import Personaje from '../schemas/Personaje';
-import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
-import axios from 'axios';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
+import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import Campaña from '../schemas/Campaña';
@@ -1216,11 +1215,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
         personaje
       })
 
-      // Descargar la imagen usando axios
+      // Descargar la imagen usando fetch nativo
       if (personaje?.img) {
-        const imageResponse = await axios.get(personaje?.img, { responseType: 'arraybuffer' });
-        const imageBytes = imageResponse.data; // Obtener los bytes de la imagen
-        const contentType = String(imageResponse.headers['content-type'] || '');
+        const imageResponse = await fetch(personaje?.img);
+        if (!imageResponse.ok) {
+          throw new Error(`Error descargando la imagen: ${imageResponse.statusText}`);
+        }
+        const imageBytes = new Uint8Array(await imageResponse.arrayBuffer()); // Obtener los bytes de la imagen
+        const contentType = String(imageResponse.headers.get('content-type') || '');
 
         let image;
 

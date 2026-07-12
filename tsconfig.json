@@ -7,8 +7,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "allowJs": true, // Permite compilar archivos JavaScript
-    "checkJs": false // Opcional: desactiva la comprobación de tipo en archivos JavaScript
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.test.ts"]
