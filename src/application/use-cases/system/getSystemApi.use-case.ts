@@ -1,6 +1,6 @@
 import ISystemRepository from "../../../domain/repositories/ISystemRepository";
 import IUserRepository from "../../../domain/repositories/IUserRepository";
-import IRazaRepository from "../../../domain/repositories/IRazaRepository";
+import IRaceRepository from "../../../domain/repositories/IRaceRepository";
 import IAttributeRepository from "../../../domain/repositories/IAttributeRepository";
 import ISkillRepository from "../../../domain/repositories/ISkillRepository";
 import { System, SystemApi } from "../../../domain/types/system.types";
@@ -11,7 +11,7 @@ export default class GetSystemApi {
   constructor(
     private readonly systemRepository: ISystemRepository,
     private readonly userRepository: IUserRepository,
-    private readonly razaRepository: IRazaRepository,
+    private readonly raceRepository: IRaceRepository,
     private readonly attributeRepository: IAttributeRepository,
     private readonly skillRepository: ISkillRepository
   ) {}
@@ -51,7 +51,7 @@ export default class GetSystemApi {
     }
 
     // 4. Statistics Counts
-    const races = await this.razaRepository.obtenerPorSistema(sys._id.toString());
+    const races = await this.raceRepository.obtenerPorSistema(sys._id.toString());
     const racesCount = races.length;
 
     // 5. Attributes (handling ancestry override and deleted status)

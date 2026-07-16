@@ -340,10 +340,6 @@ const router = Router();
  *           type: string
  *         raceId:
  *           type: string
- *         subraceId:
- *           type: string
- *         type:
- *           type: string
  *         campaign:
  *           type: string
  *           nullable: true

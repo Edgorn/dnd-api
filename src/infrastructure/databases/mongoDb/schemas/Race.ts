@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { RaceMongo, SubraceMongo, TypeMongo, VarianteMongo } from "../../../../domain/types/razas.types";
+import { RaceMongo, VarianteMongo } from "../../../../domain/types/race.types";
 
 const varianteSchema = new Schema<VarianteMongo>({
   name: String,
@@ -9,30 +9,9 @@ const varianteSchema = new Schema<VarianteMongo>({
   dotes: Number
 });
 
-const tipoSchema = new Schema<TypeMongo>({
-  name: String,
-  desc: String,
-  img: String
-});
-
-const subrazaSchema = new Schema<SubraceMongo>({
-  index: String,
-  name: String,
-  img: String,
-  ability_bonuses: [],
-  traits: [String],
-  traits_data: {},
-  language_choices: {},
-  spell_choices: [],
-  types: [tipoSchema],
-  desc: String
-});
-
-const razaSchema: Schema = new Schema<RaceMongo>({
-  index: String,    //ELIMINABLE
+const raceSchema: Schema = new Schema<RaceMongo>({
   name: String,
   description: [String],
-  desc: String,    //ELIMINABLE
   alignment: String,
   img: String,
   ruleset: String,
@@ -62,9 +41,12 @@ const razaSchema: Schema = new Schema<RaceMongo>({
     level: Number,
     traits_data: {}
   }],
-  subraces: {},
-  variants: [varianteSchema]
-}, { collection: 'Razas' });
+  subraces_name: String,
+  parentId: { type: Schema.Types.ObjectId, ref: 'races', default: null },
+  variants: [varianteSchema],
+  spell_choices: [],
+  deletedAt: { type: Date, default: null }
+}, { collection: 'races' });
 
-const RaceModel = mongoose.model<RaceMongo>("Razas", razaSchema);
+const RaceModel = mongoose.model<RaceMongo>("races", raceSchema);
 export default RaceModel;

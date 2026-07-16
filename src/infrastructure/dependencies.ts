@@ -9,7 +9,7 @@ import LoginUseCase from "../application/use-cases/user/login.use-case";
 import ValidateTokenUseCase from "../application/use-cases/user/validateToken.use-case";
 import { createAuthMiddleware } from "./http/middlewares/auth.middleware";
 import ObtenerTodosLosTransfondos from "../application/use-cases/transfondo/obtenerTodosLosTransfondos.use-case";
-import ObtenerTodasLasRazas from "../application/use-cases/raza/obtenerTodasLasRazas.use-case";
+import GetAllRacesUseCase from "../application/use-cases/race/getAllRaces.use-case";
 import ObtenerTodasLasClases from "../application/use-cases/clase/obtenerTodasLasClases.use-case";
 import ObtenerEquipamientosPorTipo from "../application/use-cases/equipamiento/obtenerEquipamientosPorTipos.use-case";
 import GetCharactersByUser from "../application/use-cases/personaje/getCharactersByUser.use-case";
@@ -38,7 +38,7 @@ import CascadeRestoreSystem from "../application/use-cases/system/cascadeRestore
 
 import CampañaService from "../domain/services/campaña.service";
 import UserService from "../domain/services/user.service";
-import RazaService from "../domain/services/raza.service";
+import RaceService from "../domain/services/race.service";
 import TransfondoService from "../domain/services/transfondo.service";
 import ClaseService from "../domain/services/clase.service";
 import EquipamientoService from "../domain/services/equipamiento.service";
@@ -57,7 +57,7 @@ import LanguageRepository from "./databases/mongoDb/repositories/language.reposi
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
 import TraitRepository from "./databases/mongoDb/repositories/trait.repository";
 import UserRepository from "./databases/mongoDb/repositories/user.repository";
-import RazaRepository from "./databases/mongoDb/repositories/raza.repository";
+import RaceRepository from "./databases/mongoDb/repositories/race.repository";
 import TransfondoRepository from "./databases/mongoDb/repositories/transfondo.repository";
 import DañoRepository from "./databases/mongoDb/repositories/daño.repository";
 import PropiedadArmaRepository from "./databases/mongoDb/repositories/propiedadesArmas.repository";
@@ -78,7 +78,7 @@ import { createAuthorizeSystemMiddleware } from "./http/middlewares/authorizeSys
 
 import { CampañaController } from "./http/controllers/campaña.controller";
 import { UserController } from "./http/controllers/user.controller";
-import { RazaController } from "./http/controllers/raza.controller";
+import { RaceController } from "./http/controllers/race.controller";
 import { TransfondoController } from "./http/controllers/transfondo.controller";
 import { ClaseController } from "./http/controllers/clase.controller";
 import { EquipamientoController } from "./http/controllers/equipamiento.controller";
@@ -98,8 +98,10 @@ import SkillService from "../domain/services/skill.service";
 import GetSkillsBySystems from "../application/use-cases/skill/getSkillsBySystems.use-case";
 import CreateSkill from "../application/use-cases/skill/createSkill.use-case";
 import UpdateSkill from "../application/use-cases/skill/updateSkill.use-case";
-import CrearRaza from "../application/use-cases/raza/crearRaza.use-case";
-import ActualizarRaza from "../application/use-cases/raza/actualizarRaza.use-case";
+import CreateRaceUseCase from "../application/use-cases/race/createRace.use-case";
+import UpdateRaceUseCase from "../application/use-cases/race/updateRace.use-case";
+import SoftDeleteRace from "../application/use-cases/race/softDeleteRace.use-case";
+import RestoreRace from "../application/use-cases/race/restoreRace.use-case";
 import { LanguageController } from "./http/controllers/language.controller";
 import GetLanguagesBySystem from "../application/use-cases/language/getLanguagesBySystem.use-case";
 import CreateLanguage from "../application/use-cases/language/createLanguage.use-case";
@@ -146,7 +148,7 @@ const claseRepository = new ClaseRepository(
   languageRepository
 )
 
-const razaRepository = new RazaRepository(
+const raceRepository = new RaceRepository(
   languageRepository,
   conjuroRepository,
   skillRepository,
@@ -183,7 +185,7 @@ const personajeRepository = new PersonajeRepository(
   doteRepository,
   claseRepository,
   invocacionRepository,
-  razaRepository,
+  raceRepository,
   criaturaRepository,
   attributeService,
   systemRepository
@@ -208,7 +210,7 @@ const validateTokenUseCase = new ValidateTokenUseCase(userService)
 
 export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
 
-const razaService = new RazaService(razaRepository)
+const raceService = new RaceService(raceRepository)
 const transfondoService = new TransfondoService(transfondoRepository)
 const claseService = new ClaseService(claseRepository)
 const equipamientoService = new EquipamientoService(equipamientoRepository)
@@ -220,7 +222,7 @@ const systemService = new SystemService(systemRepository)
 const getSystemApi = new GetSystemApi(
   systemRepository,
   userRepository,
-  razaRepository,
+  raceRepository,
   attributeRepository,
   skillRepository
 )
@@ -234,9 +236,9 @@ const denegarEntradaACampaña = new DenegarEntradaACampaña(campañaService)
 const añadirPersonajeACampaña = new AñadirPersonajeACampaña(campañaService)
 const modificarLocalizacionesCampaña = new ModificarLocalizacionesCampaña(campañaService)
 
-const obtenerTodasLasRazas = new ObtenerTodasLasRazas(razaService);
-const crearRaza = new CrearRaza(razaService);
-const actualizarRaza = new ActualizarRaza(razaService);
+const getAllRaces = new GetAllRacesUseCase(raceService);
+const createRace = new CreateRaceUseCase(raceService);
+const updateRace = new UpdateRaceUseCase(raceService);
 
 const obtenerTodosLosTransfondos = new ObtenerTodosLosTransfondos(transfondoService);
 
@@ -285,7 +287,10 @@ const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
 const restoreSkill = new RestoreSkill(skillService, systemService);
 
-export const razaController = new RazaController(obtenerTodasLasRazas, crearRaza, actualizarRaza)
+const softDeleteRace = new SoftDeleteRace(raceService, systemService);
+const restoreRace = new RestoreRace(raceService, systemService);
+
+export const raceController = new RaceController(getAllRaces, createRace, updateRace, softDeleteRace, restoreRace);
 
 export const campañaController = new CampañaController(
   crearCampaña,

@@ -456,3 +456,700 @@ A diferencia de `UserRepository` que usa `.lean()` correctamente, `getById` en `
 | 🟡 Media | `deletedAt` expuesto en `AttributeApi` | Crear un tipo `AttributeApiPublic` sin `deletedAt` para las respuestas |
 | 🟢 Baja | `getById` sin `.lean()` | Añadir `.lean<AttributeMongo>()` a la consulta |
 
+---
+
+## Módulo de Habilidades (`skill.routes.ts` y derivados) — 2026-07-13
+
+**Archivos auditados:**
+- [`src/infrastructure/http/routes/skill.routes.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/routes/skill.routes.ts)
+- [`src/infrastructure/http/controllers/skill.controller.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/controllers/skill.controller.ts)
+- [`src/infrastructure/http/schemas/skill.schema.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/schemas/skill.schema.ts)
+- [`src/application/use-cases/skill/`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/application/use-cases/skill/) _(createSkill, updateSkill, softDeleteSkill, restoreSkill, getSkillsBySystems)_
+- [`src/domain/services/skill.service.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/services/skill.service.ts)
+- [`src/domain/repositories/ISkillRepository.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/repositories/ISkillRepository.ts)
+- [`src/domain/types/skill.types.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/types/skill.types.ts)
+- [`src/infrastructure/databases/mongoDb/repositories/skill.repository.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/databases/mongoDb/repositories/skill.repository.ts)
+
+---
+
+## ✅ Puntos Fuertes
+
+### 1. Expansión de ancestros gestionada correctamente en el Use-Case
+`GetSkillsBySystems` delega en `SystemService.getSystemsAndAncestors` antes de consultar el repositorio, siguiendo la regla 6 del AGENTS.md. El repositorio recibe los rulesets ya expandidos y se limita a ejecutar el filtro `$in` sin necesitar conocer la jerarquía del sistema. Esto es una mejora respecto al módulo de atributos donde la expansión ocurre dentro del propio repositorio.
+
+### 2. Comportamiento flexible `getAll` vs `getBySystems` en el Use-Case
+`GetSkillsBySystems.execute` toma `systems?: string[]` como parámetro opcional. Si no se proporcionan, devuelve **todas** las habilidades; si se proporcionan, filtra por sistema. Esta lógica está apropiadamente encapsulada en el use-case, no en el controlador ni en el repositorio.
+
+### 3. Soft delete y restore con soporte de cascada
+Al igual que en atributos, `softDeleteByRuleset` y `restoreByRuleset` permiten operar sobre todas las habilidades de un sistema de golpe, preparando el módulo para las operaciones de borrado/restauración en cascada del sistema padre.
+
+### 4. `GetCharacterSkills` encapsula cálculo de modificadores complejos
+El método `getCharacterSkills` en el repositorio calcula correctamente los modificadores de cada habilidad teniendo en cuenta la competencia, la doble competencia (`jackOfAllTrades`), y el `bonusFormula` personalizado si está definido. Esta lógica de presentación de personaje está bien agrupada.
+
+### 5. Validaciones Zod coherentes
+- `CreateSkillSchema` exige al menos un elemento en `attributeScore` (`.min(1)`).
+- `UpdateSkillSchema` usa `.refine()` para exigir al menos un campo, evitando actualizaciones vacías.
+- Ambos se aplican como middleware en la ruta antes del controlador.
+
+### 6. Swagger completo para todos los endpoints
+Los cuatro endpoints (`POST`, `PUT`, `DELETE`, `PATCH /restore`) están documentados con sus esquemas de entrada, respuesta y seguridad.
+
+### 7. `getBySystems` admite `includeDeleted` como parámetro opcional
+La firma `getBySystems(rulesets: string[], includeDeleted: boolean = false)` permite recuperar habilidades borradas cuando sea necesario (por ejemplo en contextos de administración), sin necesitar una query separada.
+
+---
+
+## ⚠️ Puntos Débiles y Problemas
+
+### 1. 🔴 Método `obtenerTodas` del controlador no está registrado en ninguna ruta
+
+El controlador `SkillController` tiene el método `obtenerTodas` perfectamente implementado (líneas 20-34), con lógica para parsear el query param `ruleset` en array, y delegando en `GetSkillsBySystems`. Sin embargo, **no hay ninguna ruta en `skill.routes.ts` que lo registre**. El endpoint `GET /skills` no existe aunque el use-case y el handler están listos. Los clientes no pueden consultar las habilidades disponibles por sistema.
+
+---
+
+### 2. 🔴 `create` y `update` no verifican autorización sobre el sistema
+
+Exactamente el mismo problema que en el módulo de atributos: `create` pasa `req.body` directamente al use-case sin verificar que `req.user` sea el `publisher` del sistema al que pertenece la habilidad. `update` tampoco verifica pertenencia. Solo `delete` y `restore` comprueban la propiedad.
+
+```typescript
+// skill.controller.ts - línea 38
+const data = await this.createSkillUseCase.execute(req.body);
+```
+
+Esto permite que cualquier usuario autenticado cree o modifique habilidades de sistemas ajenos.
+
+---
+
+### 3. 🔴 `ISkillRepository` expone métodos de formateo y lógica de negocio
+
+Al igual que `IAttributeRepository`, la interfaz del repositorio de habilidades incluye métodos que no son operaciones de persistencia pura:
+
+```typescript
+// ISkillRepository.ts
+getCharacterSkills(skills, double_skills, attributes, profBonus, hasJackOfAllTrades): Promise<SkillPersonajeApi[]>;
+formatSkillChoices(options: ChoiceMongo | undefined): Promise<ChoiceApi<SkillApi> | undefined>;
+```
+
+`getCharacterSkills` calcula modificadores de personaje — es **lógica de negocio** que mezcla persistencia con cálculos de dominio. `formatSkillChoices` es lógica de formateo/presentación. Ambos violan la responsabilidad del repositorio de exponer solo acceso a datos. Deberían residir en `SkillService` o en un servicio de dominio de personaje.
+
+---
+
+### 4. 🔴 `create` no detecta ni gestiona unicidad de clave duplicada
+
+A diferencia del repositorio de atributos (que captura el error `code 11000` y lanza `ConflictError`), `skill.repository.ts` **no tiene manejo de error de índice único**:
+
+```typescript
+// skill.repository.ts - líneas 13-25
+async create(data: InputCreateSkill): Promise<SkillApi> {
+  const newSkill = new SkillSchema({ ... });
+  await newSkill.save(); // Sin try/catch ni detección de 11000
+  return this.formatSkill(newSkill);
+}
+```
+
+Si se intenta crear una habilidad con una `key` duplicada en el mismo sistema, MongoDB lanzará un error crudo que llegará al cliente como un 500. Además, el Swagger de `POST /skills` no documenta el código `409`, porque nunca se lanzará de forma controlada.
+
+---
+
+### 5. 🔴 `getBySystems` en el repositorio NO expande ancestros (doble expansión en el use-case)
+
+En el módulo de atributos, la expansión de sistemas ancestros ocurre **dentro del propio repositorio** (`attribute.repository.ts` llama a `this.systemRepository.getSystemsAndAncestors`). En el módulo de habilidades, la expansión ocurre en el **use-case** (`GetSkillsBySystems` llama a `systemService.getSystemsAndAncestors`) y pasa los rulesets ya expandidos al repositorio.
+
+Estas dos aproximaciones diferentes generan inconsistencia arquitectónica. Además, si `getBySystems` se llama desde otro contexto (ej. otro use-case o directamente desde el servicio), los sistemas ancestros **no se expandirán** y el resultado será incompleto. El contrato de `ISkillRepository.getBySystems` no especifica si los rulesets deben estar pre-expandidos o no.
+
+---
+
+### 6. 🟡 Guardia de errores idéntica al módulo de atributos (mismo problema, mismo patrón)
+
+`delete` y `restore` en `skill.controller.ts` comparan mensajes de error con strings literales en español para distinguir 404 de 403:
+
+```typescript
+// skill.controller.ts - línea 76
+if (e.message === 'No tienes permisos para borrar esta habilidad' || e.message === 'Sistema asociado no encontrado' || e.message === 'Habilidad no encontrada') {
+  return next(new AppError(e.message, e.message.includes('encontrad') ? 404 : 403));
+}
+```
+
+Los use-cases ya lanzan `AppError` directamente con el código correcto, por lo que esta guardia es redundante y frágil. El `errorHandler` global ya maneja `AppError` correctamente; solo se necesita `next(e)`.
+
+---
+
+### 7. 🟡 `skill.service.ts` tiene líneas en blanco innecesarias
+
+Entre `update` y `getAll` hay dos líneas en blanco vacías (líneas 14-16). Es una inconsistencia menor pero evidencia código descuidado o no revisado antes de commit.
+
+---
+
+### 8. 🟡 `AddSystemSchema` importada pero no utilizada
+
+```typescript
+// skill.routes.ts - línea 4
+import { CreateSkillSchema, UpdateSkillSchema, AddSystemSchema } from "../schemas/skill.schema";
+```
+
+`AddSystemSchema` se importa pero no se usa en ninguna ruta. El mismo problema detectado en `attribute.routes.ts`, probablemente residuo de un endpoint eliminado o planificado.
+
+---
+
+### 9. 🟡 `SkillApi` y `SkillMongo` exponen `deletedAt` (mismo problema que `AttributeApi`)
+
+```typescript
+// skill.types.ts - línea 22
+export interface SkillApi {
+  deletedAt?: Date;
+}
+```
+
+`deletedAt` es un campo de implementación interna que se serializa en las respuestas al cliente. El mismo problema que en el módulo de atributos.
+
+---
+
+### 10. 🟡 Ninguna query en el repositorio usa `.lean()`
+
+Ninguna de las consultas de `SkillRepository` (`getBySystems`, `getAll`, `getSkillsByKeys`, `getCharacterSkills`, `getById`) utiliza `.lean()`. Todas cargan el objeto Mongoose completo (con sus métodos internos, virtuals, etc.) cuando solo se necesita el POJO. Esto impacta negativamente en el consumo de memoria, especialmente en `getCharacterSkills` que carga todos los skills del sistema.
+
+---
+
+### 11. 🟢 `getBySystems` acepta `includeDeleted` pero el servicio no lo expone
+
+```typescript
+// ISkillRepository.ts - línea 8
+getBySystems(rulesets: string[], includeDeleted?: boolean): Promise<SkillApi[]>;
+```
+
+El parámetro `includeDeleted` existe en la interfaz del repositorio y en la implementación, pero `SkillService.getBySystems` no lo expone en su firma:
+
+```typescript
+// skill.service.ts - línea 21
+getBySystems(rulesets: string[]): Promise<SkillApi[]> {
+  return this.skillRepository.getBySystems(rulesets); // No pasa includeDeleted
+}
+```
+
+La funcionalidad está disponible en el repositorio pero es inaccesible desde capas superiores a través del servicio.
+
+---
+
+## 📊 Resumen
+
+| Capa | Calidad | Comentario |
+|---|---|---|
+| `skill.routes.ts` | 🔴 Problema | Falta registrar `GET /skills`, import muerto |
+| `skill.controller.ts` | 🔴 Problemas | `obtenerTodas` sin ruta, sin autorización en `create`/`update`, guardia frágil |
+| `skill.schema.ts` | ✅ Bueno | Validaciones Zod correctas con `refine` |
+| Use-case `getSkillsBySystems` | ✅ Bueno | Expansión de ancestros en el sitio correcto |
+| Use-cases (softDelete/restore) | ✅ Excelente | Patrón orquestador correcto, verificación de `publisher` |
+| Use-cases (create/update) | 🟡 Correcto | Sin autorización |
+| `skill.service.ts` | 🟡 Correcto | Líneas en blanco extra, `includeDeleted` no expuesto |
+| `ISkillRepository.ts` | 🔴 Problema | Expone `getCharacterSkills` y `formatSkillChoices` — lógica de negocio |
+| `skill.repository.ts` | 🟡 Correcto | Sin `.lean()`, sin `ConflictError` en `create`, inconsistencia de expansión de ancestros |
+| `skill.types.ts` | 🟡 Aceptable | `deletedAt` expuesto en `SkillApi` |
+
+### Acciones Prioritarias
+
+| Prioridad | Problema | Acción |
+|---|---|---|
+| 🔴 Alta | `GET /skills` no registrado | Registrar `router.get('/skills', authMiddleware, skillController.obtenerTodas)` |
+| 🔴 Alta | Sin autorización en `create` y `update` | Añadir verificación de `publisher` en los use-cases |
+| 🔴 Alta | Sin manejo de `ConflictError` (key duplicada) | Añadir try/catch con detección de `code 11000` en `skill.repository.ts` y documentar 409 en Swagger |
+| 🔴 Alta | `getCharacterSkills` y `formatSkillChoices` en `ISkillRepository` | Mover al servicio o a un servicio de personaje |
+| 🟡 Media | Inconsistencia de expansión de ancestros respecto a atributos | Decidir patrón canónico: expansión en repositorio o en use-case, y unificar |
+| 🟡 Media | Guardia frágil con strings en `delete`/`restore` | Eliminar la guardia y dejar solo `next(e)` |
+| 🟡 Media | Import muerto `AddSystemSchema` | Eliminar la importación no usada |
+| 🟡 Media | `includeDeleted` inaccesible desde `SkillService` | Exponer el parámetro en `SkillService.getBySystems` |
+| 🟢 Baja | Ninguna query usa `.lean()` | Añadir `.lean()` a todas las consultas de lectura del repositorio |
+| 🟢 Baja | `deletedAt` expuesto en `SkillApi` | Crear un tipo público sin el campo interno |
+
+---
+
+## Módulo de Sistemas (`system.routes.ts` y derivados) — 2026-07-13
+
+**Archivos auditados:**
+- [`src/infrastructure/http/routes/system.routes.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/routes/system.routes.ts)
+- [`src/infrastructure/http/controllers/system.controller.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/controllers/system.controller.ts)
+- [`src/infrastructure/http/schemas/system.schema.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/schemas/system.schema.ts)
+- [`src/application/use-cases/system/`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/application/use-cases/system/) _(createSystem, updateSystem, getSystemsByUser, getSystemApi, cascadeSoftDeleteSystem, cascadeRestoreSystem)_
+- [`src/domain/services/system.service.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/services/system.service.ts)
+- [`src/domain/repositories/ISystemRepository.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/repositories/ISystemRepository.ts)
+- [`src/domain/types/system.types.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/types/system.types.ts)
+- [`src/infrastructure/databases/mongoDb/repositories/system.repository.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/databases/mongoDb/repositories/system.repository.ts)
+
+---
+
+## ✅ Puntos Fuertes
+
+### 1. `CascadeSoftDeleteSystem` y `CascadeRestoreSystem` — patrón orquestador ejemplar
+Estos dos use-cases son el mejor ejemplo del patrón orquestador del proyecto. Coordinan cuatro repositorios en paralelo usando `Promise.all`:
+
+```typescript
+await Promise.all([
+  this.attributeRepository.softDeleteByRuleset(id, deletedAt),
+  this.skillRepository.softDeleteByRuleset(id, deletedAt),
+  this.languageRepository.softDeleteByRuleset(id, deletedAt)
+]);
+```
+
+Las operaciones de cascada son atómicas en tiempo (comparten el mismo `deletedAt`), lo que garantiza coherencia al restaurar. Verifican autorización (`publisher === userId`) antes de actuar. Están perfectamente alineados con la regla 12 del AGENTS.md.
+
+### 2. `GetSystemApi` — use-case compositor complejo y bien estructurado
+`GetSystemApi` es el use-case más complejo del proyecto. Recopila atributos y habilidades de toda la cadena de ancestros, resuelve el nombre del publicador, calcula `canEdit`, y hereda fórmulas escalares (`getMergedScalar`). A pesar de esa complejidad, está correctamente separado en pasos numerados con comentarios claros. El recorrido de ancestros con `visited` para evitar ciclos es una medida de seguridad correcta.
+
+### 3. Autorización en `createSystem` injecting `userId` desde el controlador
+El controlador inyecta correctamente el `userId` como `publisher`:
+
+```typescript
+const data = await this.createSystemUseCase.execute({
+  ...req.body,
+  publisher: userId
+});
+```
+
+El cliente no puede falsificar el campo `publisher`; siempre se sobreescribe con el token JWT. Esto es una práctica de seguridad correcta.
+
+### 4. `getByUserId` incluye sistemas abiertos y accesibles
+La query en `system.repository.ts` combina tres condiciones con `$or`: sistemas propios del usuario, sistemas `isOpen`, y sistemas con acceso explícito. Esto da una visión completa y correcta de los sistemas accesibles sin requerir lógica adicional en capas superiores.
+
+### 5. Validación de `ObjectId` antes de las queries MongoDB
+El repositorio valida `mongoose.Types.ObjectId.isValid(id)` antes de ejecutar cualquier query por ID, evitando `CastError` de Mongoose y retornando `null` de forma controlada. Esto es correcto y evita errores 500 innecesarios.
+
+### 6. Zod `UpdateSystemSchema` con `.refine()` y soporte de `parentId: null`
+`UpdateSystemSchema` usa `.refine()` para exigir al menos un campo. Además, `parentId` acepta `z.string().nullable().optional()`, lo que permite desconectar un sistema de su padre enviando `parentId: null` explícitamente. Esto es un detalle de diseño correcto y flexible.
+
+### 7. Swagger detallado con los campos correctos
+La documentación `@openapi` en `system.routes.ts` es la más completa del proyecto. Todos los campos del schema `SystemApi` están documentados con sus tipos y descripciones, incluyendo campos heredados (`attributes`, `skills`, `racesCount`).
+
+---
+
+## ⚠️ Puntos Débiles y Problemas
+
+### 1. 🔴 `system.service.ts` lanza `Error` genérico en lugar de `AppError`
+
+```typescript
+// system.service.ts - líneas 18 y 22
+throw new Error('Sistema no encontrado');
+throw new Error('No tienes permisos de edición para este sistema');
+```
+
+El dominio lanza `Error` genérico en lugar de `AppError`. Esto rompe el flujo de manejo centralizado de errores: el `errorHandler` global solo gestiona `AppError`, por lo que estos errores llegarán como 500 en lugar de 404 y 403. El controlador tiene que compensar con una guardia manual de strings:
+
+```typescript
+// system.controller.ts - líneas 59-61
+if (e.message === 'No tienes permisos de edición para este sistema' || e.message === 'Sistema no encontrado') {
+  return next(new AppError(e.message, 403));
+}
+```
+
+Además, el `403` se aplica indiscriminadamente a ambos mensajes, **incluyendo "Sistema no encontrado" que debería ser `404`**. Este es un bug real: si el sistema no existe, el cliente recibe `403` en lugar de `404`.
+
+---
+
+### 2. 🔴 `ISystemRepository` tiene `getById` y `obtenerPorId` como métodos duplicados
+
+```typescript
+// ISystemRepository.ts - líneas 7-8
+getById(id: string): Promise<System | null>;
+obtenerPorId(id: string): Promise<System | null>;
+```
+
+Ambos métodos hacen exactamente lo mismo. En `system.repository.ts` `obtenerPorId` es simplemente `return this.getById(id)`. En `system.service.ts` existen también `getById` y `obtenerPorId` que llaman al mismo método del repositorio. Esto es código duplicado en tres capas (interfaz, repositorio y servicio) fruto de la migración progresiva de Spanglish a inglés que no se completó.
+
+---
+
+### 3. 🔴 `GetSystemApi` accede directamente a los repositorios, violando la capa de aplicación
+
+`GetSystemApi` recibe e inyecta directamente **repositorios** (`ISystemRepository`, `IUserRepository`, `IRazaRepository`, `IAttributeRepository`, `ISkillRepository`) en lugar de servicios de dominio:
+
+```typescript
+// getSystemApi.use-case.ts - líneas 11-17
+constructor(
+  private readonly systemRepository: ISystemRepository,
+  private readonly userRepository: IUserRepository,
+  private readonly razaRepository: IRazaRepository,
+  private readonly attributeRepository: IAttributeRepository,
+  private readonly skillRepository: ISkillRepository
+) {}
+```
+
+Los use-cases deben comunicarse con **servicios de dominio**, no directamente con repositorios (salvo excepciones justificadas como los orquestadores de cascada). Esto acopla el use-case a detalles de infraestructura e introduce dependencias cruzadas difíciles de testear.
+
+---
+
+### 4. 🔴 `GetSystemApi` realiza consultas N+1 por ancestro para atributos y habilidades
+
+```typescript
+// getSystemApi.use-case.ts - líneas 59-67
+for (let i = ancestry.length - 1; i >= 0; i--) {
+  const ancestor = ancestry[i];
+  const sysAttrs = await this.attributeRepository.getBySystems([ancestor._id.toString(), ancestor.name]);
+  // ...
+}
+```
+
+Para cada ancestro del sistema se lanza una query a MongoDB para atributos y otra para habilidades. Si un sistema tiene 3 niveles de herencia, se ejecutan **6 queries adicionales** (2 por ancestro × 3 ancestros) solo para construir la respuesta de un sistema. Este es un problema de **N+1 queries** que puede degradar notablemente el rendimiento en sistemas con jerarquías profundas.
+
+La solución ideal sería obtener todos los IDs de ancestros primero y ejecutar una sola query con `$in` para todos ellos.
+
+---
+
+### 5. 🔴 `getSystemApi.use-case.ts` llama a `getBySystems` en `attributeRepository` sin expandir ancestros
+
+En la línea 62 de `getSystemApi.use-case.ts`:
+```typescript
+const sysAttrs = await this.attributeRepository.getBySystems([ancestor._id.toString(), ancestor.name]);
+```
+
+Aquí `getBySystems` del repositorio de atributos **sí expande ancestros internamente** (`getSystemsAndAncestors` dentro del propio repositorio). Pero el use-case ya está iterando la cadena de ancestros manualmente. Esto provoca una **doble expansión de ancestros** y posibles resultados duplicados en la respuesta al cliente.
+
+---
+
+### 6. 🟡 `getByUserId` no filtra los sistemas propios borrados (`deletedAt`)
+
+```typescript
+// system.repository.ts - líneas 72-90
+const query: any = {
+  $or: [
+    { publisher: userId },          // ← No filtra deletedAt: null
+    { isOpen: true, deletedAt: null }
+  ]
+};
+```
+
+Los sistemas con `isOpen: true` sí filtran `deletedAt: null`, pero los sistemas propios del usuario (`publisher: userId`) **no filtran los borrados**. Un usuario que borra su propio sistema seguirá viéndolo en su lista, aunque esté marcado como `deletedAt`. Probablemente sea intencional (para que el publisher pueda restaurarlo), pero debería estar documentado explícitamente o haber un endpoint diferenciado para sistemas borrados.
+
+---
+
+### 7. 🟡 `GetSystemApi` recibe el objeto `System` completo como parámetro, no el ID
+
+```typescript
+// createSystem.use-case.ts - línea 14
+return this.getSystemApi.execute(system, data.publisher);
+```
+
+`GetSystemApi.execute` recibe el objeto `System` completo. Esto significa que el use-case `CreateSystem` debe recuperar el sistema recién creado del repositorio y pasárselo. Si en el futuro se necesita llamar a `GetSystemApi` desde otro contexto con solo el ID, se requeriría una query adicional previa. Sería más flexible aceptar un ID y recuperar el sistema internamente.
+
+---
+
+### 8. 🟡 `update` en `system.repository.ts` usa `any` para `updateFields`
+
+```typescript
+// system.repository.ts - línea 121
+const updateFields: any = {};
+```
+
+El tipado `any` para el objeto de actualización elimina la seguridad de tipos en la construcción del objeto. Si se añade un nuevo campo a `TypeModificarSystem`, el compilador no avisará si se olvida añadirlo aquí. Se podría usar `Partial<TypeModificarSystem>` o un tipo mapeado.
+
+---
+
+### 9. 🟡 `SystemApi` expone `deletedAt` al cliente
+
+```typescript
+// system.types.ts - línea 45
+export interface SystemApi {
+  deletedAt?: Date;
+}
+```
+
+El mismo problema detectado en `AttributeApi` y `SkillApi`: campo de implementación interna expuesto en el DTO de respuesta pública.
+
+---
+
+### 10. 🟡 `getAncestry` en el repositorio duplica la lógica de `GetSystemApi`
+
+El repositorio tiene un método privado `getAncestry` (líneas 10-23) para recorrer la cadena de herencia de sistemas, y `GetSystemApi` (use-case) implementa la misma lógica de recorrido de ancestros de forma independiente (líneas 21-31). Esta duplicación supone un riesgo de divergencia: si se cambia el comportamiento del recorrido (p.ej. incluir sistemas borrados en la cadena), habría que actualizarlo en dos sitios.
+
+---
+
+### 11. 🟢 `System` tiene el campo `maxAttributeValue` sin usar
+
+```typescript
+// system.types.ts - línea 15
+maxAttributeValue?: number;
+```
+
+El campo `maxAttributeValue` aparece en la interfaz `System` pero no en `TypeCrearSystem`, `TypeModificarSystem`, ni en `SystemApi`. No se crea ni se expone. Parece un campo legacy o un vestigio de un diseño anterior que nunca se limpió.
+
+---
+
+## 📊 Resumen
+
+| Capa | Calidad | Comentario |
+|---|---|---|
+| `system.routes.ts` | ✅ Bueno | Swagger detallado, todos los endpoints documentados |
+| `system.controller.ts` | 🟡 Correcto | Guardia de strings frágil, 404 enviado como 403 en `update` |
+| `system.schema.ts` | ✅ Bueno | Zod correcto, `refine`, soporte `parentId: null` |
+| Use-case `cascadeSoftDelete/Restore` | ✅ Excelente | Patrón orquestador ejemplar, `Promise.all` con timestamp compartido |
+| Use-case `getSystemApi` | 🔴 Problemas | N+1 queries, doble expansión de ancestros, depende de repositorios directamente |
+| Use-case `getSystemsByUser` | ✅ Bueno | Limpio y correcto |
+| Use-case `createSystem`/`updateSystem` | ✅ Bueno | `publisher` inyectado desde controller |
+| `system.service.ts` | 🔴 Problema | Lanza `Error` genérico en lugar de `AppError` |
+| `ISystemRepository.ts` | 🔴 Problema | `getById`/`obtenerPorId` duplicados |
+| `system.repository.ts` | 🟡 Correcto | `any` en updateFields, `getAncestry` duplicado con use-case, `getByUserId` no filtra borrados propios |
+| `system.types.ts` | 🟡 Aceptable | `deletedAt` y `maxAttributeValue` sin usar expuestos |
+
+### Acciones Prioritarias
+
+| Prioridad | Problema | Acción |
+|---|---|---|
+| 🔴 Alta | `system.service.ts` lanza `Error` genérico | Cambiar a `AppError` con los códigos correctos (404 y 403) |
+| 🔴 Alta | `404` de "Sistema no encontrado" en `update` devuelve `403` | Corregir la guardia del controlador para mapear correctamente el código HTTP |
+| 🔴 Alta | N+1 queries en `GetSystemApi` | Obtener todos los IDs de ancestros primero y ejecutar una sola query `$in` por tipo de entidad |
+| 🔴 Alta | Doble expansión de ancestros en `GetSystemApi` | Revisar y eliminar la expansión redundante al llamar a `attributeRepository.getBySystems` dentro del loop de ancestros |
+| 🔴 Alta | `getById` y `obtenerPorId` duplicados | Eliminar `obtenerPorId` de la interfaz y unificar bajo `getById` |
+| 🔴 Alta | `GetSystemApi` inyecta repositorios directamente | Refactorizar para usar servicios de dominio en lugar de repositorios |
+| 🟡 Media | Guardia de strings frágil en todos los métodos del controlador | Reemplazar por `next(e)` directo, ya que los use-cases y services deben lanzar `AppError` |
+| 🟡 Media | `getByUserId` no filtra sistemas propios borrados | Aclarar si es intencional y documentarlo, o añadir `deletedAt: null` a la condición del publisher |
+| 🟡 Media | `updateFields: any` en el repositorio | Tipar correctamente con `Partial<Record<keyof TypeModificarSystem, unknown>>` |
+| 🟢 Baja | `maxAttributeValue` huérfano en `system.types.ts` | Eliminar el campo si no se usa |
+| 🟢 Baja | `deletedAt` en `SystemApi` | Crear tipo público sin campo interno |
+
+---
+
+## Módulo de Rasgos (`trait.routes.ts` y derivados) — 2026-07-13
+
+**Archivos auditados:**
+- [`src/infrastructure/http/routes/trait.routes.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/routes/trait.routes.ts)
+- [`src/infrastructure/http/controllers/trait.controller.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/controllers/trait.controller.ts)
+- [`src/infrastructure/http/schemas/trait.schema.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/schemas/trait.schema.ts)
+- [`src/application/use-cases/trait/`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/application/use-cases/trait/) _(createTrait, updateTrait, getTraitsBySystems, softDeleteTrait, restoreTrait)_
+- [`src/domain/services/trait.service.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/services/trait.service.ts)
+- [`src/domain/repositories/ITraitRepository.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/repositories/ITraitRepository.ts)
+- [`src/domain/types/traits.types.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/domain/types/traits.types.ts)
+- [`src/infrastructure/databases/mongoDb/repositories/trait.repository.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/databases/mongoDb/repositories/trait.repository.ts)
+
+---
+
+## ✅ Puntos Fuertes
+
+### 1. `SoftDeleteTrait` y `RestoreTrait` — patrón orquestador correcto
+Ambos use-cases siguen el mismo patrón que habilidades y atributos: verifican existencia del rasgo, buscan el sistema asociado y comprueban que `publisher === userId` antes de ejecutar la operación. Lanzan `AppError` con los códigos HTTP correctos (404/403).
+
+### 2. `formatearTrait` — enriquecimiento declarativo rico
+El método privado `formatearTrait` del repositorio reúne hasta **5 entidades relacionadas** (daños, daños condicionales, competencias, conjuros, estados de condición) para construir el `TraitApi` completo. La lógica de sustitución de plantillas en los textos (`replaceAll(d, traitData[d])`) mediante `TraitDataMongo` es un mecanismo flexible para personalizar descripciones por personaje.
+
+### 3. `TraitRepository` inyecta sus dependencias vía constructor
+`TraitRepository` recibe `IDañoRepository`, `ICompetenciaRepository`, `IConjuroRepository`, `IEstadoRepository` e `ISystemRepository` por constructor, cumpliendo con el principio de inyección de dependencias. Usa las interfaces de dominio, no implementaciones concretas.
+
+### 4. Expansión de ancestros delegada al repositorio del sistema
+`getBySystems` llama a `this.systemRepository.getSystemsAndAncestors(ruleset)` y aplica el filtro `$in` con los rulesets expandidos:
+```typescript
+const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(ruleset);
+const traits = await TraitSchema.find({ ruleset: { $in: expandedRulesets }, deletedAt: null });
+```
+Esto respeta la regla 6 del AGENTS.md y sigue el mismo patrón que el módulo de habilidades.
+
+### 5. `getById` filtra con `deletedAt: null`
+A diferencia de `skill.repository.ts`, el `getById` de traits sí filtra los borrados: `findOne({ _id, deletedAt: null })`. Esto evita que un use-case de borrado o restauración actúe sobre un rasgo ya eliminado.
+
+### 6. Swagger coherente para los 5 endpoints
+Los schemas `Trait`, `InputCreateTrait` e `InputUpdateTrait` están documentados con todos sus campos en español, incluyendo `incompatible_traits` referenciado como `$ref: '#/components/schemas/Trait'` (self-referential).
+
+---
+
+## ⚠️ Puntos Débiles y Problemas
+
+### 1. 🔴 `TraitRepository` inyecta `ISystemRepository` directamente — viola arquitectura hexagonal
+
+```typescript
+// trait.repository.ts - líneas 13-19
+constructor(
+  private readonly dañoRepository: IDañoRepository,
+  ...
+  private readonly systemRepository: ISystemRepository
+) {}
+```
+
+Un repositorio no debe importar ni usar el repositorio de otro agregado directamente (regla 3 y 12 del AGENTS.md). La expansión de ancestros debería ocurrir en un use-case o servicio de dominio, no dentro del propio repositorio. Esto crea un acoplamiento entre infraestructuras que dificulta el testing unitario del repositorio de traits de forma aislada.
+
+---
+
+### 2. 🔴 `update` en `trait.repository.ts` lanza `Error` genérico en lugar de `AppError`
+
+```typescript
+// trait.repository.ts - línea 73
+if (!traitUpdated) {
+  throw new Error("Trait no encontrado");
+}
+```
+
+Al igual que en `system.service.ts`, el repositorio lanza un `Error` genérico. El `errorHandler` global no lo captura como un error controlado y el cliente recibirá un 500. Debería lanzar `NotFoundError` o `AppError("Trait no encontrado", 404)`.
+
+---
+
+### 3. 🔴 `update` pasa el objeto `trait` completo (con `id`) al `$set` de MongoDB
+
+```typescript
+// trait.repository.ts - líneas 67-71
+const traitUpdated = await TraitSchema.findByIdAndUpdate(
+  trait.id,
+  trait,        // ← Pasa el objeto completo sin $set ni desestructuración
+  { returnDocument: 'after' }
+);
+```
+
+Al pasar `trait` directamente sin `{ $set: updateFields }`, Mongoose intentará sobrescribir el documento completo con todos los campos del objeto, **incluyendo el campo `id`** que no existe en el schema de Mongoose. Esto puede resultar en:
+- Intentos de escribir campos no definidos en el schema.
+- Si el schema tiene `strict: true` (por defecto), los campos extra se ignoran, pero el campo `id` se incluye en la operación y puede causar comportamiento inesperado.
+- Si algún campo del input fuera `undefined`, ese campo se borraría del documento (MongoDB trata `undefined` distinto de `null`).
+
+La práctica correcta es desestructurar `{ id, ...updateFields }` y usar `{ $set: updateFields }`.
+
+---
+
+### 4. 🔴 `create` y `update` no verifican autorización sobre el sistema
+
+Exactamente el mismo problema que en atributos, habilidades y rasgos: cualquier usuario autenticado puede crear rasgos en sistemas ajenos. El controlador pasa `req.body` directamente sin verificar que `req.user` sea el `publisher` del sistema al que pertenece el rasgo.
+
+```typescript
+// trait.controller.ts - línea 39
+const trait = await this.createTraitUseCase.execute(req.body);
+```
+
+---
+
+### 5. 🔴 `getTraitsBySystems` use-case no expande los ancestros del sistema
+
+```typescript
+// getTraitsBySystems.use-case.ts
+execute(ruleset: string[]): Promise<TraitApi[]> {
+  return this.traitService.getBySystems(ruleset);
+}
+```
+
+A diferencia de `GetSkillsBySystems`, este use-case no llama a `SystemService.getSystemsAndAncestors` antes de delegar. La expansión de ancestros ocurre **dentro del repositorio** (`trait.repository.ts` llama a `systemRepository.getSystemsAndAncestors`), lo que viola la regla 3 del AGENTS.md (repositorios no deben usar repositorios de otras entidades). El use-case debería ser responsable de la expansión.
+
+---
+
+### 6. 🔴 `formatearTrait` ejecuta consultas N+1 por cada rasgo
+
+```typescript
+// trait.repository.ts - líneas 90-128
+private async formatearTrait(trait: TraitMongo, data: TraitDataMongo): Promise<TraitApi> {
+  const resistances           = await this.dañoRepository.obtenerDañosPorIndices(...);
+  const conditional_resistances = await this.dañoRepository.obtenerDañosPorIndices(...);
+  const proficiencies         = await this.competenciaRepository.obtenerCompetenciasPorIndices(...);
+  const spells                = await this.conjuroRepository.obtenerConjurosPorIndices(...);
+  const condition_inmunities  = await this.estadoRepository.obtenerEstadosPorIndices(...);
+  const incompatible_traits   = await this.getTraitsByIndexes(...);
+}
+```
+
+Para cada rasgo se lanzan **6 queries secuenciales** a MongoDB (no paralelas con `Promise.all`). Si `getBySystems` devuelve 20 rasgos, el total es **120 queries** extra solo para formatear la respuesta. Este es el peor caso de N+1 queries de todo el proyecto. Además, `incompatible_traits` llama recursivamente a `getTraitsByIndexes`, lo que puede desencadenar otra cascada de queries.
+
+---
+
+### 7. 🔴 `formatearTrait` tiene lógica de template-substitution mezclada con formateo de datos
+
+El método `formatearTrait` mezcla dos responsabilidades:
+1. **Resolución de referencias** (cargar daños, conjuros, estados, competencias).
+2. **Sustitución de plantillas** de texto (reemplazar tokens en `desc`, `description` y `summary` con valores de `TraitDataMongo`).
+
+Esta mezcla hace el método difícil de testear y mantener. La sustitución de plantillas es lógica de presentación que debería estar en un servicio de dominio o en un caso de uso específico.
+
+---
+
+### 8. 🟡 Guardia de strings frágil en `delete` y `restore` del controlador — el mismo patrón reiterado
+
+```typescript
+// trait.controller.ts - línea 73
+if (error.message === 'No tienes permisos para borrar este rasgo' || error.message === 'Sistema asociado no encontrado' || error.message === 'Trait no encontrado') {
+  return next(new AppError(error.message, error.message.includes('encontrado') ? 404 : 403));
+}
+```
+
+Los use-cases ya lanzan `AppError` con los códigos correctos. Esta guardia es redundante, frágil (depende de strings literales en español) y genera código muerto. Es el **cuarto módulo consecutivo** con este mismo patrón.
+
+---
+
+### 9. 🟡 `UpdateTrait` tiene todos los campos como requeridos — tipo demasiado restrictivo
+
+```typescript
+// traits.types.ts - líneas 80-88
+export interface UpdateTrait {
+  id: string,
+  name: string,          // No es optional
+  description: string[], // No es optional
+  summary: string[],     // No es optional
+  ruleset: string,       // No es optional
+  incompatible_traits: string[] // No es optional
+}
+```
+
+Todos los campos de `UpdateTrait` son obligatorios. Sin embargo, el `UpdateTraitSchema` de Zod los define como opcionales (`.optional()`). Hay una **inconsistencia entre el schema de validación y el tipo TypeScript**: el schema acepta actualizaciones parciales pero el tipo de dominio exige el objeto completo.
+
+---
+
+### 10. 🟡 `ITraitRepository` expone `getTraitsOptions` y `getTraitsByIndexes` — lógica de presentación en el contrato del repositorio
+
+```typescript
+// ITraitRepository.ts
+getTraitsByIndexes(params: string[], data?: TraitDataMongo): Promise<TraitApi[]>
+getTraitsOptions(traitsOptions: TraitsOptionsMongo | undefined): Promise<TraitsOptionsApi | undefined>
+```
+
+`getTraitsOptions` convierte una estructura de opciones de selección en un `TraitsOptionsApi` — esto es transformación de datos de presentación, no acceso a persistencia pura. `getTraitsByIndexes` acepta `TraitDataMongo` para la sustitución de plantillas, que es lógica de renderizado. Ambos violan la responsabilidad única del repositorio.
+
+---
+
+### 11. 🟡 `getBySystems` devuelve los rasgos sin ordenar
+
+```typescript
+// trait.repository.ts - líneas 21-25
+async getBySystems(ruleset: string[]): Promise<TraitApi[]> {
+  const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(ruleset);
+  const traits = await TraitSchema.find({ ... });
+  return this.formatearTraits(traits, {}); // Sin .sort()
+}
+```
+
+A diferencia de `getSkillsByKeys` o `getAll` en skill.repository, `getBySystems` no ordena los resultados. La respuesta al cliente llegará en orden de inserción de MongoDB.
+
+---
+
+### 12. 🟢 `TraitMongo` tiene `desc` y `description` como campos alternativos — ambigüedad de schema
+
+```typescript
+// traits.types.ts - líneas 11 y 15
+description?: string[],
+desc?: string[],
+```
+
+Hay dos campos para la descripción (`description` y `desc`). La lógica en `formatearTrait` prioriza `description_aux` si tiene contenido, cayendo en `desc` si no:
+
+```typescript
+const description = (description_aux?.length ? description_aux : desc) ?? [];
+```
+
+Esto sugiere que `desc` es un campo legacy del schema de SRD (System Reference Document) que no se migró completamente a `description`. El schema de Mongoose tiene ambos campos vivos, creando ambigüedad en los datos y lógica de fallback defensiva.
+
+---
+
+## 📊 Resumen
+
+| Capa | Calidad | Comentario |
+|---|---|---|
+| `trait.routes.ts` | ✅ Bueno | Swagger correcto, todos los endpoints definidos y con `GET /traits` funcional |
+| `trait.controller.ts` | 🟡 Correcto | Guardia frágil reiterada, sin autorización en `create`/`update` |
+| `trait.schema.ts` | 🟡 Aceptable | Zod con `refine`, pero inconsistente con el tipo `UpdateTrait` |
+| Use-case `getTraitsBySystems` | 🔴 Problema | No expande ancestros — la expansión ocurre en el repositorio |
+| Use-cases (softDelete/restore) | ✅ Excelente | Patrón correcto con `AppError` y verificación de `publisher` |
+| Use-cases (create/update) | 🔴 Problema | Sin autorización sobre el sistema de destino |
+| `trait.service.ts` | ✅ Correcto | Delgado, limpio, sin lógica extra |
+| `ITraitRepository.ts` | 🟡 Aceptable | Expone métodos de transformación/presentación |
+| `trait.repository.ts` | 🔴 Problemas críticos | N+1 queries masivas, `ISystemRepository` inyectado directamente, `Error` genérico en `update`, `$set` mal aplicado, mezcla de responsabilidades |
+| `traits.types.ts` | 🟡 Aceptable | `UpdateTrait` no es parcial, campos `desc`/`description` ambiguos, `deletedAt` expuesto |
+
+### Acciones Prioritarias
+
+| Prioridad | Problema | Acción |
+|---|---|---|
+| 🔴 Alta | N+1 queries en `formatearTrait` | Paralelizar con `Promise.all` y, si es posible, batching de queries |
+| 🔴 Alta | `ISystemRepository` inyectado en `TraitRepository` | Mover la expansión de ancestros al use-case `GetTraitsBySystems` vía `SystemService` |
+| 🔴 Alta | `update` pasa objeto completo sin `$set` | Cambiar a `{ $set: updateFields }` con desestructuración de `id` |
+| 🔴 Alta | `update` lanza `Error` genérico | Cambiar a `NotFoundError` o `AppError(..., 404)` |
+| 🔴 Alta | Sin autorización en `create` y `update` | Añadir verificación de `publisher` en los use-cases |
+| 🟡 Media | Guardia de strings frágil en `delete`/`restore` | Eliminar la guardia y dejar solo `next(error)` |
+| 🟡 Media | `UpdateTrait` con todos los campos requeridos | Hacer todos los campos opcionales (excepto `id`) para consistencia con el schema Zod |
+| 🟡 Media | `getTraitsOptions`/`getTraitsByIndexes` en `ITraitRepository` | Mover al servicio de dominio o a un servicio de personaje |
+| 🟡 Media | `getBySystems` sin ordenar | Añadir `.collation` y `.sort({ name: 1 })` a la query |
+| 🟢 Baja | Campo `desc` legacy junto a `description` | Migrar datos y eliminar `desc` del schema, usando solo `description` |
+| 🟢 Baja | `deletedAt` en `TraitApi` | Crear tipo público sin el campo interno |

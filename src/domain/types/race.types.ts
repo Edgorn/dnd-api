@@ -10,10 +10,8 @@ import { AttributeBonus, AttributeBonusCreate } from "./attribute.types"
 
 export interface RaceMongo {
   _id: ObjectId,
-  index: string,
   name: string,
   description: string[],
-  desc: string,
   alignment?: string,
   img: string,
   ruleset: string,
@@ -39,9 +37,12 @@ export interface RaceMongo {
   languages: CreatureLanguagesCreate,
   language_choices?: ChoiceMongo,
   proficiencies_choices?: ChoiceMongo[],
-  subraces?: SubracesMongo,
+  subraces_name?: string,
+  parentId?: ObjectId | null,
   variants: VarianteMongo[],
-  levels: RaceLevelMongo[]
+  levels: RaceLevelMongo[],
+  spell_choices?: ChoiceSpell[],
+  deletedAt?: Date | null
 }
 
 export interface RaceLevelMongo {
@@ -49,31 +50,7 @@ export interface RaceLevelMongo {
   traits_data: TraitDataMongo,
 }
 
-export interface SubracesMongo {
-  name: string,
-  list: SubraceMongo[]
-}
-
-export interface SubraceMongo {
-  index: string,
-  name: string,
-  description: string[],
-  desc: string,
-  img: string,
-  ability_bonuses: AttributeBonusCreate[],
-  traits: string[],
-  traits_data: TraitDataMongo,
-  languages: CreatureLanguagesCreate,
-  language_choices?: ChoiceMongo,
-  spell_choices?: ChoiceSpell[],
-  types: TypeMongo[],
-}
-
-export interface TypeMongo {
-  name: string,
-  desc: string,
-  img: string
-}
+// SubracesMongo has been removed in favor of parentId on children
 
 export interface VarianteMongo {
   name: string,
@@ -112,34 +89,14 @@ export interface RaceApi {
   languages: CreatureLanguages,
   language_choices?: ChoiceApi<LanguageApi>,
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
-  spell_choices?: ChoiceApi<ConjuroApi>,
+  spell_choices?: ChoiceApi<ConjuroApi>[],
   subraces?: SubracesApi,
   variants: VarianteApi[]
 }
 
 export interface SubracesApi {
   name: string,
-  list: SubraceApi[]
-}
-
-export interface SubraceApi {
-  index: string,
-  name: string,
-  description: string[],
-  img: string,
-  ability_bonuses: AttributeBonus[],
-  traits: TraitApi[],
-  traits_data: TraitDataMongo,
-  languages: CreatureLanguages,
-  language_choices?: ChoiceApi<LanguageApi>,
-  spell_choices?: ChoiceApi<ConjuroApi>[],
-  types: TypeApi[],
-}
-
-export interface TypeApi {
-  name: string,
-  desc: string,
-  img: string
+  list: RaceApi[]
 }
 
 export interface VarianteApi {
@@ -177,21 +134,7 @@ export interface CreateRace {
   traits: string[];
   traits_data: TraitDataMongo,
   languages: CreatureLanguagesCreate,
-  subraces: CreateSubraces
-}
-
-export interface CreateSubraces {
-  name: string,
-  list: CreateSubrace[]
-}
-
-export interface CreateSubrace {
-  id: string,
-  name: string
-  description: string[]
-  img: string;
-  ability_bonuses: AttributeBonusCreate;
-  traits: string[];
-  traits_data: TraitDataMongo,
-  languages: CreatureLanguagesCreate
+  parentId?: string,
+  subraces_name?: string,
+  spell_choices?: ChoiceSpell[]
 }

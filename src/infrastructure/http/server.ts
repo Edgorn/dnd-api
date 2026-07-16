@@ -6,7 +6,7 @@ import connectDB from '../databases/mongoDb/mongodb';
 //Importacion de rutas
 import userRoutes from "./routes/user.routes";
 import transfondoRoutes from "./routes/transfondo.routes";
-import razaRoutes from "./routes/raza.routes";
+import raceRoutes from "./routes/race.routes";
 import claseRoutes from "./routes/clase.routes";
 import personajeRoutes from "./routes/personaje.routes";
 import equipamientoRoutes from "./routes/equipamiento.routes";
@@ -46,7 +46,7 @@ connectDB();
 // Rutas
 app.use(userRoutes)
 app.use(transfondoRoutes);
-app.use(razaRoutes)
+app.use(raceRoutes)
 app.use(claseRoutes);
 app.use(personajeRoutes)
 app.use(equipamientoRoutes);

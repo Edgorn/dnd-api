@@ -19,7 +19,7 @@ import { EstadoApi } from '../../../../domain/types/estados.types';
 import { TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
 import { EquipamientoPersonajeApi } from '../../../../domain/types/equipamientos.types';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
-import IRazaRepository from '../../../../domain/repositories/IRazaRepository';
+import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { deepMerge } from '../../../../utils/formatters';
 import { TraitApi } from '../../../../domain/types/traits.types';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
@@ -58,7 +58,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly doteRepository: IDoteRepository,
     private readonly claseRepository: IClaseRepository,
     private readonly invocacionRepository: IInvocacionRepository,
-    private readonly razaRepository: IRazaRepository,
+    private readonly raceRepository: IRaceRepository,
     private readonly criaturaRepository: ICriaturaRepository,
     private readonly attributeService: AttributeService,
     private readonly systemRepository: ISystemRepository
@@ -91,8 +91,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       systems,
       race,
       raceId,
-      subraceId,
-      type,
       campaign,
       languages,
       spells,
@@ -147,8 +145,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       attributes,
       systems,
       raceId: raceId,
-      subraceId: subraceId,
-      type,
       campaign,
       classes: [{ class: claseId, name: clase ?? "Ninguna", level: 1, hit_die }],
       subclasses: subclase ? [subclase] : [],
@@ -397,7 +393,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const dataLevel = await this.claseRepository.dataLevelUp(clase, level + 1, personaje?.subclasses ?? [])
     const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
-    const raceLevel = await this.razaRepository.dataLevelUp(personaje?.raceId ?? '', level + 1)
+    const raceLevel = await this.raceRepository.dataLevelUp(personaje?.raceId ?? '', level + 1)
 
     let raceTraitsData = {}
 

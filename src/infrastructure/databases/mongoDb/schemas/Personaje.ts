@@ -15,8 +15,6 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   }],
   systems: [String],
   raceId: String,
-  subraceId: String,
-  type: String,
   campaign: String,
   race: String,
   traits: [String],
