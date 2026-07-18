@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { AbilityBonusesMongo, ChoiceApi, ChoiceMongo, Speed } from "."
+import { ChoiceApi, ChoiceMongo, Speed } from "."
 import { CompetenciaApi } from "./competencias.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
@@ -91,6 +91,7 @@ export interface RaceApi {
   proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
   spell_choices?: ChoiceApi<ConjuroApi>[],
   subraces?: SubracesApi,
+  parentId?: string | null,
   variants: VarianteApi[]
 }
 
@@ -111,7 +112,7 @@ export interface CreateRace {
   id?: string,
   name: string;
   description: string[];
-  alignment: string;
+  alignment?: string;
   ruleset: string;
   img: string;
   ability_bonuses: AttributeBonusCreate;

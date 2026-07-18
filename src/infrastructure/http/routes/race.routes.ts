@@ -50,7 +50,7 @@ const router = Router();
  *           description: Descripción o párrafos sobre la raza.
  *         alignment:
  *           type: string
- *           description: Alineamiento típico de la raza.
+ *           description: Alineamiento típico de la raza (Opcional).
  *         img:
  *           type: string
  *           description: URL o nombre de la imagen de la raza.
@@ -112,6 +112,9 @@ const router = Router();
  *           type: array
  *           items:
  *             type: object
+ *         parentId:
+ *           type: string
+ *           description: ID de la raza padre si esta raza es una subraza (Opcional).
  *         subraces:
  *           $ref: '#/components/schemas/SubrazasApi'
  *         variants:
@@ -134,6 +137,7 @@ const router = Router();
  *             type: string
  *         alignment:
  *           type: string
+ *           description: Alineamiento típico de la raza (Opcional).
  *         ruleset:
  *           type: string
  *         img:
@@ -186,6 +190,7 @@ const router = Router();
  *             type: string
  *         alignment:
  *           type: string
+ *           description: Alineamiento típico de la raza (Opcional).
  *         ruleset:
  *           type: string
  *         img:

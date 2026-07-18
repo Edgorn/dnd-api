@@ -556,7 +556,7 @@
           },
           "alignment": {
             "type": "string",
-            "description": "Alineamiento típico de la raza."
+            "description": "Alineamiento típico de la raza (Opcional)."
           },
           "img": {
             "type": "string",
@@ -650,6 +650,10 @@
               "type": "object"
             }
           },
+          "parentId": {
+            "type": "string",
+            "description": "ID de la raza padre si esta raza es una subraza (Opcional)."
+          },
           "subraces": {
             "$ref": "#/components/schemas/SubrazasApi"
           },
@@ -680,7 +684,8 @@
             }
           },
           "alignment": {
-            "type": "string"
+            "type": "string",
+            "description": "Alineamiento típico de la raza (Opcional)."
           },
           "ruleset": {
             "type": "string"
@@ -758,7 +763,8 @@
             }
           },
           "alignment": {
-            "type": "string"
+            "type": "string",
+            "description": "Alineamiento típico de la raza (Opcional)."
           },
           "ruleset": {
             "type": "string"

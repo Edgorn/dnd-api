@@ -196,6 +196,7 @@ export default class RaceRepository implements IRaceRepository {
       language_choices: await this.languageRepository.formatLanguageChoices(raza.language_choices),
       proficiencies_choices,
       subraces,
+      parentId: raza.parentId ? raza.parentId.toString() : null,
       variants,
       spell_choices
     };
