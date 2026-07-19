@@ -4,7 +4,8 @@ import { LanguageApi } from "./language.types";
 
 export interface ChoiceMongo {
   choose: number;
-  options: string[] | string;
+  options?: string[];
+  filter?: Record<string, (string | number)[]>;
 }
 
 export interface ChoiceApi<T> {

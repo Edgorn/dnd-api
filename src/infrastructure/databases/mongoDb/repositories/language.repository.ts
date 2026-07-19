@@ -32,8 +32,10 @@ export default class LanguageRepository implements ILanguageRepository {
     if (!includeDeleted) {
       rulesetQuery.deletedAt = null;
     }
-    const languages = await LanguageSchema.find(rulesetQuery);
-    return this.formatLanguages(languages);
+    const languages = await LanguageSchema.find(rulesetQuery)
+      .collation({ locale: 'es', strength: 1 })
+      .sort({ name: 1 });
+    return ordenarPorNombre(this.formatLanguages(languages));
   }
 
   async create(data: InputCreateLanguage): Promise<LanguageApi> {
@@ -88,10 +90,23 @@ export default class LanguageRepository implements ILanguageRepository {
     return ordenarPorNombre(this.formatLanguages(languages));
   }
 
-  async formatLanguageChoices(choices: ChoiceMongo | undefined): Promise<ChoiceApi<LanguageApi> | undefined> {
+  async formatLanguageChoices(choices: ChoiceMongo | undefined, ruleset?: string): Promise<ChoiceApi<LanguageApi> | undefined> {
     if (!choices) return undefined;
 
-    if (Array.isArray(choices.options)) {
+    // Soporte legacy para base de datos (cuando options era un string)
+    if (typeof choices.options === 'string') {
+      const isAll = choices.options === 'all' || choices.options === 'cualquiera';
+      const languages = isAll 
+        ? (ruleset ? await this.getBySystems([ruleset]) : await this.getAll())
+        : await this.getLanguagesByIndex([choices.options as unknown as string]);
+      
+      return {
+        choose: choices.choose,
+        options: languages
+      };
+    }
+
+    if (choices.options && choices.options.length > 0) {
       const languages = await this.getLanguagesByIndex(choices.options);
 
       return {
@@ -100,17 +115,42 @@ export default class LanguageRepository implements ILanguageRepository {
       };
     }
 
-    if (choices.options === 'all') {
-      const languages = await this.getAll();
+    if (choices.filter) {
+      const query: any = { deletedAt: null };
 
+      if (ruleset) {
+        const expandedRulesets = this.systemRepository
+          ? await this.systemRepository.getSystemsAndAncestors([ruleset])
+          : [ruleset];
+        query.ruleset = { $in: expandedRulesets };
+      }
+      
+      for (const [key, value] of Object.entries(choices.filter)) {
+        if (Array.isArray(value)) {
+          query[key] = { $in: value };
+        } else {
+          query[key] = value;
+        }
+      }
+
+      const filteredLanguages = await LanguageSchema.find(query)
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+        
       return {
         choose: choices.choose,
-        options: languages
+        options: ordenarPorNombre(this.formatLanguages(filteredLanguages))
       };
     }
 
-    console.warn("Unrecognized language choices:", choices.options);
-    return undefined;
+    const languages = ruleset
+      ? await this.getBySystems([ruleset])
+      : await this.getAll();
+
+    return {
+      choose: choices.choose,
+      options: languages
+    };
   }
 
   async getAll(): Promise<LanguageApi[]> {

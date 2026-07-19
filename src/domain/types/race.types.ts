@@ -135,6 +135,7 @@ export interface CreateRace {
   traits: string[];
   traits_data: TraitDataMongo,
   languages: CreatureLanguagesCreate,
+  language_choices?: ChoiceMongo,
   parentId?: string,
   subraces_name?: string,
   spell_choices?: ChoiceSpell[]

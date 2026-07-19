@@ -6,8 +6,7 @@ import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
 import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubracesApi, VarianteApi, VarianteMongo } from '../../../../domain/types/race.types';
-import { ChoiceMongo, ChoiceApi } from '../../../../domain/types';
-import { deepMerge, ordenarPorNombre } from '../../../../utils/formatters';
+import { ordenarPorNombre } from '../../../../utils/formatters';
 import RaceModel from '../schemas/Race';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import { TraitDataMongo } from '../../../../domain/types/traits.types';
@@ -30,7 +29,7 @@ export default class RaceRepository implements IRaceRepository {
       const razas = await RaceModel.find({ parentId: null, deletedAt: null })
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
-      
+
       return this.formatearRazas(razas);
     } catch (error) {
       console.error("Error obteniendo razas:", error);
@@ -46,7 +45,7 @@ export default class RaceRepository implements IRaceRepository {
       const razas = await RaceModel.find({ ruleset: { $in: expandedRulesets }, parentId: null, deletedAt: null })
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
-      
+
       return this.formatearRazas(razas);
     } catch (error) {
       console.error("Error obteniendo razas:", error);
@@ -82,6 +81,7 @@ export default class RaceRepository implements IRaceRepository {
       traits: raza.traits,
       traits_data: raza.traits_data,
       languages: raza.languages,
+      language_choices: raza.language_choices,
       parentId: raza.parentId || null,
       subraces_name: raza.subraces_name,
       spell_choices: raza.spell_choices
@@ -113,6 +113,7 @@ export default class RaceRepository implements IRaceRepository {
         traits: raza.traits,
         traits_data: raza.traits_data,
         languages: raza.languages,
+        language_choices: raza.language_choices,
         parentId: raza.parentId || null,
         subraces_name: raza.subraces_name,
         spell_choices: raza.spell_choices
@@ -159,7 +160,11 @@ export default class RaceRepository implements IRaceRepository {
     const dataLevel = raza?.levels?.find(level => level.level === 1)
     const ruleset = raza.ruleset;
 
-    const [traits, ability_bonuses, ability_bonus_choices, skill_choices, languages, proficiencies_choices, subraces, variants, spell_choices] = await Promise.all([
+    const [
+      traits, ability_bonuses, ability_bonus_choices, skill_choices, languages, 
+      proficiencies_choices, subraces, variants, spell_choices,
+      speaksLanguages, formattedLanguageChoices
+    ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.attributeRepository.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
       this.attributeRepository.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
@@ -168,7 +173,9 @@ export default class RaceRepository implements IRaceRepository {
       this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
       this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, ruleset),
       this.formatearVariantes(raza?.variants ?? [], ruleset),
-      this.conjuroRepository.formatearOpcionesDeConjuros(raza?.spell_choices)
+      this.conjuroRepository.formatearOpcionesDeConjuros(raza?.spell_choices),
+      this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
+      this.languageRepository.formatLanguageChoices(raza.language_choices, ruleset)
     ])
 
     return {
@@ -190,10 +197,10 @@ export default class RaceRepository implements IRaceRepository {
       traits_data: { ...dataLevel?.traits_data, ...raza.traits_data },
       languages: {
         understands: languages,
-        speaks: await this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
-        notes: raza?.languages?.notes  ?? ""
+        speaks: speaksLanguages,
+        notes: raza?.languages?.notes ?? ""
       },
-      language_choices: await this.languageRepository.formatLanguageChoices(raza.language_choices),
+      language_choices: formattedLanguageChoices,
       proficiencies_choices,
       subraces,
       parentId: raza.parentId ? raza.parentId.toString() : null,

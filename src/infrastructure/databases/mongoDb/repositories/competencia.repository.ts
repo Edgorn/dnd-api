@@ -60,9 +60,18 @@ export default class CompetenciaRepository implements ICompetenciaRepository {
   }
 
   private async formatearOpcionesDeCompetencia(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<CompetenciaApi> | undefined> {
-    if (!opciones) return undefined
+    if (!opciones) return undefined;
 
-    if (Array.isArray(opciones.options)) {
+    // Manejo de datos legacy donde options era un string
+    if (typeof opciones.options === 'string') {
+      const competencias = await this.obtenerCompetenciasPorTipo(opciones.options as unknown as string);
+      return {
+        choose: opciones.choose,
+        options: competencias
+      };
+    }
+
+    if (opciones.options && opciones.options.length > 0) {
       const competencias = await this.obtenerCompetenciasPorIndices(opciones.options);
       
       return {
@@ -71,12 +80,30 @@ export default class CompetenciaRepository implements ICompetenciaRepository {
       };
     }
 
-    const competencias = await this.obtenerCompetenciasPorTipo(opciones.options);
+    if (opciones.filter) {
+      const query: any = {};
       
-    return {
-      choose: opciones.choose,
-      options: competencias
-    };
+      for (const [key, value] of Object.entries(opciones.filter)) {
+        if (Array.isArray(value)) {
+          query[key] = { $in: value };
+        } else {
+          query[key] = value;
+        }
+      }
+
+      const competencias = await CompetenciaSchema.find(query)
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+
+      competencias.forEach(competencia => (this.competenciasMap[competencia.index] = competencia));
+      
+      return {
+        choose: opciones.choose,
+        options: this.formatearCompetencias(competencias)
+      };
+    }
+
+    return undefined;
   }
 
   private async obtenerCompetenciasPorTipo(type: string): Promise<CompetenciaApi[]> {

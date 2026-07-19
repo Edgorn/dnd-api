@@ -169,6 +169,8 @@ const router = Router();
  *           type: object
  *         languages:
  *           type: object
+ *         language_choices:
+ *           type: object
  *         parentId:
  *           type: string
  *           description: ID de la raza padre si es una subraza
@@ -216,6 +218,8 @@ const router = Router();
  *         traits_data:
  *           type: object
  *         languages:
+ *           type: object
+ *         language_choices:
  *           type: object
  *         parentId:
  *           type: string

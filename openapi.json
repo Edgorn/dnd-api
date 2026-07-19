@@ -734,6 +734,9 @@
           "languages": {
             "type": "object"
           },
+          "language_choices": {
+            "type": "object"
+          },
           "parentId": {
             "type": "string",
             "description": "ID de la raza padre si es una subraza"
@@ -803,6 +806,9 @@
             "type": "object"
           },
           "languages": {
+            "type": "object"
+          },
+          "language_choices": {
             "type": "object"
           },
           "parentId": {

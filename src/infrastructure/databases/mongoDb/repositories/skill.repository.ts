@@ -112,7 +112,7 @@ export default class SkillRepository implements ISkillRepository {
   async formatSkillChoices(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<SkillApi> | undefined> {
     if (!opciones) return undefined;
 
-    if (Array.isArray(opciones.options)) {
+    if (opciones.options && opciones.options.length > 0) {
       const skills = await this.getSkillsByKeys(opciones.options);
 
       return {
@@ -121,9 +121,40 @@ export default class SkillRepository implements ISkillRepository {
       };
     }
 
-    if (opciones.options === 'all') {
+    // Manejo legacy para "all"
+    if (typeof opciones.options === 'string' && opciones.options === 'all') {
       const skills = await this.getAll();
 
+      return {
+        choose: opciones.choose,
+        options: skills
+      };
+    }
+
+    if (opciones.filter) {
+      const query: any = { deletedAt: null };
+      
+      for (const [key, value] of Object.entries(opciones.filter)) {
+        if (Array.isArray(value)) {
+          query[key] = { $in: value };
+        } else {
+          query[key] = value;
+        }
+      }
+
+      const skills = await SkillSchema.find(query)
+        .collation({ locale: 'es', strength: 1 })
+        .sort({ name: 1 });
+
+      return {
+        choose: opciones.choose,
+        options: this.formatSkills(skills)
+      };
+    }
+
+    // Si no hay filter ni options, devolvemos todo por defecto
+    if ((!opciones.options || opciones.options.length === 0) && !opciones.filter) {
+      const skills = await this.getAll();
       return {
         choose: opciones.choose,
         options: skills

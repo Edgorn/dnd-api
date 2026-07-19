@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const ChoiceMongoSchema = z.object({
+  choose: z.number().int().min(1, "Debe elegir al menos 1"),
+  options: z.array(z.string()).optional(),
+  filter: z.record(z.string(), z.array(z.union([z.string(), z.number()]))).optional()
+});
+
 export const CreateRaceSchema = z.object({
   name: z.string().min(1, "El nombre no puede estar vacío"),
   description: z.array(z.string()).optional(),
@@ -30,6 +36,7 @@ export const CreateRaceSchema = z.object({
     understands: z.array(z.string()).optional(),
     notes: z.string().optional()
   }).optional(),
+  language_choices: ChoiceMongoSchema.optional(),
   parentId: z.string().optional(),
   subraces_name: z.string().optional(),
   spell_choices: z.array(z.any()).optional()

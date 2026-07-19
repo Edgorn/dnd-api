@@ -82,7 +82,7 @@ export default class AttributeRepository implements IAttributeRepository {
   ): Promise<ChoiceApi<AttributeBonus> | undefined> {
     if (!bonus_choices) return undefined;
 
-    if (Array.isArray(bonus_choices.options)) {
+    if (bonus_choices.options && bonus_choices.options.length > 0) {
       const attributes = await this.getBySystems([system]);
       const attributesMap = new Map<string, string>();
       attributes.forEach(a => {
@@ -101,6 +101,42 @@ export default class AttributeRepository implements IAttributeRepository {
         choose: bonus_choices.choose,
         options
       };
+    }
+
+    if (bonus_choices.filter) {
+      const attributes = await this.getBySystems([system]);
+      // TODO: Filter attributes here if there's ever a need. 
+      // For now we just return all attributes in the system as options for the choice.
+      const attributesMap = new Map<string, string>();
+      attributes.forEach(a => {
+        attributesMap.set(a.key, a.name);
+      });
+
+      const options = attributes.map(a => {
+        return {
+          key: a.key,
+          name: a.name,
+          bonus: 1
+        }
+      });
+
+      return {
+        choose: bonus_choices.choose,
+        options
+      };
+    }
+
+    // Default return all if neither options nor filter is set but the choice exists
+    if (!bonus_choices.options && !bonus_choices.filter) {
+      const attributes = await this.getBySystems([system]);
+      const options = attributes.map(a => {
+        return {
+          key: a.key,
+          name: a.name,
+          bonus: 1
+        }
+      });
+      return { choose: bonus_choices.choose, options };
     }
 
     return undefined;
