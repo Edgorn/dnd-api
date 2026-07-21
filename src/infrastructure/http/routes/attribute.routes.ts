@@ -2,7 +2,7 @@ import { Router } from "express";
 import { attributeController, authMiddleware } from "../../dependencies";
 
 import { validateSchema } from "../middlewares/validateSchema";
-import { CreateAttributeSchema, UpdateAttributeSchema, AddSystemSchema } from "../schemas/attribute.schema";
+import { CreateAttributeSchema, UpdateAttributeSchema } from "../schemas/attribute.schema";
 
 const router = Router();
 
@@ -77,6 +77,37 @@ const router = Router();
  *         icon:
  *           type: string
  */
+
+/**
+ * @openapi
+ * /attributes:
+ *   get:
+ *     summary: Obtener características filtradas por sistemas
+ *     tags:
+ *       - Caracteristicas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema para filtrar características (se heredan sistemas ancestros).
+ *     responses:
+ *       200:
+ *         description: Lista de características devuelta con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Attribute'
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/attributes', authMiddleware, attributeController.getAttributesBySystems);
 
 /**
  * @openapi

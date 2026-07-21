@@ -14,7 +14,7 @@ export default class SoftDeleteSkill {
       throw new AppError("Habilidad no encontrada", 404);
     }
 
-    const system = await this.systemService.obtenerPorId(skill.ruleset);
+    const system = await this.systemService.getById(skill.ruleset);
     if (!system) {
       throw new AppError("Sistema asociado no encontrado", 404);
     }

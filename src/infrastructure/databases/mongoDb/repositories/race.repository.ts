@@ -1,10 +1,10 @@
 import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
+import SkillService from '../../../../domain/services/skill.service';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
-import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
+import AttributeService from '../../../../domain/services/attribute.service';
 import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubracesApi, VarianteApi, VarianteMongo } from '../../../../domain/types/race.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import RaceModel from '../schemas/Race';
@@ -16,11 +16,11 @@ export default class RaceRepository implements IRaceRepository {
   constructor(
     private readonly languageRepository: ILanguageRepository,
     private readonly conjuroRepository: IConjuroRepository,
-    private readonly skillRepository: ISkillRepository,
+    private readonly skillService: SkillService,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly traitRepository: ITraitRepository,
-    private readonly attributeRepository: IAttributeRepository,
+    private readonly attributeService: AttributeService,
     private readonly systemRepository?: ISystemRepository
   ) { }
 
@@ -166,9 +166,9 @@ export default class RaceRepository implements IRaceRepository {
       speaksLanguages, formattedLanguageChoices
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
-      this.attributeRepository.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
-      this.attributeRepository.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
-      this.skillRepository.formatSkillChoices(raza.skill_choices),
+      this.attributeService.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
+      this.attributeService.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
+      this.skillService.formatSkillChoices(raza.skill_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.understands ?? []),
       this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
       this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, ruleset),
@@ -228,10 +228,10 @@ export default class RaceRepository implements IRaceRepository {
 
   async formatearVariante(variante: VarianteMongo, ruleset?: string): Promise<VarianteApi> {
     const [skill_choices, dotes, ability_bonuses, ability_bonus_choices] = await Promise.all([
-      ruleset ? this.skillRepository.formatSkillChoices(variante?.skill_choices) : Promise.resolve(undefined),
+      ruleset ? this.skillService.formatSkillChoices(variante?.skill_choices) : Promise.resolve(undefined),
       this.doteRepository.formatearOpcionesDeDote(variante.dotes),
-      ruleset ? this.attributeRepository.formatAbilityBonuses(variante?.ability_bonuses ?? [], ruleset) : Promise.resolve([]),
-      ruleset ? this.attributeRepository.formatAbilityBonusChoices(variante?.ability_bonus_choices, ruleset) : Promise.resolve(undefined)
+      ruleset ? this.attributeService.formatAbilityBonuses(variante?.ability_bonuses ?? [], ruleset) : Promise.resolve([]),
+      ruleset ? this.attributeService.formatAbilityBonusChoices(variante?.ability_bonus_choices, ruleset) : Promise.resolve(undefined)
     ])
 
     return {

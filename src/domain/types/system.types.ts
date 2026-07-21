@@ -34,6 +34,7 @@ export interface SystemApi {
   racesCount: number;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
+  maxAttributeValue?: number;
   defaultMinAttributeValue?: number;
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
@@ -42,7 +43,6 @@ export interface SystemApi {
   maxSpellLevel?: number;
   attributes: AttributeApi[];
   skills: SkillApi[];
-  deletedAt?: Date;
 }
 
 export interface TypeCrearSystem {
@@ -54,6 +54,7 @@ export interface TypeCrearSystem {
   parentId?: string;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
+  maxAttributeValue?: number;
   defaultMinAttributeValue?: number;
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;
@@ -72,6 +73,7 @@ export interface TypeModificarSystem {
   parentId?: string;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
+  maxAttributeValue?: number;
   defaultMinAttributeValue?: number;
   defaultMaxAttributeValue?: number;
   creationMinAttributeValue?: number;

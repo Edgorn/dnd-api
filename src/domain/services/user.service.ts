@@ -6,7 +6,6 @@ import { ITokenService } from "../ports/ITokenService";
 import { IUserCache } from "../ports/IUserCache";
 import { IRefreshTokenRepository } from "../ports/IRefreshTokenRepository";
 
-const DUMMY_PASSWORD_HASH = '$2b$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012';
 const REFRESH_TOKEN_EXPIRATION_DAYS = 7;
 
 export default class UserService {
@@ -22,7 +21,7 @@ export default class UserService {
     const userResult = await this.userRepository.getUserByName(user);
 
     if (!userResult) {
-      await this.passwordHasher.compare(password, DUMMY_PASSWORD_HASH);
+      await this.passwordHasher.compare(password, this.passwordHasher.dummyHash);
       return null;
     }
 
@@ -46,7 +45,7 @@ export default class UserService {
     if (!rawRefreshToken) return null;
 
     const storedToken = await this.refreshTokenRepository.findByToken(rawRefreshToken);
-    if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
+    if (!storedToken || storedToken.expiresAt < new Date()) {
       return null;
     }
 
@@ -74,7 +73,7 @@ export default class UserService {
     return true;
   }
 
-  async validarToken(token: string): Promise<string | null> {
+  async validateToken(token: string): Promise<string | null> {
     if (!token) return null;
 
     const decoded = this.tokenService.verify(token);
@@ -93,6 +92,10 @@ export default class UserService {
     this.userCache?.set(decoded.id, exists);
 
     return exists ? decoded.id : null;
+  }
+
+  getUserById(id: string): Promise<User | null> {
+    return this.userRepository.getUserById(id);
   }
 
   private async generarYGuardarRefreshToken(userId: string): Promise<string> {

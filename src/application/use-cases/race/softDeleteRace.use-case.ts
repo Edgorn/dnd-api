@@ -14,7 +14,7 @@ export default class SoftDeleteRace {
       throw new AppError("Raza no encontrada", 404);
     }
 
-    const system = await this.systemService.obtenerPorId(race.ruleset);
+    const system = await this.systemService.getById(race.ruleset);
     if (!system) {
       throw new AppError("Sistema asociado no encontrado", 404);
     }

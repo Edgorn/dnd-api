@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { skillController, authMiddleware } from "../../dependencies";
 import { validateSchema } from "../middlewares/validateSchema";
-import { CreateSkillSchema, UpdateSkillSchema, AddSystemSchema } from "../schemas/skill.schema";
+import { CreateSkillSchema, UpdateSkillSchema } from "../schemas/skill.schema";
 
 const router = Router();
 
@@ -82,6 +82,37 @@ const router = Router();
 /**
  * @openapi
  * /skills:
+ *   get:
+ *     summary: Obtener habilidades filtradas por sistemas
+ *     tags:
+ *       - Habilidades
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema para filtrar habilidades (se heredan sistemas ancestros).
+ *     responses:
+ *       200:
+ *         description: Lista de habilidades devuelta con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Skill'
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/skills', authMiddleware, skillController.obtenerTodas);
+
+/**
+ * @openapi
+ * /skills:
  *   post:
  *     summary: Crear una nueva habilidad
  *     tags:
@@ -105,6 +136,8 @@ const router = Router();
  *         description: Faltan campos obligatorios.
  *       401:
  *         description: No autorizado.
+ *       409:
+ *         description: Ya existe una habilidad con esta clave en el sistema.
  *       500:
  *         description: Error del servidor.
  */

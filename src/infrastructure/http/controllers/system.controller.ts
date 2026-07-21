@@ -5,7 +5,6 @@ import CreateSystem from "../../../application/use-cases/system/createSystem.use
 import UpdateSystem from "../../../application/use-cases/system/updateSystem.use-case";
 import CascadeSoftDeleteSystem from "../../../application/use-cases/system/cascadeSoftDeleteSystem.use-case";
 import CascadeRestoreSystem from "../../../application/use-cases/system/cascadeRestoreSystem.use-case";
-import { AppError } from "../../../domain/errors/AppError";
 
 export class SystemController {
   constructor(
@@ -54,11 +53,8 @@ export class SystemController {
       });
 
       res.status(200).json(data);
-    } catch (e: any) {
+    } catch (e) {
       console.error("[SystemController.updateSystem] Error updating system:", e);
-      if (e.message === 'No tienes permisos de edición para este sistema' || e.message === 'Sistema no encontrado') {
-        return next(new AppError(e.message, 403));
-      }
       next(e);
     }
   };
@@ -70,11 +66,8 @@ export class SystemController {
 
       await this.cascadeSoftDeleteSystem.execute(id, userId);
       res.status(204).send();
-    } catch (e: any) {
+    } catch (e) {
       console.error("[SystemController.deleteSystem] Error deleting system:", e);
-      if (e.message === 'No tienes permisos para borrar este sistema' || e.message === 'Sistema no encontrado') {
-        return next(new AppError(e.message, e.message === 'Sistema no encontrado' ? 404 : 403));
-      }
       next(e);
     }
   };
@@ -86,11 +79,8 @@ export class SystemController {
 
       await this.cascadeRestoreSystem.execute(id, userId);
       res.status(200).json({ message: 'Sistema restaurado con éxito' });
-    } catch (e: any) {
+    } catch (e) {
       console.error("[SystemController.restore] Error restoring system:", e);
-      if (e.message === 'No tienes permisos para restaurar este sistema' || e.message === 'Sistema no encontrado') {
-        return next(new AppError(e.message, e.message === 'Sistema no encontrado' ? 404 : 403));
-      }
       next(e);
     }
   };

@@ -14,7 +14,7 @@ export default class RestoreLanguage {
       throw new AppError("Idioma no encontrado", 404);
     }
 
-    const system = await this.systemService.obtenerPorId(language.ruleset);
+    const system = await this.systemService.getById(language.ruleset);
     if (!system) {
       throw new AppError("Sistema asociado no encontrado", 404);
     }

@@ -138,6 +138,8 @@ router.post('/refresh', userController.refreshToken);
  *     responses:
  *       200:
  *         description: Sesión cerrada exitosamente.
+ *       400:
+ *         description: Refresh token no proporcionado.
  *       500:
  *         description: Error interno del servidor.
  */

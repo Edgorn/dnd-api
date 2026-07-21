@@ -71,7 +71,7 @@ export default class SystemRepository implements ISystemRepository {
   async getByUserId(userId: string, accessibleSystemIds: string[]): Promise<System[]> {
     const query: any = {
       $or: [
-        { publisher: userId },
+        { publisher: userId, deletedAt: null },
         { isOpen: true, deletedAt: null }
       ]
     };
@@ -79,7 +79,7 @@ export default class SystemRepository implements ISystemRepository {
     if (accessibleSystemIds.length > 0) {
       const validIds = accessibleSystemIds.filter(id => mongoose.Types.ObjectId.isValid(id));
       if (validIds.length > 0) {
-        query.$or.push({ _id: { $in: validIds } });
+        query.$or.push({ _id: { $in: validIds }, deletedAt: null });
       }
     }
 
@@ -116,9 +116,9 @@ export default class SystemRepository implements ISystemRepository {
   }
 
   async update(data: TypeModificarSystem): Promise<System | null> {
-    const { id, name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue, maxLevel, maxSpellLevel } = data;
+    const { id, name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, maxAttributeValue, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue, maxLevel, maxSpellLevel } = data;
 
-    const updateFields: any = {};
+    const updateFields: Record<string, unknown> = {};
     if (name !== undefined) updateFields.name = name;
     if (description !== undefined) updateFields.description = description;
     if (isOpen !== undefined) updateFields.isOpen = isOpen;
@@ -130,6 +130,7 @@ export default class SystemRepository implements ISystemRepository {
     }
     if (globalModifierFormula !== undefined) updateFields.globalModifierFormula = globalModifierFormula;
     if (initiativeBonusFormula !== undefined) updateFields.initiativeBonusFormula = initiativeBonusFormula;
+    if (maxAttributeValue !== undefined) updateFields.maxAttributeValue = maxAttributeValue;
     if (defaultMinAttributeValue !== undefined) updateFields.defaultMinAttributeValue = defaultMinAttributeValue;
     if (defaultMaxAttributeValue !== undefined) updateFields.defaultMaxAttributeValue = defaultMaxAttributeValue;
     if (creationMinAttributeValue !== undefined) updateFields.creationMinAttributeValue = creationMinAttributeValue;
@@ -151,10 +152,6 @@ export default class SystemRepository implements ISystemRepository {
       return null;
     }
     return SistemasModel.findOne({ _id: id, deletedAt: null } as any).lean();
-  }
-
-  async obtenerPorId(id: string): Promise<System | null> {
-    return this.getById(id);
   }
 
   async getByIdWithDeleted(id: string): Promise<System | null> {

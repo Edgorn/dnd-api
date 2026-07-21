@@ -13,7 +13,7 @@ export default class CascadeSoftDeleteSystem {
   ) {}
 
   async execute(id: string, userId: string): Promise<void> {
-    const system = await this.systemService.obtenerPorId(id);
+    const system = await this.systemService.getById(id);
     if (!system) {
       throw new AppError("Sistema no encontrado", 404);
     }

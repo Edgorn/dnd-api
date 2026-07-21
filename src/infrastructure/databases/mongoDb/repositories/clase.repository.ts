@@ -3,7 +3,7 @@ import ICompetenciaRepository from '../../../../domain/repositories/ICompetencia
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
-import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
+import SkillService from '../../../../domain/services/skill.service';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
@@ -15,7 +15,7 @@ import ClaseSchema from '../schemas/Clase';
 
 export default class ClaseRepository implements IClaseRepository {
   constructor(
-    private readonly skillRepository: ISkillRepository,
+    private readonly skillService: SkillService,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly traitRepository: ITraitRepository,
@@ -92,7 +92,7 @@ export default class ClaseRepository implements IClaseRepository {
     const mixed_spell_choices = Array.from({ length: dataLevel?.mixed_spell_choices?.number ?? 0 }, () => mixed_spell?.map(opt => ({ ...opt })) ?? []);
     const spell_changes = Array.from({ length: dataLevel?.spell_changes?.number ?? 0 }, () => spell_changes_aux?.map(opt => ({ ...opt })) ?? []);
 
-    const skill_choices = await this.skillRepository.formatSkillChoices(dataLevel.skill_choices)
+    const skill_choices = await this.skillService.formatSkillChoices(dataLevel.skill_choices)
     const invocations_choices = await this.invocacionRepository.obtenerOpciones(dataLevel.invocations ?? 0)
     const invocations_change = await this.invocacionRepository.obtenerOpciones(dataLevel.invocations_change ?? 0)
 
@@ -208,7 +208,7 @@ export default class ClaseRepository implements IClaseRepository {
       this.traitRepository.getTraitsByIndexes(dataLevel?.traits ?? [], dataLevel?.traits_data),
       this.competenciaRepository.obtenerCompetenciasPorIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]),
       this.competenciaRepository.formatearOpcionesDeCompetencias(clase?.proficiencies_choices ?? []),
-      this.skillRepository.formatSkillChoices(clase.skill_choices),
+      this.skillService.formatSkillChoices(clase.skill_choices),
       this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? ''),
       this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment),
@@ -401,11 +401,11 @@ export default class ClaseRepository implements IClaseRepository {
     const mixed_spell = await this.conjuroRepository.formatearOpcionesDeConjuros(subclase?.mixed_spell_choices?.options)
     const mixed_spell_choices = Array.from({ length: subclase?.mixed_spell_choices?.number ?? 0 }, () => mixed_spell?.map(opt => ({ ...opt })) ?? []);
 
-    const skill_choices = await this.skillRepository.formatSkillChoices(subclase.skill_choices)
+    const skill_choices = await this.skillService.formatSkillChoices(subclase.skill_choices)
     const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(subclase?.proficiencies ?? [])
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(subclase?.spells ?? [])
     const languagesOptions = await this.languageRepository.formatLanguageChoices(subclase?.language_choices)
-    const double_skill_choices = await this.skillRepository.formatSkillChoices(subclase?.double_skill_choices)
+    const double_skill_choices = await this.skillService.formatSkillChoices(subclase?.double_skill_choices)
     const spell_choices = await this.conjuroRepository.formatearOpcionesDeConjuros(subclase?.spell_choices)
 
     return {

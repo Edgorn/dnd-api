@@ -37,7 +37,7 @@ export const CreateRaceSchema = z.object({
     notes: z.string().optional()
   }).optional(),
   language_choices: ChoiceMongoSchema.optional(),
-  parentId: z.string().optional(),
+  parentId: z.string().nullable().optional(),
   subraces_name: z.string().optional(),
   spell_choices: z.array(z.any()).optional()
 });

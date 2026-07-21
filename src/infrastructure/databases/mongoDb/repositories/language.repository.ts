@@ -21,7 +21,7 @@ export default class LanguageRepository implements ILanguageRepository {
     let includeDeleted = false;
     if (userId && this.systemRepository) {
       for (const ruleset of expandedRulesets) {
-        const sys = await this.systemRepository.obtenerPorId(ruleset);
+        const sys = await this.systemRepository.getById(ruleset);
         if (sys && sys.publisher === userId) {
           includeDeleted = true;
           break;

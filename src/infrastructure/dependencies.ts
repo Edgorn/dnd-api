@@ -110,6 +110,7 @@ import LanguageService from "../domain/services/language.service";
 
 import CreateAttribute from "../application/use-cases/attribute/createAttribute.use-case";
 import UpdateAttribute from "../application/use-cases/attribute/updateAttribute.use-case";
+import GetAttributesBySystems from "../application/use-cases/attribute/getAttributesBySystems.use-case";
 import AttributeService from "../domain/services/attribute.service";
 import AttributeRepository from "./databases/mongoDb/repositories/attribute.repository";
 import { AttributeController } from "./http/controllers/attribute.controller";
@@ -124,8 +125,8 @@ import RestoreLanguage from "../application/use-cases/language/restoreLanguage.u
 
 const estadoRepository = new EstadoRepository()
 const userRepository = new UserRepository()
-const skillRepository = new SkillRepository()
 const systemRepository = new SystemRepository()
+const skillRepository = new SkillRepository(systemRepository)
 const competenciaRepository = new CompetenciaRepository()
 const conjuroRepository = new ConjuroRepository()
 const dañoRepository = new DañoRepository()
@@ -133,12 +134,13 @@ const propiedadArmaRepository = new PropiedadArmaRepository()
 const equipamientoRepository = new EquipamientoRepository(dañoRepository, propiedadArmaRepository)
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
-const traitRepository = new TraitRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository, systemRepository)
+const traitRepository = new TraitRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
+const skillService = new SkillService(skillRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, traitRepository)
 const claseRepository = new ClaseRepository(
-  skillRepository,
+  skillService,
   competenciaRepository,
   equipamientoRepository,
   traitRepository,
@@ -151,11 +153,11 @@ const claseRepository = new ClaseRepository(
 const raceRepository = new RaceRepository(
   languageRepository,
   conjuroRepository,
-  skillRepository,
+  skillService,
   competenciaRepository,
   doteRepository,
   traitRepository,
-  attributeRepository,
+  attributeService,
   systemRepository
 )
 
@@ -180,7 +182,7 @@ const personajeRepository = new PersonajeRepository(
   traitRepository,
   competenciaRepository,
   languageRepository,
-  skillRepository,
+  skillService,
   conjuroRepository,
   doteRepository,
   claseRepository,
@@ -217,14 +219,13 @@ const equipamientoService = new EquipamientoService(equipamientoRepository)
 const personajeService = new PersonajeService(personajeRepository)
 const conjuroService = new ConjuroService(conjuroRepository)
 const traitService = new TraitService(traitRepository)
-const skillService = new SkillService(skillRepository)
 const systemService = new SystemService(systemRepository)
 const getSystemApi = new GetSystemApi(
-  systemRepository,
-  userRepository,
+  systemService,
+  userService,
   raceRepository,
-  attributeRepository,
-  skillRepository
+  attributeService,
+  skillService
 )
 
 const crearCampaña = new CrearCampaña(campañaService)
@@ -264,21 +265,22 @@ const createSystem = new CreateSystem(systemService, getSystemApi);
 const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, getSystemApi);
 const updateSystem = new UpdateSystem(systemService, getSystemApi);
 
-const createAttribute = new CreateAttribute(attributeService);
-const updateAttribute = new UpdateAttribute(attributeService);
+const createAttribute = new CreateAttribute(attributeService, systemService);
+const updateAttribute = new UpdateAttribute(attributeService, systemService);
+const getAttributesBySystems = new GetAttributesBySystems(attributeService);
 
 const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
 const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
 
-const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService)
-const createTraitUseCase = new CreateTraitUseCase(traitService)
-const updateTraitUseCase = new UpdateTraitUseCase(traitService)
+const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService, systemService)
+const createTraitUseCase = new CreateTraitUseCase(traitService, systemService)
+const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService)
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 
-const getSkillsBySystems = new GetSkillsBySystems(skillService, systemService)
-const createSkill = new CreateSkill(skillService)
-const updateSkill = new UpdateSkill(skillService)
+const getSkillsBySystems = new GetSkillsBySystems(skillService)
+const createSkill = new CreateSkill(skillService, systemService)
+const updateSkill = new UpdateSkill(skillService, systemService)
 
 const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository);
 const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository);
@@ -371,7 +373,8 @@ export const attributeController = new AttributeController(
   createAttribute,
   updateAttribute,
   softDeleteAttribute,
-  restoreAttribute
+  restoreAttribute,
+  getAttributesBySystems
 );
 
 export const authorizeSystemMiddleware = createAuthorizeSystemMiddleware(userRepository);

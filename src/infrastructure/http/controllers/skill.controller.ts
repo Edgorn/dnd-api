@@ -6,7 +6,6 @@ import CreateSkill from "../../../application/use-cases/skill/createSkill.use-ca
 import UpdateSkill from "../../../application/use-cases/skill/updateSkill.use-case";
 import SoftDeleteSkill from "../../../application/use-cases/skill/softDeleteSkill.use-case";
 import RestoreSkill from "../../../application/use-cases/skill/restoreSkill.use-case";
-import { AppError } from "../../../domain/errors/AppError";
 
 export class SkillController {
   constructor(
@@ -35,7 +34,8 @@ export class SkillController {
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.createSkillUseCase.execute(req.body);
+      const userId = req.user!;
+      const data = await this.createSkillUseCase.execute(req.body, userId);
       return res.status(201).json(data);
     } catch (e) {
       next(e);
@@ -44,6 +44,7 @@ export class SkillController {
 
   update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user!;
       const { id } = req.params;
 
       if (!id) {
@@ -53,7 +54,7 @@ export class SkillController {
       const data = await this.updateSkillUseCase.execute({
         id,
         ...req.body
-      });
+      }, userId);
 
       return res.status(200).json(data);
     } catch (e) {
@@ -72,10 +73,7 @@ export class SkillController {
 
       await this.softDeleteSkillUseCase.execute(id, userId);
       return res.status(204).send();
-    } catch (e: any) {
-      if (e.message === 'No tienes permisos para borrar esta habilidad' || e.message === 'Sistema asociado no encontrado' || e.message === 'Habilidad no encontrada') {
-        return next(new AppError(e.message, e.message.includes('encontrad') ? 404 : 403));
-      }
+    } catch (e) {
       next(e);
     }
   };
@@ -91,10 +89,7 @@ export class SkillController {
 
       await this.restoreSkillUseCase.execute(id, userId);
       return res.status(200).json({ message: 'Habilidad restaurada con éxito' });
-    } catch (e: any) {
-      if (e.message === 'No tienes permisos para restaurar esta habilidad' || e.message === 'Sistema asociado no encontrado' || e.message === 'Habilidad no encontrada') {
-        return next(new AppError(e.message, e.message.includes('encontrad') ? 404 : 403));
-      }
+    } catch (e) {
       next(e);
     }
   };

@@ -1,5 +1,6 @@
 import ISystemRepository from '../repositories/ISystemRepository';
 import { System, TypeCrearSystem, TypeModificarSystem } from '../types/system.types';
+import { AppError } from '../errors/AppError';
 
 export default class SystemService {
   constructor(private readonly systemRepository: ISystemRepository) {}
@@ -15,18 +16,14 @@ export default class SystemService {
   async update(data: TypeModificarSystem): Promise<System | null> {
     const system = await this.systemRepository.getById(data.id);
     if (!system) {
-      throw new Error('Sistema no encontrado');
+      throw new AppError('Sistema no encontrado', 404);
     }
 
     if (system.publisher !== data.userId) {
-      throw new Error('No tienes permisos de edición para este sistema');
+      throw new AppError('No tienes permisos de edición para este sistema', 403);
     }
 
     return this.systemRepository.update(data);
-  }
-
-  obtenerPorId(id: string): Promise<System | null> {
-    return this.systemRepository.getById(id);
   }
 
   getById(id: string): Promise<System | null> {

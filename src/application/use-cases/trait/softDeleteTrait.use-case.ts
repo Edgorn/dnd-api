@@ -14,7 +14,7 @@ export default class SoftDeleteTraitUseCase {
       throw new AppError("Trait no encontrado", 404);
     }
 
-    const system = await this.systemService.obtenerPorId(trait.ruleset);
+    const system = await this.systemService.getById(trait.ruleset);
     if (!system) {
       throw new AppError("Sistema asociado no encontrado", 404);
     }

@@ -22,6 +22,8 @@ export interface AttributeApi {
   deletedAt?: Date;
 }
 
+export type AttributeApiPublic = Omit<AttributeApi, 'deletedAt'>;
+
 export interface InputCreateAttribute {
   ruleset: string;
   name: string;

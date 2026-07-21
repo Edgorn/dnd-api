@@ -1681,6 +1681,9 @@
           "200": {
             "description": "Sesión cerrada exitosamente."
           },
+          "400": {
+            "description": "Refresh token no proporcionado."
+          },
           "500": {
             "description": "Error interno del servidor."
           }
@@ -2130,6 +2133,48 @@
       }
     },
     "/skills": {
+      "get": {
+        "summary": "Obtener habilidades filtradas por sistemas",
+        "tags": [
+          "Habilidades"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema para filtrar habilidades (se heredan sistemas ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de habilidades devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Skill"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
       "post": {
         "summary": "Crear una nueva habilidad",
         "tags": [
@@ -2166,6 +2211,9 @@
           },
           "401": {
             "description": "No autorizado."
+          },
+          "409": {
+            "description": "Ya existe una habilidad con esta clave en el sistema."
           },
           "500": {
             "description": "Error del servidor."
@@ -2895,6 +2943,48 @@
       }
     },
     "/attributes": {
+      "get": {
+        "summary": "Obtener características filtradas por sistemas",
+        "tags": [
+          "Caracteristicas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema para filtrar características (se heredan sistemas ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de características devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Attribute"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
       "post": {
         "summary": "Crear una nueva característica",
         "tags": [

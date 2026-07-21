@@ -1,6 +1,4 @@
-import { ChoiceMongo, ChoiceApi } from "../types";
-import { SkillApi, SkillPersonajeApi, InputCreateSkill, InputUpdateSkill } from "../types/skill.types";
-import { CharacterAttributeApi } from "../types/attribute.types";
+import { SkillApi, InputCreateSkill, InputUpdateSkill } from "../types/skill.types";
 
 export default interface ISkillRepository {
   create(data: InputCreateSkill): Promise<SkillApi>;
@@ -8,14 +6,6 @@ export default interface ISkillRepository {
   getBySystems(rulesets: string[], includeDeleted?: boolean): Promise<SkillApi[]>;
   getSkillsByKeys(keys: string[]): Promise<SkillApi[]>;
   getAll(): Promise<SkillApi[]>;
-  getCharacterSkills(
-    skills: string[], 
-    double_skills: string[],
-    attributes: CharacterAttributeApi[],
-    profBonus: number,
-    hasJackOfAllTrades: boolean
-  ): Promise<SkillPersonajeApi[]>;
-  formatSkillChoices(options: ChoiceMongo | undefined): Promise<ChoiceApi<SkillApi> | undefined>;
   getById(id: string): Promise<SkillApi | null>;
   softDelete(id: string): Promise<void>;
   restore(id: string): Promise<void>;

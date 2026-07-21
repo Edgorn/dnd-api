@@ -1,5 +1,15 @@
 # Auditorías de Código — `dnd-api`
 
+## 📋 Resumen General de Auditorías
+
+| Módulo Auditado | Fecha | Archivos Principales | Estado |
+|---|---|---|---|
+| **Autenticación y Usuarios** | 2026-07-12 | `user.routes.ts`, `user.controller.ts`, `user.service.ts` | ✅ Corregido (2026-07-20) |
+| **Características / Atributos** | 2026-07-12 | `attribute.routes.ts`, `attribute.controller.ts`, `attribute.service.ts` | ✅ Corregido (2026-07-20) |
+| **Habilidades (`skill`)** | 2026-07-13 | `skill.routes.ts`, `skill.controller.ts`, `skill.service.ts` | ✅ Corregido (2026-07-20) |
+| **Sistemas (`system`)** | 2026-07-13 | `system.routes.ts`, `system.controller.ts`, `system.service.ts` | ✅ Corregido (2026-07-20) |
+| **Rasgos (`trait`)** | 2026-07-13 | `trait.routes.ts`, `trait.controller.ts`, `trait.service.ts` | ✅ Corregido (2026-07-20) |
+
 ---
 
 ## Módulo de Autenticación y Usuarios (`user.routes.ts` y derivados) — 2026-07-12
@@ -904,7 +914,7 @@ El campo `maxAttributeValue` aparece en la interfaz `System` pero no en `TypeCre
 
 ---
 
-## Módulo de Rasgos (`trait.routes.ts` y derivados) — 2026-07-13
+## Módulo de Rasgos (`trait.routes.ts` y derivados) — ✅ Corregido (2026-07-20)
 
 **Archivos auditados:**
 - [`src/infrastructure/http/routes/trait.routes.ts`](file:///d:/Documents/Programacion/DragonesMazmorras/dnd-api/src/infrastructure/http/routes/trait.routes.ts)

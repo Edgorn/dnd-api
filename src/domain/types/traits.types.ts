@@ -59,8 +59,7 @@ export interface TraitApi {
   discard?: string[],
   bonuses?: {
     armor_class: number
-  },
-  deletedAt?: Date | null
+  }
 }
 
 export interface TraitsOptionsApi {
@@ -79,10 +78,10 @@ export interface CreateTrait {
 
 export interface UpdateTrait {
   id: string,
-  name: string,
-  description: string[],
-  summary: string[],
-  ruleset: string,
-  incompatible_traits: string[],
+  name?: string,
+  description?: string[],
+  summary?: string[],
+  ruleset?: string,
+  incompatible_traits?: string[],
   skills?: string[]
 }

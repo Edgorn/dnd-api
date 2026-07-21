@@ -36,7 +36,8 @@ export class TraitController {
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const trait = await this.createTraitUseCase.execute(req.body);
+      const userId = req.user!;
+      const trait = await this.createTraitUseCase.execute(req.body, userId);
       return res.status(201).json(trait);
     } catch (error) {
       console.error("[TraitController.create] Error:", error);
@@ -46,11 +47,12 @@ export class TraitController {
 
   update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user!;
       const { id } = req.params;
       if (!id) {
         throw new ValidationError("Trait ID is required");
       }
-      const trait = await this.updateTraitUseCase.execute({ id, ...req.body });
+      const trait = await this.updateTraitUseCase.execute({ id, ...req.body }, userId);
       return res.status(200).json(trait);
     } catch (error) {
       console.error("[TraitController.update] Error:", error);
@@ -69,10 +71,7 @@ export class TraitController {
 
       await this.softDeleteTraitUseCase.execute(id, userId);
       return res.status(204).send();
-    } catch (error: any) {
-      if (error.message === 'No tienes permisos para borrar este rasgo' || error.message === 'Sistema asociado no encontrado' || error.message === 'Trait no encontrado') {
-        return next(new AppError(error.message, error.message.includes('encontrado') ? 404 : 403));
-      }
+    } catch (error) {
       console.error("[TraitController.delete] Error:", error);
       next(error);
     }
@@ -89,10 +88,7 @@ export class TraitController {
 
       await this.restoreTraitUseCase.execute(id, userId);
       return res.status(200).json({ message: 'Rasgo restaurado con éxito' });
-    } catch (error: any) {
-      if (error.message === 'No tienes permisos para restaurar este rasgo' || error.message === 'Sistema asociado no encontrado' || error.message === 'Trait no encontrado') {
-        return next(new AppError(error.message, error.message.includes('encontrado') ? 404 : 403));
-      }
+    } catch (error) {
       console.error("[TraitController.restore] Error:", error);
       next(error);
     }

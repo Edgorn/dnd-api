@@ -14,7 +14,7 @@ export default class RestoreAttribute {
       throw new AppError("Atributo no encontrado", 404);
     }
 
-    const system = await this.systemService.obtenerPorId(attribute.ruleset);
+    const system = await this.systemService.getById(attribute.ruleset);
     if (!system) {
       throw new AppError("Sistema asociado no encontrado", 404);
     }

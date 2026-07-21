@@ -5,6 +5,8 @@ const SALT_ROUNDS = 10;
 const DUMMY_HASH = '$2b$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012';
 
 export class BcryptPasswordHasher implements IPasswordHasher {
+  readonly dummyHash = DUMMY_HASH;
+
   async compare(plainText: string, hash: string): Promise<boolean> {
     return bcrypt.compare(plainText, hash);
   }

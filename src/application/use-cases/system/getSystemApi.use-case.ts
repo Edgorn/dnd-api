@@ -1,22 +1,34 @@
-import ISystemRepository from "../../../domain/repositories/ISystemRepository";
-import IUserRepository from "../../../domain/repositories/IUserRepository";
+import SystemService from "../../../domain/services/system.service";
+import UserService from "../../../domain/services/user.service";
+import AttributeService from "../../../domain/services/attribute.service";
+import SkillService from "../../../domain/services/skill.service";
 import IRaceRepository from "../../../domain/repositories/IRaceRepository";
-import IAttributeRepository from "../../../domain/repositories/IAttributeRepository";
-import ISkillRepository from "../../../domain/repositories/ISkillRepository";
 import { System, SystemApi } from "../../../domain/types/system.types";
 import { AttributeApi } from "../../../domain/types/attribute.types";
 import { SkillApi } from "../../../domain/types/skill.types";
+import { AppError } from "../../../domain/errors/AppError";
 
 export default class GetSystemApi {
   constructor(
-    private readonly systemRepository: ISystemRepository,
-    private readonly userRepository: IUserRepository,
+    private readonly systemService: SystemService,
+    private readonly userService: UserService,
     private readonly raceRepository: IRaceRepository,
-    private readonly attributeRepository: IAttributeRepository,
-    private readonly skillRepository: ISkillRepository
+    private readonly attributeService: AttributeService,
+    private readonly skillService: SkillService
   ) {}
 
-  async execute(sys: System, userId?: string): Promise<SystemApi> {
+  async execute(sysOrId: System | string, userId?: string): Promise<SystemApi> {
+    let sys: System | null = null;
+    if (typeof sysOrId === "string") {
+      sys = await this.systemService.getById(sysOrId);
+    } else {
+      sys = sysOrId;
+    }
+
+    if (!sys) {
+      throw new AppError("Sistema no encontrado", 404);
+    }
+
     // 1. Get Ancestry
     const ancestry: System[] = [sys];
     let currentId = sys.parentId ? sys.parentId.toString() : '';
@@ -24,7 +36,7 @@ export default class GetSystemApi {
 
     while (currentId && !visited.has(currentId)) {
       visited.add(currentId);
-      const parent = await this.systemRepository.obtenerPorId(currentId);
+      const parent = await this.systemService.getById(currentId);
       if (!parent) break;
       ancestry.push(parent);
       currentId = parent.parentId ? parent.parentId.toString() : '';
@@ -33,7 +45,7 @@ export default class GetSystemApi {
     // 2. Publisher Name
     let publisherName = sys.publisher;
     if (sys.publisher) {
-      const user = await this.userRepository.getUserById(sys.publisher);
+      const user = await this.userService.getUserById(sys.publisher);
       if (user) {
         publisherName = user.name;
       }
@@ -54,30 +66,33 @@ export default class GetSystemApi {
     const races = await this.raceRepository.obtenerPorSistema(sys._id.toString());
     const racesCount = races.length;
 
-    // 5. Attributes (handling ancestry override and deleted status)
-    const attributesMap = new Map<string, AttributeApi>();
-    for (let i = ancestry.length - 1; i >= 0; i--) {
-      const ancestor = ancestry[i];
-      const isAncestorPublisher = userId ? ancestor.publisher === userId : false;
-      const sysAttrs = await this.attributeRepository.getBySystems([ancestor._id.toString(), ancestor.name]);
-      for (const attr of sysAttrs) {
-        if (!attr.deletedAt || isAncestorPublisher) {
-          attributesMap.set(attr.key, attr);
-        }
-      }
-    }
-    const attributes = Array.from(attributesMap.values());
+    // 5 & 6. Attributes and Skills (batch query to avoid N+1)
+    const [allAttrs, allSkills] = await Promise.all([
+      this.attributeService.getBySystems(ancestryRulesets),
+      this.skillService.getBySystems(ancestryRulesets, true)
+    ]);
 
-    // 6. Skills (handling ancestry override)
+    const attributesMap = new Map<string, AttributeApi>();
     const skillsMap = new Map<string, SkillApi>();
+
     for (let i = ancestry.length - 1; i >= 0; i--) {
       const ancestor = ancestry[i];
-      const isAncestorPublisher = userId ? ancestor.publisher === userId : false;
-      const sysSkills = await this.skillRepository.getBySystems([ancestor._id.toString(), ancestor.name], isAncestorPublisher);
+      const ancestorRulesets = [ancestor._id.toString(), ancestor.name].filter(Boolean);
+
+      // Attributes for this ancestor
+      const sysAttrs = allAttrs.filter(attr => ancestorRulesets.includes(attr.ruleset));
+      for (const attr of sysAttrs) {
+        attributesMap.set(attr.key, attr);
+      }
+
+      // Skills for this ancestor
+      const sysSkills = allSkills.filter(skill => ancestorRulesets.includes(skill.ruleset));
       for (const skill of sysSkills) {
         skillsMap.set(skill.key, skill);
       }
     }
+
+    const attributes = Array.from(attributesMap.values());
     const skills = Array.from(skillsMap.values());
 
     const getMergedScalar = <T>(key: keyof System, defaultValue?: T): T | undefined => {
@@ -102,6 +117,7 @@ export default class GetSystemApi {
       racesCount,
       globalModifierFormula: getMergedScalar<string>('globalModifierFormula'),
       initiativeBonusFormula: getMergedScalar<string>('initiativeBonusFormula'),
+      maxAttributeValue: getMergedScalar<number>('maxAttributeValue'),
       defaultMinAttributeValue: getMergedScalar<number>('defaultMinAttributeValue'),
       defaultMaxAttributeValue: getMergedScalar<number>('defaultMaxAttributeValue'),
       creationMinAttributeValue: getMergedScalar<number>('creationMinAttributeValue'),
@@ -109,8 +125,7 @@ export default class GetSystemApi {
       maxLevel: getMergedScalar<number>('maxLevel'),
       maxSpellLevel: getMergedScalar<number>('maxSpellLevel'),
       attributes,
-      skills,
-      deletedAt: sys.deletedAt
+      skills
     };
   }
 }

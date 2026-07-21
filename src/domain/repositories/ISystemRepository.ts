@@ -5,7 +5,6 @@ export default interface ISystemRepository {
   create(data: TypeCrearSystem): Promise<System | null>;
   update(data: TypeModificarSystem): Promise<System | null>;
   getById(id: string): Promise<System | null>;
-  obtenerPorId(id: string): Promise<System | null>;
   getByIdWithDeleted(id: string): Promise<System | null>;
   getGlobalModifierFormula(systems: string[]): Promise<string | undefined>;
   getInitiativeBonusFormula(systems: string[]): Promise<string | undefined>;

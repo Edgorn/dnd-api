@@ -20,7 +20,9 @@ export interface SkillApi {
   bonusFormula?: string,
   attributeScore: string[],
   deletedAt?: Date
-} 
+}
+
+export type SkillApiPublic = Omit<SkillApi, 'deletedAt'>; 
 
 export interface SkillPersonajeApi extends Omit<SkillApi, 'ruleset' | 'bonusFormula'> {
   value: number,

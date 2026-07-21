@@ -7,8 +7,8 @@ import { AppError } from "../../../domain/errors/AppError";
 export class UserController {
   constructor(
     private readonly loginUseCase: LoginUseCase,
-    private readonly refreshTokenUseCase?: RefreshTokenUseCase,
-    private readonly logoutUseCase?: LogoutUseCase
+    private readonly refreshTokenUseCase: RefreshTokenUseCase,
+    private readonly logoutUseCase: LogoutUseCase
   ) { }
 
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -32,7 +32,7 @@ export class UserController {
     try {
       const { refreshToken } = req.body;
 
-      if (!refreshToken || !this.refreshTokenUseCase) {
+      if (!refreshToken) {
         throw new AppError("Refresh token no proporcionado", 400);
       }
 
@@ -52,9 +52,11 @@ export class UserController {
     try {
       const { refreshToken } = req.body;
 
-      if (refreshToken && this.logoutUseCase) {
-        await this.logoutUseCase.execute(refreshToken);
+      if (!refreshToken) {
+        throw new AppError("Refresh token no proporcionado", 400);
       }
+
+      await this.logoutUseCase.execute(refreshToken);
 
       res.status(200).json({ message: "Sesión cerrada correctamente" });
     } catch (error) {

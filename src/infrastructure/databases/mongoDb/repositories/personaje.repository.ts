@@ -7,6 +7,7 @@ import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, T
 import Campaña from '../schemas/Campaña';
 import { DañoApi } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
+import SkillService from '../../../../domain/services/skill.service';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
@@ -53,7 +54,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly traitRepository: ITraitRepository,
     private readonly competenciaRepository: ICompetenciaRepository,
     private readonly languageRepository: ILanguageRepository,
-    private readonly skillRepository: ISkillRepository,
+    private readonly skillService: SkillService,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly claseRepository: IClaseRepository,
@@ -962,7 +963,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const hasJackOfAllTrades = !!traits?.find(trait => trait.id === "jack-of-all-trades");
-    const skillsListEvaluated = await this.skillRepository.getCharacterSkills(
+    const skillsListEvaluated = await this.skillService.getCharacterSkills(
       skills,
       personaje?.double_skills ?? [],
       apiAttributes,
