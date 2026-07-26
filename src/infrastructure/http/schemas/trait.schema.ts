@@ -6,6 +6,7 @@ export const CreateTraitSchema = z.object({
   description: z.array(z.string()).optional().default([]),
   summary: z.array(z.string()).optional().default([]),
   incompatible_traits: z.array(z.string()).optional().default([]),
+  proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string()).optional()
 });
 
@@ -15,6 +16,7 @@ export const UpdateTraitSchema = z.object({
   description: z.array(z.string()).optional(),
   summary: z.array(z.string()).optional(),
   incompatible_traits: z.array(z.string()).optional(),
+  proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string()).optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"

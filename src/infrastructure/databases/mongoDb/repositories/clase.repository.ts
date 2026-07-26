@@ -1,5 +1,5 @@
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
-import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
+import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
@@ -16,7 +16,7 @@ import ClaseSchema from '../schemas/Clase';
 export default class ClaseRepository implements IClaseRepository {
   constructor(
     private readonly skillService: SkillService,
-    private readonly competenciaRepository: ICompetenciaRepository,
+    private readonly proficiencyRepository: IProficiencyRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly traitRepository: ITraitRepository,
     private readonly conjuroRepository: IConjuroRepository,
@@ -206,8 +206,8 @@ export default class ClaseRepository implements IClaseRepository {
       equipment_choices
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(dataLevel?.traits ?? [], dataLevel?.traits_data),
-      this.competenciaRepository.obtenerCompetenciasPorIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]),
-      this.competenciaRepository.formatearOpcionesDeCompetencias(clase?.proficiencies_choices ?? []),
+      this.proficiencyRepository.getProficienciesByIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]),
+      this.proficiencyRepository.formatProficiencyChoices(clase?.proficiencies_choices ?? []),
       this.skillService.formatSkillChoices(clase.skill_choices),
       this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? ''),
       this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices),
@@ -402,7 +402,7 @@ export default class ClaseRepository implements IClaseRepository {
     const mixed_spell_choices = Array.from({ length: subclase?.mixed_spell_choices?.number ?? 0 }, () => mixed_spell?.map(opt => ({ ...opt })) ?? []);
 
     const skill_choices = await this.skillService.formatSkillChoices(subclase.skill_choices)
-    const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(subclase?.proficiencies ?? [])
+    const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(subclase?.proficiencies ?? [])
     const spells = await this.conjuroRepository.obtenerConjurosPorIndices(subclase?.spells ?? [])
     const languagesOptions = await this.languageRepository.formatLanguageChoices(subclase?.language_choices)
     const double_skill_choices = await this.skillService.formatSkillChoices(subclase?.double_skill_choices)

@@ -36,6 +36,14 @@ import GetSystemApi from "../application/use-cases/system/getSystemApi.use-case"
 import CascadeSoftDeleteSystem from "../application/use-cases/system/cascadeSoftDeleteSystem.use-case";
 import CascadeRestoreSystem from "../application/use-cases/system/cascadeRestoreSystem.use-case";
 
+import ProficiencyService from "../domain/services/proficiency.service";
+import CreateProficiency from "../application/use-cases/proficiency/createProficiency.use-case";
+import UpdateProficiency from "../application/use-cases/proficiency/updateProficiency.use-case";
+import SoftDeleteProficiency from "../application/use-cases/proficiency/softDeleteProficiency.use-case";
+import RestoreProficiency from "../application/use-cases/proficiency/restoreProficiency.use-case";
+import GetProficienciesBySystems from "../application/use-cases/proficiency/getProficienciesBySystems.use-case";
+import { ProficiencyController } from "./http/controllers/proficiency.controller";
+
 import CampañaService from "../domain/services/campaña.service";
 import UserService from "../domain/services/user.service";
 import RaceService from "../domain/services/race.service";
@@ -48,7 +56,7 @@ import SystemService from "../domain/services/system.service";
 
 import CampañaRepository from "./databases/mongoDb/repositories/campaña.repository";
 import ClaseRepository from "./databases/mongoDb/repositories/clase.repository";
-import CompetenciaRepository from "./databases/mongoDb/repositories/competencia.repository";
+import ProficiencyRepository from "./databases/mongoDb/repositories/proficiency.repository";
 import ConjuroRepository from "./databases/mongoDb/repositories/conjuros.repository";
 import DoteRepository from "./databases/mongoDb/repositories/dote.repository";
 import EquipamientoRepository from "./databases/mongoDb/repositories/equipamiento.repository";
@@ -127,21 +135,21 @@ const estadoRepository = new EstadoRepository()
 const userRepository = new UserRepository()
 const systemRepository = new SystemRepository()
 const skillRepository = new SkillRepository(systemRepository)
-const competenciaRepository = new CompetenciaRepository()
+const proficiencyRepository = new ProficiencyRepository(systemRepository)
 const conjuroRepository = new ConjuroRepository()
 const dañoRepository = new DañoRepository()
 const propiedadArmaRepository = new PropiedadArmaRepository()
 const equipamientoRepository = new EquipamientoRepository(dañoRepository, propiedadArmaRepository)
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
-const traitRepository = new TraitRepository(dañoRepository, competenciaRepository, conjuroRepository, estadoRepository)
+const traitRepository = new TraitRepository(dañoRepository, proficiencyRepository, conjuroRepository, estadoRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const skillService = new SkillService(skillRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, traitRepository)
 const claseRepository = new ClaseRepository(
   skillService,
-  competenciaRepository,
+  proficiencyRepository,
   equipamientoRepository,
   traitRepository,
   conjuroRepository,
@@ -154,7 +162,7 @@ const raceRepository = new RaceRepository(
   languageRepository,
   conjuroRepository,
   skillService,
-  competenciaRepository,
+  proficiencyRepository,
   doteRepository,
   traitRepository,
   attributeService,
@@ -163,7 +171,7 @@ const raceRepository = new RaceRepository(
 
 const transfondoRepository = new TransfondoRepository(
   skillRepository,
-  competenciaRepository,
+  proficiencyRepository,
   languageRepository,
   equipamientoRepository,
   traitRepository
@@ -180,7 +188,7 @@ const personajeRepository = new PersonajeRepository(
   userRepository,
   equipamientoRepository,
   traitRepository,
-  competenciaRepository,
+  proficiencyRepository,
   languageRepository,
   skillService,
   conjuroRepository,
@@ -378,3 +386,18 @@ export const attributeController = new AttributeController(
 );
 
 export const authorizeSystemMiddleware = createAuthorizeSystemMiddleware(userRepository);
+
+const proficiencyService = new ProficiencyService(proficiencyRepository);
+const createProficiency = new CreateProficiency(proficiencyService, systemService);
+const updateProficiency = new UpdateProficiency(proficiencyService, systemService);
+const softDeleteProficiency = new SoftDeleteProficiency(proficiencyService, systemService);
+const restoreProficiency = new RestoreProficiency(proficiencyService, systemService);
+const getProficienciesBySystems = new GetProficienciesBySystems(proficiencyService);
+
+export const proficiencyController = new ProficiencyController(
+  getProficienciesBySystems,
+  createProficiency,
+  updateProficiency,
+  softDeleteProficiency,
+  restoreProficiency
+);

@@ -12,7 +12,7 @@ import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
-import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
+import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { ConjuroApi } from '../../../../domain/types/conjuros.types';
@@ -52,7 +52,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly userRepository: IUserRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly traitRepository: ITraitRepository,
-    private readonly competenciaRepository: ICompetenciaRepository,
+    private readonly proficiencyRepository: IProficiencyRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly skillService: SkillService,
     private readonly conjuroRepository: IConjuroRepository,
@@ -832,7 +832,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const skills = personaje?.skills ?? []
 
     const idiomasId = personaje?.languages ?? []
-    const proficiencies = await this.competenciaRepository.obtenerCompetenciasPorIndices(personaje?.proficiencies ?? [])
+    const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(personaje?.proficiencies ?? [])
 
     const resistances: DañoApi[] = []
 
@@ -884,14 +884,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     })
 
-    const indexSet = new Set(proficiencies.map(item => item.index));
+    const indexSet = new Set(proficiencies.map(item => item.id));
 
-    const proficienciesFiltrados = proficiencies.filter(item =>
-      item.desc.every(ref => !indexSet.has(ref))
-    );
+    // Remove old desc filtering
+    const proficienciesFiltrados = proficiencies;
 
     const proficienciesUnicos = [
-      ...new Map(proficienciesFiltrados.map(item => [item.index, item])).values()
+      ...new Map(proficienciesFiltrados.map(item => [item.id, item])).values()
     ];
 
     const idiomas_understands = await this.languageRepository.getLanguagesByIndex(personaje.languages?.understands ?? [])
@@ -1317,7 +1316,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     suma += this.sumaDaño(character, equip)
 
-    if (character?.proficiencies?.some(arma => equip?.weapon?.competency?.includes(arma?.index))) {
+    if (character?.proficiencies?.some(arma => equip?.weapon?.competency?.includes(arma?.id))) {
       suma += character?.prof_bonus ?? 0
     }
 

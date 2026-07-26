@@ -14,8 +14,6 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   resistances: [String],
   condition_inmunities: [String],
   conditional_resistances: [String],
-  proficiencies_weapon: [],
-  proficiencies_armor: [],
   proficiencies: [],
   skills: [],
   speed: Number,

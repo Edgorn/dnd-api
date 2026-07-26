@@ -1,5 +1,5 @@
 import { ChoiceApi, ChoiceMongo, EquipamientoOpcionesApi, MixedChoicesApi, MixedChoicesMongo, OptionSelectApi } from ".";
-import { CompetenciaApi } from "./competencias.types";
+import { ProficiencyApi } from "./proficiencies.types";
 import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types";
 import { SkillApi } from "./skill.types";
 import { LanguageApi } from "./language.types";
@@ -61,8 +61,8 @@ export interface TransfondoApi {
   traits_options?: TraitsOptionsApi,
   skills?: SkillApi[],
   language_choices?: ChoiceApi<LanguageApi>,
-  proficiencies: CompetenciaApi[],
-  proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
+  proficiencies: ProficiencyApi[],
+  proficiencies_choices?: ChoiceApi<ProficiencyApi>[],
   equipment?: EquipamientoPersonajeApi[];
   equipment_choices?: EquipamientoChoiceApi[][],
   personalized_equipment: string[],
@@ -84,7 +84,7 @@ export interface VarianteApi {
   desc?: string[],
   traits?: TraitApi[],
   traits_options?: TraitsOptionsApi,
-  proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
+  proficiencies_choices?: ChoiceApi<ProficiencyApi>[],
   mixed_choices?: MixedChoicesApi[][],
   equipment?: EquipamientoPersonajeApi[],
   equipment_choices?: EquipamientoChoiceApi[][],

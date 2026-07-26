@@ -113,7 +113,7 @@ const router = Router();
  *   get:
  *     summary: Obtener rasgos por sistemas
  *     tags:
- *       - Rasgos (Traits)
+ *       - Rasgos
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -147,7 +147,7 @@ router.get('/traits', authMiddleware, traitController.getBySystems);
  *   post:
  *     summary: Crear un nuevo rasgo
  *     tags:
- *       - Rasgos (Traits)
+ *       - Rasgos
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -178,7 +178,7 @@ router.post('/traits', authMiddleware, validateSchema(CreateTraitSchema), traitC
  *   put:
  *     summary: Modificar un rasgo existente
  *     tags:
- *       - Rasgos (Traits)
+ *       - Rasgos
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -218,7 +218,7 @@ router.put('/traits/:id', authMiddleware, validateSchema(UpdateTraitSchema), tra
  *   delete:
  *     summary: Realizar un borrado lógico de un rasgo
  *     tags:
- *       - Rasgos (Traits)
+ *       - Rasgos
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -248,7 +248,7 @@ router.delete('/traits/:id', authMiddleware, traitController.delete);
  *   patch:
  *     summary: Restaurar un rasgo borrado lógicamente
  *     tags:
- *       - Rasgos (Traits)
+ *       - Rasgos
  *     security:
  *       - bearerAuth: []
  *     parameters:

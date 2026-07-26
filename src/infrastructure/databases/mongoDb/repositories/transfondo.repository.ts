@@ -1,4 +1,4 @@
-import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
+import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
@@ -12,7 +12,7 @@ import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
 export default class TransfondoRepository implements ITransfondoRepository {
   constructor(
     private readonly skillRepository: ISkillRepository,
-    private readonly competenciaRepository: ICompetenciaRepository,
+    private readonly proficiencyRepository: IProficiencyRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly traitRepository: ITraitRepository
@@ -52,8 +52,8 @@ export default class TransfondoRepository implements ITransfondoRepository {
       this.traitRepository.getTraitsOptions(transfondo?.traits_options),
       this.skillRepository.getSkillsByKeys(transfondo?.skills ?? []),
       this.languageRepository.formatLanguageChoices(transfondo.language_choices),
-      this.competenciaRepository.obtenerCompetenciasPorIndices(transfondo?.proficiencies ?? []),
-      this.competenciaRepository.formatearOpcionesDeCompetencias(transfondo?.proficiencies_choices),
+      this.proficiencyRepository.getProficienciesByIndices(transfondo?.proficiencies ?? []),
+      this.proficiencyRepository.formatProficiencyChoices(transfondo?.proficiencies_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(transfondo?.equipment),
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(transfondo?.equipment_choices),
       this.formatearVariantes(transfondo?.variants)
@@ -107,7 +107,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
         ? this.traitRepository.getTraitsByIndexes(variante?.traits ?? [])
         : Promise.resolve(undefined),
       this.traitRepository.getTraitsOptions(variante?.traits_options),
-      this.competenciaRepository.formatearOpcionesDeCompetencias(variante?.proficiencies_choices),
+      this.proficiencyRepository.formatProficiencyChoices(variante?.proficiencies_choices),
       this.formatearMixedChoices(variante.mixed_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(variante?.equipment),
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(variante?.equipment_choices)
@@ -148,7 +148,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
 
     const results = await Promise.all(mixedChoices.map(async (mixedChoice) => {
       if (mixedChoice.type === "proficiency") {
-        const competencia = await this.competenciaRepository.obtenerCompetenciaPorIndice(mixedChoice.value);
+        const competencia = await this.proficiencyRepository.getProficiencyById(mixedChoice.value);
         if (competencia) {
           return {
             type: "proficiency",
@@ -168,7 +168,7 @@ export default class TransfondoRepository implements ITransfondoRepository {
           }
         } else if (mixedChoice.value === "proficiencies_choices" && mixedChoice.proficiencies_choices) {
           // Resolver elección de competencias
-          const competenciasChoices = await this.competenciaRepository.formatearOpcionesDeCompetencias(mixedChoice.proficiencies_choices);
+          const competenciasChoices = await this.proficiencyRepository.formatProficiencyChoices(mixedChoice.proficiencies_choices);
           if (competenciasChoices) {
             return {
               type: "choice",

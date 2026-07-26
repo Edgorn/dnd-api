@@ -19,6 +19,7 @@ import skillRoutes from "./routes/skill.routes";
 import languageRoutes from "./routes/language.routes";
 import systemRoutes from "./routes/system.routes";
 import attributeRoutes from "./routes/attribute.routes";
+import proficiencyRoutes from "./routes/proficiency.routes";
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from "./middlewares/errorHandler.middleware";
@@ -66,6 +67,7 @@ app.use(skillRoutes);
 app.use(languageRoutes);
 app.use(systemRoutes);
 app.use(attributeRoutes);
+app.use(proficiencyRoutes);
 
 app.use(errorHandler);
 

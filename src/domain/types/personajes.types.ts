@@ -2,7 +2,7 @@ import { ObjectId } from "mongoose"
 import { TraitApi, TraitDataMongo } from "./traits.types"
 import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
-import { CompetenciaApi } from "./competencias.types"
+import { ProficiencyApi } from "./proficiencies.types"
 import { DañoApi, Speed } from "."
 import { EquipamientoPersonajeApi } from "./equipamientos.types"
 import { DoteApi } from "./dotes.types"
@@ -249,7 +249,7 @@ export interface PersonajeApi {
   speed: Speed,
   skills: SkillPersonajeApi[],
   languages: CreatureLanguages,
-  proficiencies: CompetenciaApi[],
+  proficiencies: ProficiencyApi[],
   traits: TraitApi[],
   traits_data: TraitDataMongo,
   resistances: DañoApi[],

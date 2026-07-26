@@ -1,4 +1,4 @@
-import ICompetenciaRepository from '../../../../domain/repositories/ICompetenciaRepository';
+import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import SkillService from '../../../../domain/services/skill.service';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
@@ -17,7 +17,7 @@ export default class RaceRepository implements IRaceRepository {
     private readonly languageRepository: ILanguageRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly skillService: SkillService,
-    private readonly competenciaRepository: ICompetenciaRepository,
+    private readonly proficiencyRepository: IProficiencyRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly traitRepository: ITraitRepository,
     private readonly attributeService: AttributeService,
@@ -170,7 +170,7 @@ export default class RaceRepository implements IRaceRepository {
       this.attributeService.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
       this.skillService.formatSkillChoices(raza.skill_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.understands ?? []),
-      this.competenciaRepository.formatearOpcionesDeCompetencias(raza?.proficiencies_choices),
+      this.proficiencyRepository.formatProficiencyChoices(raza?.proficiencies_choices),
       this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, ruleset),
       this.formatearVariantes(raza?.variants ?? [], ruleset),
       this.conjuroRepository.formatearOpcionesDeConjuros(raza?.spell_choices),

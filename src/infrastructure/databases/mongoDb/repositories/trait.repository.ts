@@ -2,11 +2,11 @@ import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
 import IDañoRepository from "../../../../domain/repositories/IDañoRepository";
 import TraitSchema from "../schemas/Trait";
-import ICompetenciaRepository from "../../../../domain/repositories/ICompetenciaRepository";
+import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
 import { CreateTrait, TraitApi, TraitDataMongo, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
 import { DañoApi } from "../../../../domain/types";
-import { CompetenciaApi } from "../../../../domain/types/competencias.types";
+import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { ConjuroApi } from "../../../../domain/types/conjuros.types";
 import { EstadoApi } from "../../../../domain/types/estados.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
@@ -16,7 +16,7 @@ import { AppError } from '../../../../domain/errors/AppError';
 export default class TraitRepository implements ITraitRepository {
   constructor(
     private readonly dañoRepository: IDañoRepository,
-    private readonly competenciaRepository: ICompetenciaRepository,
+    private readonly proficiencyRepository: IProficiencyRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly estadoRepository: IEstadoRepository
   ) {}
@@ -56,6 +56,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   async getById(id: string): Promise<TraitApi | null> {
+    if (!Types.ObjectId.isValid(id)) return null;
     const trait = await TraitSchema.findOne({ _id: id as any, deletedAt: null });
     if (!trait) return null;
     return this.formatearTrait(trait, {});
@@ -68,6 +69,9 @@ export default class TraitRepository implements ITraitRepository {
 
   async update(trait: UpdateTrait): Promise<TraitApi> {
     const { id, ...updateFields } = trait;
+    if (!Types.ObjectId.isValid(id)) {
+      throw new AppError("Trait no encontrado", 404);
+    }
     const traitUpdated = await TraitSchema.findByIdAndUpdate(
       id,
       { $set: updateFields },
@@ -80,10 +84,12 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   async softDelete(id: string): Promise<void> {
+    if (!Types.ObjectId.isValid(id)) return;
     await TraitSchema.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } });
   }
 
   async restore(id: string): Promise<void> {
+    if (!Types.ObjectId.isValid(id)) return;
     await TraitSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
 
@@ -100,11 +106,7 @@ export default class TraitRepository implements ITraitRepository {
     for (const trait of traits) {
       (trait.resistances ?? []).forEach(r => allResistances.add(r));
       (trait.conditional_resistances ?? []).forEach(cr => allConditionalResistances.add(cr));
-      [
-        ...(trait.proficiencies_weapon ?? []),
-        ...(trait.proficiencies_armor ?? []),
-        ...(trait.proficiencies ?? [])
-      ].forEach(p => allProficiencies.add(p));
+      (trait.proficiencies ?? []).forEach(p => allProficiencies.add(p));
       (trait.spells ?? []).forEach(s => allSpells.add(s));
       (trait.condition_inmunities ?? []).forEach(ci => allConditionInmunities.add(ci));
       (trait.incompatible_traits ?? []).forEach(it => allIncompatibleTraits.add(it));
@@ -120,7 +122,7 @@ export default class TraitRepository implements ITraitRepository {
     ] = await Promise.all([
       allResistances.size ? this.dañoRepository.obtenerDañosPorIndices(Array.from(allResistances)) : [],
       allConditionalResistances.size ? this.dañoRepository.obtenerDañosPorIndices(Array.from(allConditionalResistances)) : [],
-      allProficiencies.size ? this.competenciaRepository.obtenerCompetenciasPorIndices(Array.from(allProficiencies)) : [],
+      allProficiencies.size ? this.proficiencyRepository.getProficienciesByIndices(Array.from(allProficiencies)) : [],
       allSpells.size ? this.conjuroRepository.obtenerConjurosPorIndices(Array.from(allSpells)) : [],
       allConditionInmunities.size ? this.estadoRepository.obtenerEstadosPorIndices(Array.from(allConditionInmunities)) : [],
       allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : []
@@ -128,7 +130,7 @@ export default class TraitRepository implements ITraitRepository {
 
     const resistanceMap = new Map<string, DañoApi>(fetchedResistances.map(item => [item.index, item]));
     const conditionalResistanceMap = new Map<string, DañoApi>(fetchedConditionalResistances.map(item => [item.index, item]));
-    const proficiencyMap = new Map<string, CompetenciaApi>(fetchedProficiencies.map(item => [item.index, item]));
+    const proficiencyMap = new Map<string, ProficiencyApi>(fetchedProficiencies.map(item => [item.id, item]));
     const spellMap = new Map<string, ConjuroApi>(fetchedSpells.map(item => [(item as any).index ?? (item as any).id, item]));
     const conditionInmunityMap = new Map<string, EstadoApi>(fetchedConditionInmunities.map(item => [(item as any).index ?? (item as any).id, item]));
     const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
@@ -142,14 +144,10 @@ export default class TraitRepository implements ITraitRepository {
         .map(idx => conditionalResistanceMap.get(idx))
         .filter((item): item is DañoApi => !!item);
 
-      const proficienciesKeys = [
-        ...(trait?.proficiencies_weapon ?? []),
-        ...(trait?.proficiencies_armor ?? []),
-        ...(trait?.proficiencies ?? [])
-      ];
+      const proficienciesKeys = trait?.proficiencies ?? [];
       const proficiencies = proficienciesKeys
         .map(idx => proficiencyMap.get(idx))
-        .filter((item): item is CompetenciaApi => !!item);
+        .filter((item): item is ProficiencyApi => !!item);
 
       const spells = (trait.spells ?? [])
         .map(idx => spellMap.get(idx))

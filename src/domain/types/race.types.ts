@@ -1,6 +1,6 @@
 import { ObjectId } from "mongoose"
 import { ChoiceApi, ChoiceMongo, Speed } from "."
-import { CompetenciaApi } from "./competencias.types"
+import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
 import { SkillApi } from "./skill.types"
@@ -88,7 +88,7 @@ export interface RaceApi {
   traits_data: TraitDataMongo,
   languages: CreatureLanguages,
   language_choices?: ChoiceApi<LanguageApi>,
-  proficiencies_choices?: ChoiceApi<CompetenciaApi>[],
+  proficiencies_choices?: ChoiceApi<ProficiencyApi>[],
   spell_choices?: ChoiceApi<ConjuroApi>[],
   subraces?: SubracesApi,
   parentId?: string | null,

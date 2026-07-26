@@ -1,6 +1,6 @@
 import { ObjectId } from "mongoose"
 import { DañoApi } from "."
-import { CompetenciaApi } from "./competencias.types"
+import { ProficiencyApi } from "./proficiencies.types"
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
 
@@ -17,8 +17,6 @@ export interface TraitMongo {
   resistances: string[],
   condition_inmunities: string[],
   conditional_resistances: string[],
-  proficiencies_weapon?: string[],
-  proficiencies_armor?: string[],
   proficiencies?: string[],
   skills?: string[],
   speed?: number,
@@ -52,7 +50,7 @@ export interface TraitApi {
   resistances: DañoApi[],
   conditional_resistances: DañoApi[],
   condition_inmunities: EstadoApi[],
-  proficiencies: CompetenciaApi[],
+  proficiencies: ProficiencyApi[],
   skills?: string[],
   speed?: number,
   spells?: ConjuroApi[]
@@ -73,6 +71,7 @@ export interface CreateTrait {
   summary: string[],
   ruleset: string,
   incompatible_traits: string[],
+  proficiencies?: string[],
   skills?: string[]
 }
 
@@ -83,5 +82,6 @@ export interface UpdateTrait {
   summary?: string[],
   ruleset?: string,
   incompatible_traits?: string[],
+  proficiencies?: string[],
   skills?: string[]
 }
