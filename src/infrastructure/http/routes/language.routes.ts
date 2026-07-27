@@ -32,6 +32,24 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Array de IDs de los sistemas a los que pertenece el idioma.
+ *     LanguageChoiceApi:
+ *       type: object
+ *       properties:
+ *         choose:
+ *           type: number
+ *           description: Cantidad de opciones a seleccionar.
+ *         options:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Language'
+ *           description: Lista de idiomas disponibles para elegir.
+ *         query_type:
+ *           type: string
+ *           enum: [all, options, filter]
+ *           description: Tipo de consulta usada para obtener las opciones.
+ *         query_filter:
+ *           type: object
+ *           description: Filtro aplicado si query_type es filter.
  *     InputCreateLanguage:
  *       type: object
  *       required:

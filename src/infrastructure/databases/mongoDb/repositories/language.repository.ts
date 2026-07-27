@@ -102,7 +102,8 @@ export default class LanguageRepository implements ILanguageRepository {
       
       return {
         choose: choices.choose,
-        options: languages
+        options: languages,
+        query_type: isAll ? 'all' : 'options'
       };
     }
 
@@ -111,7 +112,8 @@ export default class LanguageRepository implements ILanguageRepository {
 
       return {
         choose: choices.choose,
-        options: languages
+        options: languages,
+        query_type: 'options'
       };
     }
 
@@ -139,7 +141,9 @@ export default class LanguageRepository implements ILanguageRepository {
         
       return {
         choose: choices.choose,
-        options: ordenarPorNombre(this.formatLanguages(filteredLanguages))
+        options: ordenarPorNombre(this.formatLanguages(filteredLanguages)),
+        query_type: 'filter',
+        query_filter: choices.filter
       };
     }
 
@@ -149,7 +153,8 @@ export default class LanguageRepository implements ILanguageRepository {
 
     return {
       choose: choices.choose,
-      options: languages
+      options: languages,
+      query_type: 'all'
     };
   }
 

@@ -103,7 +103,7 @@ const router = Router();
  *         languages:
  *           type: object
  *         language_choices:
- *           type: object
+ *           $ref: '#/components/schemas/LanguageChoiceApi'
  *         proficiencies_choices:
  *           type: array
  *           items:
@@ -170,7 +170,7 @@ const router = Router();
  *         languages:
  *           type: object
  *         language_choices:
- *           type: object
+ *           $ref: '#/components/schemas/LanguageChoiceApi'
  *         parentId:
  *           type: string
  *           description: ID de la raza padre si es una subraza
@@ -220,7 +220,7 @@ const router = Router();
  *         languages:
  *           type: object
  *         language_choices:
- *           type: object
+ *           $ref: '#/components/schemas/LanguageChoiceApi'
  *         parentId:
  *           type: string
  *           description: ID de la raza padre si es una subraza

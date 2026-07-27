@@ -11,6 +11,8 @@ export interface ChoiceMongo {
 export interface ChoiceApi<T> {
   choose: number;
   options: T[];
+  query_type?: "all" | "options" | "filter";
+  query_filter?: Record<string, (string | number)[]>;
 }
 
 export interface OptionSelectApi {
