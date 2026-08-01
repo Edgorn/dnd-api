@@ -9,7 +9,7 @@ import { DañoApi } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
 import SkillService from '../../../../domain/services/skill.service';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
-import IClaseRepository from '../../../../domain/repositories/IClaseRepository';
+import ICharacterClassRepository from '../../../../domain/repositories/ICharacterClassRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
@@ -57,7 +57,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly skillService: SkillService,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly doteRepository: IDoteRepository,
-    private readonly claseRepository: IClaseRepository,
+    private readonly claseRepository: ICharacterClassRepository,
     private readonly invocacionRepository: IInvocacionRepository,
     private readonly raceRepository: IRaceRepository,
     private readonly criaturaRepository: ICriaturaRepository,
@@ -392,7 +392,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
     const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
-    const dataLevel = await this.claseRepository.dataLevelUp(clase, level + 1, personaje?.subclasses ?? [])
+    const dataLevel = await this.claseRepository.dataLevelUp?.(clase, level + 1, personaje?.subclasses ?? [])
     const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
     const raceLevel = await this.raceRepository.dataLevelUp(personaje?.raceId ?? '', level + 1)
 
@@ -899,14 +899,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const clases = personaje.classes
 
-    const spellcasting = await this.claseRepository.spellcastingClases(
+    const spellcasting = (await this.claseRepository.spellcastingClases?.(
       personaje.classes.map(clase => {
         return {
           id: clase.class,
           level: clase.level
         }
       })
-    )
+    )) ?? []
 
     const spells = { ...personaje.spells }
     const updatedSpells: Record<string, {

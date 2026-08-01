@@ -10,7 +10,11 @@ import ValidateTokenUseCase from "../application/use-cases/user/validateToken.us
 import { createAuthMiddleware } from "./http/middlewares/auth.middleware";
 import ObtenerTodosLosTransfondos from "../application/use-cases/transfondo/obtenerTodosLosTransfondos.use-case";
 import GetAllRacesUseCase from "../application/use-cases/race/getAllRaces.use-case";
-import ObtenerTodasLasClases from "../application/use-cases/clase/obtenerTodasLasClases.use-case";
+import GetCharacterClassesBySystems from "../application/use-cases/characterClass/getCharacterClassesBySystems.use-case";
+import CreateCharacterClass from "../application/use-cases/characterClass/createCharacterClass.use-case";
+import UpdateCharacterClass from "../application/use-cases/characterClass/updateCharacterClass.use-case";
+import SoftDeleteCharacterClass from "../application/use-cases/characterClass/softDeleteCharacterClass.use-case";
+import RestoreCharacterClass from "../application/use-cases/characterClass/restoreCharacterClass.use-case";
 import ObtenerEquipamientosPorTipo from "../application/use-cases/equipamiento/obtenerEquipamientosPorTipos.use-case";
 import GetCharactersByUser from "../application/use-cases/personaje/getCharactersByUser.use-case";
 import CrearPersonaje from "../application/use-cases/personaje/crearPersonaje.use-case";
@@ -48,14 +52,14 @@ import CampañaService from "../domain/services/campaña.service";
 import UserService from "../domain/services/user.service";
 import RaceService from "../domain/services/race.service";
 import TransfondoService from "../domain/services/transfondo.service";
-import ClaseService from "../domain/services/clase.service";
+import CharacterClassService from "../domain/services/characterClass.service";
 import EquipamientoService from "../domain/services/equipamiento.service";
 import PersonajeService from "../domain/services/personaje.service";
 import ConjuroService from "../domain/services/conjuro.service";
 import SystemService from "../domain/services/system.service";
 
 import CampañaRepository from "./databases/mongoDb/repositories/campaña.repository";
-import ClaseRepository from "./databases/mongoDb/repositories/clase.repository";
+import CharacterClassRepository from "./databases/mongoDb/repositories/characterClass.repository";
 import ProficiencyRepository from "./databases/mongoDb/repositories/proficiency.repository";
 import ConjuroRepository from "./databases/mongoDb/repositories/conjuros.repository";
 import DoteRepository from "./databases/mongoDb/repositories/dote.repository";
@@ -88,7 +92,7 @@ import { CampañaController } from "./http/controllers/campaña.controller";
 import { UserController } from "./http/controllers/user.controller";
 import { RaceController } from "./http/controllers/race.controller";
 import { TransfondoController } from "./http/controllers/transfondo.controller";
-import { ClaseController } from "./http/controllers/clase.controller";
+import { CharacterClassController } from "./http/controllers/characterClass.controller";
 import { EquipamientoController } from "./http/controllers/equipamiento.controller";
 import { PersonajeController } from "./http/controllers/personaje.controller";
 import { ConjuroController } from "./http/controllers/conjuro.controller";
@@ -147,7 +151,8 @@ const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const skillService = new SkillService(skillRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, traitRepository)
-const claseRepository = new ClaseRepository(
+const characterClassRepository = new CharacterClassRepository(
+  systemRepository,
   skillService,
   proficiencyRepository,
   equipamientoRepository,
@@ -156,7 +161,7 @@ const claseRepository = new ClaseRepository(
   doteRepository,
   invocacionRepository,
   languageRepository
-)
+);
 
 const raceRepository = new RaceRepository(
   languageRepository,
@@ -193,7 +198,7 @@ const personajeRepository = new PersonajeRepository(
   skillService,
   conjuroRepository,
   doteRepository,
-  claseRepository,
+  characterClassRepository,
   invocacionRepository,
   raceRepository,
   criaturaRepository,
@@ -222,7 +227,7 @@ export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
 
 const raceService = new RaceService(raceRepository)
 const transfondoService = new TransfondoService(transfondoRepository)
-const claseService = new ClaseService(claseRepository)
+const characterClassService = new CharacterClassService(characterClassRepository)
 const equipamientoService = new EquipamientoService(equipamientoRepository)
 const personajeService = new PersonajeService(personajeRepository)
 const conjuroService = new ConjuroService(conjuroRepository)
@@ -251,7 +256,11 @@ const updateRace = new UpdateRaceUseCase(raceService);
 
 const obtenerTodosLosTransfondos = new ObtenerTodosLosTransfondos(transfondoService);
 
-const obtenerTodasLasClases = new ObtenerTodasLasClases(claseService);
+const getCharacterClassesBySystems = new GetCharacterClassesBySystems(characterClassService);
+const createCharacterClass = new CreateCharacterClass(characterClassService, systemService);
+const updateCharacterClass = new UpdateCharacterClass(characterClassService, systemService);
+const softDeleteCharacterClass = new SoftDeleteCharacterClass(characterClassService, systemService);
+const restoreCharacterClass = new RestoreCharacterClass(characterClassService, systemService);
 
 const obtenerEquipamientosPorTipo = new ObtenerEquipamientosPorTipo(equipamientoService);
 
@@ -317,7 +326,13 @@ export const userController = new UserController(loginUseCase, refreshTokenUseCa
 
 export const transfondoController = new TransfondoController(obtenerTodosLosTransfondos)
 
-export const claseController = new ClaseController(obtenerTodasLasClases)
+export const characterClassController = new CharacterClassController(
+  getCharacterClassesBySystems,
+  createCharacterClass,
+  updateCharacterClass,
+  softDeleteCharacterClass,
+  restoreCharacterClass
+);
 
 export const equipamientoController = new EquipamientoController(obtenerEquipamientosPorTipo)
 
