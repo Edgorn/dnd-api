@@ -13,7 +13,7 @@ const criaturaRepository = new CriaturaRepository(
   new DañoRepository(),
   new EstadoRepository(),
   new LanguageRepository(null as any),
-  new ConjuroRepository()
+  new ConjuroRepository(null as any)
 )
 
 const criaturaService = new CriaturaService(criaturaRepository)

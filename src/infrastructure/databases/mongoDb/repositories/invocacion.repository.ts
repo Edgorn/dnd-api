@@ -94,7 +94,7 @@ export default class InvocacionRepository implements IInvocacionRepository {
         spells: spells_required
           .map(spell => {
             return {
-              index: spell.index,
+              index: spell.id ?? spell.name,
               name: spell.name
             }
           }),

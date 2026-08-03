@@ -11,7 +11,7 @@ const npcRepository = new NpcRepository(
   new DañoRepository(),
   new EstadoRepository(),
   new LanguageRepository(null as any),
-  new ConjuroRepository()
+  new ConjuroRepository(null as any)
 )
 
 const npcService = new NpcService(npcRepository)

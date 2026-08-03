@@ -28,9 +28,7 @@ import EquiparArmadura from "../application/use-cases/personaje/equiparArmadura.
 import ModificarDinero from "../application/use-cases/personaje/modificarDinero.use-case";
 import ObtenerPdf from "../application/use-cases/personaje/obtenerPdf.use-case";
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
-import ObtenerConjurosPorNivelClase from "../application/use-cases/conjuro/obtenerConjurosPorNivel.use-case";
 import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuros.use-case";
-import ObtenerConjurosRituales from "../application/use-cases/conjuro/obtenerConjurosRituales.use-case";
 import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 import CreateSystem from "../application/use-cases/system/createSystem.use-case";
@@ -55,13 +53,13 @@ import TransfondoService from "../domain/services/transfondo.service";
 import CharacterClassService from "../domain/services/characterClass.service";
 import EquipamientoService from "../domain/services/equipamiento.service";
 import PersonajeService from "../domain/services/personaje.service";
-import ConjuroService from "../domain/services/conjuro.service";
+import SpellService from "../domain/services/spell.service";
 import SystemService from "../domain/services/system.service";
 
 import CampañaRepository from "./databases/mongoDb/repositories/campaña.repository";
 import CharacterClassRepository from "./databases/mongoDb/repositories/characterClass.repository";
 import ProficiencyRepository from "./databases/mongoDb/repositories/proficiency.repository";
-import ConjuroRepository from "./databases/mongoDb/repositories/conjuros.repository";
+import SpellRepository from "./databases/mongoDb/repositories/spell.repository";
 import DoteRepository from "./databases/mongoDb/repositories/dote.repository";
 import EquipamientoRepository from "./databases/mongoDb/repositories/equipamiento.repository";
 import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
@@ -84,10 +82,6 @@ import RefreshTokenUseCase from "../application/use-cases/user/refreshToken.use-
 import LogoutUseCase from "../application/use-cases/user/logout.use-case";
 import { createAuthorizeSystemMiddleware } from "./http/middlewares/authorizeSystem.middleware";
 
-
-
-
-
 import { CampañaController } from "./http/controllers/campaña.controller";
 import { UserController } from "./http/controllers/user.controller";
 import { RaceController } from "./http/controllers/race.controller";
@@ -95,7 +89,7 @@ import { TransfondoController } from "./http/controllers/transfondo.controller";
 import { CharacterClassController } from "./http/controllers/characterClass.controller";
 import { EquipamientoController } from "./http/controllers/equipamiento.controller";
 import { PersonajeController } from "./http/controllers/personaje.controller";
-import { ConjuroController } from "./http/controllers/conjuro.controller";
+import { SpellController } from "./http/controllers/spell.controller";
 import { SystemController } from "./http/controllers/system.controller";
 import CriaturaRepository from "./databases/mongoDb/repositories/criaturas.repository";
 import { TraitController } from "./http/controllers/trait.controller";
@@ -127,7 +121,6 @@ import AttributeService from "../domain/services/attribute.service";
 import AttributeRepository from "./databases/mongoDb/repositories/attribute.repository";
 import { AttributeController } from "./http/controllers/attribute.controller";
 
-
 import SoftDeleteAttribute from "../application/use-cases/attribute/softDeleteAttribute.use-case";
 import RestoreAttribute from "../application/use-cases/attribute/restoreAttribute.use-case";
 import SoftDeleteSkill from "../application/use-cases/skill/softDeleteSkill.use-case";
@@ -135,12 +128,31 @@ import RestoreSkill from "../application/use-cases/skill/restoreSkill.use-case";
 import SoftDeleteLanguage from "../application/use-cases/language/softDeleteLanguage.use-case";
 import RestoreLanguage from "../application/use-cases/language/restoreLanguage.use-case";
 
+import CreateSpell from "../application/use-cases/spell/createSpell.use-case";
+import UpdateSpell from "../application/use-cases/spell/updateSpell.use-case";
+import SoftDeleteSpell from "../application/use-cases/spell/softDeleteSpell.use-case";
+import RestoreSpell from "../application/use-cases/spell/restoreSpell.use-case";
+import GetSpellsBySystems from "../application/use-cases/spell/getSpellsBySystems.use-case";
+import GetSpellById from "../application/use-cases/spell/getSpellById.use-case";
+import GetSpellsByLevel from "../application/use-cases/spell/getSpellsByLevel.use-case";
+import GetRitualSpells from "../application/use-cases/spell/getRitualSpells.use-case";
+
+import MagicSchoolRepository from "./databases/mongoDb/repositories/magicSchool.repository";
+import MagicSchoolService from "../domain/services/magicSchool.service";
+import CreateMagicSchool from "../application/use-cases/magicSchool/createMagicSchool.use-case";
+import UpdateMagicSchool from "../application/use-cases/magicSchool/updateMagicSchool.use-case";
+import SoftDeleteMagicSchool from "../application/use-cases/magicSchool/softDeleteMagicSchool.use-case";
+import RestoreMagicSchool from "../application/use-cases/magicSchool/restoreMagicSchool.use-case";
+import GetMagicSchoolsBySystems from "../application/use-cases/magicSchool/getMagicSchoolsBySystems.use-case";
+import { MagicSchoolController } from "./http/controllers/magicSchool.controller";
+
 const estadoRepository = new EstadoRepository()
 const userRepository = new UserRepository()
 const systemRepository = new SystemRepository()
 const skillRepository = new SkillRepository(systemRepository)
 const proficiencyRepository = new ProficiencyRepository(systemRepository)
-const conjuroRepository = new ConjuroRepository()
+const spellRepository = new SpellRepository(systemRepository)
+const conjuroRepository = spellRepository
 const dañoRepository = new DañoRepository()
 const propiedadArmaRepository = new PropiedadArmaRepository()
 const equipamientoRepository = new EquipamientoRepository(dañoRepository, propiedadArmaRepository)
@@ -230,7 +242,8 @@ const transfondoService = new TransfondoService(transfondoRepository)
 const characterClassService = new CharacterClassService(characterClassRepository)
 const equipamientoService = new EquipamientoService(equipamientoRepository)
 const personajeService = new PersonajeService(personajeRepository)
-const conjuroService = new ConjuroService(conjuroRepository)
+const spellService = new SpellService(spellRepository)
+const conjuroService = spellService
 const traitService = new TraitService(traitRepository)
 const systemService = new SystemService(systemRepository)
 const getSystemApi = new GetSystemApi(
@@ -286,8 +299,14 @@ const createAttribute = new CreateAttribute(attributeService, systemService);
 const updateAttribute = new UpdateAttribute(attributeService, systemService);
 const getAttributesBySystems = new GetAttributesBySystems(attributeService);
 
-const obtenerConjurosPorNivelClase = new ObtenerConjurosPorNivelClase(conjuroService)
-const obtenerConjurosRituales = new ObtenerConjurosRituales(conjuroService)
+const createSpell = new CreateSpell(spellService, systemService);
+const updateSpell = new UpdateSpell(spellService, systemService);
+const softDeleteSpell = new SoftDeleteSpell(spellService, systemService);
+const restoreSpell = new RestoreSpell(spellService, systemService);
+const getSpellsBySystems = new GetSpellsBySystems(spellService);
+const getSpellById = new GetSpellById(spellService);
+const getSpellsByLevel = new GetSpellsByLevel(spellService);
+const getRitualSpells = new GetRitualSpells(spellService);
 
 const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService, systemService)
 const createTraitUseCase = new CreateTraitUseCase(traitService, systemService)
@@ -299,8 +318,25 @@ const getSkillsBySystems = new GetSkillsBySystems(skillService)
 const createSkill = new CreateSkill(skillService, systemService)
 const updateSkill = new UpdateSkill(skillService, systemService)
 
-const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository);
+const magicSchoolRepository = new MagicSchoolRepository(systemRepository);
+const magicSchoolService = new MagicSchoolService(magicSchoolRepository);
+
+const createMagicSchool = new CreateMagicSchool(magicSchoolService, systemService);
+const updateMagicSchool = new UpdateMagicSchool(magicSchoolService, systemService);
+const softDeleteMagicSchool = new SoftDeleteMagicSchool(magicSchoolService, systemService);
+const restoreMagicSchool = new RestoreMagicSchool(magicSchoolService, systemService);
+const getMagicSchoolsBySystems = new GetMagicSchoolsBySystems(magicSchoolService);
+
+export const magicSchoolController = new MagicSchoolController(
+  createMagicSchool,
+  updateMagicSchool,
+  softDeleteMagicSchool,
+  restoreMagicSchool,
+  getMagicSchoolsBySystems
+);
+
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -353,10 +389,18 @@ export const personajeController = new PersonajeController(
   añadirForma
 )
 
-export const conjuroController = new ConjuroController(
-  obtenerConjurosPorNivelClase,
-  obtenerConjurosRituales
-)
+export const spellController = new SpellController(
+  createSpell,
+  updateSpell,
+  softDeleteSpell,
+  restoreSpell,
+  getSpellsBySystems,
+  getSpellById,
+  getSpellsByLevel,
+  getRitualSpells
+);
+
+export const conjuroController = spellController;
 
 export const systemController = new SystemController(
   getSystemsByUser,

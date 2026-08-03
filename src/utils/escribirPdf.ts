@@ -786,7 +786,7 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
           })
           ?.filter(spell => spell.level === index)
           ?.filter((obj, idx, self) =>
-            idx === self.findIndex((item) => item.index === obj.index)
+            idx === self.findIndex((item) => (item.id ?? item.name) === (obj.id ?? obj.name))
           );
 
         listSpells?.forEach((spell, index2: number) => {

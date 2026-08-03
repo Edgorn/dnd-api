@@ -1,9 +1,14 @@
 import { Router } from "express";
-import { conjuroController, authMiddleware } from "../../dependencies";
+import spellRoutes from "./spell.routes";
+import { spellController, authMiddleware } from "../../dependencies";
 
 const router = Router();
 
-router.get('/conjuros/nivel/:nivel', authMiddleware, conjuroController.getConjurosPorNivel);
-router.get('/conjuros/rituales', authMiddleware, conjuroController.getConjurosRituales);
+// Backward compatibility legacy routes
+router.get('/conjuros/nivel/:nivel', authMiddleware, spellController.getConjurosPorNivel);
+router.get('/conjuros/rituales', authMiddleware, spellController.getConjurosRituales);
+
+// Re-export full spell routes
+router.use(spellRoutes);
 
 export default router;

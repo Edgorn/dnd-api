@@ -2,6 +2,7 @@ import SystemService from "../../../domain/services/system.service";
 import IAttributeRepository from "../../../domain/repositories/IAttributeRepository";
 import ISkillRepository from "../../../domain/repositories/ISkillRepository";
 import ILanguageRepository from "../../../domain/repositories/ILanguageRepository";
+import IMagicSchoolRepository from "../../../domain/repositories/IMagicSchoolRepository";
 import { AppError } from "../../../domain/errors/AppError";
 
 export default class CascadeRestoreSystem {
@@ -9,7 +10,8 @@ export default class CascadeRestoreSystem {
     private readonly systemService: SystemService,
     private readonly attributeRepository: IAttributeRepository,
     private readonly skillRepository: ISkillRepository,
-    private readonly languageRepository: ILanguageRepository
+    private readonly languageRepository: ILanguageRepository,
+    private readonly magicSchoolRepository?: IMagicSchoolRepository
   ) {}
 
   async execute(id: string, userId: string): Promise<void> {
@@ -31,10 +33,16 @@ export default class CascadeRestoreSystem {
     await this.systemService.restore(id);
 
     // 2. Cascade restore associated entities by system ruleset
-    await Promise.all([
+    const cascadePromises: Promise<void>[] = [
       this.attributeRepository.restoreByRuleset(id, deletedAt),
       this.skillRepository.restoreByRuleset(id, deletedAt),
       this.languageRepository.restoreByRuleset(id, deletedAt)
-    ]);
+    ];
+
+    if (this.magicSchoolRepository) {
+      cascadePromises.push(this.magicSchoolRepository.restoreByRuleset(id, deletedAt));
+    }
+
+    await Promise.all(cascadePromises);
   }
 }

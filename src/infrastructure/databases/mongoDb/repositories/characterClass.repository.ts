@@ -189,7 +189,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
         [
           ...spells,
           ...validSubclaseSpells
-        ].map(spell => [spell.index, spell])
+        ].map(spell => [spell.id ?? spell.name, spell])
       ).values()
     ].sort((a, b) => a.name.localeCompare(b.name));
 

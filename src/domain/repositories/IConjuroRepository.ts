@@ -1,9 +1,5 @@
-import { ChoiceApi } from "../types";
-import { ChoiceSpell, ConjuroApi } from "../types/conjuros.types";
+import ISpellRepository from "./ISpellRepository";
 
-export default interface IConjuroRepository {
-  formatearOpcionesDeConjuros(opciones: ChoiceSpell[] | undefined): Promise<ChoiceApi<ConjuroApi>[] | undefined>
-  obtenerConjurosPorIndices(indices: string[]): Promise<ConjuroApi[]>
-  obtenerConjurosPorNivelClase(nivel: number, clase?: string): Promise<ConjuroApi[]>
-  obtenerConjurosRituales(): Promise<ConjuroApi[]>
-}
+type IConjuroRepository = ISpellRepository;
+
+export default IConjuroRepository;
