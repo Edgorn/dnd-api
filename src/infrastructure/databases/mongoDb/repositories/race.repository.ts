@@ -5,7 +5,7 @@ import ILanguageRepository from '../../../../domain/repositories/ILanguageReposi
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import AttributeService from '../../../../domain/services/attribute.service';
-import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubracesApi, VarianteApi, VarianteMongo } from '../../../../domain/types/race.types';
+import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubracesApi, UpdateRace, VarianteApi, VarianteMongo } from '../../../../domain/types/race.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import RaceModel from '../schemas/Race';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
@@ -84,7 +84,8 @@ export default class RaceRepository implements IRaceRepository {
       language_choices: raza.language_choices,
       parentId: raza.parentId || null,
       subraces_name: raza.subraces_name,
-      spell_choices: raza.spell_choices
+      spell_choices: raza.spell_choices,
+      spellcasting: raza.spellcasting || null
     })
 
     await nuevaRaza.save()
@@ -92,7 +93,7 @@ export default class RaceRepository implements IRaceRepository {
     return this.formatearRaza(nuevaRaza)
   }
 
-  async actualizar(raza: CreateRace): Promise<RaceApi | undefined> {
+  async actualizar(raza: UpdateRace): Promise<RaceApi | undefined> {
     try {
       if (!raza.id) {
         throw new Error("No se proporciono el id de la raza");
@@ -100,7 +101,7 @@ export default class RaceRepository implements IRaceRepository {
 
       const update = {
         name: raza.name,
-        description: raza.description ?? [],
+        description: raza.description,
         alignment: raza.alignment,
         img: raza.img,
         ability_bonuses: raza.ability_bonuses,
@@ -114,9 +115,10 @@ export default class RaceRepository implements IRaceRepository {
         traits_data: raza.traits_data,
         languages: raza.languages,
         language_choices: raza.language_choices,
-        parentId: raza.parentId || null,
+        parentId: raza.parentId,
         subraces_name: raza.subraces_name,
-        spell_choices: raza.spell_choices
+        spell_choices: raza.spell_choices === null ? [] : raza.spell_choices,
+        spellcasting: raza.spellcasting
       }
 
       const razaActualizada = await RaceModel.findByIdAndUpdate(
@@ -163,7 +165,7 @@ export default class RaceRepository implements IRaceRepository {
     const [
       traits, ability_bonuses, ability_bonus_choices, skill_choices, languages, 
       proficiencies_choices, subraces, variants, spell_choices,
-      speaksLanguages, formattedLanguageChoices
+      speaksLanguages, formattedLanguageChoices, spellcasting
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.attributeService.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
@@ -175,7 +177,8 @@ export default class RaceRepository implements IRaceRepository {
       this.formatearVariantes(raza?.variants ?? [], ruleset),
       this.conjuroRepository.formatearOpcionesDeConjuros(raza?.spell_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
-      this.languageRepository.formatLanguageChoices(raza.language_choices, ruleset)
+      this.languageRepository.formatLanguageChoices(raza.language_choices, ruleset),
+      raza.spellcasting ? this.attributeService.getById(raza.spellcasting.toString()) : Promise.resolve(undefined)
     ])
 
     return {
@@ -205,7 +208,8 @@ export default class RaceRepository implements IRaceRepository {
       subraces,
       parentId: raza.parentId ? raza.parentId.toString() : null,
       variants,
-      spell_choices
+      spell_choices,
+      spellcasting: spellcasting ?? undefined
     };
   }
 

@@ -5,7 +5,7 @@ import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganiz
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import Campaña from '../schemas/Campaña';
-import { DañoApi } from '../../../../domain/types';
+import { Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
 import SkillService from '../../../../domain/services/skill.service';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
@@ -834,9 +834,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const idiomasId = personaje?.languages ?? []
     const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(personaje?.proficiencies ?? [])
 
-    const resistances: DañoApi[] = []
+    const resistances: Damage[] = []
 
-    const conditional_resistances: { name: string, resistances: DañoApi[] }[] = []
+    const conditional_resistances: { name: string, resistances: Damage[] }[] = []
     const condition_inmunities: { name: string, estados: EstadoApi[] }[] = []
 
     let speed = personaje?.speed
@@ -926,8 +926,21 @@ export default class PersonajeRepository implements IPersonajeRepository {
         let type = ""
 
         if (groupSpells === "race") {
-          if (personaje.raceId === "elf") {
-            type = "int"
+          if (personaje.raceId) {
+            const race = await this.raceRepository.obtenerPorId(personaje.raceId)
+            if (race?.spellcasting) {
+              type = (race.spellcasting as any).key || race.spellcasting
+            }
+          }
+        } else {
+          const classSpellcasting = spellcasting.find(item => item?.class === groupSpells)
+          if (classSpellcasting?.ability) {
+            type = classSpellcasting.ability
+          } else {
+            const claseData = await this.claseRepository.getById(groupSpells)
+            if (claseData?.spellcasting) {
+              type = claseData.spellcasting
+            }
           }
         }
 

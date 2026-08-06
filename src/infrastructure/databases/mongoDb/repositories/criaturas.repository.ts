@@ -1,6 +1,6 @@
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
-import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
+import IDamageRepository from '../../../../domain/repositories/IDamageRepository';
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import { ConjuroApi } from '../../../../domain/types/conjuros.types';
@@ -9,7 +9,7 @@ import CriaturaSchema from '../schemas/Criatura';
 
 export default class CriaturaRepository implements ICriaturaRepository {
   constructor(
-    private readonly dañoRepository: IDañoRepository,
+    private readonly damageRepository: IDamageRepository,
     private readonly estadoRepository: IEstadoRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly conjurosRepository: IConjuroRepository,
@@ -65,9 +65,9 @@ export default class CriaturaRepository implements ICriaturaRepository {
       understands_languages,
       spell_slots
     ] = await Promise.all([
-      this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_vulnerabilities ?? []),
-      this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_immunities ?? []),
-      this.dañoRepository.obtenerDañosPorIndices(criatura?.damage_resistances ?? []),
+      this.damageRepository.getByIds(criatura?.damage_vulnerabilities ?? []),
+      this.damageRepository.getByIds(criatura?.damage_immunities ?? []),
+      this.damageRepository.getByIds(criatura?.damage_resistances ?? []),
       this.estadoRepository.obtenerEstadosPorIndices(criatura?.condition_immunities ?? []),
       this.languageRepository.getLanguagesByIndex(criatura.languages?.speaks || []),
       this.languageRepository.getLanguagesByIndex(criatura.languages?.understands || []),

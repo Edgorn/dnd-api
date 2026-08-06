@@ -2,7 +2,7 @@ import ObtenerTodasLasCriaturas from "../../../application/use-cases/criatura/ob
 import CriaturaService from "../../../domain/services/criatura.service";
 import CriaturaRepository from "../../databases/mongoDb/repositories/criaturas.repository";
 import { Response, NextFunction } from "express";
-import DañoRepository from "../../databases/mongoDb/repositories/daño.repository";
+import DamageRepository from "../../databases/mongoDb/repositories/damage.repository";
 import EstadoRepository from "../../databases/mongoDb/repositories/estado.repository";
 import LanguageRepository from "../../databases/mongoDb/repositories/language.repository";
 import ConjuroRepository from "../../databases/mongoDb/repositories/conjuros.repository";
@@ -10,7 +10,7 @@ import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import ObtenerCriaturasPorTipos from "../../../application/use-cases/criatura/obtenerCriaturasPorTipos.use-case";
 
 const criaturaRepository = new CriaturaRepository(
-  new DañoRepository(),
+  new DamageRepository(),
   new EstadoRepository(),
   new LanguageRepository(null as any),
   new ConjuroRepository(null as any)

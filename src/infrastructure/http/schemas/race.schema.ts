@@ -3,16 +3,16 @@ import { z } from "zod";
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
   options: z.array(z.string()).optional(),
-  filter: z.record(z.string(), z.array(z.union([z.string(), z.number()]))).optional()
+  filter: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional()
 });
 
 export const CreateRaceSchema = z.object({
   name: z.string().min(1, "El nombre no puede estar vacío"),
-  description: z.array(z.string()).optional(),
-  alignment: z.string().optional(),
+  description: z.array(z.string()).nullable().optional(),
+  alignment: z.string().nullable().optional(),
   ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío"),
-  img: z.string().optional(),
-  ability_bonuses: z.array(z.any()).optional(),
+  img: z.string().nullable().optional(),
+  ability_bonuses: z.array(z.any()).nullable().optional(),
   speed: z.object({
     walk: z.number()
   }),
@@ -20,26 +20,27 @@ export const CreateRaceSchema = z.object({
   size_range: z.object({
     min: z.number(),
     max: z.number()
-  }).optional(),
+  }).nullable().optional(),
   weight_range: z.object({
     min: z.number(),
     max: z.number()
-  }).optional(),
+  }).nullable().optional(),
   age: z.object({
     maturity: z.number(),
     expectancy: z.number()
-  }).optional(),
-  traits: z.array(z.string()).optional(),
-  traits_data: z.record(z.string(), z.any()).optional(),
+  }).nullable().optional(),
+  traits: z.array(z.string()).nullable().optional(),
+  traits_data: z.record(z.string(), z.any()).nullable().optional(),
   languages: z.object({
     speaks: z.array(z.string()).optional(),
     understands: z.array(z.string()).optional(),
     notes: z.string().optional()
-  }).optional(),
-  language_choices: ChoiceMongoSchema.optional(),
+  }).nullable().optional(),
+  language_choices: ChoiceMongoSchema.nullable().optional(),
   parentId: z.string().nullable().optional(),
-  subraces_name: z.string().optional(),
-  spell_choices: z.array(z.any()).optional()
+  subraces_name: z.string().nullable().optional(),
+  spell_choices: z.array(ChoiceMongoSchema).nullable().optional(),
+  spellcasting: z.string().nullable().optional()
 });
 
 export const UpdateRaceSchema = CreateRaceSchema.partial().refine(data => Object.keys(data).length > 0, {

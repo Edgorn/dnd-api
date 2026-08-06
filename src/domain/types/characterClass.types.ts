@@ -141,6 +141,7 @@ export interface CharacterClassApi {
   equipment?: EquipamientoPersonajeApi[];
   equipment_choices?: EquipamientoChoiceApi[][];
   prof_bonus: number;
+  spellcasting?: string;
   subclasesData?: SubclassesOptionsApi;
   deletedAt?: Date | null;
 }

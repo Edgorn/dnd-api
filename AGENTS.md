@@ -110,6 +110,12 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
    - Las consultas de obtención (`find`, `getBySystems`, etc.) deben filtrar excluyendo los borrados: `{ deletedAt: null }`.
    - Se deben crear endpoints para el borrado `DELETE /recurso/:id` y, opcionalmente, para la restauración `PATCH /recurso/:id/restore`.
 
+14. **Obsolescencia del campo `index`:**
+    - El campo `index` (propiedad usada previamente como identificador o slug) queda oficialmente **obsoleto**.
+    - Todas las entidades nuevas o refactorizadas deben utilizar exclusivamente el `id` autogenerado de MongoDB como identificador único.
+    - No se deben incluir campos `index` en los esquemas Mongoose, interfaces TypeScript ni esquemas de validación Zod.
+    - Al refactorizar entidades legacy que tenían el campo `index`, se debe remover el campo de todas las capas y verificar la eliminación de cualquier índice residual de base de datos (`index_1` o `ruleset_1_index_1`).
+
 ## 🧪 Pruebas Unitarias e Integración (Testing)
 
 - **Framework:** Se utiliza **Vitest** como framework de pruebas para el proyecto.

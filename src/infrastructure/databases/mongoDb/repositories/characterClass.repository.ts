@@ -294,6 +294,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       hit_die: clase.hit_die ?? 8,
       img: clase.img || "",
       prof_bonus: 2,
+      spellcasting: clase.spellcasting,
       proficiencies,
       proficiencies_choices,
       saving_throws: formatearSalvacion(clase?.saving_throws ?? []),

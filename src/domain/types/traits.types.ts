@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { DañoApi } from "."
+import { Damage } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
@@ -47,8 +47,8 @@ export interface TraitApi {
   ruleset: string,
   incompatible_traits: TraitApi[],
   hidden?: boolean,
-  resistances: DañoApi[],
-  conditional_resistances: DañoApi[],
+  resistances: Damage[],
+  conditional_resistances: Damage[],
   condition_inmunities: EstadoApi[],
   proficiencies: ProficiencyApi[],
   skills?: string[],

@@ -1,7 +1,8 @@
+import { Types } from "mongoose";
 import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
-import { ChoiceApi } from "../../../../domain/types";
-import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi } from "../../../../domain/types/spell.types";
+import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
+import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import SpellSchema from "../schemas/Spell";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
@@ -12,52 +13,71 @@ export default class SpellRepository implements ISpellRepository {
   ) {}
 
   async create(data: InputCreateSpell): Promise<SpellApi> {
-    const newSpell = new SpellSchema({
-      ruleset: data.ruleset,
-      name: data.name,
-      level: data.level,
-      classes: data.classes,
-      description: data.description,
-      school: data.school,
-      castingTime: data.castingTime,
-      range: data.range,
-      components: data.components,
-      duration: data.duration
-    });
+    try {
+      const newSpell = new SpellSchema({
+        ruleset: data.ruleset,
+        name: data.name,
+        level: data.level,
+        classes: data.classes,
+        description: data.description,
+        school: data.school,
+        castingTime: data.castingTime,
+        range: data.range,
+        components: data.components,
+        duration: data.duration,
+        damage: data.damage
+      });
 
-    await newSpell.save();
-    await newSpell.populate('school');
-    return this.formatSpell(newSpell);
+      await newSpell.save();
+      await newSpell.populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type']);
+      return this.formatSpell(newSpell);
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new ConflictError(`A spell with name '${data.name}' already exists in system '${data.ruleset}'`);
+      }
+      throw error;
+    }
   }
 
   async update(data: InputUpdateSpell): Promise<SpellApi> {
-    const { id, ...updateFields } = data;
+    try {
+      const { id, ...updateFields } = data;
 
-    const updatedSpell = await SpellSchema.findByIdAndUpdate(
-      id,
-      { $set: updateFields },
-      { returnDocument: 'after' }
-    ).populate('school');
+      const updatedSpell = await SpellSchema.findByIdAndUpdate(
+        id,
+        { $set: updateFields },
+        { returnDocument: 'after' }
+      ).populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type']);
 
-    if (!updatedSpell) {
-      throw new NotFoundError(`No spell found with id: ${id}`);
+      if (!updatedSpell) {
+        throw new NotFoundError(`No spell found with id: ${id}`);
+      }
+
+      return this.formatSpell(updatedSpell);
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new ConflictError(`A spell with name '${data.name}' already exists in system`);
+      }
+      throw error;
     }
-
-    return this.formatSpell(updatedSpell);
   }
 
   async getBySystems(rulesets: string[]): Promise<SpellApi[]> {
     const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
     const spells = await SpellSchema.find({ ruleset: { $in: expandedRulesets }, deletedAt: null })
-      .populate('school')
+      .populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type'])
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
     return this.formatSpells(spells);
   }
 
   async getById(id: string): Promise<SpellApi | null> {
+    if (!Types.ObjectId.isValid(id)) {
+      console.error(`[SpellRepository] Se ignoró la búsqueda de Conjuro por ID inválido (índice antiguo): ${id}`);
+      return null;
+    }
     const spell = await SpellSchema.findOne({ _id: id as any, deletedAt: null })
-      .populate('school')
+      .populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type'])
       .lean<SpellMongo>();
     if (!spell) return null;
     return this.formatSpell(spell);
@@ -71,22 +91,69 @@ export default class SpellRepository implements ISpellRepository {
     await SpellSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
 
-  async formatSpellChoices(choices: ChoiceSpell[] | undefined): Promise<ChoiceApi<SpellApi>[] | undefined> {
+  async formatSpellChoices(choices: (ChoiceMongo | ChoiceSpell)[] | undefined): Promise<ChoiceApi<SpellApi>[] | undefined> {
     if (!choices) return undefined;
     return Promise.all(choices.map(choice => this.formatSpellChoice(choice)));
   }
 
-  private async formatSpellChoice(choice: ChoiceSpell): Promise<ChoiceApi<SpellApi>> {
-    const spells = await this.getSpellsByLevelAndClass(choice.level, [], choice.class);
+  private async formatSpellChoice(choice: ChoiceMongo | ChoiceSpell | any): Promise<ChoiceApi<SpellApi>> {
+    if (choice.options && Array.isArray(choice.options) && choice.options.length > 0) {
+      const spells = await this.getSpellsByIndexes(choice.options);
+      return {
+        choose: choice.choose,
+        options: spells,
+        query_type: 'options'
+      };
+    }
+
+    if (choice.filter) {
+      const getFilterVal = (val: any) => val !== undefined ? (Array.isArray(val) ? val[0] : val) : undefined;
+      const rawLevel = getFilterVal(choice.filter.level);
+      const rawClass = getFilterVal(choice.filter.classes ?? choice.filter.class);
+
+      const levelFilter = rawLevel !== undefined ? Number(rawLevel) : undefined;
+      const classFilter = rawClass !== undefined ? String(rawClass) : undefined;
+      const spells = await this.getSpellsByLevelAndClass(levelFilter!, [], classFilter);
+      return {
+        choose: choice.choose,
+        options: spells,
+        query_type: 'filter',
+        query_filter: choice.filter
+      };
+    }
+
+    if ('level' in choice || 'class' in choice) {
+      const spells = await this.getSpellsByLevelAndClass(choice.level, [], choice.class);
+      return {
+        choose: choice.choose,
+        options: spells,
+        query_type: 'filter',
+        query_filter: {
+          level: choice.level,
+          classes: choice.class
+        }
+      };
+    }
+
     return {
       choose: choice.choose,
-      options: spells
+      options: []
     };
   }
 
   async getSpellsByIndexes(indexes: string[]): Promise<SpellApi[]> {
     if (!indexes.length) return [];
-    const spells = await SpellSchema.find({ _id: { $in: indexes as any }, deletedAt: null }).populate('school');
+
+    const validMongoIds = indexes.filter(id => Types.ObjectId.isValid(id));
+    const invalidIds = indexes.filter(id => !Types.ObjectId.isValid(id));
+
+    if (invalidIds.length > 0) {
+      console.error(`[SpellRepository] Conjuros ignorados por tener IDs inválidos (índices antiguos): ${invalidIds.join(', ')}`);
+    }
+
+    if (validMongoIds.length === 0) return [];
+
+    const spells = await SpellSchema.find({ _id: { $in: validMongoIds as any }, deletedAt: null }).populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type']);
     return ordenarPorNombre(this.formatSpells(spells));
   }
 
@@ -102,7 +169,7 @@ export default class SpellRepository implements ISpellRepository {
     if (className !== undefined) query.classes = className;
 
     const spells = await SpellSchema.find(query)
-      .populate('school')
+      .populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type'])
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
 
@@ -118,7 +185,7 @@ export default class SpellRepository implements ISpellRepository {
     }
 
     const spells = await SpellSchema.find(query)
-      .populate('school')
+      .populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type'])
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
 
@@ -126,7 +193,7 @@ export default class SpellRepository implements ISpellRepository {
   }
 
   // Legacy alias support for IConjuroRepository
-  formatearOpcionesDeConjuros(opciones: ChoiceSpell[] | undefined): Promise<ChoiceApi<SpellApi>[] | undefined> {
+  formatearOpcionesDeConjuros(opciones: (ChoiceMongo | ChoiceSpell)[] | undefined): Promise<ChoiceApi<SpellApi>[] | undefined> {
     return this.formatSpellChoices(opciones);
   }
 
@@ -161,13 +228,56 @@ export default class SpellRepository implements ISpellRepository {
       }
     }
 
+    const formatComponent = (c: any) => {
+      const d = c.type;
+      let typeObj: any = undefined;
+      if (d && typeof d === 'object') {
+        const damageId = d._id ? d._id.toString() : d.id;
+        if (damageId) {
+          typeObj = {
+            id: damageId,
+            name: d.name,
+            description: d.description,
+            color: d.color
+          };
+        }
+      }
+      return {
+        diceCount: c.diceCount,
+        diceType: c.diceType,
+        type: typeObj
+      };
+    };
+
+    let damageFormatted: SpellDamageApi | undefined = undefined;
+    if (spell.damage) {
+      const base = Array.isArray(spell.damage.base) ? spell.damage.base.map(formatComponent) : [];
+      let scaling = undefined;
+      if (spell.damage.scaling) {
+        scaling = {
+          mode: spell.damage.scaling.mode,
+          steps: Array.isArray(spell.damage.scaling.steps)
+            ? spell.damage.scaling.steps.map(step => ({
+                level: step.level,
+                type: step.type,
+                components: Array.isArray(step.components) ? step.components.map(formatComponent) : []
+              }))
+            : []
+        };
+      }
+      damageFormatted = {
+        base,
+        scaling
+      };
+    }
+
     return {
       id: spell._id ? spell._id.toString() : undefined,
       ruleset: spell.ruleset,
       name: spell.name,
       type: spell.type,
       level: spell.level,
-      classes: spell.classes,
+      classes: Array.isArray(spell.classes) ? spell.classes.map((c: any) => typeof c === 'object' && c._id ? c._id.toString() : c.toString()) : [],
       typeName: spell.typeName,
       school: schoolFormatted,
       castingTime: spell.castingTime ? {
@@ -197,6 +307,7 @@ export default class SpellRepository implements ISpellRepository {
         unit: spell.duration.unit,
         concentration: spell.duration.concentration
       } : undefined,
+      damage: damageFormatted,
       description: spell.description || [],
       ritual: spell.ritual,
       deletedAt: spell.deletedAt

@@ -5,14 +5,14 @@ import { LanguageApi } from "./language.types";
 export interface ChoiceMongo {
   choose: number;
   options?: string[];
-  filter?: Record<string, (string | number)[]>;
+  filter?: Record<string, string | number | (string | number)[]>;
 }
 
 export interface ChoiceApi<T> {
   choose: number;
   options: T[];
   query_type?: "all" | "options" | "filter";
-  query_filter?: Record<string, (string | number)[]>;
+  query_filter?: Record<string, string | number | (string | number)[]>;
 }
 
 export interface OptionSelectApi {
@@ -52,11 +52,8 @@ export interface AbilityBonusesApi {
   bonus: number
 }
 
-export interface DañoApi {
-  index: string,
-  name: string,
-  desc: string
-}
+export * from "./damage.types";
+
 
 export interface OptionsMongo {
   type: string,

@@ -1,5 +1,5 @@
 import IRaceRepository from "../repositories/IRaceRepository";
-import { CreateRace, RaceApi } from "../types/race.types";
+import { CreateRace, RaceApi, UpdateRace } from "../types/race.types";
 
 export default class RaceService {
   constructor(private readonly raceRepository: IRaceRepository) { }
@@ -20,7 +20,7 @@ export default class RaceService {
     return this.raceRepository.crear(race);
   }
 
-  actualizar(race: CreateRace): Promise<RaceApi | undefined> {
+  actualizar(race: UpdateRace): Promise<RaceApi | undefined> {
     return this.raceRepository.actualizar(race);
   }
 

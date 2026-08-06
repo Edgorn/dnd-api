@@ -1,11 +1,11 @@
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
-import IDañoRepository from "../../../../domain/repositories/IDañoRepository";
+import IDamageRepository from "../../../../domain/repositories/IDamageRepository";
 import TraitSchema from "../schemas/Trait";
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
 import { CreateTrait, TraitApi, TraitDataMongo, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
-import { DañoApi } from "../../../../domain/types";
+import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { ConjuroApi } from "../../../../domain/types/conjuros.types";
 import { EstadoApi } from "../../../../domain/types/estados.types";
@@ -15,7 +15,7 @@ import { AppError } from '../../../../domain/errors/AppError';
 
 export default class TraitRepository implements ITraitRepository {
   constructor(
-    private readonly dañoRepository: IDañoRepository,
+    private readonly damageRepository: IDamageRepository,
     private readonly proficiencyRepository: IProficiencyRepository,
     private readonly conjuroRepository: IConjuroRepository,
     private readonly estadoRepository: IEstadoRepository
@@ -120,16 +120,16 @@ export default class TraitRepository implements ITraitRepository {
       fetchedConditionInmunities,
       fetchedIncompatibleTraits
     ] = await Promise.all([
-      allResistances.size ? this.dañoRepository.obtenerDañosPorIndices(Array.from(allResistances)) : [],
-      allConditionalResistances.size ? this.dañoRepository.obtenerDañosPorIndices(Array.from(allConditionalResistances)) : [],
+      allResistances.size ? this.damageRepository.getByIds(Array.from(allResistances)) : [],
+      allConditionalResistances.size ? this.damageRepository.getByIds(Array.from(allConditionalResistances)) : [],
       allProficiencies.size ? this.proficiencyRepository.getProficienciesByIndices(Array.from(allProficiencies)) : [],
       allSpells.size ? this.conjuroRepository.obtenerConjurosPorIndices(Array.from(allSpells)) : [],
       allConditionInmunities.size ? this.estadoRepository.obtenerEstadosPorIndices(Array.from(allConditionInmunities)) : [],
       allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : []
     ]);
 
-    const resistanceMap = new Map<string, DañoApi>(fetchedResistances.map(item => [item.index, item]));
-    const conditionalResistanceMap = new Map<string, DañoApi>(fetchedConditionalResistances.map(item => [item.index, item]));
+    const resistanceMap = new Map<string, Damage>(fetchedResistances.map(item => [item.id!, item]));
+    const conditionalResistanceMap = new Map<string, Damage>(fetchedConditionalResistances.map(item => [item.id!, item]));
     const proficiencyMap = new Map<string, ProficiencyApi>(fetchedProficiencies.map(item => [item.id, item]));
     const spellMap = new Map<string, ConjuroApi>(fetchedSpells.map(item => [(item as any).index ?? (item as any).id, item]));
     const conditionInmunityMap = new Map<string, EstadoApi>(fetchedConditionInmunities.map(item => [(item as any).index ?? (item as any).id, item]));
@@ -138,11 +138,11 @@ export default class TraitRepository implements ITraitRepository {
     return traits.map(trait => {
       const resistances = (trait.resistances ?? [])
         .map(idx => resistanceMap.get(idx))
-        .filter((item): item is DañoApi => !!item);
+        .filter((item): item is Damage => !!item);
 
       const conditional_resistances = (trait.conditional_resistances ?? [])
         .map(idx => conditionalResistanceMap.get(idx))
-        .filter((item): item is DañoApi => !!item);
+        .filter((item): item is Damage => !!item);
 
       const proficienciesKeys = trait?.proficiencies ?? [];
       const proficiencies = proficienciesKeys

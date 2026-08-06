@@ -111,7 +111,11 @@ const router = Router();
  *         spell_choices:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/SpellChoiceApi'
+ *           description: Lista de opciones de elección de conjuros resueltas para la raza.
+ *         spellcasting:
+ *           $ref: '#/components/schemas/AttributeApi'
+ *           description: Característica principal para lanzar conjuros de la raza (Objeto completo de la característica).
  *         parentId:
  *           type: string
  *           description: ID de la raza padre si esta raza es una subraza (Opcional).
@@ -180,7 +184,11 @@ const router = Router();
  *         spell_choices:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/ChoiceMongo'
+ *           description: Configuración de elecciones de conjuros (lista de IDs o filtro de búsqueda).
+ *         spellcasting:
+ *           type: string
+ *           description: Identificador único (ObjectId) del atributo usado como característica principal para lanzar conjuros (Opcional).
  *     InputUpdateRace:
  *       type: object
  *       properties:
@@ -230,7 +238,43 @@ const router = Router();
  *         spell_choices:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/ChoiceMongo'
+ *           description: Configuración de elecciones de conjuros (lista de IDs o filtro de búsqueda).
+ *         spellcasting:
+ *           type: string
+ *           description: Identificador único (ObjectId) del atributo usado como característica principal para lanzar conjuros (Opcional).
+ *     ChoiceMongo:
+ *       type: object
+ *       properties:
+ *         choose:
+ *           type: number
+ *           description: Cantidad de opciones que el jugador debe elegir.
+ *         options:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Lista explícita de identificadores disponibles para esta elección.
+ *         filter:
+ *           type: object
+ *           description: Criterios de filtrado dinámico en base de datos (por ejemplo nivel o clase).
+ *     SpellChoiceApi:
+ *       type: object
+ *       properties:
+ *         choose:
+ *           type: number
+ *           description: Cantidad de conjuros a seleccionar.
+ *         options:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ConjuroApi'
+ *           description: Lista de conjuros completamente poblados disponibles para elegir.
+ *         query_type:
+ *           type: string
+ *           enum: [all, options, filter]
+ *           description: Tipo de consulta usada originalmente para obtener las opciones.
+ *         query_filter:
+ *           type: object
+ *           description: Filtro aplicado si el query_type fue 'filter'.
  */
 
 /**

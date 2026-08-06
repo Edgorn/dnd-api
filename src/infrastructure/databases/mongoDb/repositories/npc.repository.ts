@@ -1,5 +1,5 @@
 import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
-import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
+import IDamageRepository from '../../../../domain/repositories/IDamageRepository';
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import INpcRepository from '../../../../domain/repositories/INpcRepository';
@@ -9,7 +9,7 @@ import NpcSchema from '../schemas/Npc';
 
 export default class NpcRepository implements INpcRepository {
   constructor(
-    private readonly dañoRepository: IDañoRepository,
+    private readonly damageRepository: IDamageRepository,
     private readonly estadoRepository: IEstadoRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly conjurosRepository: IConjuroRepository,
@@ -41,9 +41,9 @@ export default class NpcRepository implements INpcRepository {
       understands_languages,
       spell_slots
     ] = await Promise.all([
-      this.dañoRepository.obtenerDañosPorIndices(npc?.damage_vulnerabilities ?? []),
-      this.dañoRepository.obtenerDañosPorIndices(npc?.damage_immunities ?? []),
-      this.dañoRepository.obtenerDañosPorIndices(npc?.damage_resistances ?? []),
+      this.damageRepository.getByIds(npc?.damage_vulnerabilities ?? []),
+      this.damageRepository.getByIds(npc?.damage_immunities ?? []),
+      this.damageRepository.getByIds(npc?.damage_resistances ?? []),
       this.estadoRepository.obtenerEstadosPorIndices(npc?.condition_immunities ?? []),
       this.languageRepository.getLanguagesByIndex(npc?.languages?.speaks ?? []),
       this.languageRepository.getLanguagesByIndex(npc?.languages?.understands ?? []),

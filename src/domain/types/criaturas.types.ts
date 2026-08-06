@@ -1,4 +1,4 @@
-import { DañoApi } from "."
+import { Damage } from "."
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
 import { LanguageApi } from "./language.types"
@@ -82,9 +82,9 @@ export interface CriaturaApi {
   languages: LanguagesCriaturaApi,
   challenge_rating: string,
   xp: number,
-  damage_vulnerabilities: DañoApi[],
-  damage_immunities: DañoApi[],
-  damage_resistances: DañoApi[],
+  damage_vulnerabilities: Damage[],
+  damage_immunities: Damage[],
+  damage_resistances: Damage[],
   condition_immunities: EstadoApi[],
   special_abilities: [],
   actions: [],

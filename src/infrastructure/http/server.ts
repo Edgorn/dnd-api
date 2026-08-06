@@ -21,6 +21,7 @@ import systemRoutes from "./routes/system.routes";
 import attributeRoutes from "./routes/attribute.routes";
 import proficiencyRoutes from "./routes/proficiency.routes";
 import magicSchoolRoutes from "./routes/magicSchool.routes";
+import damageRoutes from "./routes/damage.routes";
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from "./middlewares/errorHandler.middleware";
@@ -70,6 +71,7 @@ app.use(systemRoutes);
 app.use(attributeRoutes);
 app.use(proficiencyRoutes);
 app.use(magicSchoolRoutes);
+app.use(damageRoutes);
 
 app.use(errorHandler);
 

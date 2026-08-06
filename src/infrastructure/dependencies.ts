@@ -69,7 +69,14 @@ import TraitRepository from "./databases/mongoDb/repositories/trait.repository";
 import UserRepository from "./databases/mongoDb/repositories/user.repository";
 import RaceRepository from "./databases/mongoDb/repositories/race.repository";
 import TransfondoRepository from "./databases/mongoDb/repositories/transfondo.repository";
-import DañoRepository from "./databases/mongoDb/repositories/daño.repository";
+import DamageRepository from "./databases/mongoDb/repositories/damage.repository";
+import DamageService from "../domain/services/damage.service";
+import CreateDamage from "../application/use-cases/damage/createDamage.use-case";
+import UpdateDamage from "../application/use-cases/damage/updateDamage.use-case";
+import SoftDeleteDamage from "../application/use-cases/damage/softDeleteDamage.use-case";
+import RestoreDamage from "../application/use-cases/damage/restoreDamage.use-case";
+import GetDamagesBySystems from "../application/use-cases/damage/getDamagesBySystems.use-case";
+import { DamageController } from "./http/controllers/damage.controller";
 import PropiedadArmaRepository from "./databases/mongoDb/repositories/propiedadesArmas.repository";
 import EstadoRepository from "./databases/mongoDb/repositories/estado.repository";
 import InvocacionRepository from "./databases/mongoDb/repositories/invocacion.repository";
@@ -153,12 +160,13 @@ const skillRepository = new SkillRepository(systemRepository)
 const proficiencyRepository = new ProficiencyRepository(systemRepository)
 const spellRepository = new SpellRepository(systemRepository)
 const conjuroRepository = spellRepository
-const dañoRepository = new DañoRepository()
+const damageRepository = new DamageRepository(systemRepository)
+const dañoRepository = damageRepository
 const propiedadArmaRepository = new PropiedadArmaRepository()
-const equipamientoRepository = new EquipamientoRepository(dañoRepository, propiedadArmaRepository)
+const equipamientoRepository = new EquipamientoRepository(damageRepository, propiedadArmaRepository)
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
-const traitRepository = new TraitRepository(dañoRepository, proficiencyRepository, conjuroRepository, estadoRepository)
+const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, conjuroRepository, estadoRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const skillService = new SkillService(skillRepository)
@@ -195,7 +203,7 @@ const transfondoRepository = new TransfondoRepository(
 );
 
 const criaturaRepository = new CriaturaRepository(
-  dañoRepository,
+  damageRepository,
   estadoRepository,
   languageRepository,
   conjuroRepository
@@ -460,3 +468,19 @@ export const proficiencyController = new ProficiencyController(
   softDeleteProficiency,
   restoreProficiency
 );
+
+const damageService = new DamageService(damageRepository);
+const createDamage = new CreateDamage(damageService, systemService);
+const updateDamage = new UpdateDamage(damageService, systemService);
+const softDeleteDamage = new SoftDeleteDamage(damageService, systemService);
+const restoreDamage = new RestoreDamage(damageService, systemService);
+const getDamagesBySystems = new GetDamagesBySystems(damageService);
+
+export const damageController = new DamageController(
+  createDamage,
+  updateDamage,
+  softDeleteDamage,
+  restoreDamage,
+  getDamagesBySystems
+);
+

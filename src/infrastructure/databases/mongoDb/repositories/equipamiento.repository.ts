@@ -1,27 +1,27 @@
-import IDañoRepository from '../../../../domain/repositories/IDañoRepository';
+import IDamageRepository from '../../../../domain/repositories/IDamageRepository';
 import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
 import IPropiedadArmaRepository from '../../../../domain/repositories/IPropiedadesArmas';
 import { EquipamientoPersonajeMongo, EquipamientoPersonajeApi, EquipamientoMongo, EquipamientoOpcionesMongo, EquipamientoChoiceApi, EquipamientoApi, WeaponMongo, WeaponApi, WeaponDamageMongo, WeaponDamageApi, EquipamientoBasico, WeaponBasico } from '../../../../domain/types/equipamientos.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import EquipamientoSchema from '../schemas/Equipamiento';
-import DañoRepository from './daño.repository';
+import DamageRepository from './damage.repository';
 import PropiedadArmaRepository from './propiedadesArmas.repository';
 
 export default class EquipamientoRepository implements IEquipamientoRepository {
   private equipamientosMap: Map<string, EquipamientoMongo>
   private readonly MAX_CACHE_SIZE = 1000;
 
-  dañoRepository: IDañoRepository
+  damageRepository: IDamageRepository
   propiedadesRepository: IPropiedadArmaRepository
 
-  constructor(dañoRepository?: IDañoRepository, propiedadesRepository?: IPropiedadArmaRepository) {
+  constructor(damageRepository?: IDamageRepository, propiedadesRepository?: IPropiedadArmaRepository) {
     this.equipamientosMap = new Map()
-    this.dañoRepository = dañoRepository ?? this.crearDañoRepositorioPorDefecto()
+    this.damageRepository = damageRepository ?? this.crearDamageRepositorioPorDefecto()
     this.propiedadesRepository = propiedadesRepository ?? this.crearPropiedadesRepositorioPorDefecto()
   }
 
-  private crearDañoRepositorioPorDefecto(): IDañoRepository {
-    return new DañoRepository();
+  private crearDamageRepositorioPorDefecto(): IDamageRepository {
+    return new DamageRepository();
   }
 
   private crearPropiedadesRepositorioPorDefecto(): IPropiedadArmaRepository {
@@ -136,12 +136,12 @@ export default class EquipamientoRepository implements IEquipamientoRepository {
   }
 
   private async obtenerDamage(damage: WeaponDamageMongo): Promise<WeaponDamageApi> {
-    const daño = await this.dañoRepository.obtenerDañoPorIndice(damage?.type ?? "")
+    const daño = await this.damageRepository.getById(damage?.type ?? "")
 
     return {
       dice: damage.dice,
       name: daño?.name ?? "",
-      desc: daño?.desc ?? ""
+      desc: daño?.description ?? ""
     }
   }
 

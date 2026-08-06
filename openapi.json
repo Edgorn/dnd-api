@@ -428,7 +428,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Clases que pueden aprender el conjuro."
+            "description": "Array de IDs de las clases que pueden aprender el conjuro."
           },
           "typeName": {
             "type": "string"
@@ -531,6 +531,104 @@
             },
             "description": "Duración detallada del conjuro."
           },
+          "damage": {
+            "type": "object",
+            "properties": {
+              "base": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "diceCount": {
+                      "type": "number"
+                    },
+                    "diceType": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "scaling": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "per_slot_level",
+                      "character_level"
+                    ]
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "level": {
+                          "type": "number"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "add",
+                            "override"
+                          ]
+                        },
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "diceCount": {
+                                "type": "number"
+                              },
+                              "diceType": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "color": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Información de daño del conjuro."
+          },
           "description": {
             "type": "array",
             "items": {
@@ -572,7 +670,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Array de IDs de las clases."
           },
           "school": {
             "type": "string",
@@ -651,6 +750,77 @@
               },
               "concentration": {
                 "type": "boolean"
+              }
+            }
+          },
+          "damage": {
+            "type": "object",
+            "properties": {
+              "base": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "diceCount": {
+                      "type": "number"
+                    },
+                    "diceType": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "description": "ID del tipo de daño."
+                    }
+                  }
+                }
+              },
+              "scaling": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "per_slot_level",
+                      "character_level"
+                    ]
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "level": {
+                          "type": "number"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "add",
+                            "override"
+                          ]
+                        },
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "diceCount": {
+                                "type": "number"
+                              },
+                              "diceType": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "description": "ID del tipo de daño."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -678,7 +848,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Array de IDs de las clases."
           },
           "school": {
             "type": "string",
@@ -757,6 +928,77 @@
               },
               "concentration": {
                 "type": "boolean"
+              }
+            }
+          },
+          "damage": {
+            "type": "object",
+            "properties": {
+              "base": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "diceCount": {
+                      "type": "number"
+                    },
+                    "diceType": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "description": "ID del tipo de daño."
+                    }
+                  }
+                }
+              },
+              "scaling": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "per_slot_level",
+                      "character_level"
+                    ]
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "level": {
+                          "type": "number"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "add",
+                            "override"
+                          ]
+                        },
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "diceCount": {
+                                "type": "number"
+                              },
+                              "diceType": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "description": "ID del tipo de daño."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -1008,8 +1250,13 @@
           "spell_choices": {
             "type": "array",
             "items": {
-              "type": "object"
-            }
+              "$ref": "#/components/schemas/SpellChoiceApi"
+            },
+            "description": "Lista de opciones de elección de conjuros resueltas para la raza."
+          },
+          "spellcasting": {
+            "$ref": "#/components/schemas/AttributeApi",
+            "description": "Característica principal para lanzar conjuros de la raza (Objeto completo de la característica)."
           },
           "parentId": {
             "type": "string",
@@ -1109,8 +1356,13 @@
           "spell_choices": {
             "type": "array",
             "items": {
-              "type": "object"
-            }
+              "$ref": "#/components/schemas/ChoiceMongo"
+            },
+            "description": "Configuración de elecciones de conjuros (lista de IDs o filtro de búsqueda)."
+          },
+          "spellcasting": {
+            "type": "string",
+            "description": "Identificador único (ObjectId) del atributo usado como característica principal para lanzar conjuros (Opcional)."
           }
         }
       },
@@ -1183,8 +1435,62 @@
           "spell_choices": {
             "type": "array",
             "items": {
-              "type": "object"
-            }
+              "$ref": "#/components/schemas/ChoiceMongo"
+            },
+            "description": "Configuración de elecciones de conjuros (lista de IDs o filtro de búsqueda)."
+          },
+          "spellcasting": {
+            "type": "string",
+            "description": "Identificador único (ObjectId) del atributo usado como característica principal para lanzar conjuros (Opcional)."
+          }
+        }
+      },
+      "ChoiceMongo": {
+        "type": "object",
+        "properties": {
+          "choose": {
+            "type": "number",
+            "description": "Cantidad de opciones que el jugador debe elegir."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista explícita de identificadores disponibles para esta elección."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Criterios de filtrado dinámico en base de datos (por ejemplo nivel o clase)."
+          }
+        }
+      },
+      "SpellChoiceApi": {
+        "type": "object",
+        "properties": {
+          "choose": {
+            "type": "number",
+            "description": "Cantidad de conjuros a seleccionar."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConjuroApi"
+            },
+            "description": "Lista de conjuros completamente poblados disponibles para elegir."
+          },
+          "query_type": {
+            "type": "string",
+            "enum": [
+              "all",
+              "options",
+              "filter"
+            ],
+            "description": "Tipo de consulta usada originalmente para obtener las opciones."
+          },
+          "query_filter": {
+            "type": "object",
+            "description": "Filtro aplicado si el query_type fue 'filter'."
           }
         }
       },
@@ -1935,6 +2241,72 @@
             "type": "string"
           },
           "ruleset": {
+            "type": "string"
+          }
+        }
+      },
+      "Damage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de daño."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo de daño (ej. Fuego, Ácido)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del tipo de daño."
+          },
+          "color": {
+            "type": "string",
+            "description": "Código de color hexadecimal o nombre de color asignado."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID o clave del sistema al que pertenece."
+          }
+        }
+      },
+      "InputCreateDamage": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "name",
+          "description",
+          "color"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema de reglas."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo de daño."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción."
+          },
+          "color": {
+            "type": "string",
+            "description": "Color identificativo."
+          }
+        }
+      },
+      "InputUpdateDamage": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "color": {
             "type": "string"
           }
         }
@@ -4367,6 +4739,233 @@
           },
           "404": {
             "description": "Idioma no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/damages": {
+      "get": {
+        "summary": "Obtener tipos de daño filtrados por sistemas",
+        "tags": [
+          "Daños"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del sistema para filtrar tipos de daño (incluye herencia de ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de tipos de daño devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Damage"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo tipo de daño",
+        "tags": [
+          "Daños"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateDamage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tipo de daño creado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Damage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "409": {
+            "description": "Ya existe un tipo de daño con ese nombre en el sistema."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/damages/{id}": {
+      "put": {
+        "summary": "Actualizar un tipo de daño existente",
+        "tags": [
+          "Daños"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de daño a editar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateDamage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tipo de daño modificado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Damage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición incorrecta."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "No se encontró el tipo de daño."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de un tipo de daño",
+        "tags": [
+          "Daños"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de daño a eliminar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Tipo de daño borrado exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para eliminar."
+          },
+          "404": {
+            "description": "Tipo de daño no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/damages/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar un tipo de daño borrado lógicamente",
+        "tags": [
+          "Daños"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de daño a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tipo de daño restaurado exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para restaurar."
+          },
+          "404": {
+            "description": "Tipo de daño no encontrado."
           },
           "500": {
             "description": "Error del servidor."

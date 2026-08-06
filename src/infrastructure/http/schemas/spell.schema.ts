@@ -33,6 +33,31 @@ export const SpellDurationSchema = z.object({
   concentration: z.boolean()
 });
 
+export const DamageComponentSchema = z.object({
+  diceCount: z.number().min(1, "El número de dados debe ser al menos 1"),
+  diceType: z.string().min(2, "El tipo de dado no puede estar vacío (ej: d6)"),
+  type: z.string().min(1, "El ID del tipo de daño no puede estar vacío")
+});
+
+export const SpellDamageScalingStepTypeSchema = z.enum(["add", "override"]);
+export const SpellDamageScalingModeSchema = z.enum(["per_slot_level", "character_level"]);
+
+export const ScalingStepSchema = z.object({
+  level: z.number().min(0, "El nivel debe ser mayor o igual a 0"),
+  type: SpellDamageScalingStepTypeSchema,
+  components: z.array(DamageComponentSchema).default([])
+});
+
+export const SpellDamageScalingSchema = z.object({
+  mode: SpellDamageScalingModeSchema,
+  steps: z.array(ScalingStepSchema).default([])
+});
+
+export const SpellDamageSchema = z.object({
+  base: z.array(DamageComponentSchema).default([]),
+  scaling: SpellDamageScalingSchema.optional()
+});
+
 export const CreateSpellSchema = z.object({
   ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -43,7 +68,8 @@ export const CreateSpellSchema = z.object({
   castingTime: CastingTimeSchema.optional(),
   range: SpellRangeSchema.optional(),
   components: SpellComponentsSchema.optional(),
-  duration: SpellDurationSchema.optional()
+  duration: SpellDurationSchema.optional(),
+  damage: SpellDamageSchema.optional()
 });
 
 export const UpdateSpellSchema = z.object({
@@ -56,7 +82,8 @@ export const UpdateSpellSchema = z.object({
   castingTime: CastingTimeSchema.optional(),
   range: SpellRangeSchema.optional(),
   components: SpellComponentsSchema.optional(),
-  duration: SpellDurationSchema.optional()
+  duration: SpellDurationSchema.optional(),
+  damage: SpellDamageSchema.optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

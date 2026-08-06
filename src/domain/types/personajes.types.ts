@@ -3,7 +3,7 @@ import { TraitApi, TraitDataMongo } from "./traits.types"
 import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
-import { DañoApi, Speed } from "."
+import { Damage, Speed } from "."
 import { EquipamientoPersonajeApi } from "./equipamientos.types"
 import { DoteApi } from "./dotes.types"
 import { ConjuroApi } from "./conjuros.types"
@@ -252,8 +252,8 @@ export interface PersonajeApi {
   proficiencies: ProficiencyApi[],
   traits: TraitApi[],
   traits_data: TraitDataMongo,
-  resistances: DañoApi[],
-  conditional_resistances: { name: string, resistances: DañoApi[] }[],
+  resistances: Damage[],
+  conditional_resistances: { name: string, resistances: Damage[] }[],
   condition_inmunities: { name: string, estados: EstadoApi[] }[]
   prof_bonus: number,
   saving_throws: string[],

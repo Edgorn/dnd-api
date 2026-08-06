@@ -1,12 +1,12 @@
 import { ObjectId } from "mongoose"
 import { ChoiceApi, ChoiceMongo, Speed } from "."
 import { ProficiencyApi } from "./proficiencies.types"
-import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
+import { ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi, CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { TraitApi, TraitDataMongo } from "./traits.types"
-import { AttributeBonus, AttributeBonusCreate } from "./attribute.types"
+import { AttributeApi, AttributeBonus, AttributeBonusCreate } from "./attribute.types"
 
 export interface RaceMongo {
   _id: ObjectId,
@@ -41,7 +41,8 @@ export interface RaceMongo {
   parentId?: ObjectId | null,
   variants: VarianteMongo[],
   levels: RaceLevelMongo[],
-  spell_choices?: ChoiceSpell[],
+  spell_choices?: ChoiceMongo[],
+  spellcasting?: ObjectId | string | null,
   deletedAt?: Date | null
 }
 
@@ -90,6 +91,7 @@ export interface RaceApi {
   language_choices?: ChoiceApi<LanguageApi>,
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[],
   spell_choices?: ChoiceApi<ConjuroApi>[],
+  spellcasting?: AttributeApi,
   subraces?: SubracesApi,
   parentId?: string | null,
   variants: VarianteApi[]
@@ -111,11 +113,11 @@ export interface VarianteApi {
 export interface CreateRace {
   id?: string,
   name: string;
-  description: string[];
-  alignment?: string;
+  description?: string[] | null;
+  alignment?: string | null;
   ruleset: string;
-  img: string;
-  ability_bonuses: AttributeBonusCreate;
+  img?: string | null;
+  ability_bonuses?: AttributeBonusCreate | null;
   speed: {
     walk: number;
   };
@@ -123,20 +125,26 @@ export interface CreateRace {
   size_range?: {
     min: number;
     max: number;
-  };
+  } | null;
   weight_range?: {
     min: number;
     max: number;
-  }
+  } | null;
   age?: {
     maturity: number;
     expectancy: number;
-  };
-  traits: string[];
-  traits_data: TraitDataMongo,
-  languages: CreatureLanguagesCreate,
-  language_choices?: ChoiceMongo,
-  parentId?: string,
-  subraces_name?: string,
-  spell_choices?: ChoiceSpell[]
+  } | null;
+  traits?: string[] | null;
+  traits_data?: TraitDataMongo | null;
+  languages?: CreatureLanguagesCreate | null;
+  language_choices?: ChoiceMongo | null;
+  parentId?: string | null;
+  subraces_name?: string | null;
+  spell_choices?: ChoiceMongo[] | null;
+  spellcasting?: string | null
 }
+
+export interface UpdateRace extends Partial<CreateRace> {
+  id: string;
+}
+

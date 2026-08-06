@@ -30,7 +30,7 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *           description: Clases que pueden aprender el conjuro.
+ *           description: Array de IDs de las clases que pueden aprender el conjuro.
  *         typeName:
  *           type: string
  *         school:
@@ -98,6 +98,66 @@ const router = Router();
  *             concentration:
  *               type: boolean
  *           description: Duración detallada del conjuro.
+ *         damage:
+ *           type: object
+ *           properties:
+ *             base:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   diceCount:
+ *                     type: number
+ *                   diceType:
+ *                     type: string
+ *                   type:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       color:
+ *                         type: string
+ *             scaling:
+ *               type: object
+ *               properties:
+ *                 mode:
+ *                   type: string
+ *                   enum: [per_slot_level, character_level]
+ *                 steps:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       level:
+ *                         type: number
+ *                       type:
+ *                         type: string
+ *                         enum: [add, override]
+ *                       components:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             diceCount:
+ *                               type: number
+ *                             diceType:
+ *                               type: string
+ *                             type:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                 name:
+ *                                   type: string
+ *                                 description:
+ *                                   type: string
+ *                                 color:
+ *                                   type: string
+ *           description: Información de daño del conjuro.
  *         description:
  *           type: array
  *           items:
@@ -128,6 +188,7 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
+ *           description: Array de IDs de las clases.
  *         school:
  *           type: string
  *           description: ID de la escuela de magia.
@@ -180,6 +241,49 @@ const router = Router();
  *               type: string
  *             concentration:
  *               type: boolean
+ *         damage:
+ *           type: object
+ *           properties:
+ *             base:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   diceCount:
+ *                     type: number
+ *                   diceType:
+ *                     type: string
+ *                   type:
+ *                     type: string
+ *                     description: ID del tipo de daño.
+ *             scaling:
+ *               type: object
+ *               properties:
+ *                 mode:
+ *                   type: string
+ *                   enum: [per_slot_level, character_level]
+ *                 steps:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       level:
+ *                         type: number
+ *                       type:
+ *                         type: string
+ *                         enum: [add, override]
+ *                       components:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             diceCount:
+ *                               type: number
+ *                             diceType:
+ *                               type: string
+ *                             type:
+ *                               type: string
+ *                               description: ID del tipo de daño.
  *     InputUpdateSpell:
  *       type: object
  *       properties:
@@ -197,6 +301,7 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
+ *           description: Array de IDs de las clases.
  *         school:
  *           type: string
  *           description: ID de la escuela de magia.
@@ -249,6 +354,49 @@ const router = Router();
  *               type: string
  *             concentration:
  *               type: boolean
+ *         damage:
+ *           type: object
+ *           properties:
+ *             base:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   diceCount:
+ *                     type: number
+ *                   diceType:
+ *                     type: string
+ *                   type:
+ *                     type: string
+ *                     description: ID del tipo de daño.
+ *             scaling:
+ *               type: object
+ *               properties:
+ *                 mode:
+ *                   type: string
+ *                   enum: [per_slot_level, character_level]
+ *                 steps:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       level:
+ *                         type: number
+ *                       type:
+ *                         type: string
+ *                         enum: [add, override]
+ *                       components:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             diceCount:
+ *                               type: number
+ *                             diceType:
+ *                               type: string
+ *                             type:
+ *                               type: string
+ *                               description: ID del tipo de daño.
  */
 
 /**
