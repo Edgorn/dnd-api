@@ -15,9 +15,6 @@ const router = Router();
  *         id:
  *           type: string
  *           description: ID de MongoDB de la clase.
- *         index:
- *           type: string
- *           description: Identificador clave (legacy).
  *         ruleset:
  *           type: string
  *           description: ID o nombre del sistema asociado.
@@ -53,7 +50,7 @@ const router = Router();
  *           items:
  *             type: object
  *             properties:
- *               index:
+ *               id:
  *                 type: string
  *               name:
  *                 type: string

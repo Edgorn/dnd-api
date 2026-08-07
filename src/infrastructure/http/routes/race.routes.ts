@@ -266,7 +266,7 @@ const router = Router();
  *         options:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/ConjuroApi'
+ *             $ref: '#/components/schemas/Spell'
  *           description: Lista de conjuros completamente poblados disponibles para elegir.
  *         query_type:
  *           type: string

@@ -8,7 +8,12 @@ import AñadirPersonajeACampaña from "../application/use-cases/campaña/añadir
 import LoginUseCase from "../application/use-cases/user/login.use-case";
 import ValidateTokenUseCase from "../application/use-cases/user/validateToken.use-case";
 import { createAuthMiddleware } from "./http/middlewares/auth.middleware";
-import ObtenerTodosLosTransfondos from "../application/use-cases/transfondo/obtenerTodosLosTransfondos.use-case";
+import GetBackgroundsBySystems from "../application/use-cases/background/getBackgroundsBySystems.use-case";
+import GetBackgroundById from "../application/use-cases/background/getBackgroundById.use-case";
+import CreateBackground from "../application/use-cases/background/createBackground.use-case";
+import UpdateBackground from "../application/use-cases/background/updateBackground.use-case";
+import SoftDeleteBackground from "../application/use-cases/background/softDeleteBackground.use-case";
+import RestoreBackground from "../application/use-cases/background/restoreBackground.use-case";
 import GetAllRacesUseCase from "../application/use-cases/race/getAllRaces.use-case";
 import GetCharacterClassesBySystems from "../application/use-cases/characterClass/getCharacterClassesBySystems.use-case";
 import CreateCharacterClass from "../application/use-cases/characterClass/createCharacterClass.use-case";
@@ -49,7 +54,7 @@ import { ProficiencyController } from "./http/controllers/proficiency.controller
 import CampañaService from "../domain/services/campaña.service";
 import UserService from "../domain/services/user.service";
 import RaceService from "../domain/services/race.service";
-import TransfondoService from "../domain/services/transfondo.service";
+import BackgroundService from "../domain/services/background.service";
 import CharacterClassService from "../domain/services/characterClass.service";
 import EquipamientoService from "../domain/services/equipamiento.service";
 import PersonajeService from "../domain/services/personaje.service";
@@ -68,7 +73,7 @@ import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repo
 import TraitRepository from "./databases/mongoDb/repositories/trait.repository";
 import UserRepository from "./databases/mongoDb/repositories/user.repository";
 import RaceRepository from "./databases/mongoDb/repositories/race.repository";
-import TransfondoRepository from "./databases/mongoDb/repositories/transfondo.repository";
+import BackgroundRepository from "./databases/mongoDb/repositories/background.repository";
 import DamageRepository from "./databases/mongoDb/repositories/damage.repository";
 import DamageService from "../domain/services/damage.service";
 import CreateDamage from "../application/use-cases/damage/createDamage.use-case";
@@ -92,7 +97,7 @@ import { createAuthorizeSystemMiddleware } from "./http/middlewares/authorizeSys
 import { CampañaController } from "./http/controllers/campaña.controller";
 import { UserController } from "./http/controllers/user.controller";
 import { RaceController } from "./http/controllers/race.controller";
-import { TransfondoController } from "./http/controllers/transfondo.controller";
+import { BackgroundController } from "./http/controllers/background.controller";
 import { CharacterClassController } from "./http/controllers/characterClass.controller";
 import { EquipamientoController } from "./http/controllers/equipamiento.controller";
 import { PersonajeController } from "./http/controllers/personaje.controller";
@@ -194,7 +199,8 @@ const raceRepository = new RaceRepository(
   systemRepository
 )
 
-const transfondoRepository = new TransfondoRepository(
+const backgroundRepository = new BackgroundRepository(
+  systemRepository,
   skillRepository,
   proficiencyRepository,
   languageRepository,
@@ -246,7 +252,7 @@ const validateTokenUseCase = new ValidateTokenUseCase(userService)
 export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
 
 const raceService = new RaceService(raceRepository)
-const transfondoService = new TransfondoService(transfondoRepository)
+const backgroundService = new BackgroundService(backgroundRepository)
 const characterClassService = new CharacterClassService(characterClassRepository)
 const equipamientoService = new EquipamientoService(equipamientoRepository)
 const personajeService = new PersonajeService(personajeRepository)
@@ -275,7 +281,12 @@ const getAllRaces = new GetAllRacesUseCase(raceService);
 const createRace = new CreateRaceUseCase(raceService);
 const updateRace = new UpdateRaceUseCase(raceService);
 
-const obtenerTodosLosTransfondos = new ObtenerTodosLosTransfondos(transfondoService);
+const getBackgroundsBySystems = new GetBackgroundsBySystems(backgroundRepository);
+const getBackgroundById = new GetBackgroundById(backgroundRepository);
+const createBackground = new CreateBackground(backgroundRepository);
+const updateBackground = new UpdateBackground(backgroundRepository);
+const softDeleteBackground = new SoftDeleteBackground(backgroundRepository);
+const restoreBackground = new RestoreBackground(backgroundRepository);
 
 const getCharacterClassesBySystems = new GetCharacterClassesBySystems(characterClassService);
 const createCharacterClass = new CreateCharacterClass(characterClassService, systemService);
@@ -368,7 +379,15 @@ export const campañaController = new CampañaController(
 
 export const userController = new UserController(loginUseCase, refreshTokenUseCase, logoutUseCase)
 
-export const transfondoController = new TransfondoController(obtenerTodosLosTransfondos)
+export const backgroundController = new BackgroundController(
+  getBackgroundsBySystems,
+  getBackgroundById,
+  createBackground,
+  updateBackground,
+  softDeleteBackground,
+  restoreBackground
+);
+export const transfondoController = backgroundController;
 
 export const characterClassController = new CharacterClassController(
   getCharacterClassesBySystems,

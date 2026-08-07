@@ -104,11 +104,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   }
 
   async dataLevelUp(idClase: string, level: number, subclasses: string[]): Promise<ClaseLevelUp | null> {
-    let filter: any = { index: idClase };
-    if (mongoose.Types.ObjectId.isValid(idClase)) {
-      filter = { $or: [{ _id: idClase }, { index: idClase }] };
+    if (!mongoose.Types.ObjectId.isValid(idClase)) {
+      return null;
     }
-    const clase = await CharacterClassModel.findOne(filter);
+    const clase = await CharacterClassModel.findById(idClase);
 
     if (!clase) {
       return null;
@@ -225,21 +224,19 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   }
 
   async spellcastingClases(clases: { id: string, level: number }[]): Promise<(SpellcastingLevel | null)[]> {
-    const idx = clases.map(clase => clase.id);
-    const validObjectIds = idx.filter(id => mongoose.Types.ObjectId.isValid(id));
-    const filter: any = {
-      $or: [
-        { index: { $in: idx } },
-        ...(validObjectIds.length > 0 ? [{ _id: { $in: validObjectIds } }] : [])
-      ]
-    };
-    const clasesData = await CharacterClassModel.find(filter).lean<CharacterClassMongo[]>();
+    const validObjectIds = clases
+      .map(clase => clase.id)
+      .filter(id => mongoose.Types.ObjectId.isValid(id));
+
+    if (validObjectIds.length === 0) return [];
+
+    const clasesData = await CharacterClassModel.find({ _id: { $in: validObjectIds } }).lean<CharacterClassMongo[]>();
 
     return Promise.all(clasesData.map(clase => this.spellcastingClase(clase, clases)));
   }
 
   private async spellcastingClase(clase: CharacterClassMongo, clasesLevel: { id: string, level: number }[]): Promise<SpellcastingLevel | null> {
-    const level = clasesLevel.find(clas => clas.id === clase.index || clas.id === clase._id?.toString())?.level;
+    const level = clasesLevel.find(clas => clas.id === clase._id?.toString())?.level;
 
     if (!level) return null;
 
@@ -248,7 +245,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     if (!spellcasting) return null;
 
     return {
-      class: clase.index || clase._id?.toString() || '',
+      class: clase._id?.toString() || '',
       ability: clase.spellcasting || '',
       spellcasting
     };
@@ -287,7 +284,6 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     return {
       id: clase._id ? clase._id.toString() : "",
-      index: clase.index,
       ruleset: clase.ruleset || "",
       name: clase.name,
       description: clase?.description ?? [],
@@ -328,7 +324,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       return {
         name: subclase_type.name,
         desc: subclase_type.desc,
-        options: options.filter(option => option.index !== "fanatic")
+        options: options.filter(option => option.id !== "fanatic")
       };
     } else {
       return null;
@@ -346,11 +342,11 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   }
 
   private async formatearSubclaseOption(subclase_option: SubclassesOptionsMongoOption, subclases: SubclassesMongo): Promise<SubclassOptionApi> {
-    const subclaseData = subclases[subclase_option?.index];
+    const subclaseData = subclases[subclase_option?.id];
     const subclase = await this.formatearSubclase(subclaseData);
 
     return {
-      index: subclase_option?.index,
+      id: subclase_option?.id,
       name: subclase_option?.name,
       img: subclase_option?.img,
       traits: subclase.traits,

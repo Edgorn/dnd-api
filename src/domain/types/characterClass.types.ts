@@ -25,7 +25,6 @@ export interface InputUpdateCharacterClass {
 
 export interface CharacterClassMongo {
   _id?: any;
-  index?: string;
   ruleset?: string;
   deletedAt?: Date | null;
   name: string;
@@ -91,7 +90,7 @@ export interface SubclassesOptionsMongo {
 }
 
 export interface SubclassesOptionsMongoOption {
-  index: string;
+  id: string;
   name: string;
   img: string;
 }
@@ -121,7 +120,6 @@ export interface SubclassMongo {
 
 export interface CharacterClassApi {
   id: string;
-  index?: string;
   ruleset: string;
   name: string;
   description: string[];
@@ -135,7 +133,7 @@ export interface CharacterClassApi {
   traits: TraitApi[];
   traits_data: TraitDataMongo;
   saving_throws: {
-    index: string;
+    id: string;
     name: string;
   }[];
   equipment?: EquipamientoPersonajeApi[];
@@ -153,7 +151,7 @@ export interface SubclassesOptionsApi {
 }
 
 export interface SubclassOptionApi extends SubclassApi {
-  index: string;
+  id: string;
   name: string;
   img: string;
 }

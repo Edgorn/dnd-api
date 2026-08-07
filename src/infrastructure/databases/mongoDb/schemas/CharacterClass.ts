@@ -2,7 +2,6 @@ import mongoose, { Schema } from "mongoose";
 import { CharacterClassMongo } from "../../../../domain/types/characterClass.types";
 
 const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
-  index: String,
   ruleset: { type: String, required: true },
   deletedAt: { type: Date, default: null },
   name: { type: String, required: true },
@@ -15,7 +14,7 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
   saving_throws: { type: [String], default: [] },
   equipment: [
     {
-      index: String,
+      id: String,
       quantity: Number
     }
   ],

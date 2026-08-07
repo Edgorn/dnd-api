@@ -55,7 +55,7 @@ export const formatearAbilityBonuses = (ability_bonuses: AbilityBonusesMongo[]):
 export const formatearSalvacion = (ability_bonuses: string[]) => {
   const abilityBonuses = ability_bonuses?.map(ability => {
     return {
-      index: ability,
+      id: ability,
       name: caracteristicas[ability] ?? ability
     }
   })
