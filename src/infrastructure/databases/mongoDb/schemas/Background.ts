@@ -8,7 +8,7 @@ const backgroundSchema: Schema = new Schema<BackgroundMongo>({
   description: { type: [String], default: [] },
   img: { type: String, default: "" },
   traits: { type: [String], default: [] },
-  traits_options: { type: Schema.Types.Mixed, default: {} },
+  traits_data: { type: Schema.Types.Mixed, default: {} },
   skills: { type: [String], default: [] },
   language_choices: { type: Schema.Types.Mixed, default: {} },
   proficiencies: { type: [String], default: [] },

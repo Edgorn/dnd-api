@@ -29,6 +29,20 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen del trasfondo.
+ *         god:
+ *           type: boolean
+ *           description: Indica si el trasfondo otorga deidad asociada.
+ *         traits:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Array de IDs de rasgos asociados.
+ *         traits_data:
+ *           type: object
+ *           description: Datos adicionales y mapa de configuración para los rasgos.
+ *         language_choices:
+ *           type: object
+ *           description: Elección de idiomas para el trasfondo.
  *         deletedAt:
  *           type: string
  *           format: date-time
@@ -124,6 +138,16 @@ router.get('/backgrounds/:id', authMiddleware, backgroundController.getById);
  *                       type: string
  *               img:
  *                 type: string
+ *               god:
+ *                 type: boolean
+ *               traits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               traits_data:
+ *                 type: object
+ *               language_choices:
+ *                 type: object
  *     responses:
  *       201:
  *         description: Trasfondo creado con éxito.
@@ -171,6 +195,16 @@ router.post('/backgrounds', authMiddleware, validateSchema(CreateBackgroundSchem
  *                       type: string
  *               img:
  *                 type: string
+ *               god:
+ *                 type: boolean
+ *               traits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               traits_data:
+ *                 type: object
+ *               language_choices:
+ *                 type: object
  *     responses:
  *       200:
  *         description: Trasfondo actualizado con éxito.

@@ -2524,6 +2524,25 @@
             "type": "string",
             "description": "URL de la imagen del trasfondo."
           },
+          "god": {
+            "type": "boolean",
+            "description": "Indica si el trasfondo otorga deidad asociada."
+          },
+          "traits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array de IDs de rasgos asociados."
+          },
+          "traits_data": {
+            "type": "object",
+            "description": "Datos adicionales y mapa de configuración para los rasgos."
+          },
+          "language_choices": {
+            "type": "object",
+            "description": "Elección de idiomas para el trasfondo."
+          },
           "deletedAt": {
             "type": "string",
             "format": "date-time",
@@ -5303,6 +5322,21 @@
                   },
                   "img": {
                     "type": "string"
+                  },
+                  "god": {
+                    "type": "boolean"
+                  },
+                  "traits": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "traits_data": {
+                    "type": "object"
+                  },
+                  "language_choices": {
+                    "type": "object"
                   }
                 }
               }
@@ -5413,6 +5447,21 @@
                   },
                   "img": {
                     "type": "string"
+                  },
+                  "god": {
+                    "type": "boolean"
+                  },
+                  "traits": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "traits_data": {
+                    "type": "object"
+                  },
+                  "language_choices": {
+                    "type": "object"
                   }
                 }
               }

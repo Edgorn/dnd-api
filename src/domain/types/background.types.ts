@@ -3,13 +3,17 @@ import { ProficiencyApi } from "./proficiencies.types";
 import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types";
 import { SkillApi } from "./skill.types";
 import { LanguageApi } from "./language.types";
-import { TraitApi, TraitsOptionsApi, TraitsOptionsMongo } from "./traits.types";
+import { TraitApi, TraitDataMongo } from "./traits.types";
 
 export interface InputCreateBackground {
   ruleset: string;
   name: string;
   description: string[];
   img?: string;
+  god?: boolean;
+  traits?: string[] | null;
+  traits_data?: TraitDataMongo | null;
+  language_choices?: ChoiceMongo | null;
 }
 
 export interface InputUpdateBackground {
@@ -18,6 +22,10 @@ export interface InputUpdateBackground {
   name?: string;
   description?: string[];
   img?: string;
+  god?: boolean;
+  traits?: string[] | null;
+  traits_data?: TraitDataMongo | null;
+  language_choices?: ChoiceMongo | null;
 }
 
 export interface BackgroundMongo {
@@ -28,7 +36,7 @@ export interface BackgroundMongo {
   description: string[];
   img: string;
   traits: string[];
-  traits_options?: TraitsOptionsMongo;
+  traits_data?: TraitDataMongo;
   skills: string[];
   language_choices?: ChoiceMongo;
   proficiencies: string[];
@@ -54,7 +62,7 @@ export interface VariantMongo {
   name: string;
   description?: string[];
   traits?: string[];
-  traits_options?: TraitsOptionsMongo;
+  traits_data?: TraitDataMongo;
   proficiencies_choices?: ChoiceMongo[];
   mixed_choices?: MixedChoicesMongo[][];
   equipment: EquipamientoPersonajeMongo[];
@@ -77,7 +85,7 @@ export interface BackgroundApi {
   description: string[];
   img: string;
   traits: TraitApi[];
-  traits_options?: TraitsOptionsApi;
+  traits_data?: TraitDataMongo;
   skills?: SkillApi[];
   language_choices?: ChoiceApi<LanguageApi>;
   proficiencies: ProficiencyApi[];
@@ -102,7 +110,7 @@ export interface VariantApi {
   name: string;
   description?: string[];
   traits?: TraitApi[];
-  traits_options?: TraitsOptionsApi;
+  traits_data?: TraitDataMongo;
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
   mixed_choices?: MixedChoicesApi[][];
   equipment?: EquipamientoPersonajeApi[];

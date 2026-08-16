@@ -60,7 +60,11 @@ export default class BackgroundRepository implements IBackgroundRepository {
       ruleset: data.ruleset,
       name: data.name,
       description: data.description || [],
-      img: data.img || ""
+      img: data.img || "",
+      god: data.god ?? false,
+      traits: data.traits ?? [],
+      traits_data: data.traits_data ?? {},
+      language_choices: data.language_choices ?? undefined
     });
 
     await newBackground.save();
@@ -99,7 +103,6 @@ export default class BackgroundRepository implements IBackgroundRepository {
 
     const [
       traits,
-      traits_options,
       skills,
       language_choices,
       proficiencies,
@@ -108,10 +111,9 @@ export default class BackgroundRepository implements IBackgroundRepository {
       equipment_choices,
       variants
     ] = await Promise.all([
-      this.traitRepository.getTraitsByIndexes(background?.traits ?? []),
-      this.traitRepository.getTraitsOptions(background?.traits_options),
+      this.traitRepository.getTraitsByIndexes(background?.traits ?? [], background?.traits_data),
       this.skillRepository.getSkillsByKeys(background?.skills ?? []),
-      this.languageRepository.formatLanguageChoices(background?.language_choices),
+      this.languageRepository.formatLanguageChoices(background?.language_choices, background?.ruleset),
       this.proficiencyRepository.getProficienciesByIndices(background?.proficiencies ?? []),
       this.proficiencyRepository.formatProficiencyChoices(background?.proficiencies_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(background?.equipment),
@@ -127,7 +129,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       img: background.img || "",
       description: background.description ?? [],
       traits,
-      traits_options,
+      traits_data: background?.traits_data,
       skills,
       language_choices,
       proficiencies,
@@ -159,16 +161,14 @@ export default class BackgroundRepository implements IBackgroundRepository {
 
     const [
       traits,
-      traits_options,
       proficiencies_choices,
       mixed_choices,
       equipment,
       equipment_choices
     ] = await Promise.all([
       variant?.traits
-        ? this.traitRepository.getTraitsByIndexes(variant?.traits ?? [])
+        ? this.traitRepository.getTraitsByIndexes(variant?.traits ?? [], variant?.traits_data)
         : Promise.resolve(undefined),
-      this.traitRepository.getTraitsOptions(variant?.traits_options),
       this.proficiencyRepository.formatProficiencyChoices(variant?.proficiencies_choices),
       this.formatearMixedChoices(variant.mixed_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(variant?.equipment),
@@ -179,7 +179,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       name: variant.name,
       description: variant.description,
       traits,
-      traits_options,
+      traits_data: variant?.traits_data,
       proficiencies_choices,
       mixed_choices,
       personalized_equipment: variant.personalized_equipment ?? [],
