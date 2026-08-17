@@ -175,7 +175,14 @@ const router = Router();
  *             ideals:
  *               type: array
  *               items:
- *                 type: string
+ *                 type: object
+ *                 properties:
+ *                   title:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   alignment:
+ *                     type: string
  *             bonds:
  *               type: array
  *               items:
@@ -254,18 +261,32 @@ const router = Router();
  *           items:
  *             type: object
  *         money:
- *           type: object
- *           properties:
- *             pc:
- *               type: number
- *             pp:
- *               type: number
- *             pe:
- *               type: number
- *             po:
- *               type: number
- *             ppt:
- *               type: number
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               quantity:
+ *                 type: number
+ *                 description: Cantidad de monedas.
+ *               id:
+ *                 type: string
+ *               ruleset:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               abbreviation:
+ *                 type: string
+ *               isBase:
+ *                 type: boolean
+ *               multiplier:
+ *                 type: number
+ *               weight:
+ *                 type: number
+ *               deletedAt:
+ *                 type: string
+ *                 format: date-time
+ *                 nullable: true
+ *           description: Monedas del personaje con información completa.
  *         spells:
  *           type: object
  *         cargaMaxima:
@@ -385,12 +406,18 @@ const router = Router();
  *         traits_data:
  *           type: object
  *         money:
- *           type: object
- *           properties:
- *             unit:
- *               type: string
- *             quantity:
- *               type: number
+ *           type: array
+ *           items:
+ *             type: object
+ *             required:
+ *               - unit
+ *               - quantity
+ *             properties:
+ *               unit:
+ *                 type: string
+ *                 description: ID de la moneda.
+ *               quantity:
+ *                 type: number
  *         dotes:
  *           type: array
  *           items:

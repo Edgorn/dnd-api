@@ -5,7 +5,7 @@ import IEquipamientoRepository from '../../../../domain/repositories/IEquipamien
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
-import { mapStringArrayToLabelValue } from '../../../../utils/formatters';
+import ICoinRepository from '../../../../domain/repositories/ICoinRepository';
 import BackgroundModel from '../schemas/Background';
 import {
   BackgroundApi,
@@ -18,6 +18,7 @@ import {
   VariantMongo
 } from '../../../../domain/types/background.types';
 import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
+import { CoinApi } from '../../../../domain/types/coin.types';
 import { NotFoundError } from '../../../../domain/errors/AppError';
 
 export default class BackgroundRepository implements IBackgroundRepository {
@@ -27,7 +28,8 @@ export default class BackgroundRepository implements IBackgroundRepository {
     private readonly proficiencyRepository: IProficiencyRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly equipamientoRepository: IEquipamientoRepository,
-    private readonly traitRepository: ITraitRepository
+    private readonly traitRepository: ITraitRepository,
+    private readonly coinRepository: ICoinRepository
   ) { }
 
   async getBySystems(rulesets: string[], includeDeleted: boolean = false): Promise<BackgroundApi[]> {
@@ -64,7 +66,13 @@ export default class BackgroundRepository implements IBackgroundRepository {
       god: data.god ?? false,
       traits: data.traits ?? [],
       traits_data: data.traits_data ?? {},
-      language_choices: data.language_choices ?? undefined
+      skills: data.skills ?? [],
+      language_choices: data.language_choices ?? undefined,
+      personality_traits: data.personality_traits ?? [],
+      ideals: data.ideals ?? [],
+      bonds: data.bonds ?? [],
+      flaws: data.flaws ?? [],
+      money: data.money ?? []
     });
 
     await newBackground.save();
@@ -100,6 +108,15 @@ export default class BackgroundRepository implements IBackgroundRepository {
 
   private async formatearBackground(background: BackgroundMongo): Promise<BackgroundApi> {
     const options_name = this.formatearOptionsName(background?.options_name);
+    
+    let rawMoney: any[] = [];
+    if (Array.isArray(background?.money)) {
+      rawMoney = background.money;
+    } else if (background?.money && typeof background.money === 'object') {
+      rawMoney = [background.money];
+    }
+
+    const coinUnits = rawMoney.map(m => m?.unit).filter(Boolean);
 
     const [
       traits,
@@ -109,17 +126,30 @@ export default class BackgroundRepository implements IBackgroundRepository {
       proficiencies_choices,
       equipment,
       equipment_choices,
-      variants
+      variants,
+      coins
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(background?.traits ?? [], background?.traits_data),
-      this.skillRepository.getSkillsByKeys(background?.skills ?? []),
+      this.skillRepository.getSkillsByIds(background?.skills ?? []),
       this.languageRepository.formatLanguageChoices(background?.language_choices, background?.ruleset),
       this.proficiencyRepository.getProficienciesByIndices(background?.proficiencies ?? []),
       this.proficiencyRepository.formatProficiencyChoices(background?.proficiencies_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(background?.equipment),
       this.equipamientoRepository.formatearOpcionesDeEquipamientos(background?.equipment_choices),
-      this.formatearVariants(background?.variants ?? [])
+      this.formatearVariants(background?.variants ?? []),
+      this.coinRepository.getCoinsByIds(coinUnits)
     ]);
+
+    const money = rawMoney.map(m => {
+      const coin = coins.find(c => c.id === m.unit);
+      if (coin) {
+        return {
+          quantity: m.quantity ?? 0,
+          ...coin
+        };
+      }
+      return null;
+    }).filter(Boolean) as ({ quantity: number } & CoinApi)[];
 
     return {
       id: background._id ? background._id.toString() : "",
@@ -137,13 +167,13 @@ export default class BackgroundRepository implements IBackgroundRepository {
       equipment,
       equipment_choices,
       personalized_equipment: background.personalized_equipment ?? [],
-      money: background.money ?? { quantity: 0, unit: "gp" },
+      money,
       god: background?.god ?? false,
       options_name,
-      personality_traits: mapStringArrayToLabelValue(background?.personality_traits ?? []),
-      ideals: mapStringArrayToLabelValue(background?.ideals ?? []),
-      bonds: mapStringArrayToLabelValue(background?.bonds ?? []),
-      flaws: mapStringArrayToLabelValue(background?.flaws ?? []),
+      personality_traits: background?.personality_traits ?? [],
+      ideals: background?.ideals ?? [],
+      bonds: background?.bonds ?? [],
+      flaws: background?.flaws ?? [],
       variants
     };
   }
@@ -193,7 +223,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
     return options_name ? {
       name: options_name.name ?? '',
       choose: options_name.choose ?? 1,
-      options: options_name.options?.map(opt => ({ label: opt, value: opt })) ?? []
+      options: options_name.options ?? []
     } : undefined;
   }
 

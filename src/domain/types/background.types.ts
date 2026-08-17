@@ -1,9 +1,16 @@
-import { ChoiceApi, ChoiceMongo, MixedChoicesApi, MixedChoicesMongo, OptionSelectApi } from ".";
+import { ChoiceApi, ChoiceMongo, MixedChoicesApi, MixedChoicesMongo } from ".";
 import { ProficiencyApi } from "./proficiencies.types";
 import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types";
 import { SkillApi } from "./skill.types";
 import { LanguageApi } from "./language.types";
 import { TraitApi, TraitDataMongo } from "./traits.types";
+import { CoinApi } from "./coin.types";
+
+export interface Ideal {
+  title: string;
+  description: string;
+  alignment: string;
+}
 
 export interface InputCreateBackground {
   ruleset: string;
@@ -13,7 +20,16 @@ export interface InputCreateBackground {
   god?: boolean;
   traits?: string[] | null;
   traits_data?: TraitDataMongo | null;
+  skills?: string[] | null;
   language_choices?: ChoiceMongo | null;
+  personality_traits?: string[] | null;
+  ideals?: Ideal[] | null;
+  bonds?: string[] | null;
+  flaws?: string[] | null;
+  money?: {
+    quantity: number;
+    unit: string;
+  }[] | null;
 }
 
 export interface InputUpdateBackground {
@@ -25,7 +41,16 @@ export interface InputUpdateBackground {
   god?: boolean;
   traits?: string[] | null;
   traits_data?: TraitDataMongo | null;
+  skills?: string[] | null;
   language_choices?: ChoiceMongo | null;
+  personality_traits?: string[] | null;
+  ideals?: Ideal[] | null;
+  bonds?: string[] | null;
+  flaws?: string[] | null;
+  money?: {
+    quantity: number;
+    unit: string;
+  }[] | null;
 }
 
 export interface BackgroundMongo {
@@ -48,11 +73,11 @@ export interface BackgroundMongo {
   money: {
     quantity: number;
     unit: string;
-  };
+  }[];
   options_name?: OptionsNameMongo;
   god: boolean;
   personality_traits: string[];
-  ideals: string[];
+  ideals: Ideal[];
   bonds: string[];
   flaws: string[];
   variants: VariantMongo[];
@@ -93,16 +118,15 @@ export interface BackgroundApi {
   equipment?: EquipamientoPersonajeApi[];
   equipment_choices?: EquipamientoChoiceApi[][];
   personalized_equipment: string[];
-  money: {
+  money: ({
     quantity: number;
-    unit: string;
-  };
+  } & CoinApi)[];
   options_name?: OptionsNameApi;
   god: boolean;
-  personality_traits: OptionSelectApi[];
-  ideals: OptionSelectApi[];
-  bonds: OptionSelectApi[];
-  flaws: OptionSelectApi[];
+  personality_traits: string[];
+  ideals: Ideal[];
+  bonds: string[];
+  flaws: string[];
   variants: VariantApi[];
 }
 
@@ -121,7 +145,7 @@ export interface VariantApi {
 
 export interface OptionsNameApi {
   name: string;
-  options: OptionSelectApi[];
+  options: string[];
   choose: number;
 }
 

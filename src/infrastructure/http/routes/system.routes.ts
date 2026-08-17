@@ -64,6 +64,16 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/Attribute'
  *           description: Características vinculadas a este sistema (incluyendo heredadas).
+ *         skills:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Skill'
+ *           description: Habilidades vinculadas a este sistema (incluyendo heredadas).
+ *         coins:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Coin'
+ *           description: Monedas vinculadas a este sistema (incluyendo heredadas).
  *     TypeCrearSystem:
  *       type: object
  *       required:

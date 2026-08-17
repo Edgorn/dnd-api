@@ -8,8 +8,6 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   summary: [String],
   ruleset: String,
   incompatible_traits: [String],
-
-  desc: [String],
   hidden: Boolean,
   resistances: [String],
   condition_inmunities: [String],

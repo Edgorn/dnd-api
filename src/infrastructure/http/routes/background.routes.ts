@@ -43,6 +43,60 @@ const router = Router();
  *         language_choices:
  *           type: object
  *           description: Elección de idiomas para el trasfondo.
+ *         personality_traits:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Opciones de rasgos de personalidad.
+ *         ideals:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               alignment:
+ *                 type: string
+ *           description: Lista de ideales con título, descripción y alineamiento.
+ *         bonds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Opciones de vínculos.
+ *         flaws:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Opciones de defectos.
+ *         money:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               quantity:
+ *                 type: number
+ *                 description: Cantidad de monedas.
+ *               id:
+ *                 type: string
+ *               ruleset:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               abbreviation:
+ *                 type: string
+ *               isBase:
+ *                 type: boolean
+ *               multiplier:
+ *                 type: number
+ *               weight:
+ *                 type: number
+ *               deletedAt:
+ *                 type: string
+ *                 format: date-time
+ *                 nullable: true
+ *           description: Monedas iniciales otorgadas por el trasfondo.
  *         deletedAt:
  *           type: string
  *           format: date-time
@@ -146,8 +200,52 @@ router.get('/backgrounds/:id', authMiddleware, backgroundController.getById);
  *                   type: string
  *               traits_data:
  *                 type: object
+ *               skills:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *               language_choices:
  *                 type: object
+ *               personality_traits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               ideals:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - title
+ *                     - description
+ *                     - alignment
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     alignment:
+ *                       type: string
+ *               bonds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               flaws:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               money:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - quantity
+ *                     - unit
+ *                   properties:
+ *                     quantity:
+ *                       type: number
+ *                     unit:
+ *                       type: string
+ *                       description: ID de la moneda.
  *     responses:
  *       201:
  *         description: Trasfondo creado con éxito.
@@ -203,8 +301,48 @@ router.post('/backgrounds', authMiddleware, validateSchema(CreateBackgroundSchem
  *                   type: string
  *               traits_data:
  *                 type: object
+ *               skills:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *               language_choices:
  *                 type: object
+ *               personality_traits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               ideals:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     alignment:
+ *                       type: string
+ *               bonds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               flaws:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               money:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - quantity
+ *                     - unit
+ *                   properties:
+ *                     quantity:
+ *                       type: number
+ *                     unit:
+ *                       type: string
+ *                       description: ID de la moneda.
  *     responses:
  *       200:
  *         description: Trasfondo actualizado con éxito.

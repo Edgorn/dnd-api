@@ -6,6 +6,17 @@ const ChoiceMongoSchema = z.object({
   filter: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional()
 });
 
+const IdealSchema = z.object({
+  title: z.string().min(1, "El título no puede estar vacío"),
+  description: z.string().min(1, "La descripción no puede estar vacía"),
+  alignment: z.string().min(1, "El alineamiento no puede estar vacío")
+});
+
+const MoneySchema = z.object({
+  quantity: z.number().min(0, "La cantidad no puede ser negativa"),
+  unit: z.string().min(1, "El identificador de la moneda no puede estar vacío")
+});
+
 export const CreateBackgroundSchema = z.object({
   ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -14,7 +25,13 @@ export const CreateBackgroundSchema = z.object({
   god: z.boolean().optional(),
   traits: z.array(z.string()).nullable().optional(),
   traits_data: z.record(z.string(), z.any()).nullable().optional(),
-  language_choices: ChoiceMongoSchema.nullable().optional()
+  skills: z.array(z.string()).nullable().optional(),
+  language_choices: ChoiceMongoSchema.nullable().optional(),
+  personality_traits: z.array(z.string()).nullable().optional(),
+  ideals: z.array(IdealSchema).nullable().optional(),
+  bonds: z.array(z.string()).nullable().optional(),
+  flaws: z.array(z.string()).nullable().optional(),
+  money: z.array(MoneySchema).nullable().optional()
 });
 
 export const UpdateBackgroundSchema = z.object({
@@ -25,7 +42,13 @@ export const UpdateBackgroundSchema = z.object({
   god: z.boolean().optional(),
   traits: z.array(z.string()).nullable().optional(),
   traits_data: z.record(z.string(), z.any()).nullable().optional(),
-  language_choices: ChoiceMongoSchema.nullable().optional()
+  skills: z.array(z.string()).nullable().optional(),
+  language_choices: ChoiceMongoSchema.nullable().optional(),
+  personality_traits: z.array(z.string()).nullable().optional(),
+  ideals: z.array(IdealSchema).nullable().optional(),
+  bonds: z.array(z.string()).nullable().optional(),
+  flaws: z.array(z.string()).nullable().optional(),
+  money: z.array(MoneySchema).nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para actualizar"
 });

@@ -3,6 +3,14 @@ import GetCampaignsByUser from "../application/use-cases/campaña/getCampaignsBy
 import SolicitarEntradaACampaña from "../application/use-cases/campaña/solicitarEntradaACampaña.use-case";
 import ObtenerCampañaPorId from "../application/use-cases/campaña/obtenerCampañaPorId.use-case";
 import AceptarEntradaACampaña from "../application/use-cases/campaña/aceptarEntradaACampaña.use-case";
+import CreateCoin from "../application/use-cases/coins/createCoin.use-case";
+import UpdateCoin from "../application/use-cases/coins/updateCoin.use-case";
+import GetCoins from "../application/use-cases/coins/getCoins.use-case";
+import GetCoinById from "../application/use-cases/coins/getCoinById.use-case";
+import DeleteCoin from "../application/use-cases/coins/deleteCoin.use-case";
+import RestoreCoin from "../application/use-cases/coins/restoreCoin.use-case";
+import CoinRepository from "./databases/mongoDb/repositories/coin.repository";
+import { CoinController } from "./http/controllers/coin.controller";
 import DenegarEntradaACampaña from "../application/use-cases/campaña/denegarEntradaACampaña.use-case";
 import AñadirPersonajeACampaña from "../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
 import LoginUseCase from "../application/use-cases/user/login.use-case";
@@ -171,10 +179,11 @@ const propiedadArmaRepository = new PropiedadArmaRepository()
 const equipamientoRepository = new EquipamientoRepository(damageRepository, propiedadArmaRepository)
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
-const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, conjuroRepository, estadoRepository)
+const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, conjuroRepository, estadoRepository, skillRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const skillService = new SkillService(skillRepository)
+const coinRepository = new CoinRepository(systemRepository)
 const invocacionRepository = new InvocacionRepository(conjuroRepository, traitRepository)
 const characterClassRepository = new CharacterClassRepository(
   systemRepository,
@@ -205,7 +214,8 @@ const backgroundRepository = new BackgroundRepository(
   proficiencyRepository,
   languageRepository,
   equipamientoRepository,
-  traitRepository
+  traitRepository,
+  coinRepository
 );
 
 const criaturaRepository = new CriaturaRepository(
@@ -229,7 +239,8 @@ const personajeRepository = new PersonajeRepository(
   raceRepository,
   criaturaRepository,
   attributeService,
-  systemRepository
+  systemRepository,
+  coinRepository
 )
 
 const campañaRepository = new CampañaRepository(
@@ -265,7 +276,8 @@ const getSystemApi = new GetSystemApi(
   userService,
   raceRepository,
   attributeService,
-  skillService
+  skillService,
+  coinRepository
 )
 
 const crearCampaña = new CrearCampaña(campañaService)
@@ -501,5 +513,21 @@ export const damageController = new DamageController(
   softDeleteDamage,
   restoreDamage,
   getDamagesBySystems
+);
+
+const createCoin = new CreateCoin(coinRepository);
+const updateCoin = new UpdateCoin(coinRepository);
+const getCoins = new GetCoins(coinRepository);
+const getCoinById = new GetCoinById(coinRepository);
+const deleteCoin = new DeleteCoin(coinRepository);
+const restoreCoin = new RestoreCoin(coinRepository);
+
+export const coinController = new CoinController(
+  getCoins,
+  getCoinById,
+  createCoin,
+  updateCoin,
+  deleteCoin,
+  restoreCoin
 );
 

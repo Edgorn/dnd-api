@@ -4,6 +4,8 @@ import IDamageRepository from "../../../../domain/repositories/IDamageRepository
 import TraitSchema from "../schemas/Trait";
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
+import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
+import { SkillApi } from '../../../../domain/types/skill.types';
 import { CreateTrait, TraitApi, TraitDataMongo, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
@@ -18,7 +20,8 @@ export default class TraitRepository implements ITraitRepository {
     private readonly damageRepository: IDamageRepository,
     private readonly proficiencyRepository: IProficiencyRepository,
     private readonly conjuroRepository: IConjuroRepository,
-    private readonly estadoRepository: IEstadoRepository
+    private readonly estadoRepository: IEstadoRepository,
+    private readonly skillRepository: ISkillRepository
   ) {}
 
   async getBySystems(ruleset: string[]): Promise<TraitApi[]> {
@@ -99,6 +102,7 @@ export default class TraitRepository implements ITraitRepository {
     const allResistances = new Set<string>();
     const allConditionalResistances = new Set<string>();
     const allProficiencies = new Set<string>();
+    const allSkills = new Set<string>();
     const allSpells = new Set<string>();
     const allConditionInmunities = new Set<string>();
     const allIncompatibleTraits = new Set<string>();
@@ -107,6 +111,7 @@ export default class TraitRepository implements ITraitRepository {
       (trait.resistances ?? []).forEach(r => allResistances.add(r));
       (trait.conditional_resistances ?? []).forEach(cr => allConditionalResistances.add(cr));
       (trait.proficiencies ?? []).forEach(p => allProficiencies.add(p));
+      (trait.skills ?? []).forEach(s => allSkills.add(s));
       (trait.spells ?? []).forEach(s => allSpells.add(s));
       (trait.condition_inmunities ?? []).forEach(ci => allConditionInmunities.add(ci));
       (trait.incompatible_traits ?? []).forEach(it => allIncompatibleTraits.add(it));
@@ -116,6 +121,7 @@ export default class TraitRepository implements ITraitRepository {
       fetchedResistances,
       fetchedConditionalResistances,
       fetchedProficiencies,
+      fetchedSkills,
       fetchedSpells,
       fetchedConditionInmunities,
       fetchedIncompatibleTraits
@@ -123,6 +129,7 @@ export default class TraitRepository implements ITraitRepository {
       allResistances.size ? this.damageRepository.getByIds(Array.from(allResistances)) : [],
       allConditionalResistances.size ? this.damageRepository.getByIds(Array.from(allConditionalResistances)) : [],
       allProficiencies.size ? this.proficiencyRepository.getProficienciesByIndices(Array.from(allProficiencies)) : [],
+      allSkills.size ? this.skillRepository.getSkillsByIndices(Array.from(allSkills)) : [],
       allSpells.size ? this.conjuroRepository.obtenerConjurosPorIndices(Array.from(allSpells)) : [],
       allConditionInmunities.size ? this.estadoRepository.obtenerEstadosPorIndices(Array.from(allConditionInmunities)) : [],
       allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : []
@@ -131,6 +138,13 @@ export default class TraitRepository implements ITraitRepository {
     const resistanceMap = new Map<string, Damage>(fetchedResistances.map(item => [item.id!, item]));
     const conditionalResistanceMap = new Map<string, Damage>(fetchedConditionalResistances.map(item => [item.id!, item]));
     const proficiencyMap = new Map<string, ProficiencyApi>(fetchedProficiencies.map(item => [item.id, item]));
+    const skillMap = new Map<string, SkillApi>();
+    fetchedSkills.forEach(item => {
+      skillMap.set(item.id, item);
+      if (item.key) {
+        skillMap.set(item.key, item);
+      }
+    });
     const spellMap = new Map<string, ConjuroApi>(fetchedSpells.map(item => [(item as any).index ?? (item as any).id, item]));
     const conditionInmunityMap = new Map<string, EstadoApi>(fetchedConditionInmunities.map(item => [(item as any).index ?? (item as any).id, item]));
     const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
@@ -161,7 +175,6 @@ export default class TraitRepository implements ITraitRepository {
         .map(idx => incompatibleTraitMap.get(idx))
         .filter((item): item is TraitApi => !!item);
 
-      let desc = [...(trait.desc ?? [])];
       let description_aux = [...(trait.description ?? [])];
       let summary_aux = [...(trait.summary ?? [])];
 
@@ -170,9 +183,6 @@ export default class TraitRepository implements ITraitRepository {
 
         if (traitData) {
           Object.keys(traitData).forEach(d => {
-            desc.forEach((_, index) => {
-              desc[index] = desc[index].replaceAll(d, traitData[d]);
-            });
             description_aux.forEach((_, index) => {
               description_aux[index] = description_aux[index].replaceAll(d, traitData[d]);
             });
@@ -183,8 +193,12 @@ export default class TraitRepository implements ITraitRepository {
         }
       }
 
-      const description = (description_aux?.length ? description_aux : desc) ?? [];
+      const description = description_aux ?? [];
       const summary = (summary_aux?.length ? summary_aux : description);
+
+      const skills = (trait.skills ?? [])
+        .map(idx => skillMap.get(idx)?.id)
+        .filter((item): item is string => !!item);
 
       return {
         id: trait.index ?? trait._id.toString(),
@@ -199,7 +213,7 @@ export default class TraitRepository implements ITraitRepository {
         conditional_resistances,
         condition_inmunities,
         proficiencies,
-        skills: trait?.skills ?? [],
+        skills,
         spells,
         speed: trait?.speed ?? undefined,
         bonuses: trait?.bonuses ?? undefined

@@ -1,14 +1,14 @@
-import { ObjectId } from "mongoose"
+import type { Types } from "mongoose";
 
 export interface SkillMongo {
-  _id: ObjectId,
-  ruleset: string,
-  name: string,
-  description?: string,
-  key: string,
-  bonusFormula?: string,
-  attributeScore: string[],
-  deletedAt?: Date
+  _id: Types.ObjectId;
+  ruleset: string;
+  name: string;
+  description?: string;
+  key: string;
+  bonusFormula?: string;
+  attributeScore: string[];
+  deletedAt?: Date | null;
 }
 
 export interface SkillApi {
@@ -19,7 +19,7 @@ export interface SkillApi {
   key: string,
   bonusFormula?: string,
   attributeScore: string[],
-  deletedAt?: Date
+  deletedAt?: Date | null
 }
 
 export type SkillApiPublic = Omit<SkillApi, 'deletedAt'>; 

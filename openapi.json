@@ -294,6 +294,20 @@
               "$ref": "#/components/schemas/Attribute"
             },
             "description": "Características vinculadas a este sistema (incluyendo heredadas)."
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Skill"
+            },
+            "description": "Habilidades vinculadas a este sistema (incluyendo heredadas)."
+          },
+          "coins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Coin"
+            },
+            "description": "Monedas vinculadas a este sistema (incluyendo heredadas)."
           }
         }
       },
@@ -1733,7 +1747,18 @@
               "ideals": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "alignment": {
+                      "type": "string"
+                    }
+                  }
                 }
               },
               "bonds": {
@@ -1855,24 +1880,43 @@
             }
           },
           "money": {
-            "type": "object",
-            "properties": {
-              "pc": {
-                "type": "number"
-              },
-              "pp": {
-                "type": "number"
-              },
-              "pe": {
-                "type": "number"
-              },
-              "po": {
-                "type": "number"
-              },
-              "ppt": {
-                "type": "number"
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "quantity": {
+                  "type": "number",
+                  "description": "Cantidad de monedas."
+                },
+                "id": {
+                  "type": "string"
+                },
+                "ruleset": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "abbreviation": {
+                  "type": "string"
+                },
+                "isBase": {
+                  "type": "boolean"
+                },
+                "multiplier": {
+                  "type": "number"
+                },
+                "weight": {
+                  "type": "number"
+                },
+                "deletedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true
+                }
               }
-            }
+            },
+            "description": "Monedas del personaje con información completa."
           },
           "spells": {
             "type": "object"
@@ -2042,13 +2086,21 @@
             "type": "object"
           },
           "money": {
-            "type": "object",
-            "properties": {
-              "unit": {
-                "type": "string"
-              },
-              "quantity": {
-                "type": "number"
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "unit",
+                "quantity"
+              ],
+              "properties": {
+                "unit": {
+                  "type": "string",
+                  "description": "ID de la moneda."
+                },
+                "quantity": {
+                  "type": "number"
+                }
               }
             }
           },
@@ -2311,6 +2363,117 @@
           }
         }
       },
+      "Coin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID único de la moneda autogenerado por MongoDB."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "Sistema de juego al que pertenece la moneda."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la moneda (ej. Pieza de Oro, Pieza de Plata)."
+          },
+          "abbreviation": {
+            "type": "string",
+            "description": "Abreviatura de la moneda (ej. po, pp, pc)."
+          },
+          "isBase": {
+            "type": "boolean",
+            "description": "Indica si es la moneda base de referencia del sistema."
+          },
+          "multiplier": {
+            "type": "number",
+            "description": "Multiplicador o valor relativo respecto a la moneda base."
+          },
+          "weight": {
+            "type": "number",
+            "description": "Peso de una sola moneda."
+          },
+          "color": {
+            "type": "string",
+            "description": "Color identificativo de la moneda (ej. código hexadecimal o nombre)."
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Fecha de borrado lógico, o null si está activa."
+          }
+        }
+      },
+      "InputCreateCoin": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "name",
+          "abbreviation",
+          "multiplier",
+          "weight",
+          "color"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "Sistema de juego al que pertenecerá la moneda."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la moneda."
+          },
+          "abbreviation": {
+            "type": "string",
+            "description": "Abreviatura de la moneda."
+          },
+          "isBase": {
+            "type": "boolean",
+            "description": "Indica si es la moneda base de referencia."
+          },
+          "multiplier": {
+            "type": "number",
+            "description": "Multiplicador relativo de valor."
+          },
+          "weight": {
+            "type": "number",
+            "description": "Peso de una sola moneda."
+          },
+          "color": {
+            "type": "string",
+            "description": "Color identificativo de la moneda (ej."
+          }
+        }
+      },
+      "InputUpdateCoin": {
+        "type": "object",
+        "properties": {
+          "ruleset": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "isBase": {
+            "type": "boolean"
+          },
+          "multiplier": {
+            "type": "number"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string",
+            "description": "Color identificativo de la moneda."
+          }
+        }
+      },
       "CharacterClass": {
         "type": "object",
         "properties": {
@@ -2542,6 +2705,84 @@
           "language_choices": {
             "type": "object",
             "description": "Elección de idiomas para el trasfondo."
+          },
+          "personality_traits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Opciones de rasgos de personalidad."
+          },
+          "ideals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "alignment": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Lista de ideales con título, descripción y alineamiento."
+          },
+          "bonds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Opciones de vínculos."
+          },
+          "flaws": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Opciones de defectos."
+          },
+          "money": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "quantity": {
+                  "type": "number",
+                  "description": "Cantidad de monedas."
+                },
+                "id": {
+                  "type": "string"
+                },
+                "ruleset": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "abbreviation": {
+                  "type": "string"
+                },
+                "isBase": {
+                  "type": "boolean"
+                },
+                "multiplier": {
+                  "type": "number"
+                },
+                "weight": {
+                  "type": "number"
+                },
+                "deletedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Monedas iniciales otorgadas por el trasfondo."
           },
           "deletedAt": {
             "type": "string",
@@ -5022,6 +5263,267 @@
         }
       }
     },
+    "/coins": {
+      "get": {
+        "summary": "Obtener monedas filtradas por sistemas",
+        "tags": [
+          "Monedas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o clave del sistema para filtrar monedas (incluye herencia de ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de monedas devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Coin"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una nueva moneda",
+        "tags": [
+          "Monedas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateCoin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Moneda creada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/coins/{id}": {
+      "get": {
+        "summary": "Obtener una moneda por su ID",
+        "tags": [
+          "Monedas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la moneda a consultar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Moneda encontrada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coin"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Moneda no encontrada."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar una moneda existente",
+        "tags": [
+          "Monedas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la moneda a actualizar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateCoin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Moneda modificada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición incorrecta o datos inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Moneda no encontrada."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar una moneda (borrado lógico)",
+        "tags": [
+          "Monedas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la moneda a eliminar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Moneda eliminada exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Moneda no encontrada."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/coins/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar una moneda borrada lógicamente",
+        "tags": [
+          "Monedas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la moneda a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Moneda restaurada exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Moneda no encontrada."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
     "/character-classes": {
       "get": {
         "summary": "Obtener clases filtradas por sistema",
@@ -5335,8 +5837,73 @@
                   "traits_data": {
                     "type": "object"
                   },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "language_choices": {
                     "type": "object"
+                  },
+                  "personality_traits": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ideals": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "title",
+                        "description",
+                        "alignment"
+                      ],
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "alignment": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "bonds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "flaws": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "money": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "quantity",
+                        "unit"
+                      ],
+                      "properties": {
+                        "quantity": {
+                          "type": "number"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "description": "ID de la moneda."
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -5460,8 +6027,68 @@
                   "traits_data": {
                     "type": "object"
                   },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "language_choices": {
                     "type": "object"
+                  },
+                  "personality_traits": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "ideals": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "alignment": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "bonds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "flaws": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "money": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "quantity",
+                        "unit"
+                      ],
+                      "properties": {
+                        "quantity": {
+                          "type": "number"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "description": "ID de la moneda."
+                        }
+                      }
+                    }
                   }
                 }
               }

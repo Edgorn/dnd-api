@@ -116,6 +116,10 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
     - No se deben incluir campos `index` en los esquemas Mongoose, interfaces TypeScript ni esquemas de validación Zod.
     - Al refactorizar entidades legacy que tenían el campo `index`, se debe remover el campo de todas las capas y verificar la eliminación de cualquier índice residual de base de datos (`index_1` o `ruleset_1_index_1`).
 
+15. **Compatibilidad y Normalización de Datos Legacy:**
+    - Al refactorizar estructuras de datos o cambiar tipos en esquemas existentes (por ejemplo, cambiar un campo de objeto único a un array, como en `money`), los repositorios deben incluir mecanismos de normalización o tolerancia a datos antiguos al leer desde la base de datos (`formatear...`).
+    - Las lecturas de MongoDB mediante `.lean()` devuelven documentos tal como están almacenados en la base de datos. Si un documento posee una estructura obsoleta (ej. un objeto en vez de un array), el código debe validar en tiempo de ejecución (`Array.isArray()`, comprobación de propiedades previas) y normalizar el dato antes de invocar métodos de array (`.map()`, `.filter()`, etc.) para prevenir errores fatales de ejecución (`TypeError: ... is not a function`).
+
 ## 🧪 Pruebas Unitarias e Integración (Testing)
 
 - **Framework:** Se utiliza **Vitest** como framework de pruebas para el proyecto.

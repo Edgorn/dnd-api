@@ -12,6 +12,8 @@ import { ClaseLevelUp, SpellcastingLevel } from "./characterClass.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { CriaturaApi } from "./criaturas.types"
 import { CharacterAttributeApi } from "./attribute.types"
+import { Ideal } from "./background.types"
+import { CoinApi } from "./coin.types"
 
 export interface TypeCrearPersonaje {
   name: string,
@@ -25,7 +27,7 @@ export interface TypeCrearPersonaje {
     history: string,
     alignment: string,
     personality: string[],
-    ideals: string[],
+    ideals: Ideal[],
     bonds: string[],
     flaws: string[],
     god: string
@@ -67,7 +69,7 @@ export interface TypeCrearPersonaje {
   money: {
     unit: string,
     quantity: number
-  },
+  }[],
   dotes: string[],
   hit_die: number,
   prof_bonus: number
@@ -139,7 +141,7 @@ export interface PersonajeMongo {
     history: string[],
     alignment: string,
     personality: string[],
-    ideals: string[],
+    ideals: Ideal[],
     bonds: string[],
     flaws: string[],
     god: string
@@ -173,12 +175,9 @@ export interface PersonajeMongo {
   traits: string[],
   traits_data: TraitDataMongo,
   money: {
-    pc: number;   // piezas de cobre
-    pp: number;   // piezas de plata
-    pe: number;   // piezas de electrum
-    po: number;   // piezas de oro
-    ppt: number;  // piezas de platino
-  },
+    quantity: number;
+    unit: string;
+  }[],
   dotes: string[],
   prof_bonus: number,
   plusSpeed: 0,
@@ -233,7 +232,7 @@ export interface PersonajeApi {
     history: string[],
     alignment: string,
     personality: string[],
-    ideals: string[],
+    ideals: Ideal[],
     bonds: string[],
     flaws: string[],
     god: string,
@@ -259,13 +258,9 @@ export interface PersonajeApi {
   saving_throws: string[],
   equipment: EquipamientoPersonajeApi[],
   dotes: DoteApi[],
-  money: {
-    pc: number;   // piezas de cobre
-    pp: number;   // piezas de plata
-    pe: number;   // piezas de electrum
-    po: number;   // piezas de oro
-    ppt: number;  // piezas de platino
-  },
+  money: ({
+    quantity: number;
+  } & CoinApi)[],
   spells: Record<string, { list: ConjuroApi[]; type: string; }>,
   cargaMaxima: number,
   spellcasting?: SpellcastingLevel[],

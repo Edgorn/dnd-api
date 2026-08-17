@@ -32,7 +32,7 @@ export default class PersonajeService {
     return this.personajeRepository.equiparArmadura(data);
   }
 
-  modificarDinero(id: string, money: number): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
+  modificarDinero(id: string, money: { quantity: number; unit: string }[]): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
     return this.personajeRepository.modificarDinero(id, money);
   }
 

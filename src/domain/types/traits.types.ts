@@ -12,7 +12,6 @@ export interface TraitMongo {
   summary?: string[],
   ruleset: string,
   incompatible_traits?: string[],
-  desc?: string[],
   hidden?: boolean,
   resistances: string[],
   condition_inmunities: string[],

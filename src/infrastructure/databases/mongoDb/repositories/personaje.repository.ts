@@ -30,6 +30,8 @@ import { PDFDocument } from 'pdf-lib';
 import { CharacterAttributeApi } from '../../../../domain/types/attribute.types';
 import { evaluateFormula } from '../../../../utils/formulaEvaluator';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
+import ICoinRepository from '../../../../domain/repositories/ICoinRepository';
+import { CoinApi } from '../../../../domain/types/coin.types';
 
 const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
 const prof_bonus = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
@@ -62,7 +64,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly raceRepository: IRaceRepository,
     private readonly criaturaRepository: ICriaturaRepository,
     private readonly attributeService: AttributeService,
-    private readonly systemRepository: ISystemRepository
+    private readonly systemRepository: ISystemRepository,
+    private readonly coinRepository: ICoinRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -125,16 +128,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const conVal = attributes.find(a => a.key === 'con')?.value ?? 10;
     HP += Math.floor((conVal / 2) - 5)
 
-    const moneyAux: any = {
-      pc: 0,
-      pp: 0,
-      pe: 0,
-      po: 0,
-      ppt: 0
-    }
-
-    if (moneyAux[money?.unit] !== undefined) {
-      moneyAux[money.unit] = money?.quantity ?? 0
+    let moneyArray: { quantity: number; unit: string }[] = [];
+    if (Array.isArray(money)) {
+      moneyArray = money;
+    } else if (money && typeof money === 'object' && 'unit' in money) {
+      moneyArray = [money as any];
     }
 
     const personaje = new Personaje({
@@ -164,7 +162,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spells,
       equipment: equipment,
       dotes,
-      money: moneyAux,
+      money: moneyArray,
       HPMax: HP,
       HPActual: HP,
       XP: 0
@@ -340,12 +338,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  async modificarDinero(id: string, money: number): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
+  async modificarDinero(id: string, money: { quantity: number; unit: string }[]): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
+    const moneyArray = Array.isArray(money) ? money : (money && typeof money === 'object' && 'unit' in money ? [money] : []);
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
         $set: {
-          money
+          money: moneyArray
         }
       },
       { returnDocument: 'after' }
@@ -829,7 +828,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const traits = await this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data)
     const invocations = await this.invocacionRepository.obtenerPorIndices(personaje.invocations)
-    const skills = personaje?.skills ?? []
+    const skills = [...(personaje?.skills ?? [])]
 
     const idiomasId = personaje?.languages ?? []
     const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(personaje?.proficiencies ?? [])
@@ -977,13 +976,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const hasJackOfAllTrades = !!traits?.find(trait => trait.id === "jack-of-all-trades");
     const skillsListEvaluated = await this.skillService.getCharacterSkills(
       skills,
-      personaje?.double_skills ?? [],
+      [...(personaje?.double_skills ?? [])],
       apiAttributes,
       personaje?.prof_bonus ?? 0,
       hasJackOfAllTrades
     );
 
     const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
+    const money = await this.normalizeAndFormatMoney(personaje);
 
     return {
       id: personaje._id.toString(),
@@ -1023,13 +1023,75 @@ export default class PersonajeRepository implements IPersonajeRepository {
       saving_throws: personaje.saving_throws,
       equipment: equipment ?? [],
       dotes,
-      money: personaje?.money,
+      money,
       spells: updatedSpells,
       cargaMaxima,
       spellcasting: spellcasting.filter(item => item !== null),
       invocations,
       forms: forms
     }
+  }
+
+  private async normalizeAndFormatMoney(personaje: PersonajeMongo): Promise<({ quantity: number } & CoinApi)[]> {
+    const raw = personaje?.money;
+    if (!raw) return [];
+
+    if (Array.isArray(raw)) {
+      const coinUnits = raw.map(m => m?.unit).filter(Boolean);
+      if (coinUnits.length === 0) return [];
+      const coins = await this.coinRepository.getCoinsByIds(coinUnits);
+      return raw.map(m => {
+        const coin = coins.find(c => c.id === m?.unit);
+        if (!coin) return null;
+        return {
+          quantity: m?.quantity ?? 0,
+          ...coin
+        };
+      }).filter(Boolean) as ({ quantity: number } & CoinApi)[];
+    }
+
+    if (typeof raw === 'object' && 'unit' in raw && 'quantity' in raw) {
+      const coin = await this.coinRepository.getById((raw as any).unit);
+      if (!coin) return [];
+      return [{
+        quantity: (raw as any).quantity ?? 0,
+        ...coin
+      }];
+    }
+
+    if (typeof raw === 'object') {
+      const systems = personaje.systems ?? [];
+      const coins = await this.coinRepository.getBySystems(systems);
+      const result: ({ quantity: number } & CoinApi)[] = [];
+
+      const legacyKeys: { key: string, abbrs: string[], names: string[] }[] = [
+        { key: 'pc', abbrs: ['pc', 'cp'], names: ['cobre', 'copper'] },
+        { key: 'pp', abbrs: ['pp', 'sp'], names: ['plata', 'silver'] },
+        { key: 'pe', abbrs: ['pe', 'ep'], names: ['electrum'] },
+        { key: 'po', abbrs: ['po', 'gp'], names: ['oro', 'gold'] },
+        { key: 'ppt', abbrs: ['ppt'], names: ['platino', 'platinum'] }
+      ];
+
+      for (const legacy of legacyKeys) {
+        const qty = (raw as any)[legacy.key];
+        if (typeof qty === 'number' && qty > 0) {
+          const coin = coins.find(c => 
+            legacy.abbrs.includes(c.abbreviation.toLowerCase()) || 
+            legacy.names.some(n => c.name.toLowerCase().includes(n))
+          );
+          if (coin) {
+            result.push({
+              quantity: qty,
+              ...coin
+            });
+          }
+        }
+      }
+
+      return result;
+    }
+
+    return [];
   }
 
   private async generarPdf(personaje: PersonajeApi, idUser: string): Promise<any> {
@@ -1164,11 +1226,20 @@ export default class PersonajeRepository implements IPersonajeRepository {
           }
         })
 
-      form.getTextField('Copper').setText(personaje?.money?.pc + '');
-      form.getTextField('Silver').setText(personaje?.money?.pp + '');
-      form.getTextField('Electrum').setText(personaje?.money?.pe + '');
-      form.getTextField('Gold').setText(personaje?.money?.po + '');
-      form.getTextField('Platinum').setText(personaje?.money?.ppt + '');
+      const moneyArray = Array.isArray(personaje?.money) ? personaje.money : [];
+      const getCoinQty = (abbrs: string[], names: string[]) => {
+        const found = moneyArray.find(m => 
+          (m?.abbreviation && abbrs.includes(m.abbreviation.toLowerCase())) ||
+          (m?.name && names.some(n => m.name.toLowerCase().includes(n)))
+        );
+        return found ? (found.quantity ?? 0) : 0;
+      };
+
+      form.getTextField('Copper').setText(getCoinQty(['pc', 'cp'], ['cobre', 'copper']) + '');
+      form.getTextField('Silver').setText(getCoinQty(['pp', 'sp'], ['plata', 'silver']) + '');
+      form.getTextField('Electrum').setText(getCoinQty(['pe', 'ep'], ['electrum']) + '');
+      form.getTextField('Gold').setText(getCoinQty(['po', 'gp'], ['oro', 'gold']) + '');
+      form.getTextField('Platinum').setText(getCoinQty(['ppt', 'pp'], ['platino', 'platinum']) + '');
 
       form.getTextField('HPMax').setText(personaje?.HPMax + '');
       form.getTextField('ProfBonus').setText('+' + personaje?.prof_bonus);

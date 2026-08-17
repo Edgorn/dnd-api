@@ -1,6 +1,7 @@
 import { ObjectId } from "mongoose";
 import { AttributeApi } from "./attribute.types";
 import { SkillApi } from "./skill.types";
+import { CoinApi } from "./coin.types";
 
 export interface System {
   _id: ObjectId;
@@ -43,6 +44,7 @@ export interface SystemApi {
   maxSpellLevel?: number;
   attributes: AttributeApi[];
   skills: SkillApi[];
+  coins: CoinApi[];
 }
 
 export interface TypeCrearSystem {

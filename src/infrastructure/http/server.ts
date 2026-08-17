@@ -22,6 +22,7 @@ import attributeRoutes from "./routes/attribute.routes";
 import proficiencyRoutes from "./routes/proficiency.routes";
 import magicSchoolRoutes from "./routes/magicSchool.routes";
 import damageRoutes from "./routes/damage.routes";
+import coinRoutes from "./routes/coin.routes";
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from "./middlewares/errorHandler.middleware";
@@ -72,6 +73,7 @@ app.use(attributeRoutes);
 app.use(proficiencyRoutes);
 app.use(magicSchoolRoutes);
 app.use(damageRoutes);
+app.use(coinRoutes);
 
 app.use(errorHandler);
 

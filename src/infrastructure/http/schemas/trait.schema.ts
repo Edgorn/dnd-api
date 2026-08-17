@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Types } from "mongoose";
 
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
@@ -7,7 +8,7 @@ export const CreateTraitSchema = z.object({
   summary: z.array(z.string()).optional().default([]),
   incompatible_traits: z.array(z.string()).optional().default([]),
   proficiencies: z.array(z.string()).optional(),
-  skills: z.array(z.string()).optional()
+  skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional()
 });
 
 export const UpdateTraitSchema = z.object({
@@ -17,7 +18,7 @@ export const UpdateTraitSchema = z.object({
   summary: z.array(z.string()).optional(),
   incompatible_traits: z.array(z.string()).optional(),
   proficiencies: z.array(z.string()).optional(),
-  skills: z.array(z.string()).optional()
+  skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

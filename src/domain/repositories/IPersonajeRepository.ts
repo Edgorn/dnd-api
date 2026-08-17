@@ -9,7 +9,7 @@ export default interface IPersonajeRepository {
   añadirEquipamiento(data: TypeAñadirEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
   eliminarEquipamiento(data: TypeEliminarEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
   equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
-  modificarDinero(id: string, money: number): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
+  modificarDinero(id: string, money: { quantity: number; unit: string }[]): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
   cambiarXp({ id, XP }: { id: string, XP: number }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
   subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter | null>
   subirNivel(data: TypeSubirNivel): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>

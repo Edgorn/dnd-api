@@ -191,54 +191,6 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
         textY1 = textY
         maxHeight1 = actualHeight1
       }
-      /*
-      let rasgo = rasgos.find(r => r.index === trait)
-  
-      if (rasgo?.index === 'born-explorer') {
-        const desc1 = rasgo?.desc[0]
-          ?.replace("un tipo de entorno natural concreto", "el tipo de terreno "+terrain[0].toLowerCase())
-          ?.replace("tu terreno predilecto", "el tipo de terreno "+terrain[0].toLowerCase())
-  
-        const desc2 = rasgo?.desc[1]
-          ?.replace("tu terreno favorito", "el tipo de terreno "+terrain[0].toLowerCase())
-  
-        rasgo.desc[0] = desc1
-        rasgo.desc[1] = desc2
-      }
-      
-      if (rasgo && !traits?.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell') {
-        const { textY, actualHeight } = escribirParrafo({ 
-          titulo: rasgo?.name, 
-          descripcion: rasgo?.desc?.join('|'),
-          fontTitle: fontBold,
-          fontText: fontRegular,
-          maxWidth: 170,
-          page: page1,
-          x: 412,
-          y: textY1,
-          maxHeight
-        })
-  
-        if (maxHeight === actualHeight) {
-          const { textY } = escribirParrafo({ 
-            titulo: rasgo?.name, 
-            descripcion: rasgo?.desc?.join('|'),
-            fontTitle: fontBold,
-            fontText: fontRegular,
-            maxWidth: 185,
-            page: page2,
-            x: 225,
-            y: textY2
-          })
-  
-          textY2 = textY
-  
-        } else {
-          textY1 = textY
-          maxHeight = actualHeight
-        }
-  
-      }*/
     })
 
   traits
@@ -290,120 +242,6 @@ export async function escribirOrganizaciones({ pdfDoc, personaje, form }: any) {
 
     textY1 = textY
   }
-  /*
-    const rasgos = [ ...traits ?? [], ...invocations ?? []]
-    const rasgosList = rasgos.map(rasg => rasg.index)
-    
-    rasgos
-      ?.filter((trait: any) => {
-        let isDiscard = true
-  
-        trait?.discard?.forEach((dis: string) => {
-  
-          if (rasgosList?.includes(dis)) {
-            isDiscard = false
-          }
-        })
-   
-        return trait.type !== 'spell' && !trait.hidden && isDiscard
-        
-      })?.forEach((trait: any) => {
-        const { textY, actualHeight: actualHeight1 } = escribirParrafo({ 
-          titulo: trait?.name, 
-          descripcion: trait?.desc,
-          fontTitle: fontBold,
-          fontText: fontRegular,
-          maxWidth: 178,  //174
-          page: page1,
-          x: 410, //412
-          y: textY1,
-          maxHeight: maxHeight1
-        })
-  
-        if (maxHeight1 === actualHeight1) {
-          const { textY, actualHeight: actualHeight2 } = escribirParrafo({ 
-            titulo: trait?.name, 
-            descripcion: trait?.desc,
-            fontTitle: fontBold,
-            fontText: fontRegular,
-            maxWidth: 182,
-            page: page2,
-            x: 227,
-            y: textY2,
-            maxHeight: maxHeight2
-          })
-  
-          if (maxHeight2 === actualHeight2) {
-            const { textY } = escribirParrafo({ 
-              titulo: trait?.name, 
-              descripcion: trait?.desc,
-              fontTitle: fontBold,
-              fontText: fontRegular,
-              maxWidth: 182,
-              page: page2,
-              x: 405,
-              y: textY3
-            })
-  
-            textY3 = textY
-  
-          } else {
-            textY2 = textY
-            maxHeight2 = actualHeight2
-          }
-        } else {
-          textY1 = textY
-          maxHeight1 = actualHeight1
-        } 
-      /*
-      let rasgo = rasgos.find(r => r.index === trait)
-  
-      if (rasgo?.index === 'born-explorer') {
-        const desc1 = rasgo?.desc[0]
-          ?.replace("un tipo de entorno natural concreto", "el tipo de terreno "+terrain[0].toLowerCase())
-          ?.replace("tu terreno predilecto", "el tipo de terreno "+terrain[0].toLowerCase())
-  
-        const desc2 = rasgo?.desc[1]
-          ?.replace("tu terreno favorito", "el tipo de terreno "+terrain[0].toLowerCase())
-  
-        rasgo.desc[0] = desc1
-        rasgo.desc[1] = desc2
-      }
-      
-      if (rasgo && !traits?.includes(rasgo?.discard) && rasgo?.type !== 'proficiency' && rasgo?.type !== 'spell') {
-        const { textY, actualHeight } = escribirParrafo({ 
-          titulo: rasgo?.name, 
-          descripcion: rasgo?.desc?.join('|'),
-          fontTitle: fontBold,
-          fontText: fontRegular,
-          maxWidth: 170,
-          page: page1,
-          x: 412,
-          y: textY1,
-          maxHeight
-        })
-  
-        if (maxHeight === actualHeight) {
-          const { textY } = escribirParrafo({ 
-            titulo: rasgo?.name, 
-            descripcion: rasgo?.desc?.join('|'),
-            fontTitle: fontBold,
-            fontText: fontRegular,
-            maxWidth: 185,
-            page: page2,
-            x: 225,
-            y: textY2
-          })
-  
-          textY2 = textY
-  
-        } else {
-          textY1 = textY
-          maxHeight = actualHeight
-        }
-  
-      }
-    })*/
 }
 
 export async function escribirCompetencias({ pdfDoc, languages, proficiencies }: any) {
@@ -540,8 +378,8 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
   })
 
   escribirParrafo({
-    titulo: background?.ideals?.[0]?.split('.')?.[0] ?? '',
-    descripcion: (background?.ideals?.[0]?.replace(/^[^.]*\./, '') ?? background?.ideals?.[0] ?? '').replace(/\s*\([^)]*\)/g, ''),
+    titulo: background?.ideals?.[0]?.title ?? '',
+    descripcion: background?.ideals?.[0]?.description ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth,

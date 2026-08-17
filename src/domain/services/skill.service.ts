@@ -45,9 +45,9 @@ export default class SkillService {
     const allSkills = await this.skillRepository.getAll();
 
     return allSkills.map(skill => {
-      let value = doubleSkillsKeys?.includes(skill.key)
+      let value = (doubleSkillsKeys?.includes(skill.id) || doubleSkillsKeys?.includes(skill.key))
         ? 2
-        : skillsKeys?.includes(skill.key)
+        : (skillsKeys?.includes(skill.id) || skillsKeys?.includes(skill.key))
           ? 1
           : 0;
 
@@ -85,7 +85,7 @@ export default class SkillService {
     if (!opciones) return undefined;
 
     if (opciones.options && opciones.options.length > 0) {
-      const skills = await this.skillRepository.getSkillsByKeys(opciones.options);
+      const skills = await this.skillRepository.getSkillsByIndices(opciones.options);
 
       return {
         choose: opciones.choose,

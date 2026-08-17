@@ -3,9 +3,11 @@ import UserService from "../../../domain/services/user.service";
 import AttributeService from "../../../domain/services/attribute.service";
 import SkillService from "../../../domain/services/skill.service";
 import IRaceRepository from "../../../domain/repositories/IRaceRepository";
+import ICoinRepository from "../../../domain/repositories/ICoinRepository";
 import { System, SystemApi } from "../../../domain/types/system.types";
 import { AttributeApi } from "../../../domain/types/attribute.types";
 import { SkillApi } from "../../../domain/types/skill.types";
+import { CoinApi } from "../../../domain/types/coin.types";
 import { AppError } from "../../../domain/errors/AppError";
 
 export default class GetSystemApi {
@@ -14,7 +16,8 @@ export default class GetSystemApi {
     private readonly userService: UserService,
     private readonly raceRepository: IRaceRepository,
     private readonly attributeService: AttributeService,
-    private readonly skillService: SkillService
+    private readonly skillService: SkillService,
+    private readonly coinRepository: ICoinRepository
   ) {}
 
   async execute(sysOrId: System | string, userId?: string): Promise<SystemApi> {
@@ -66,14 +69,16 @@ export default class GetSystemApi {
     const races = await this.raceRepository.obtenerPorSistema(sys._id.toString());
     const racesCount = races.length;
 
-    // 5 & 6. Attributes and Skills (batch query to avoid N+1)
-    const [allAttrs, allSkills] = await Promise.all([
+    // 5, 6 & 7. Attributes, Skills and Coins (batch query to avoid N+1)
+    const [allAttrs, allSkills, allCoins] = await Promise.all([
       this.attributeService.getBySystems(ancestryRulesets),
-      this.skillService.getBySystems(ancestryRulesets, true)
+      this.skillService.getBySystems(ancestryRulesets, true),
+      this.coinRepository.getBySystems(ancestryRulesets)
     ]);
 
     const attributesMap = new Map<string, AttributeApi>();
     const skillsMap = new Map<string, SkillApi>();
+    const coinsMap = new Map<string, CoinApi>();
 
     for (let i = ancestry.length - 1; i >= 0; i--) {
       const ancestor = ancestry[i];
@@ -90,10 +95,17 @@ export default class GetSystemApi {
       for (const skill of sysSkills) {
         skillsMap.set(skill.key, skill);
       }
+
+      // Coins for this ancestor
+      const sysCoins = allCoins.filter(coin => ancestorRulesets.includes(coin.ruleset));
+      for (const coin of sysCoins) {
+        coinsMap.set(coin.name, coin);
+      }
     }
 
     const attributes = Array.from(attributesMap.values());
     const skills = Array.from(skillsMap.values());
+    const coins = Array.from(coinsMap.values());
 
     const getMergedScalar = <T>(key: keyof System, defaultValue?: T): T | undefined => {
       for (const ancestor of ancestry) {
@@ -125,7 +137,8 @@ export default class GetSystemApi {
       maxLevel: getMergedScalar<number>('maxLevel'),
       maxSpellLevel: getMergedScalar<number>('maxSpellLevel'),
       attributes,
-      skills
+      skills,
+      coins
     };
   }
 }

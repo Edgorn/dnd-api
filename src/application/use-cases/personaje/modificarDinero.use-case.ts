@@ -4,7 +4,7 @@ import { PersonajeApi, PersonajeBasico } from "../../../domain/types/personajes.
 export default class ModificarDinero {
   constructor(private readonly personajeService: PersonajeService) { }
 
-  execute(id: string, money: number): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
+  execute(id: string, money: { quantity: number; unit: string }[]): Promise<{completo: PersonajeApi, basico: PersonajeBasico} | null> {
     return this.personajeService.modificarDinero(id, money)
   }
 }

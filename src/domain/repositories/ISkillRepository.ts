@@ -5,6 +5,8 @@ export default interface ISkillRepository {
   update(data: InputUpdateSkill): Promise<SkillApi>;
   getBySystems(rulesets: string[], includeDeleted?: boolean): Promise<SkillApi[]>;
   getSkillsByKeys(keys: string[]): Promise<SkillApi[]>;
+  getSkillsByIds(ids: string[]): Promise<SkillApi[]>;
+  getSkillsByIndices(indices: string[]): Promise<SkillApi[]>;
   getAll(): Promise<SkillApi[]>;
   getById(id: string): Promise<SkillApi | null>;
   softDelete(id: string): Promise<void>;

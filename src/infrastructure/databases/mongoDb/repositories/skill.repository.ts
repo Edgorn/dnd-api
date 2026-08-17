@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import ISkillRepository from "../../../../domain/repositories/ISkillRepository";
 import { SkillApi, SkillMongo, SkillPersonajeApi, InputCreateSkill, InputUpdateSkill } from "../../../../domain/types/skill.types";
 import { ChoiceMongo, ChoiceApi } from "../../../../domain/types";
@@ -62,6 +63,38 @@ export default class SkillRepository implements ISkillRepository {
   async getSkillsByKeys(keys: string[]): Promise<SkillApi[]> {
     if (!keys.length) return [];
     const skills = await SkillSchema.find({ key: { $in: keys }, deletedAt: null }).lean<SkillMongo[]>();
+    return ordenarPorNombre(this.formatSkills(skills));
+  }
+
+  async getSkillsByIds(ids: string[]): Promise<SkillApi[]> {
+    const validIds = (ids || []).filter(id => Types.ObjectId.isValid(id));
+    if (validIds.length === 0) return [];
+    const skills = await SkillSchema.find({
+      _id: { $in: validIds.map(id => new Types.ObjectId(id)) },
+      deletedAt: null
+    }).lean<SkillMongo[]>();
+    return ordenarPorNombre(this.formatSkills(skills));
+  }
+
+  async getSkillsByIndices(indices: string[]): Promise<SkillApi[]> {
+    if (!indices || !indices.length) return [];
+    const validMongoIds = indices.filter(item => Types.ObjectId.isValid(item));
+    const stringIndexes = indices.filter(item => !Types.ObjectId.isValid(item));
+
+    const orConditions: any[] = [];
+    if (validMongoIds.length > 0) {
+      orConditions.push({ _id: { $in: validMongoIds.map(id => new Types.ObjectId(id)) } });
+    }
+    if (stringIndexes.length > 0) {
+      orConditions.push({ key: { $in: stringIndexes } });
+    }
+
+    if (orConditions.length === 0) return [];
+
+    const skills = await SkillSchema.find({
+      deletedAt: null,
+      $or: orConditions
+    }).lean<SkillMongo[]>();
     return ordenarPorNombre(this.formatSkills(skills));
   }
 

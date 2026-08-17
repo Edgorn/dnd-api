@@ -43,7 +43,14 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   }],
   subclasses: [String],
   equipment: [{}],
-  money: {},
+  money: {
+    type: [{
+      _id: false,
+      quantity: { type: Number, required: true },
+      unit: { type: String, required: true }
+    }],
+    default: []
+  },
   HPMax: Number,
   HPActual: Number,
   XP: Number,
