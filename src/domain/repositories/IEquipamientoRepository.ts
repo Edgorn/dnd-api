@@ -1,7 +1,3 @@
-import { EquipamientoBasico, EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "../types/equipamientos.types";
+import IEquipmentRepository from "./IEquipmentRepository";
 
-export default interface IEquipamientoRepository {
-  obtenerEquipamientosPersonajePorIndices(index: EquipamientoPersonajeMongo[]): Promise<EquipamientoPersonajeApi[] | undefined>
-  formatearOpcionesDeEquipamientos(equipamientosOptions: EquipamientoOpcionesMongo[][] | undefined): Promise<EquipamientoChoiceApi[][]> | undefined
-  obtenerEquipamientosPorTipos(tipos: string[]): Promise<EquipamientoBasico[]>
-}
+export default IEquipmentRepository;

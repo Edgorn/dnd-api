@@ -28,6 +28,16 @@ import CreateCharacterClass from "../application/use-cases/characterClass/create
 import UpdateCharacterClass from "../application/use-cases/characterClass/updateCharacterClass.use-case";
 import SoftDeleteCharacterClass from "../application/use-cases/characterClass/softDeleteCharacterClass.use-case";
 import RestoreCharacterClass from "../application/use-cases/characterClass/restoreCharacterClass.use-case";
+import CreateEquipment from "../application/use-cases/equipment/createEquipment.use-case";
+import UpdateEquipment from "../application/use-cases/equipment/updateEquipment.use-case";
+import GetEquipmentById from "../application/use-cases/equipment/getEquipmentById.use-case";
+import GetEquipmentsBySystems from "../application/use-cases/equipment/getEquipmentsBySystems.use-case";
+import SoftDeleteEquipment from "../application/use-cases/equipment/softDeleteEquipment.use-case";
+import RestoreEquipment from "../application/use-cases/equipment/restoreEquipment.use-case";
+import GetEquipmentsByTypes from "../application/use-cases/equipment/getEquipmentsByTypes.use-case";
+import EquipmentService from "../domain/services/equipment.service";
+import EquipmentRepository from "./databases/mongoDb/repositories/equipment.repository";
+import { EquipmentController } from "./http/controllers/equipment.controller";
 import ObtenerEquipamientosPorTipo from "../application/use-cases/equipamiento/obtenerEquipamientosPorTipos.use-case";
 import GetCharactersByUser from "../application/use-cases/personaje/getCharactersByUser.use-case";
 import CrearPersonaje from "../application/use-cases/personaje/crearPersonaje.use-case";
@@ -176,7 +186,8 @@ const conjuroRepository = spellRepository
 const damageRepository = new DamageRepository(systemRepository)
 const dañoRepository = damageRepository
 const propiedadArmaRepository = new PropiedadArmaRepository()
-const equipamientoRepository = new EquipamientoRepository(damageRepository, propiedadArmaRepository)
+const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propiedadArmaRepository)
+const equipamientoRepository = equipmentRepository
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
 const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, conjuroRepository, estadoRepository, skillRepository)
@@ -265,7 +276,8 @@ export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
 const raceService = new RaceService(raceRepository)
 const backgroundService = new BackgroundService(backgroundRepository)
 const characterClassService = new CharacterClassService(characterClassRepository)
-const equipamientoService = new EquipamientoService(equipamientoRepository)
+const equipmentService = new EquipmentService(equipmentRepository)
+const equipamientoService = equipmentService
 const personajeService = new PersonajeService(personajeRepository)
 const spellService = new SpellService(spellRepository)
 const conjuroService = spellService
@@ -306,6 +318,13 @@ const updateCharacterClass = new UpdateCharacterClass(characterClassService, sys
 const softDeleteCharacterClass = new SoftDeleteCharacterClass(characterClassService, systemService);
 const restoreCharacterClass = new RestoreCharacterClass(characterClassService, systemService);
 
+const createEquipment = new CreateEquipment(equipmentService, systemService);
+const updateEquipment = new UpdateEquipment(equipmentService, systemService);
+const getEquipmentById = new GetEquipmentById(equipmentService);
+const getEquipmentsBySystems = new GetEquipmentsBySystems(equipmentService);
+const softDeleteEquipment = new SoftDeleteEquipment(equipmentService, systemService);
+const restoreEquipment = new RestoreEquipment(equipmentService, systemService);
+const getEquipmentsByTypes = new GetEquipmentsByTypes(equipmentService);
 const obtenerEquipamientosPorTipo = new ObtenerEquipamientosPorTipo(equipamientoService);
 
 const getCharactersByUser = new GetCharactersByUser(personajeService);
@@ -409,7 +428,16 @@ export const characterClassController = new CharacterClassController(
   restoreCharacterClass
 );
 
-export const equipamientoController = new EquipamientoController(obtenerEquipamientosPorTipo)
+export const equipmentController = new EquipmentController(
+  createEquipment,
+  updateEquipment,
+  getEquipmentById,
+  getEquipmentsBySystems,
+  softDeleteEquipment,
+  restoreEquipment,
+  getEquipmentsByTypes
+);
+export const equipamientoController = equipmentController;
 
 export const personajeController = new PersonajeController(
   getCharactersByUser,

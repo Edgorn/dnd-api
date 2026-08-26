@@ -1,10 +1,10 @@
 import EquipmentService from "../../../domain/services/equipment.service";
 import { EquipmentBasic } from "../../../domain/types/equipment.types";
 
-export default class ObtenerEquipamientosPorTipos {
+export default class GetEquipmentsByTypes {
   constructor(private readonly equipmentService: EquipmentService) { }
 
-  execute(types: string[]): Promise<EquipmentBasic[]> {
+  async execute(types: string[]): Promise<EquipmentBasic[]> {
     return this.equipmentService.getEquipmentsByTypes(types);
   }
 }

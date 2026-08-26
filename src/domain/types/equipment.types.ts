@@ -1,0 +1,208 @@
+import { ObjectId } from "mongoose";
+import { PropiedadesArma } from "./index";
+
+export interface WeaponDamageMongo {
+  dice: string;
+  type: string;
+}
+
+export interface WeaponDamageApi {
+  dice: string;
+  name: string;
+  desc: string;
+}
+
+export interface WeaponMongo {
+  category?: string;
+  damage?: WeaponDamageMongo[];
+  two_handed_damage?: WeaponDamageMongo[];
+  properties?: string[];
+  range?: string;
+  range_throw?: {
+    normal: number;
+    long: number;
+  };
+  competency?: string[];
+}
+
+export interface WeaponApi {
+  damage: WeaponDamageApi[];
+  two_handed_damage: WeaponDamageApi[];
+  properties: PropiedadesArma[];
+  range?: string;
+  range_throw?: {
+    normal: number;
+    long: number;
+  };
+  competency?: string[];
+}
+
+export interface ArmorMongo {
+  category?: string;
+  class?: {
+    base: number;
+    dex_bonus: number;
+    max_bonus: number;
+  };
+  str_minimum?: number;
+  stealth_disadvantage?: number;
+}
+
+export type LiquidUnit = 'gallon' | 'pint';
+export type SolidUnit = 'cubic_foot';
+
+export interface LiquidVolumeDef {
+  value: number;
+  unit: LiquidUnit;
+}
+
+export interface SolidVolumeDef {
+  value: number;
+  unit: SolidUnit;
+}
+
+export interface ContainerRules {
+  maxWeight?: number;
+  maxItems?: number;
+  acceptedStorageTags?: string[];
+  maxLiquidCapacity?: LiquidVolumeDef;
+  maxSolidCapacity?: SolidVolumeDef;
+}
+
+export interface EquipmentCost {
+  quantity: number;
+  unit: string;
+}
+
+export interface CharacterEquipmentMongo {
+  id?: string;
+  index?: string;
+  quantity: number;
+  name?: string;
+  description?: string | string[];
+  isMagic?: boolean;
+  isBond?: boolean;
+  equipped?: boolean;
+  cost?: EquipmentCost;
+}
+
+export interface EquipmentMongo {
+  _id?: ObjectId | string;
+  id?: string;
+  index?: string;
+  ruleset?: string;
+  name: string;
+  description?: string | string[];
+  content?: CharacterEquipmentMongo[];
+  cost?: EquipmentCost;
+  equipped?: boolean;
+  category?: string;
+  subcategory?: string;
+  storageTags?: string[] | null;
+  containerStats?: ContainerRules | null;
+  weapon?: WeaponMongo;
+  armor?: ArmorMongo;
+  weight?: number;
+  isMagic?: boolean;
+  bonuses?: {
+    armor_class?: number;
+    saving_throws?: number;
+  };
+  deletedAt?: Date | null;
+}
+
+export interface EquipmentApi {
+  id: string;
+  index?: string;
+  ruleset: string;
+  name: string;
+  description: string;
+  cost: EquipmentCost;
+  weight: number;
+  category: string;
+  subcategory: string;
+  storageTags?: string[];
+  containerStats?: ContainerRules;
+  content?: CharacterEquipmentApi[];
+  equipped?: boolean;
+  weapon?: WeaponApi;
+  armor?: ArmorMongo;
+  isMagic?: boolean;
+  isBond?: boolean;
+  bonuses?: {
+    armor_class?: number;
+    saving_throws?: number;
+  };
+  deletedAt?: Date | null;
+}
+
+export interface CharacterEquipmentApi extends EquipmentApi {
+  quantity: number;
+  equipped?: boolean;
+}
+
+export interface EquipmentOptionsMongo {
+  choose: number;
+  options: string[] | string | { id?: string; index?: string; quantity: number }[];
+  quantity: number;
+}
+
+export interface EquipmentChoiceApi {
+  name: string;
+  choose: number;
+  options: CharacterEquipmentApi[];
+}
+
+export interface EquipmentBasic {
+  id: string;
+  index?: string;
+  name: string;
+  category?: string;
+  subcategory?: string;
+  weapon?: WeaponBasic;
+  armor?: ArmorBasic;
+}
+
+export interface WeaponBasic {
+  category?: string;
+  range?: string;
+}
+
+export interface ArmorBasic {
+  category?: string;
+}
+
+export interface InputCreateEquipment {
+  ruleset: string;
+  name: string;
+  description: string;
+  cost: EquipmentCost;
+  weight: number;
+  category: string;
+  subcategory: string;
+  // ETIQUETAS DE ALMACENAJE: Define qué es este objeto a la hora de guardarse
+  // Ej: Una flecha tendría ["ammunition", "arrow"]
+  // Ej: Una poción tendría ["potion", "consumable"]
+  storageTags?: string[] | null;
+  // PROPIEDADES DE CONTENEDOR: Si este objeto sirve para guardar cosas
+  // Si es undefined, el objeto no es un contenedor (como una espada o una flecha)
+  containerStats?: ContainerRules | null;
+}
+
+export interface InputUpdateEquipment {
+  id: string;
+  ruleset?: string;
+  name?: string;
+  description?: string;
+  cost?: EquipmentCost;
+  weight?: number;
+  category?: string;
+  subcategory?: string;
+  // ETIQUETAS DE ALMACENAJE: Define qué es este objeto a la hora de guardarse
+  // Ej: Una flecha tendría ["ammunition", "arrow"]
+  // Ej: Una poción tendría ["potion", "consumable"]
+  storageTags?: string[] | null;
+  // PROPIEDADES DE CONTENEDOR: Si este objeto sirve para guardar cosas
+  // Si es undefined, el objeto no es un contenedor (como una espada o una flecha)
+  containerStats?: ContainerRules | null;
+}

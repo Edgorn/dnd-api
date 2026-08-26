@@ -44,8 +44,9 @@ import fs from 'fs';
 import path from 'path';
 
 try {
-  const outputPath = path.join(__dirname, '../../../../openapi.json');
+  const outputPath = path.resolve(process.cwd(), 'openapi.json');
   fs.writeFileSync(outputPath, JSON.stringify(swaggerSpec, null, 2), 'utf-8');
+  console.log(`✅ openapi.json generado exitosamente en: ${outputPath}`);
 } catch (error) {
   console.error('❌ Error al escribir openapi.json:', error);
 }
