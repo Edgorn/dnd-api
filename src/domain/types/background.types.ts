@@ -1,6 +1,6 @@
 import { ChoiceApi, ChoiceMongo, MixedChoicesApi, MixedChoicesMongo } from ".";
 import { ProficiencyApi } from "./proficiencies.types";
-import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types";
+import { EquipmentApi, CharacterEquipmentMongo, CharacterEquipmentApi, EquipmentOptionsMongo } from "./equipment.types";
 import { SkillApi } from "./skill.types";
 import { LanguageApi } from "./language.types";
 import { TraitApi, TraitDataMongo } from "./traits.types";
@@ -30,6 +30,8 @@ export interface InputCreateBackground {
     quantity: number;
     unit: string;
   }[] | null;
+  equipment_choices?: ChoiceMongo[] | null;
+  equipment?: CharacterEquipmentMongo[] | null;
 }
 
 export interface InputUpdateBackground {
@@ -51,6 +53,8 @@ export interface InputUpdateBackground {
     quantity: number;
     unit: string;
   }[] | null;
+  equipment_choices?: ChoiceMongo[] | null;
+  equipment?: CharacterEquipmentMongo[] | null;
 }
 
 export interface BackgroundMongo {
@@ -66,9 +70,9 @@ export interface BackgroundMongo {
   language_choices?: ChoiceMongo;
   proficiencies: string[];
   proficiencies_choices?: ChoiceMongo[];
-  equipment: EquipamientoPersonajeMongo[];
-  equipment_choices?: EquipamientoOpcionesMongo[][];
-  starting_equipment_options?: EquipamientoOpcionesMongo[][];
+  equipment: CharacterEquipmentMongo[];
+  equipment_choices?: ChoiceMongo[];
+  starting_equipment_options?: EquipmentOptionsMongo[][];
   personalized_equipment: string[];
   money: {
     quantity: number;
@@ -90,8 +94,8 @@ export interface VariantMongo {
   traits_data?: TraitDataMongo;
   proficiencies_choices?: ChoiceMongo[];
   mixed_choices?: MixedChoicesMongo[][];
-  equipment: EquipamientoPersonajeMongo[];
-  equipment_choices?: EquipamientoOpcionesMongo[][];
+  equipment: CharacterEquipmentMongo[];
+  equipment_choices?: ChoiceMongo[];
   personalized_equipment: string[];
   options_name?: OptionsNameMongo;
 }
@@ -115,8 +119,8 @@ export interface BackgroundApi {
   language_choices?: ChoiceApi<LanguageApi>;
   proficiencies: ProficiencyApi[];
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
-  equipment?: EquipamientoPersonajeApi[];
-  equipment_choices?: EquipamientoChoiceApi[][];
+  equipment?: CharacterEquipmentApi[];
+  equipment_choices?: ChoiceApi<EquipmentApi>[];
   personalized_equipment: string[];
   money: ({
     quantity: number;
@@ -137,8 +141,8 @@ export interface VariantApi {
   traits_data?: TraitDataMongo;
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
   mixed_choices?: MixedChoicesApi[][];
-  equipment?: EquipamientoPersonajeApi[];
-  equipment_choices?: EquipamientoChoiceApi[][];
+  equipment?: CharacterEquipmentApi[];
+  equipment_choices?: ChoiceApi<EquipmentApi>[];
   personalized_equipment: string[];
   options_name?: OptionsNameApi;
 }

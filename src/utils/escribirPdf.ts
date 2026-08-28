@@ -1,6 +1,6 @@
 import { rgb, StandardFonts } from "pdf-lib";
 import { PersonajeApi } from "../domain/types/personajes.types";
-import { EquipamientoPersonajeApi } from "../domain/types/equipamientos.types";
+import { CharacterEquipmentApi } from "../domain/types/equipment.types";
 import { DoteApi } from "../domain/types/dotes.types";
 import { TraitApi } from "../domain/types/traits.types";
 
@@ -444,7 +444,7 @@ const armaduras: any = {
   'Armadura de cuero tachonado': 'Cuero tachonado'
 }
 
-export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { pdfDoc: any, equipment: EquipamientoPersonajeApi[], personaje: PersonajeApi, form: any }) {
+export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { pdfDoc: any, equipment: CharacterEquipmentApi[], personaje: PersonajeApi, form: any }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]

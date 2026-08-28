@@ -9,6 +9,7 @@ import {
   EquipmentChoiceApi,
   EquipmentBasic
 } from "../types/equipment.types";
+import { ChoiceApi, ChoiceMongo } from "../types";
 
 export default class EquipmentService {
   constructor(private readonly equipmentRepository: IEquipmentRepository) { }
@@ -43,6 +44,13 @@ export default class EquipmentService {
 
   formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined> {
     return this.equipmentRepository.formatEquipmentChoices(choices);
+  }
+
+  formatEquipmentItemChoices(
+    choices: ChoiceMongo[] | undefined,
+    ruleset?: string
+  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+    return this.equipmentRepository.formatEquipmentItemChoices(choices, ruleset);
   }
 
   getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]> {

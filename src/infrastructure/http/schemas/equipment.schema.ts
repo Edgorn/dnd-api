@@ -62,6 +62,49 @@ export const WeaponSchema = z.object({
   proficiencies: z.array(z.string()).optional()
 });
 
+export const ArmorClassSchema = z.object({
+  base: z.number(),
+  dex_bonus: z.number(),
+  max_bonus: z.number()
+});
+
+export const ArmorSchema = z.object({
+  category: z.string().optional(),
+  class: ArmorClassSchema.optional(),
+  str_minimum: z.number().optional(),
+  stealth_disadvantage: z.number().optional()
+});
+
+export const EquipmentBonusesSchema = z.object({
+  armor_class: z.number().optional(),
+  saving_throws: z.number().optional()
+});
+
+export const CharacterEquipmentSchema: z.ZodType<any> = z.lazy(() =>
+  z.object({
+    id: z.string().regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB").optional(),
+    quantity: z.number().min(1, "La cantidad debe ser al menos 1").optional(),
+    name: z.string().min(1, "El nombre no puede estar vacío").optional(),
+    description: z.union([z.string(), z.array(z.string())]).optional(),
+    cost: CostSchema.optional(),
+    weight: z.number().min(0, "El peso no puede ser negativo").optional(),
+    category: z.string().optional(),
+    subcategory: z.string().optional(),
+    equipSlot: EquipSlotSchema.nullable().optional(),
+    storageTags: z.array(z.string()).nullable().optional(),
+    containerStats: ContainerRulesSchema.nullable().optional(),
+    weapon: WeaponSchema.optional(),
+    armor: ArmorSchema.optional(),
+    isMagic: z.boolean().optional(),
+    isBond: z.boolean().optional(),
+    equipped: z.boolean().optional(),
+    bonuses: EquipmentBonusesSchema.optional(),
+    content: z.array(CharacterEquipmentSchema).optional()
+  }).refine(item => !!(item.id || item.name), {
+    message: "Debe indicar id o name"
+  })
+);
+
 export const CreateEquipmentSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),

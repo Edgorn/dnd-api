@@ -91,13 +91,26 @@ export interface EquipmentCost {
 
 export interface CharacterEquipmentMongo {
   id?: string;
-  quantity: number;
+  quantity?: number;
   name?: string;
   description?: string | string[];
+  cost?: EquipmentCost;
+  weight?: number;
+  category?: string;
+  subcategory?: string;
+  equipSlot?: EquipSlot | null;
+  storageTags?: string[] | null;
+  containerStats?: ContainerRules | null;
+  weapon?: WeaponMongo;
+  armor?: ArmorMongo;
   isMagic?: boolean;
   isBond?: boolean;
   equipped?: boolean;
-  cost?: EquipmentCost;
+  bonuses?: {
+    armor_class?: number;
+    saving_throws?: number;
+  };
+  content?: CharacterEquipmentMongo[];
 }
 
 export interface EquipmentMongo {

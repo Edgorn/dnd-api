@@ -2,7 +2,7 @@ import { ChoiceApi, ChoiceMongo } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
-import { EquipamientoChoiceApi, EquipamientoOpcionesMongo, EquipamientoPersonajeApi, EquipamientoPersonajeMongo } from "./equipamientos.types"
+import { EquipmentChoiceApi, EquipmentOptionsMongo, CharacterEquipmentApi, CharacterEquipmentMongo } from "./equipment.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi } from "./language.types"
 import { InvocacionApi } from "./invocaciones.types"
@@ -35,8 +35,8 @@ export interface CharacterClassMongo {
   proficiencies_choices?: ChoiceMongo[];
   skill_choices?: ChoiceMongo;
   saving_throws: string[];
-  equipment: EquipamientoPersonajeMongo[];
-  equipment_choices?: EquipamientoOpcionesMongo[][];
+  equipment: CharacterEquipmentMongo[];
+  equipment_choices?: EquipmentOptionsMongo[][];
   levels: CharacterClassLevelMongo[];
   spellcasting?: string;
 }
@@ -136,8 +136,8 @@ export interface CharacterClassApi {
     id: string;
     name: string;
   }[];
-  equipment?: EquipamientoPersonajeApi[];
-  equipment_choices?: EquipamientoChoiceApi[][];
+  equipment?: CharacterEquipmentApi[];
+  equipment_choices?: EquipmentChoiceApi[][];
   prof_bonus: number;
   spellcasting?: string;
   subclasesData?: SubclassesOptionsApi;

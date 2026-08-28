@@ -4,7 +4,7 @@ import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
 import { Damage, Speed } from "."
-import { EquipamientoPersonajeApi } from "./equipamientos.types"
+import { CharacterEquipmentApi } from "./equipment.types"
 import { DoteApi } from "./dotes.types"
 import { ConjuroApi } from "./conjuros.types"
 import { EstadoApi } from "./estados.types"
@@ -256,7 +256,7 @@ export interface PersonajeApi {
   condition_inmunities: { name: string, estados: EstadoApi[] }[]
   prof_bonus: number,
   saving_throws: string[],
-  equipment: EquipamientoPersonajeApi[],
+  equipment: CharacterEquipmentApi[],
   dotes: DoteApi[],
   money: ({
     quantity: number;

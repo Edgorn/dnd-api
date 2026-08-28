@@ -18,6 +18,7 @@ import {
   WeaponDamageApi,
   WeaponBasic
 } from "../../../../domain/types/equipment.types";
+import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
 import { NotFoundError } from "../../../../domain/errors/AppError";
 import EquipmentModel from "../schemas/Equipment";
 import DamageRepository from "./damage.repository";
@@ -147,6 +148,21 @@ export default class EquipmentRepository implements IEquipmentRepository {
     );
   }
 
+  async formatEquipmentItemChoices(
+    choices: ChoiceMongo[] | undefined,
+    ruleset?: string
+  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+    if (!choices) return undefined;
+    return Promise.all(choices.map(choice => this.formatEquipmentItemChoice(choice, ruleset)));
+  }
+
+  formatearOpcionesDeEquipamientoItems(
+    choices: ChoiceMongo[] | undefined,
+    ruleset?: string
+  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+    return this.formatEquipmentItemChoices(choices, ruleset);
+  }
+
   async getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]> {
     const equipments = await EquipmentModel.find({
       category: { $in: types },
@@ -243,10 +259,31 @@ export default class EquipmentRepository implements IEquipmentRepository {
     );
   }
 
+  private mergeWeapon(base?: WeaponMongo, override?: WeaponMongo): WeaponMongo | undefined {
+    if (!base && !override) return undefined;
+    if (!base) return override;
+    if (!override) return base;
+
+    return {
+      ...base,
+      ...override,
+      damage: override.damage ?? base.damage,
+      two_handed_damage: override.two_handed_damage ?? base.two_handed_damage,
+      properties: override.properties ?? base.properties,
+      proficiencies: override.proficiencies ?? base.proficiencies
+    };
+  }
+
+  private formatCharacterDescription(description?: string | string[]): string {
+    if (!description) return "";
+    return Array.isArray(description) ? description.join("\n") : description;
+  }
+
   private async formatCharacterEquipment(
     charEquipment: CharacterEquipmentMongo,
     dbEquipments: any[]
   ): Promise<CharacterEquipmentApi> {
+    const quantity = charEquipment.quantity ?? 1;
     const matched = dbEquipments.find(
       e => (e._id && e._id.toString() === charEquipment.id) ||
            (e._id && e._id.toString() === (charEquipment as any).index) ||
@@ -255,57 +292,63 @@ export default class EquipmentRepository implements IEquipmentRepository {
     );
 
     if (matched) {
-      const weapon = await this.formatWeapon(matched.weapon);
-      const content = await this.getCharacterEquipmentsByIds(matched.content ?? []);
+      const mergedWeapon = this.mergeWeapon(matched.weapon, charEquipment.weapon);
+      const weapon = await this.formatWeapon(mergedWeapon);
+      const contentSource = charEquipment.content ?? matched.content ?? [];
+      const content = await this.getCharacterEquipmentsByIds(contentSource);
       const formattedEq = await this.formatEquipment(matched);
-
-      let customDesc = formattedEq.description;
-      if (charEquipment.description) {
-        customDesc = Array.isArray(charEquipment.description)
-          ? charEquipment.description.join("\n")
-          : charEquipment.description;
-      }
+      const customDesc = charEquipment.description
+        ? this.formatCharacterDescription(charEquipment.description)
+        : formattedEq.description;
 
       return {
         ...formattedEq,
         name: charEquipment.name ?? formattedEq.name,
         description: customDesc,
-        quantity: charEquipment.quantity,
+        quantity,
+        category: charEquipment.category ?? formattedEq.category,
+        subcategory: charEquipment.subcategory ?? formattedEq.subcategory,
+        weight: charEquipment.weight ?? formattedEq.weight,
+        equipSlot: charEquipment.equipSlot !== undefined ? charEquipment.equipSlot : formattedEq.equipSlot,
+        storageTags: charEquipment.storageTags ?? formattedEq.storageTags,
+        containerStats: charEquipment.containerStats ?? formattedEq.containerStats,
+        bonuses: charEquipment.bonuses ?? formattedEq.bonuses,
         content,
         weapon,
-        armor: matched.armor,
+        armor: charEquipment.armor ?? matched.armor,
         isMagic: charEquipment.isMagic ?? matched.isMagic ?? false,
         isBond: charEquipment.isBond ?? false,
         equipped: charEquipment.equipped ?? false,
         cost: charEquipment.cost ?? formattedEq.cost
       };
-    } else {
-      let desc = "";
-      if (charEquipment.description) {
-        desc = Array.isArray(charEquipment.description)
-          ? charEquipment.description.join("\n")
-          : charEquipment.description;
-      }
-
-      const idStr = charEquipment.id || (charEquipment as any).index || "";
-
-      return {
-        id: idStr,
-        ruleset: "",
-        name: charEquipment.name ?? idStr,
-        description: desc,
-        quantity: charEquipment.quantity,
-        content: [],
-        cost: charEquipment.cost ?? { quantity: 0, unit: "" },
-        weight: 0,
-        category: "",
-        subcategory: "",
-        isMagic: charEquipment.isMagic ?? false,
-        isBond: charEquipment.isBond ?? false,
-        equipped: charEquipment.equipped ?? false,
-        deletedAt: null
-      };
     }
+
+    const idStr = charEquipment.id || (charEquipment as any).index || "";
+    const weapon = await this.formatWeapon(charEquipment.weapon);
+    const content = await this.getCharacterEquipmentsByIds(charEquipment.content ?? []);
+
+    return {
+      id: idStr,
+      ruleset: "",
+      name: charEquipment.name ?? idStr,
+      description: this.formatCharacterDescription(charEquipment.description),
+      quantity,
+      content: content ?? [],
+      cost: charEquipment.cost ?? { quantity: 0, unit: "" },
+      weight: charEquipment.weight ?? 0,
+      category: charEquipment.category ?? "",
+      subcategory: charEquipment.subcategory ?? "",
+      equipSlot: charEquipment.equipSlot ?? null,
+      storageTags: charEquipment.storageTags ?? undefined,
+      containerStats: charEquipment.containerStats ?? undefined,
+      bonuses: charEquipment.bonuses,
+      weapon,
+      armor: charEquipment.armor,
+      isMagic: charEquipment.isMagic ?? false,
+      isBond: charEquipment.isBond ?? false,
+      equipped: charEquipment.equipped ?? false,
+      deletedAt: null
+    };
   }
 
   private async formatWeapon(weapon: WeaponMongo | undefined): Promise<WeaponApi | undefined> {
@@ -384,6 +427,87 @@ export default class EquipmentRepository implements IEquipmentRepository {
       choose: choice.choose,
       options: options?.map(option => ({ ...option, name: `${option.quantity}x ${option.name}` })) ?? []
     };
+  }
+
+  private async formatEquipmentItemChoice(choice: ChoiceMongo, ruleset?: string): Promise<ChoiceApi<EquipmentApi>> {
+    if (choice.options && Array.isArray(choice.options) && choice.options.length > 0) {
+      const equipments = await this.getEquipmentsByIds(choice.options);
+      return {
+        choose: choice.choose,
+        options: equipments,
+        query_type: "options"
+      };
+    }
+
+    if (choice.filter) {
+      const equipments = await this.getEquipmentsByFilter(choice.filter, ruleset);
+      return {
+        choose: choice.choose,
+        options: equipments,
+        query_type: "filter",
+        query_filter: choice.filter
+      };
+    }
+
+    return {
+      choose: choice.choose,
+      options: []
+    };
+  }
+
+  private async getEquipmentsByIds(ids: string[]): Promise<EquipmentApi[]> {
+    if (!ids.length) return [];
+
+    const objectIds = ids.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
+    const invalidIds = ids.filter(id => !id.match(/^[0-9a-fA-F]{24}$/));
+
+    if (invalidIds.length > 0) {
+      console.error(`[EquipmentRepository] Equipamiento ignorado por tener IDs inválidos (índices antiguos): ${invalidIds.join(", ")}`);
+    }
+
+    if (objectIds.length === 0) return [];
+
+    const equipments = await EquipmentModel.find({
+      _id: { $in: objectIds },
+      deletedAt: null
+    }).lean();
+
+    const formatted = await Promise.all(equipments.map(e => this.formatEquipment(e)));
+    return ordenarPorNombre(formatted);
+  }
+
+  private async getEquipmentsByFilter(
+    filter: Record<string, string | number | (string | number)[]>,
+    ruleset?: string
+  ): Promise<EquipmentApi[]> {
+    const query: any = { deletedAt: null };
+    const getFilterVal = (val: string | number | (string | number)[] | undefined) =>
+      val !== undefined ? (Array.isArray(val) ? val[0] : val) : undefined;
+
+    if (ruleset) {
+      const expandedRulesets = this.systemRepository
+        ? await this.systemRepository.getSystemsAndAncestors([ruleset])
+        : [ruleset];
+      query.ruleset = { $in: expandedRulesets };
+    }
+
+    const category = getFilterVal(filter.category);
+    const subcategory = getFilterVal(filter.subcategory);
+    const weaponCategory = getFilterVal(filter["weapon.category"] ?? filter.weaponCategory);
+    const weaponRange = getFilterVal(filter["weapon.range"] ?? filter.weaponRange);
+
+    if (category) query.category = String(category);
+    if (subcategory) query.subcategory = String(subcategory);
+    if (weaponCategory) query["weapon.category"] = String(weaponCategory);
+    if (weaponRange) query["weapon.range"] = String(weaponRange);
+
+    const equipments = await EquipmentModel.find(query)
+      .collation({ locale: "es", strength: 1 })
+      .sort({ name: 1 })
+      .lean();
+
+    const formatted = await Promise.all(equipments.map(e => this.formatEquipment(e)));
+    return ordenarPorNombre(formatted);
   }
 
   private async getEquipmentsByCategory(

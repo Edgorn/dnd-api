@@ -17,8 +17,9 @@ import {
   VariantApi,
   VariantMongo
 } from '../../../../domain/types/background.types';
-import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
+import { MixedChoicesApi, MixedChoicesMongo, ChoiceApi, ChoiceMongo } from '../../../../domain/types';
 import { CoinApi } from '../../../../domain/types/coin.types';
+import { EquipmentApi, EquipmentOptionsMongo } from '../../../../domain/types/equipment.types';
 import { NotFoundError } from '../../../../domain/errors/AppError';
 
 export default class BackgroundRepository implements IBackgroundRepository {
@@ -72,7 +73,9 @@ export default class BackgroundRepository implements IBackgroundRepository {
       ideals: data.ideals ?? [],
       bonds: data.bonds ?? [],
       flaws: data.flaws ?? [],
-      money: data.money ?? []
+      money: data.money ?? [],
+      equipment_choices: data.equipment_choices ?? undefined,
+      equipment: data.equipment ?? []
     });
 
     await newBackground.save();
@@ -81,6 +84,15 @@ export default class BackgroundRepository implements IBackgroundRepository {
 
   async update(data: InputUpdateBackground): Promise<BackgroundApi> {
     const { id, ...updateFields } = data;
+
+    if (updateFields.equipment_choices === null) {
+      updateFields.equipment_choices = [];
+    }
+
+    if (updateFields.equipment === null) {
+      updateFields.equipment = [];
+    }
+
     const updatedBackground = await BackgroundModel.findByIdAndUpdate(
       id,
       { $set: updateFields },
@@ -135,8 +147,8 @@ export default class BackgroundRepository implements IBackgroundRepository {
       this.proficiencyRepository.getProficienciesByIndices(background?.proficiencies ?? []),
       this.proficiencyRepository.formatProficiencyChoices(background?.proficiencies_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(background?.equipment),
-      this.equipamientoRepository.formatearOpcionesDeEquipamientos(background?.equipment_choices),
-      this.formatearVariants(background?.variants ?? []),
+      this.formatBackgroundEquipmentChoices(background?.equipment_choices, background?.ruleset),
+      this.formatearVariants(background?.variants ?? [], background?.ruleset),
       this.coinRepository.getCoinsByIds(coinUnits)
     ]);
 
@@ -178,15 +190,15 @@ export default class BackgroundRepository implements IBackgroundRepository {
     };
   }
 
-  private async formatearVariants(variants: VariantMongo[]): Promise<VariantApi[]> {
-    const formateadas = await Promise.all(variants.map(v => this.formatearVariant(v)));
+  private async formatearVariants(variants: VariantMongo[], ruleset: string): Promise<VariantApi[]> {
+    const formateadas = await Promise.all(variants.map(v => this.formatearVariant(v, ruleset)));
 
     return formateadas.sort((a, b) =>
       a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
     );
   }
 
-  private async formatearVariant(variant: VariantMongo): Promise<VariantApi> {
+  private async formatearVariant(variant: VariantMongo, ruleset: string): Promise<VariantApi> {
     const options_name = this.formatearOptionsName(variant?.options_name);
 
     const [
@@ -202,7 +214,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       this.proficiencyRepository.formatProficiencyChoices(variant?.proficiencies_choices),
       this.formatearMixedChoices(variant.mixed_choices),
       this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(variant?.equipment),
-      this.equipamientoRepository.formatearOpcionesDeEquipamientos(variant?.equipment_choices)
+      this.formatBackgroundEquipmentChoices(variant?.equipment_choices, ruleset)
     ]);
 
     return {
@@ -225,6 +237,34 @@ export default class BackgroundRepository implements IBackgroundRepository {
       choose: options_name.choose ?? 1,
       options: options_name.options ?? []
     } : undefined;
+  }
+
+  private async formatBackgroundEquipmentChoices(
+    rawChoices: unknown,
+    ruleset: string
+  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+    if (!rawChoices || !Array.isArray(rawChoices) || rawChoices.length === 0) {
+      return undefined;
+    }
+
+    if (Array.isArray(rawChoices[0])) {
+      const legacyFormatted = await this.equipamientoRepository.formatearOpcionesDeEquipamientos(
+        rawChoices as EquipmentOptionsMongo[][]
+      );
+
+      if (!legacyFormatted) return undefined;
+
+      return legacyFormatted.map(group => ({
+        choose: group[0]?.choose ?? 1,
+        options: group.flatMap(item => item.options) as EquipmentApi[],
+        query_type: "options" as const
+      }));
+    }
+
+    return this.equipamientoRepository.formatEquipmentItemChoices(
+      rawChoices as ChoiceMongo[],
+      ruleset
+    );
   }
 
   private async formatearMixedChoices(mixedChoices: MixedChoicesMongo[][] | undefined): Promise<MixedChoicesApi[][] | undefined> {

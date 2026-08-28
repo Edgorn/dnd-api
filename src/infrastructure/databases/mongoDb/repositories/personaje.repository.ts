@@ -18,7 +18,7 @@ import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { ConjuroApi } from '../../../../domain/types/conjuros.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
 import { TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
-import { EquipamientoPersonajeApi } from '../../../../domain/types/equipamientos.types';
+import { CharacterEquipmentApi } from '../../../../domain/types/equipment.types';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { deepMerge } from '../../../../utils/formatters';
@@ -1374,7 +1374,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return attributes
   }
 
-  private sumaDaño(character: PersonajeApi, equip: EquipamientoPersonajeApi) {
+  private sumaDaño(character: PersonajeApi, equip: CharacterEquipmentApi) {
     let suma = equip?.isMagic ? 1 : 0
 
     const getAttrVal = (key: string) => character.attributes?.find(a => a.key === key)?.value ?? 10
@@ -1395,7 +1395,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return suma
   }
 
-  private sumaGolpe(character: PersonajeApi, equip: EquipamientoPersonajeApi) {
+  private sumaGolpe(character: PersonajeApi, equip: CharacterEquipmentApi) {
     let suma = 0
 
     suma += this.sumaDaño(character, equip)
