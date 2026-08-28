@@ -1,7 +1,8 @@
 import IEquipmentRepository from "../../../../domain/repositories/IEquipmentRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 import IDamageRepository from "../../../../domain/repositories/IDamageRepository";
-import IPropiedadArmaRepository from "../../../../domain/repositories/IPropiedadesArmas";
+import IPropertyRepository from "../../../../domain/repositories/IPropertyRepository";
+import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
 import {
   EquipmentApi,
   InputCreateEquipment,
@@ -20,22 +21,26 @@ import {
 import { NotFoundError } from "../../../../domain/errors/AppError";
 import EquipmentModel from "../schemas/Equipment";
 import DamageRepository from "./damage.repository";
-import PropiedadArmaRepository from "./propiedadesArmas.repository";
+import PropertyRepository from "./property.repository";
+import ProficiencyRepository from "./proficiency.repository";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 
 export default class EquipmentRepository implements IEquipmentRepository {
   private readonly systemRepository?: ISystemRepository;
   private readonly damageRepository: IDamageRepository;
-  private readonly propiedadesRepository: IPropiedadArmaRepository;
+  private readonly propertyRepository: IPropertyRepository;
+  private readonly proficiencyRepository: IProficiencyRepository;
 
   constructor(
     systemRepository?: ISystemRepository,
     damageRepository?: IDamageRepository,
-    propiedadesRepository?: IPropiedadArmaRepository
+    propertyRepository?: IPropertyRepository,
+    proficiencyRepository?: IProficiencyRepository
   ) {
     this.systemRepository = systemRepository;
     this.damageRepository = damageRepository ?? new DamageRepository();
-    this.propiedadesRepository = propiedadesRepository ?? new PropiedadArmaRepository();
+    this.propertyRepository = propertyRepository ?? new PropertyRepository();
+    this.proficiencyRepository = proficiencyRepository ?? new ProficiencyRepository(systemRepository as any);
   }
 
   async create(data: InputCreateEquipment): Promise<EquipmentApi> {
@@ -47,13 +52,15 @@ export default class EquipmentRepository implements IEquipmentRepository {
       weight: data.weight,
       category: data.category,
       subcategory: data.subcategory,
+      equipSlot: data.equipSlot ?? null,
       storageTags: data.storageTags,
       containerStats: data.containerStats,
+      weapon: data.weapon,
       deletedAt: null
     });
 
     await newEquipment.save();
-    return this.formatEquipment(newEquipment);
+    return await this.formatEquipment(newEquipment);
   }
 
   async update(data: InputUpdateEquipment): Promise<EquipmentApi> {
@@ -68,7 +75,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       throw new NotFoundError(`No se encontró el equipamiento con id: ${id}`);
     }
 
-    return this.formatEquipment(updated);
+    return await this.formatEquipment(updated);
   }
 
   async getById(id: string): Promise<EquipmentApi | null> {
@@ -78,7 +85,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     const equipment = await EquipmentModel.findOne(query).lean();
     if (!equipment) return null;
-    return this.formatEquipment(equipment);
+    return await this.formatEquipment(equipment);
   }
 
   async getBySystems(rulesets: string[]): Promise<EquipmentApi[]> {
@@ -92,7 +99,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }
 
     const equipments = await EquipmentModel.find(filter).lean();
-    const formatted = equipments.map(e => this.formatEquipment(e));
+    const formatted = await Promise.all(equipments.map(e => this.formatEquipment(e)));
     return ordenarPorNombre(formatted);
   }
 
@@ -116,7 +123,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     if (!equipments) return undefined;
     if (!equipments.length) return [];
 
-    const ids = equipments.map(e => e.id || e.index).filter((id): id is string => Boolean(id));
+    const ids = equipments.map(e => e.id || (e as any).index).filter((id): id is string => Boolean(id));
     const objectIds = ids.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
 
     const dbEquipments = await EquipmentModel.find({
@@ -164,7 +171,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
   }
 
   // Formatting helpers
-  private formatEquipment(equipment: any): EquipmentApi {
+  private async formatEquipment(equipment: any): Promise<EquipmentApi> {
     let description = "";
     if (Array.isArray(equipment.description)) {
       description = equipment.description.join("\n");
@@ -182,10 +189,10 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }
 
     const idStr = equipment._id ? equipment._id.toString() : (equipment.id || equipment.index || "");
+    const weapon = await this.formatWeapon(equipment.weapon);
 
     return {
       id: idStr,
-      index: equipment.index || idStr,
       ruleset: equipment.ruleset || "",
       name: equipment.name || "",
       description,
@@ -196,10 +203,11 @@ export default class EquipmentRepository implements IEquipmentRepository {
       weight: equipment.weight ?? 0,
       category: equipment.category || "",
       subcategory: equipment.subcategory || "",
+      equipSlot: equipment.equipSlot ?? null,
       storageTags: equipment.storageTags,
       containerStats: equipment.containerStats,
       isMagic: equipment.isMagic ?? false,
-      weapon: equipment.weapon,
+      weapon,
       armor: equipment.armor,
       bonuses: equipment.bonuses,
       deletedAt: equipment.deletedAt ?? null
@@ -210,7 +218,6 @@ export default class EquipmentRepository implements IEquipmentRepository {
     const idStr = equipment._id ? equipment._id.toString() : (equipment.id || equipment.index || "");
     return {
       id: idStr,
-      index: equipment.index || idStr,
       name: equipment.name || "",
       category: equipment.category || "",
       subcategory: equipment.subcategory || "",
@@ -242,15 +249,15 @@ export default class EquipmentRepository implements IEquipmentRepository {
   ): Promise<CharacterEquipmentApi> {
     const matched = dbEquipments.find(
       e => (e._id && e._id.toString() === charEquipment.id) ||
-           (e._id && e._id.toString() === charEquipment.index) ||
-           (e.index && e.index === charEquipment.index) ||
+           (e._id && e._id.toString() === (charEquipment as any).index) ||
+           (e.index && e.index === (charEquipment as any).index) ||
            (e.index && e.index === charEquipment.id)
     );
 
     if (matched) {
       const weapon = await this.formatWeapon(matched.weapon);
       const content = await this.getCharacterEquipmentsByIds(matched.content ?? []);
-      const formattedEq = this.formatEquipment(matched);
+      const formattedEq = await this.formatEquipment(matched);
 
       let customDesc = formattedEq.description;
       if (charEquipment.description) {
@@ -280,11 +287,10 @@ export default class EquipmentRepository implements IEquipmentRepository {
           : charEquipment.description;
       }
 
-      const idStr = charEquipment.id || charEquipment.index || "";
+      const idStr = charEquipment.id || (charEquipment as any).index || "";
 
       return {
         id: idStr,
-        index: charEquipment.index || idStr,
         ruleset: "",
         name: charEquipment.name ?? idStr,
         description: desc,
@@ -306,16 +312,18 @@ export default class EquipmentRepository implements IEquipmentRepository {
     if (!weapon) return undefined;
 
     const damage = await this.formatDamages(weapon.damage ?? []);
-    const properties = await this.propiedadesRepository.obtenerPropiedadesPorIndices(weapon.properties ?? []);
+    const properties = await this.propertyRepository.getByIds(weapon.properties ?? []);
     const two_handed_damage = await this.formatDamages(weapon.two_handed_damage ?? []);
+    const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(weapon.proficiencies ?? []);
 
     return {
+      category: weapon.category,
       damage,
       two_handed_damage,
       properties,
       range: weapon.range,
       range_throw: weapon.range_throw,
-      competency: weapon.competency
+      proficiencies
     };
   }
 
@@ -340,13 +348,11 @@ export default class EquipmentRepository implements IEquipmentRepository {
           if (typeof option === "string") {
             return {
               id: option,
-              index: option,
               quantity: choice.quantity
             };
           } else {
             return {
-              id: option.id || option.index,
-              index: option.index || option.id,
+              id: option.id || (option as any).index,
               quantity: option.quantity ?? 1
             };
           }

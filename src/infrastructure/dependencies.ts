@@ -100,7 +100,15 @@ import SoftDeleteDamage from "../application/use-cases/damage/softDeleteDamage.u
 import RestoreDamage from "../application/use-cases/damage/restoreDamage.use-case";
 import GetDamagesBySystems from "../application/use-cases/damage/getDamagesBySystems.use-case";
 import { DamageController } from "./http/controllers/damage.controller";
-import PropiedadArmaRepository from "./databases/mongoDb/repositories/propiedadesArmas.repository";
+import PropertyRepository from "./databases/mongoDb/repositories/property.repository";
+import PropertyService from "../domain/services/property.service";
+import CreateProperty from "../application/use-cases/property/createProperty.use-case";
+import UpdateProperty from "../application/use-cases/property/updateProperty.use-case";
+import SoftDeleteProperty from "../application/use-cases/property/softDeleteProperty.use-case";
+import RestoreProperty from "../application/use-cases/property/restoreProperty.use-case";
+import GetPropertiesBySystems from "../application/use-cases/property/getPropertiesBySystems.use-case";
+import GetPropertyById from "../application/use-cases/property/getPropertyById.use-case";
+import { PropertyController } from "./http/controllers/property.controller";
 import EstadoRepository from "./databases/mongoDb/repositories/estado.repository";
 import InvocacionRepository from "./databases/mongoDb/repositories/invocacion.repository";
 import SystemRepository from "./databases/mongoDb/repositories/system.repository";
@@ -185,8 +193,8 @@ const spellRepository = new SpellRepository(systemRepository)
 const conjuroRepository = spellRepository
 const damageRepository = new DamageRepository(systemRepository)
 const dañoRepository = damageRepository
-const propiedadArmaRepository = new PropiedadArmaRepository()
-const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propiedadArmaRepository)
+const propertyRepository = new PropertyRepository(systemRepository)
+const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propertyRepository, proficiencyRepository)
 const equipamientoRepository = equipmentRepository
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
@@ -558,4 +566,22 @@ export const coinController = new CoinController(
   deleteCoin,
   restoreCoin
 );
+
+const propertyService = new PropertyService(propertyRepository);
+const createProperty = new CreateProperty(propertyService, systemService);
+const updateProperty = new UpdateProperty(propertyService, systemService);
+const softDeleteProperty = new SoftDeleteProperty(propertyService, systemService);
+const restoreProperty = new RestoreProperty(propertyService, systemService);
+const getPropertiesBySystems = new GetPropertiesBySystems(propertyService);
+const getPropertyById = new GetPropertyById(propertyService);
+
+export const propertyController = new PropertyController(
+  createProperty,
+  updateProperty,
+  softDeleteProperty,
+  restoreProperty,
+  getPropertiesBySystems,
+  getPropertyById
+);
+
 

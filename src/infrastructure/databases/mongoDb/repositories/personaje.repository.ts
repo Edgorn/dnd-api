@@ -294,18 +294,18 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje?.equipment ?? [])
 
     if (equipment) {
-      const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
+      const idx = equipment.findIndex(eq => (eq.id === equip || (eq as any).index === equip) && !!eq.isMagic === !!isMagic)
 
       if (idx > -1) {
         if (equip === 'shield') {
           equipment.forEach(item => {
-            if (item.index === "shield") {
+            if (item.id === "shield" || (item as any).index === "shield") {
               item.equipped = false;
             }
           });
         } else if (equip === 'Armadura') {
           equipment.forEach(item => {
-            if (item.index === "Armadura") {
+            if (item.id === "Armadura" || (item as any).index === "Armadura") {
               item.equipped = false;
             }
           });
@@ -755,7 +755,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment.filter(eq => eq.equipped))
 
     equipment?.forEach(equip => {
-      const armor = { ...equip, ...personaje.equipment.find(eq => eq.equipped && eq.index === equip.index) }
+      const armor = { ...equip, ...personaje.equipment.find(eq => eq.equipped && (eq.index === equip.id || (eq as any).id === equip.id)) }
       if (armor.category === 'Armadura') {
         if (armor?.armor?.category === 'Escudo') {
           shield += armor?.armor?.class?.base ?? 0
@@ -1379,7 +1379,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const getAttrVal = (key: string) => character.attributes?.find(a => a.key === key)?.value ?? 10
 
-    if (equip?.weapon?.properties.find(prop => prop.index === 'finesse')) {
+    if (equip?.weapon?.properties.find(prop => prop.name.toLowerCase() === 'finesse' || prop.name.toLowerCase() === 'sutileza')) {
       const max = Math.max(getAttrVal('str'), getAttrVal('dex'))
 
       suma += Math.floor((max / 2) - 5)
@@ -1400,7 +1400,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     suma += this.sumaDaño(character, equip)
 
-    if (character?.proficiencies?.some(arma => equip?.weapon?.competency?.includes(arma?.id))) {
+    if (character?.proficiencies?.some(arma => equip?.weapon?.proficiencies?.some(p => p.id === arma?.id))) {
       suma += character?.prof_bonus ?? 0
     }
 

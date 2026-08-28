@@ -1,5 +1,6 @@
 import { ObjectId } from "mongoose";
-import { PropiedadesArma } from "./index";
+import { Property } from "./property.types";
+import { ProficiencyApi } from "./proficiencies.types";
 
 export interface WeaponDamageMongo {
   dice: string;
@@ -22,19 +23,20 @@ export interface WeaponMongo {
     normal: number;
     long: number;
   };
-  competency?: string[];
+  proficiencies?: string[];
 }
 
 export interface WeaponApi {
+  category?: string;
   damage: WeaponDamageApi[];
   two_handed_damage: WeaponDamageApi[];
-  properties: PropiedadesArma[];
+  properties: Property[];
   range?: string;
   range_throw?: {
     normal: number;
     long: number;
   };
-  competency?: string[];
+  proficiencies?: ProficiencyApi[];
 }
 
 export interface ArmorMongo {
@@ -48,8 +50,21 @@ export interface ArmorMongo {
   stealth_disadvantage?: number;
 }
 
-export type LiquidUnit = 'gallon' | 'pint';
+export type LiquidUnit = 'gallon' | 'pint' | 'ounce';
 export type SolidUnit = 'cubic_foot';
+
+export type EquipSlot =
+  | 'head'
+  | 'neck'
+  | 'cloak'
+  | 'armor'
+  | 'hands'
+  | 'waist'
+  | 'feet'
+  | 'ring'
+  | 'main_hand'
+  | 'off_hand'
+  | 'two_handed';
 
 export interface LiquidVolumeDef {
   value: number;
@@ -76,7 +91,6 @@ export interface EquipmentCost {
 
 export interface CharacterEquipmentMongo {
   id?: string;
-  index?: string;
   quantity: number;
   name?: string;
   description?: string | string[];
@@ -89,13 +103,13 @@ export interface CharacterEquipmentMongo {
 export interface EquipmentMongo {
   _id?: ObjectId | string;
   id?: string;
-  index?: string;
   ruleset?: string;
   name: string;
   description?: string | string[];
   content?: CharacterEquipmentMongo[];
   cost?: EquipmentCost;
   equipped?: boolean;
+  equipSlot?: EquipSlot | null;
   category?: string;
   subcategory?: string;
   storageTags?: string[] | null;
@@ -113,7 +127,6 @@ export interface EquipmentMongo {
 
 export interface EquipmentApi {
   id: string;
-  index?: string;
   ruleset: string;
   name: string;
   description: string;
@@ -121,6 +134,7 @@ export interface EquipmentApi {
   weight: number;
   category: string;
   subcategory: string;
+  equipSlot?: EquipSlot | null;
   storageTags?: string[];
   containerStats?: ContainerRules;
   content?: CharacterEquipmentApi[];
@@ -143,7 +157,7 @@ export interface CharacterEquipmentApi extends EquipmentApi {
 
 export interface EquipmentOptionsMongo {
   choose: number;
-  options: string[] | string | { id?: string; index?: string; quantity: number }[];
+  options: string[] | string | { id?: string; quantity: number }[];
   quantity: number;
 }
 
@@ -155,7 +169,6 @@ export interface EquipmentChoiceApi {
 
 export interface EquipmentBasic {
   id: string;
-  index?: string;
   name: string;
   category?: string;
   subcategory?: string;
@@ -180,13 +193,10 @@ export interface InputCreateEquipment {
   weight: number;
   category: string;
   subcategory: string;
-  // ETIQUETAS DE ALMACENAJE: Define qué es este objeto a la hora de guardarse
-  // Ej: Una flecha tendría ["ammunition", "arrow"]
-  // Ej: Una poción tendría ["potion", "consumable"]
+  equipSlot?: EquipSlot | null;
   storageTags?: string[] | null;
-  // PROPIEDADES DE CONTENEDOR: Si este objeto sirve para guardar cosas
-  // Si es undefined, el objeto no es un contenedor (como una espada o una flecha)
   containerStats?: ContainerRules | null;
+  weapon?: WeaponMongo | null;
 }
 
 export interface InputUpdateEquipment {
@@ -198,11 +208,8 @@ export interface InputUpdateEquipment {
   weight?: number;
   category?: string;
   subcategory?: string;
-  // ETIQUETAS DE ALMACENAJE: Define qué es este objeto a la hora de guardarse
-  // Ej: Una flecha tendría ["ammunition", "arrow"]
-  // Ej: Una poción tendría ["potion", "consumable"]
+  equipSlot?: EquipSlot | null;
   storageTags?: string[] | null;
-  // PROPIEDADES DE CONTENEDOR: Si este objeto sirve para guardar cosas
-  // Si es undefined, el objeto no es un contenedor (como una espada o una flecha)
   containerStats?: ContainerRules | null;
+  weapon?: WeaponMongo | null;
 }

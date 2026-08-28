@@ -7,6 +7,7 @@ const equipmentSchema: Schema = new Schema<EquipmentMongo>(
     name: { type: String, required: true },
     category: { type: String, default: "" },
     subcategory: { type: String, default: "" },
+    equipSlot: { type: String, default: null },
     description: { type: Schema.Types.Mixed, default: "" },
     cost: {
       quantity: { type: Number, default: 0 },
@@ -34,7 +35,7 @@ const equipmentSchema: Schema = new Schema<EquipmentMongo>(
     isMagic: { type: Boolean, default: false },
     weapon: { type: Schema.Types.Mixed },
     armor: { type: Schema.Types.Mixed },
-    content: [{ id: String, index: String, quantity: Number }],
+    content: [{ id: String, quantity: Number }],
     deletedAt: { type: Date, default: null }
   },
   { collection: "equipments", timestamps: true }

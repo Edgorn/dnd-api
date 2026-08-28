@@ -35,7 +35,7 @@ const router = Router();
  *           example: 5
  *         unit:
  *           type: string
- *           enum: [gallon, pint]
+ *           enum: [gallon, pint, ounce]
  *           description: Unidad de medida para el volumen líquido.
  *           example: "gallon"
  *     SolidVolumeDef:
@@ -74,6 +74,114 @@ const router = Router();
  *           $ref: '#/components/schemas/LiquidVolumeDef'
  *         maxSolidCapacity:
  *           $ref: '#/components/schemas/SolidVolumeDef'
+ *     EquipSlot:
+ *       type: string
+ *       enum: [head, neck, cloak, armor, hands, waist, feet, ring, main_hand, off_hand, two_handed]
+ *       description: Ranura de equipamiento del personaje donde se coloca el objeto.
+ *       example: "head"
+ *     WeaponDamage:
+ *       type: object
+ *       required:
+ *         - dice
+ *         - type
+ *       properties:
+ *         dice:
+ *           type: string
+ *           description: Dado de daño (ej. 1d6, 1d8).
+ *           example: "1d6"
+ *         type:
+ *           type: string
+ *           description: ID de MongoDB del tipo de daño (Damage).
+ *           example: "60d0fe4f5311236168a109ca"
+ *     WeaponDamageApi:
+ *       type: object
+ *       properties:
+ *         dice:
+ *           type: string
+ *           description: Dado de daño.
+ *           example: "1d6"
+ *         name:
+ *           type: string
+ *           description: Nombre del tipo de daño.
+ *           example: "Cortante"
+ *         desc:
+ *           type: string
+ *           description: Descripción del daño.
+ *           example: "Daño infligido por armas afiladas"
+ *     WeaponRangeThrow:
+ *       type: object
+ *       properties:
+ *         normal:
+ *           type: number
+ *           description: Alcance normal de lanzamiento en pies.
+ *           example: 20
+ *         long:
+ *           type: number
+ *           description: Alcance largo de lanzamiento en pies.
+ *           example: 60
+ *     Weapon:
+ *       type: object
+ *       properties:
+ *         category:
+ *           type: string
+ *           description: Categoría del arma (ej. Simple Melee, Martial Melee).
+ *           example: "Simple Melee"
+ *         damage:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/WeaponDamageApi'
+ *         two_handed_damage:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/WeaponDamageApi'
+ *         properties:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Property'
+ *         range:
+ *           type: string
+ *           description: Alcance del arma.
+ *           example: "Melee"
+ *         range_throw:
+ *           $ref: '#/components/schemas/WeaponRangeThrow'
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Proficiency'
+ *           description: Competencias asociadas al arma.
+ *     WeaponInput:
+ *       type: object
+ *       properties:
+ *         category:
+ *           type: string
+ *           description: Categoría del arma.
+ *           example: "Simple Melee"
+ *         damage:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/WeaponDamage'
+ *         two_handed_damage:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/WeaponDamage'
+ *         properties:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de MongoDB de las propiedades del arma.
+ *           example: ["60d0fe4f5311236168a109cb"]
+ *         range:
+ *           type: string
+ *           description: Alcance del arma.
+ *           example: "Melee"
+ *         range_throw:
+ *           $ref: '#/components/schemas/WeaponRangeThrow'
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de MongoDB de las competencias asociadas.
+ *           example: ["60d0fe4f5311236168a109cc"]
  *     Equipment:
  *       type: object
  *       properties:
@@ -100,6 +208,9 @@ const router = Router();
  *         subcategory:
  *           type: string
  *           description: Subcategoría del equipamiento (ej. Armas cuerpo a cuerpo simples).
+ *         equipSlot:
+ *           $ref: '#/components/schemas/EquipSlot'
+ *           nullable: true
  *         storageTags:
  *           type: array
  *           items:
@@ -108,6 +219,8 @@ const router = Router();
  *           example: ["ammunition", "arrow"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
+ *         weapon:
+ *           $ref: '#/components/schemas/Weapon'
  *     InputCreateEquipment:
  *       type: object
  *       required:
@@ -139,6 +252,9 @@ const router = Router();
  *         subcategory:
  *           type: string
  *           description: Subcategoría del equipamiento.
+ *         equipSlot:
+ *           $ref: '#/components/schemas/EquipSlot'
+ *           nullable: true
  *         storageTags:
  *           type: array
  *           items:
@@ -148,6 +264,8 @@ const router = Router();
  *           example: ["ammunition", "arrow"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
+ *         weapon:
+ *           $ref: '#/components/schemas/WeaponInput'
  *     InputUpdateEquipment:
  *       type: object
  *       properties:
@@ -171,6 +289,9 @@ const router = Router();
  *         subcategory:
  *           type: string
  *           description: Subcategoría del equipamiento.
+ *         equipSlot:
+ *           $ref: '#/components/schemas/EquipSlot'
+ *           nullable: true
  *         storageTags:
  *           type: array
  *           items:
@@ -180,6 +301,9 @@ const router = Router();
  *           example: ["ammunition", "arrow"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
+ *         weapon:
+ *           $ref: '#/components/schemas/WeaponInput'
+ *           nullable: true
  */
 
 /**

@@ -1508,6 +1508,62 @@
           }
         }
       },
+      "Property": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB de la propiedad de arma."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la propiedad de arma (ej. Sutileza, Pesada)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción de la propiedad de arma."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID o clave del sistema al que pertenece."
+          }
+        }
+      },
+      "InputCreateProperty": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "name",
+          "description"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema de reglas."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la propiedad de arma."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción."
+          }
+        }
+      },
+      "InputUpdateProperty": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la propiedad de arma."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción."
+          }
+        }
+      },
       "AtributoPersonajeApi": {
         "type": "object",
         "properties": {
@@ -2332,7 +2388,8 @@
             "type": "string",
             "enum": [
               "gallon",
-              "pint"
+              "pint",
+              "ounce"
             ],
             "description": "Unidad de medida para el volumen líquido.",
             "example": "gallon"
@@ -2392,6 +2449,171 @@
           }
         }
       },
+      "EquipSlot": {
+        "type": "string",
+        "enum": [
+          "head",
+          "neck",
+          "cloak",
+          "armor",
+          "hands",
+          "waist",
+          "feet",
+          "ring",
+          "main_hand",
+          "off_hand",
+          "two_handed"
+        ],
+        "description": "Ranura de equipamiento del personaje donde se coloca el objeto.",
+        "example": "head"
+      },
+      "WeaponDamage": {
+        "type": "object",
+        "required": [
+          "dice",
+          "type"
+        ],
+        "properties": {
+          "dice": {
+            "type": "string",
+            "description": "Dado de daño (ej. 1d6, 1d8).",
+            "example": "1d6"
+          },
+          "type": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de daño (Damage).",
+            "example": "60d0fe4f5311236168a109ca"
+          }
+        }
+      },
+      "WeaponDamageApi": {
+        "type": "object",
+        "properties": {
+          "dice": {
+            "type": "string",
+            "description": "Dado de daño.",
+            "example": "1d6"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo de daño.",
+            "example": "Cortante"
+          },
+          "desc": {
+            "type": "string",
+            "description": "Descripción del daño.",
+            "example": "Daño infligido por armas afiladas"
+          }
+        }
+      },
+      "WeaponRangeThrow": {
+        "type": "object",
+        "properties": {
+          "normal": {
+            "type": "number",
+            "description": "Alcance normal de lanzamiento en pies.",
+            "example": 20
+          },
+          "long": {
+            "type": "number",
+            "description": "Alcance largo de lanzamiento en pies.",
+            "example": 60
+          }
+        }
+      },
+      "Weapon": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Categoría del arma (ej. Simple Melee, Martial Melee).",
+            "example": "Simple Melee"
+          },
+          "damage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeaponDamageApi"
+            }
+          },
+          "two_handed_damage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeaponDamageApi"
+            }
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Property"
+            }
+          },
+          "range": {
+            "type": "string",
+            "description": "Alcance del arma.",
+            "example": "Melee"
+          },
+          "range_throw": {
+            "$ref": "#/components/schemas/WeaponRangeThrow"
+          },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Proficiency"
+            },
+            "description": "Competencias asociadas al arma."
+          }
+        }
+      },
+      "WeaponInput": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Categoría del arma.",
+            "example": "Simple Melee"
+          },
+          "damage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeaponDamage"
+            }
+          },
+          "two_handed_damage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeaponDamage"
+            }
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de MongoDB de las propiedades del arma.",
+            "example": [
+              "60d0fe4f5311236168a109cb"
+            ]
+          },
+          "range": {
+            "type": "string",
+            "description": "Alcance del arma.",
+            "example": "Melee"
+          },
+          "range_throw": {
+            "$ref": "#/components/schemas/WeaponRangeThrow"
+          },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de MongoDB de las competencias asociadas.",
+            "example": [
+              "60d0fe4f5311236168a109cc"
+            ]
+          }
+        }
+      },
       "Equipment": {
         "type": "object",
         "properties": {
@@ -2426,6 +2648,10 @@
             "type": "string",
             "description": "Subcategoría del equipamiento (ej. Armas cuerpo a cuerpo simples)."
           },
+          "equipSlot": {
+            "$ref": "#/components/schemas/EquipSlot",
+            "nullable": true
+          },
           "storageTags": {
             "type": "array",
             "items": {
@@ -2439,6 +2665,9 @@
           },
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
+          },
+          "weapon": {
+            "$ref": "#/components/schemas/Weapon"
           }
         }
       },
@@ -2481,6 +2710,10 @@
             "type": "string",
             "description": "Subcategoría del equipamiento."
           },
+          "equipSlot": {
+            "$ref": "#/components/schemas/EquipSlot",
+            "nullable": true
+          },
           "storageTags": {
             "type": "array",
             "items": {
@@ -2495,6 +2728,9 @@
           },
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
+          },
+          "weapon": {
+            "$ref": "#/components/schemas/WeaponInput"
           }
         }
       },
@@ -2528,6 +2764,10 @@
             "type": "string",
             "description": "Subcategoría del equipamiento."
           },
+          "equipSlot": {
+            "$ref": "#/components/schemas/EquipSlot",
+            "nullable": true
+          },
           "storageTags": {
             "type": "array",
             "items": {
@@ -2542,6 +2782,10 @@
           },
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
+          },
+          "weapon": {
+            "$ref": "#/components/schemas/WeaponInput",
+            "nullable": true
           }
         }
       },
@@ -4505,6 +4749,276 @@
           },
           "404": {
             "description": "Raza o sistema no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/properties": {
+      "get": {
+        "summary": "Obtener propiedades de armas filtradas por sistemas",
+        "tags": [
+          "Propiedades de Armas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del sistema para filtrar propiedades de armas (incluye herencia de ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de propiedades de armas devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Property"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una nueva propiedad de arma",
+        "tags": [
+          "Propiedades de Armas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateProperty"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Propiedad de arma creada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Property"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "409": {
+            "description": "Ya existe una propiedad de arma con ese nombre en el sistema."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/properties/{id}": {
+      "get": {
+        "summary": "Obtener una propiedad de arma por su ID",
+        "tags": [
+          "Propiedades de Armas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la propiedad de arma."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Propiedad de arma obtenida con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Property"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Propiedad de arma no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar una propiedad de arma existente",
+        "tags": [
+          "Propiedades de Armas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la propiedad de arma a editar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateProperty"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Propiedad de arma modificada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Property"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición incorrecta."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "No se encontró la propiedad de arma."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de una propiedad de arma",
+        "tags": [
+          "Propiedades de Armas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la propiedad de arma a eliminar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Propiedad de arma borrada exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para eliminar."
+          },
+          "404": {
+            "description": "Propiedad de arma no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/properties/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar una propiedad de arma borrada lógicamente",
+        "tags": [
+          "Propiedades de Armas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la propiedad de arma a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Propiedad de arma restaurada exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para restaurar."
+          },
+          "404": {
+            "description": "Propiedad de arma no encontrada."
           },
           "500": {
             "description": "Error del servidor."

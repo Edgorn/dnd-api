@@ -63,6 +63,55 @@ describe("Equipment Use Cases", () => {
       expect(equipmentServiceMock.create).toHaveBeenCalledWith(input);
     });
 
+    it("should create weapon equipment with proficiencies successfully", async () => {
+      const useCase = new CreateEquipment(equipmentServiceMock, systemServiceMock);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      equipmentServiceMock.create.mockResolvedValue({ id: "eq1", name: "Longsword" });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Longsword",
+        description: "A versatile sword",
+        cost: { quantity: 15, unit: "coin1" },
+        weight: 3,
+        category: "Weapon",
+        subcategory: "Martial Melee",
+        weapon: {
+          category: "Martial Melee",
+          damage: [{ dice: "1d8", type: "slashing" }],
+          two_handed_damage: [{ dice: "1d10", type: "slashing" }],
+          properties: ["versatile"],
+          range: "Melee",
+          proficiencies: ["martial-weapons"]
+        }
+      };
+
+      const result = await useCase.execute(input, "user1");
+      expect(result).toEqual({ id: "eq1", name: "Longsword" });
+      expect(equipmentServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
+    it("should create equipment with equipSlot successfully", async () => {
+      const useCase = new CreateEquipment(equipmentServiceMock, systemServiceMock);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      equipmentServiceMock.create.mockResolvedValue({ id: "eq1", name: "Iron Helmet", equipSlot: "head" });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Iron Helmet",
+        description: "A sturdy iron helmet",
+        cost: { quantity: 10, unit: "coin1" },
+        weight: 2,
+        category: "Armor",
+        subcategory: "Helmet",
+        equipSlot: "head" as const
+      };
+
+      const result = await useCase.execute(input, "user1");
+      expect(result).toEqual({ id: "eq1", name: "Iron Helmet", equipSlot: "head" });
+      expect(equipmentServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
     it("should throw error if system is not found", async () => {
       const useCase = new CreateEquipment(equipmentServiceMock, systemServiceMock);
       systemServiceMock.getById.mockResolvedValue(null);
@@ -120,6 +169,10 @@ describe("Equipment Use Cases", () => {
             value: 2,
             unit: "cubic_foot" as const
           }
+        },
+        weapon: {
+          category: "Simple Melee",
+          proficiencies: ["simple-weapons"]
         }
       };
 
@@ -149,20 +202,58 @@ describe("Equipment Use Cases", () => {
       expect(equipmentServiceMock.update).toHaveBeenCalledWith(input);
     });
 
+    it("should update equipment with ounce liquid capacity unit", async () => {
+      const useCase = new UpdateEquipment(equipmentServiceMock, systemServiceMock);
+      equipmentServiceMock.getById.mockResolvedValue({ id: "eq1", ruleset: "sys1" });
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      equipmentServiceMock.update.mockResolvedValue({ id: "eq1", name: "Vial" });
+
+      const input = {
+        id: "eq1",
+        containerStats: {
+          maxLiquidCapacity: {
+            value: 4,
+            unit: "ounce" as const
+          }
+        }
+      };
+
+      const result = await useCase.execute(input, "user1");
+      expect(result).toEqual({ id: "eq1", name: "Vial" });
+      expect(equipmentServiceMock.update).toHaveBeenCalledWith(input);
+    });
+
     it("should allow clearing storageTags and containerStats with null", async () => {
       const useCase = new UpdateEquipment(equipmentServiceMock, systemServiceMock);
       equipmentServiceMock.getById.mockResolvedValue({ id: "eq1", ruleset: "sys1" });
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
-      equipmentServiceMock.update.mockResolvedValue({ id: "eq1", name: "Cleared Dagger", storageTags: null, containerStats: null });
+      equipmentServiceMock.update.mockResolvedValue({ id: "eq1", name: "Cleared Dagger", storageTags: null, containerStats: null, weapon: null });
 
       const input = {
         id: "eq1",
         storageTags: null,
-        containerStats: null
+        containerStats: null,
+        weapon: null
       };
 
       const result = await useCase.execute(input, "user1");
-      expect(result).toEqual({ id: "eq1", name: "Cleared Dagger", storageTags: null, containerStats: null });
+      expect(result).toEqual({ id: "eq1", name: "Cleared Dagger", storageTags: null, containerStats: null, weapon: null });
+      expect(equipmentServiceMock.update).toHaveBeenCalledWith(input);
+    });
+
+    it("should allow updating and clearing equipSlot with null", async () => {
+      const useCase = new UpdateEquipment(equipmentServiceMock, systemServiceMock);
+      equipmentServiceMock.getById.mockResolvedValue({ id: "eq1", ruleset: "sys1" });
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      equipmentServiceMock.update.mockResolvedValue({ id: "eq1", name: "Boots", equipSlot: null });
+
+      const input = {
+        id: "eq1",
+        equipSlot: null
+      };
+
+      const result = await useCase.execute(input, "user1");
+      expect(result).toEqual({ id: "eq1", name: "Boots", equipSlot: null });
       expect(equipmentServiceMock.update).toHaveBeenCalledWith(input);
     });
 

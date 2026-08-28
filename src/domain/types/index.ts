@@ -77,11 +77,7 @@ export interface EquipamientoOpcionesApi {
   name: String
 }
 
-export interface PropiedadesArma {
-  index: string,
-  name: string,
-  desc: string[],
-}
+export * from "./property.types";
 
 export interface Speed {
   walk: number
