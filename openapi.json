@@ -2123,8 +2123,9 @@
             "items": {
               "type": "object",
               "properties": {
-                "index": {
-                  "type": "string"
+                "id": {
+                  "type": "string",
+                  "description": "ID de MongoDB del equipamiento base."
                 },
                 "quantity": {
                   "type": "number"

@@ -395,8 +395,9 @@ const router = Router();
  *           items:
  *             type: object
  *             properties:
- *               index:
+ *               id:
  *                 type: string
+ *                 description: ID de MongoDB del equipamiento base.
  *               quantity:
  *                 type: number
  *         traits:

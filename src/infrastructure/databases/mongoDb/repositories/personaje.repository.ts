@@ -207,14 +207,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const equipment = personaje?.equipment ?? []
 
     if (isBond) {
-      equipment.push({ index: equip, quantity: cantidad, isMagic, isBond, equipped: false })
+      equipment.push({ id: equip, quantity: cantidad, isMagic, isBond, equipped: false })
     } else {
-      const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic)
+      const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === !!isMagic)
 
       if (idx > -1) {
         equipment[idx].quantity += cantidad
       } else {
-        equipment.push({ index: equip, quantity: cantidad, isMagic, equipped: false, isBond })
+        equipment.push({ id: equip, quantity: cantidad, isMagic, equipped: false, isBond })
       }
     }
 
@@ -246,7 +246,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === !!isMagic && !!eq.isBond === !!isBond)
+    const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === !!isMagic && !!eq.isBond === !!isBond)
 
     if (idx > -1) {
       if (isBond) {
@@ -294,18 +294,18 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje?.equipment ?? [])
 
     if (equipment) {
-      const idx = equipment.findIndex(eq => (eq.id === equip || (eq as any).index === equip) && !!eq.isMagic === !!isMagic)
+      const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === !!isMagic)
 
       if (idx > -1) {
         if (equip === 'shield') {
           equipment.forEach(item => {
-            if (item.id === "shield" || (item as any).index === "shield") {
+            if (item.id === "shield") {
               item.equipped = false;
             }
           });
         } else if (equip === 'Armadura') {
           equipment.forEach(item => {
-            if (item.id === "Armadura" || (item as any).index === "Armadura") {
+            if (item.id === "Armadura") {
               item.equipped = false;
             }
           });
@@ -608,7 +608,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
     const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.index === equip && !!eq.isMagic === true)
+    const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === true)
 
     if (idx > -1) {
       equipment[idx].isBond = true
@@ -755,7 +755,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment.filter(eq => eq.equipped))
 
     equipment?.forEach(equip => {
-      const armor = { ...equip, ...personaje.equipment.find(eq => eq.equipped && (eq.index === equip.id || (eq as any).id === equip.id)) }
+      const armor = { ...equip, ...personaje.equipment.find(eq => eq.equipped && eq.id === equip.id) }
       if (armor.category === 'Armadura') {
         if (armor?.armor?.category === 'Escudo') {
           shield += armor?.armor?.class?.base ?? 0

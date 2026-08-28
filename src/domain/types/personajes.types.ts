@@ -15,6 +15,14 @@ import { CharacterAttributeApi } from "./attribute.types"
 import { Ideal } from "./background.types"
 import { CoinApi } from "./coin.types"
 
+export interface PersonajeEquipmentMongo {
+  id: string;
+  quantity: number;
+  equipped?: boolean;
+  isMagic?: boolean;
+  isBond?: boolean;
+}
+
 export interface TypeCrearPersonaje {
   name: string,
   user: string,
@@ -60,10 +68,7 @@ export interface TypeCrearPersonaje {
   saving_throws: string[],
   proficiencies: string[],
   subclase: string,
-  equipment: {
-    index: string,
-    quantity: number
-  }[],
+  equipment: Pick<PersonajeEquipmentMongo, 'id' | 'quantity'>[];
   traits: string[],
   traits_data: TraitDataMongo,
   money: {
@@ -184,13 +189,7 @@ export interface PersonajeMongo {
   proficiency_weapon: string[],
   proficiency_armor: string[],
   proficiencies: string[],
-  equipment: {
-    index: string,
-    quantity: number,
-    equipped: boolean,
-    isMagic: boolean,
-    isBond?: boolean
-  }[],
+  equipment: PersonajeEquipmentMongo[];
   HPMax: number,
   HPActual: number,
   XP: 0,
