@@ -1,59 +1,133 @@
 import { CharacterAttributeApi } from "../domain/types/attribute.types";
+import { SkillPersonajeApi } from "../domain/types/skill.types";
+
+export interface FormulaEvaluationContext {
+  attributes: CharacterAttributeApi[];
+  variables?: Record<string, number | string>;
+  classVariables?: Record<string, number>;
+  skills?: SkillPersonajeApi[];
+}
+
+const ALLOWED_EVALUATED_CHARS = /^[0-9+\-*/().\smaxin]+$/;
+
+function replaceClassTokens(formula: string, classVariables?: Record<string, number>): string {
+  return formula.replace(/@class\.(\w+)/g, (_match, prop: string) => {
+    const val = classVariables?.[prop];
+    return val !== undefined ? String(val) : "0";
+  });
+}
+
+function replaceSkillTokens(formula: string, skills?: SkillPersonajeApi[]): string {
+  return formula.replace(/@skills\.(\w+)\.totalModifier/g, (_match, key: string) => {
+    const skill = skills?.find(s => s.key === key);
+    return skill?.modifier !== undefined ? String(skill.modifier) : "0";
+  });
+}
+
+function replaceAttributeTokens(formula: string, attributes: CharacterAttributeApi[]): string {
+  return formula.replace(/@attributes\.(\w+)\.(modifier|value)/g, (_match, key: string, prop: string) => {
+    const attr = attributes.find(a => a.key === key);
+    if (!attr) return "0";
+    const val = attr[prop as "modifier" | "value"];
+    return val !== undefined ? String(val) : "0";
+  });
+}
+
+function replaceFlatVariables(formula: string, variables?: Record<string, number | string>): string {
+  let result = formula;
+  if (variables) {
+    Object.entries(variables).forEach(([key, val]) => {
+      const regexVar = new RegExp(`@${key}\\b`, "g");
+      result = result.replace(regexVar, String(val));
+    });
+  }
+  return result;
+}
+
+function evaluateMathExpression(expression: string): number {
+  if (!ALLOWED_EVALUATED_CHARS.test(expression)) {
+    console.error("Fórmula insegura o no permitida detectada:", expression);
+    return 0;
+  }
+
+  const withNativeMaxMin = expression
+    .replace(/\bmax\s*\(/g, "Math.max(")
+    .replace(/\bmin\s*\(/g, "Math.min(");
+
+  try {
+    const calcFunc = new Function(`"use strict"; return (${withNativeMaxMin});`);
+    const result = calcFunc();
+    return typeof result === "number" && Number.isFinite(result) ? result : 0;
+  } catch (e) {
+    console.error("Error al evaluar la fórmula matemática:", expression, e);
+    return 0;
+  }
+}
 
 /**
- * Evalúa una fórmula de bono de personaje (como iniciativa o modificador de skill)
- * resolviendo las variables de características e inputs personalizados de forma segura.
- * 
- * @param formula Fórmula con variables tipo @attributes.key.modifier o @proficiency
- * @param attributes Listado de atributos del personaje ya calculados
- * @param variables Variables dinámicas adicionales (como bono de competencia)
- * @returns El resultado matemático redondeado o 0 en caso de error/fórmula inválida
+ * Evalúa una fórmula de bono de personaje resolviendo tokens de atributos, clase, skills y variables.
  */
 export function evaluateFormula(
   formula: string,
   attributes: CharacterAttributeApi[],
-  variables?: Record<string, number | string>
+  variables?: Record<string, number | string>,
+  options?: {
+    classVariables?: Record<string, number>;
+    skills?: SkillPersonajeApi[];
+  }
 ): number {
   if (!formula) return 0;
 
-  // Reemplazar atributos: @attributes.dex.modifier o @attributes.dex.value
-  const regexFormula = /@attributes\.(\w+)\.(modifier|value)/g;
-  let evaluatedFormula = formula.replace(regexFormula, (match, key, prop) => {
-    const attr = attributes.find(a => a.key === key);
-    if (!attr) return '0';
-    const val = attr[prop as 'modifier' | 'value'];
-    return val !== undefined ? String(val) : '0';
-  });
+  let evaluatedFormula = formula;
+  evaluatedFormula = replaceAttributeTokens(evaluatedFormula, attributes);
+  evaluatedFormula = replaceClassTokens(evaluatedFormula, options?.classVariables);
+  evaluatedFormula = replaceSkillTokens(evaluatedFormula, options?.skills);
+  evaluatedFormula = replaceFlatVariables(evaluatedFormula, variables);
 
-  // Reemplazar variables personalizadas dinámicas (ej: @proficiency o @prof)
-  if (variables) {
-    Object.entries(variables).forEach(([key, val]) => {
-      const regexVar = new RegExp(`@${key}\\b`, 'g');
-      evaluatedFormula = evaluatedFormula.replace(regexVar, String(val));
+  return evaluateMathExpression(evaluatedFormula);
+}
+
+/**
+ * Evalúa la plantilla de habilidad pasiva sustituyendo {skillName} por la key concreta.
+ */
+export function evaluatePassiveSkillFormula(
+  formula: string,
+  skillKey: string,
+  context: FormulaEvaluationContext
+): number {
+  if (!formula) return 0;
+
+  const resolvedFormula = formula.replace(/\{skillName\}/g, skillKey);
+  return evaluateFormula(
+    resolvedFormula,
+    context.attributes,
+    context.variables,
+    {
+      classVariables: context.classVariables,
+      skills: context.skills,
+    }
+  );
+}
+
+export function buildPassiveSkillsMap(
+  formula: string | undefined,
+  skills: SkillPersonajeApi[],
+  context: Omit<FormulaEvaluationContext, "skills">
+): Record<string, number> {
+  if (!formula) return {};
+
+  const result: Record<string, number> = {};
+  for (const skill of skills) {
+    result[skill.key] = evaluatePassiveSkillFormula(formula, skill.key, {
+      ...context,
+      skills,
     });
   }
-
-  // Sanitizar y validar que la fórmula resultante solo contenga caracteres matemáticos permitidos
-  if (/^[0-9+\-**/().\s]+$/.test(evaluatedFormula)) {
-    try {
-      const calcFunc = new Function(`return ${evaluatedFormula}`);
-      return calcFunc();
-    } catch (e) {
-      console.error("Error al evaluar la fórmula matemática:", formula, "Fórmula evaluada:", evaluatedFormula, e);
-    }
-  } else {
-    console.error("Fórmula insegura o no permitida detectada:", formula, "Fórmula evaluada:", evaluatedFormula);
-  }
-
-  return 0;
+  return result;
 }
 
 /**
  * Evalúa de forma segura la fórmula de modificador de atributo global (ej. Math.floor((value - 10) / 2))
- * 
- * @param formula Fórmula matemática con variable 'value' o 'valor'
- * @param value Valor numérico del atributo
- * @returns Modificador calculado o undefined en caso de error/fórmula insegura
  */
 export function evaluateAttributeModifier(
   formula: string,
@@ -61,14 +135,13 @@ export function evaluateAttributeModifier(
 ): number | undefined {
   if (!formula) return undefined;
 
-  const evaluated = formula.replace(/valor/g, 'value').replace(/value/g, String(value));
+  const evaluated = formula.replace(/valor/g, "value").replace(/value/g, String(value));
 
-  // Sanitizar: verificar que solo contenga Math.floor/ceil/round/trunc/abs, números, espacios y operadores básicos
   const sanitized = evaluated
-    .replace(/Math\.(floor|ceil|round|trunc|abs)/g, '')
-    .replace(/[0-9+\-*/().\s]/g, '');
+    .replace(/Math\.(floor|ceil|round|trunc|abs)/g, "")
+    .replace(/[0-9+\-*/().\s]/g, "");
 
-  if (sanitized === '') {
+  if (sanitized === "") {
     try {
       const calcFunc = new Function(`"use strict"; return (${evaluated});`);
       return calcFunc();

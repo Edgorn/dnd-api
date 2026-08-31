@@ -48,16 +48,11 @@ const router = Router();
  *         saving_throws:
  *           type: array
  *           items:
- *             type: object
- *             properties:
- *               id:
- *                 type: string
- *               name:
- *                 type: string
- *           description: Tiradas de salvación en las que es competente.
+ *             $ref: '#/components/schemas/Attribute'
+ *           description: Tiradas de salvación. En persistencia se guardan keys de atributo; en respuesta se hidratan a Attribute.
  *         skill_choices:
  *           type: object
- *           description: Opciones de habilidades a elegir.
+ *           description: Elección de habilidades (choose + options/filter).
  *         spells:
  *           type: array
  *           items:
@@ -84,10 +79,8 @@ const router = Router();
  *         equipment_choices:
  *           type: array
  *           items:
- *             type: array
- *             items:
- *               type: object
- *           description: Opciones de equipamiento inicial.
+ *             $ref: '#/components/schemas/EquipmentChoiceApi'
+ *           description: Opciones de equipamiento inicial resueltas (formato de trasfondo).
  *         subclasesData:
  *           type: object
  *           description: Información de las subclases disponibles.
@@ -118,6 +111,32 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen.
+ *         hit_die:
+ *           type: integer
+ *           description: Dado de golpe de la clase (ej. 8, 10, 12).
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de competencias otorgadas por la clase.
+ *         saving_throws:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Keys de atributos para las tiradas de salvación (ej. str, dex).
+ *         skill_choices:
+ *           $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
+ *           description: Elección de habilidades (choose + options o filter).
+ *         equipment:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/BackgroundCharacterEquipment'
+ *           description: Equipamiento fijo inicial.
+ *         equipment_choices:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
+ *           description: Opciones de equipamiento inicial.
  *     InputUpdateCharacterClass:
  *       type: object
  *       properties:
@@ -137,6 +156,32 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen.
+ *         hit_die:
+ *           type: integer
+ *           description: Dado de golpe de la clase (ej. 8, 10, 12).
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de competencias otorgadas por la clase.
+ *         saving_throws:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Keys de atributos para las tiradas de salvación (ej. str, dex).
+ *         skill_choices:
+ *           $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
+ *           description: Elección de habilidades (choose + options o filter).
+ *         equipment:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/BackgroundCharacterEquipment'
+ *           description: Equipamiento fijo inicial.
+ *         equipment_choices:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
+ *           description: Opciones de equipamiento inicial.
  */
 
 /**

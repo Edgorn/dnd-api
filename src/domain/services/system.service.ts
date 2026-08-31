@@ -1,5 +1,5 @@
 import ISystemRepository from '../repositories/ISystemRepository';
-import { System, TypeCrearSystem, TypeModificarSystem } from '../types/system.types';
+import { System, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from '../types/system.types';
 import { AppError } from '../errors/AppError';
 
 export default class SystemService {
@@ -36,6 +36,10 @@ export default class SystemService {
 
   getSystemsAndAncestors(systems: string[]): Promise<string[]> {
     return this.systemRepository.getSystemsAndAncestors(systems);
+  }
+
+  getMergedRulesConfig(systemIds: string[]): Promise<SystemRulesConfig> {
+    return this.systemRepository.getMergedRulesConfig(systemIds);
   }
 
   softDelete(id: string, deletedAt: Date): Promise<void> {

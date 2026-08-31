@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import SistemasModel from '../schemas/System';
-import { System, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
+import { System, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
 import { ValidationError } from '../../../../domain/errors/AppError';
+import { mergeRulesFromAncestry } from '../../../../utils/systemRulesMerge';
 
 export default class SystemRepository implements ISystemRepository {
   constructor() {}
@@ -22,54 +23,46 @@ export default class SystemRepository implements ISystemRepository {
     return ancestry;
   }
 
-  async getGlobalModifierFormula(systems: string[]): Promise<string | undefined> {
-    if (!systems || systems.length === 0) return undefined;
+  private async findSystemsDocs(systems: string[]) {
+    if (!systems || systems.length === 0) return [];
 
     const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
-    const systemsDocs = await SistemasModel.find({
+    return SistemasModel.find({
       $or: [
         { _id: { $in: validIds as any[] } },
         { name: { $in: systems } }
       ],
       deletedAt: null
     });
+  }
+
+  async getMergedRulesConfig(systemIds: string[]): Promise<SystemRulesConfig> {
+    const systemsDocs = await this.findSystemsDocs(systemIds);
+    if (systemsDocs.length === 0) return {};
 
     for (const sys of systemsDocs) {
       const ancestry = await this.getAncestry(sys._id.toString());
-      for (const ancestor of ancestry) {
-        if (ancestor.globalModifierFormula) {
-          return ancestor.globalModifierFormula;
-        }
+      const config = mergeRulesFromAncestry(ancestry);
+      if (Object.keys(config).length > 0) {
+        return config;
       }
     }
-    return undefined;
+
+    return {};
+  }
+
+  async getGlobalModifierFormula(systems: string[]): Promise<string | undefined> {
+    const config = await this.getMergedRulesConfig(systems);
+    return config.globalModifierFormula;
   }
 
   async getInitiativeBonusFormula(systems: string[]): Promise<string | undefined> {
-    if (!systems || systems.length === 0) return undefined;
-
-    const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
-    const systemsDocs = await SistemasModel.find({
-      $or: [
-        { _id: { $in: validIds as any[] } },
-        { name: { $in: systems } }
-      ],
-      deletedAt: null
-    });
-
-    for (const sys of systemsDocs) {
-      const ancestry = await this.getAncestry(sys._id.toString());
-      for (const ancestor of ancestry) {
-        if (ancestor.initiativeBonusFormula) {
-          return ancestor.initiativeBonusFormula;
-        }
-      }
-    }
-    return undefined;
+    const config = await this.getMergedRulesConfig(systems);
+    return config.initiativeBonusFormula;
   }
 
   async getByUserId(userId: string, accessibleSystemIds: string[]): Promise<System[]> {
-    const query: any = {
+    const query: Record<string, unknown> = {
       $or: [
         { publisher: userId, deletedAt: null },
         { isOpen: true, deletedAt: null }
@@ -79,7 +72,7 @@ export default class SystemRepository implements ISystemRepository {
     if (accessibleSystemIds.length > 0) {
       const validIds = accessibleSystemIds.filter(id => mongoose.Types.ObjectId.isValid(id));
       if (validIds.length > 0) {
-        query.$or.push({ _id: { $in: validIds }, deletedAt: null });
+        (query.$or as Record<string, unknown>[]).push({ _id: { $in: validIds }, deletedAt: null });
       }
     }
 
@@ -108,7 +101,14 @@ export default class SystemRepository implements ISystemRepository {
       creationMinAttributeValue: data.creationMinAttributeValue,
       creationMaxAttributeValue: data.creationMaxAttributeValue,
       maxLevel: data.maxLevel,
-      maxSpellLevel: data.maxSpellLevel
+      maxSpellLevel: data.maxSpellLevel,
+      xpProgression: data.xpProgression,
+      proficiencyProgression: data.proficiencyProgression,
+      hpInitialFormula: data.hpInitialFormula,
+      hpLevelUpFormula: data.hpLevelUpFormula,
+      baseAcFormula: data.baseAcFormula,
+      passiveSkillFormula: data.passiveSkillFormula,
+      carryingCapacityFormula: data.carryingCapacityFormula,
     });
 
     const resultado = await nuevoSistema.save();
@@ -116,7 +116,30 @@ export default class SystemRepository implements ISystemRepository {
   }
 
   async update(data: TypeModificarSystem): Promise<System | null> {
-    const { id, name, description, isOpen, isBase, parentId, globalModifierFormula, initiativeBonusFormula, maxAttributeValue, defaultMinAttributeValue, defaultMaxAttributeValue, creationMinAttributeValue, creationMaxAttributeValue, maxLevel, maxSpellLevel } = data;
+    const {
+      id,
+      name,
+      description,
+      isOpen,
+      isBase,
+      parentId,
+      globalModifierFormula,
+      initiativeBonusFormula,
+      maxAttributeValue,
+      defaultMinAttributeValue,
+      defaultMaxAttributeValue,
+      creationMinAttributeValue,
+      creationMaxAttributeValue,
+      maxLevel,
+      maxSpellLevel,
+      xpProgression,
+      proficiencyProgression,
+      hpInitialFormula,
+      hpLevelUpFormula,
+      baseAcFormula,
+      passiveSkillFormula,
+      carryingCapacityFormula,
+    } = data;
 
     const updateFields: Record<string, unknown> = {};
     if (name !== undefined) updateFields.name = name;
@@ -137,6 +160,13 @@ export default class SystemRepository implements ISystemRepository {
     if (creationMaxAttributeValue !== undefined) updateFields.creationMaxAttributeValue = creationMaxAttributeValue;
     if (maxLevel !== undefined) updateFields.maxLevel = maxLevel;
     if (maxSpellLevel !== undefined) updateFields.maxSpellLevel = maxSpellLevel;
+    if (xpProgression !== undefined) updateFields.xpProgression = xpProgression;
+    if (proficiencyProgression !== undefined) updateFields.proficiencyProgression = proficiencyProgression;
+    if (hpInitialFormula !== undefined) updateFields.hpInitialFormula = hpInitialFormula;
+    if (hpLevelUpFormula !== undefined) updateFields.hpLevelUpFormula = hpLevelUpFormula;
+    if (baseAcFormula !== undefined) updateFields.baseAcFormula = baseAcFormula;
+    if (passiveSkillFormula !== undefined) updateFields.passiveSkillFormula = passiveSkillFormula;
+    if (carryingCapacityFormula !== undefined) updateFields.carryingCapacityFormula = carryingCapacityFormula;
 
     const resultado = await SistemasModel.findByIdAndUpdate(
       id,

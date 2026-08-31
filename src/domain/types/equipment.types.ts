@@ -23,7 +23,6 @@ export interface WeaponMongo {
     normal: number;
     long: number;
   };
-  proficiencies?: string[];
 }
 
 export interface WeaponApi {
@@ -36,7 +35,6 @@ export interface WeaponApi {
     normal: number;
     long: number;
   };
-  proficiencies?: ProficiencyApi[];
 }
 
 export interface ArmorMongo {
@@ -101,6 +99,7 @@ export interface CharacterEquipmentMongo {
   equipSlot?: EquipSlot | null;
   storageTags?: string[] | null;
   containerStats?: ContainerRules | null;
+  proficiencies?: string[];
   weapon?: WeaponMongo;
   armor?: ArmorMongo;
   isMagic?: boolean;
@@ -127,6 +126,7 @@ export interface EquipmentMongo {
   subcategory?: string;
   storageTags?: string[] | null;
   containerStats?: ContainerRules | null;
+  proficiencies?: string[];
   weapon?: WeaponMongo;
   armor?: ArmorMongo;
   weight?: number;
@@ -150,6 +150,7 @@ export interface EquipmentApi {
   equipSlot?: EquipSlot | null;
   storageTags?: string[];
   containerStats?: ContainerRules;
+  proficiencies?: ProficiencyApi[];
   content?: CharacterEquipmentApi[];
   equipped?: boolean;
   weapon?: WeaponApi;
@@ -209,6 +210,7 @@ export interface InputCreateEquipment {
   equipSlot?: EquipSlot | null;
   storageTags?: string[] | null;
   containerStats?: ContainerRules | null;
+  proficiencies?: string[] | null;
   weapon?: WeaponMongo | null;
 }
 
@@ -224,5 +226,6 @@ export interface InputUpdateEquipment {
   equipSlot?: EquipSlot | null;
   storageTags?: string[] | null;
   containerStats?: ContainerRules | null;
+  proficiencies?: string[] | null;
   weapon?: WeaponMongo | null;
 }

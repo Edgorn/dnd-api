@@ -52,17 +52,6 @@ export const formatearAbilityBonuses = (ability_bonuses: AbilityBonusesMongo[]):
   return abilityBonuses
 }
 
-export const formatearSalvacion = (ability_bonuses: string[]) => {
-  const abilityBonuses = ability_bonuses?.map(ability => {
-    return {
-      id: ability,
-      name: caracteristicas[ability] ?? ability
-    }
-  })
-
-  return abilityBonuses
-}
-
 export function expandArray<T>(arr: T[], n: number): T[] {
   return Array.from({ length: n }, (_, i) => arr[i % arr.length]);
 }

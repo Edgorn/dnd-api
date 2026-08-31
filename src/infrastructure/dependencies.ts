@@ -213,7 +213,8 @@ const characterClassRepository = new CharacterClassRepository(
   conjuroRepository,
   doteRepository,
   invocacionRepository,
-  languageRepository
+  languageRepository,
+  attributeService
 );
 
 const raceRepository = new RaceRepository(

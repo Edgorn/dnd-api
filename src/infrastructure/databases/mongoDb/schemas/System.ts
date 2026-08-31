@@ -16,6 +16,13 @@ const system: Schema = new Schema<System>({
   creationMaxAttributeValue: Number,
   maxLevel: Number,
   maxSpellLevel: Number,
+  xpProgression: [Number],
+  proficiencyProgression: [Number],
+  hpInitialFormula: String,
+  hpLevelUpFormula: String,
+  baseAcFormula: String,
+  passiveSkillFormula: String,
+  carryingCapacityFormula: String,
   deletedAt: { type: Date, default: null }
 }, { collection: 'systems' });
 

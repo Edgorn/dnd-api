@@ -2,17 +2,24 @@ import { ChoiceApi, ChoiceMongo } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
 import { DoteApi } from "./dotes.types"
-import { EquipmentChoiceApi, EquipmentOptionsMongo, CharacterEquipmentApi, CharacterEquipmentMongo } from "./equipment.types"
+import { EquipmentApi, CharacterEquipmentApi, CharacterEquipmentMongo } from "./equipment.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi } from "./language.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { TraitApi, TraitDataMongo } from "./traits.types"
+import { AttributeApi } from "./attribute.types"
 
 export interface InputCreateCharacterClass {
   ruleset: string;
   name: string;
   description?: string[];
   img?: string;
+  hit_die?: number;
+  proficiencies?: string[];
+  saving_throws?: string[];
+  skill_choices?: ChoiceMongo | null;
+  equipment?: CharacterEquipmentMongo[] | null;
+  equipment_choices?: ChoiceMongo[] | null;
 }
 
 export interface InputUpdateCharacterClass {
@@ -21,6 +28,12 @@ export interface InputUpdateCharacterClass {
   name?: string;
   description?: string[];
   img?: string;
+  hit_die?: number;
+  proficiencies?: string[];
+  saving_throws?: string[];
+  skill_choices?: ChoiceMongo | null;
+  equipment?: CharacterEquipmentMongo[] | null;
+  equipment_choices?: ChoiceMongo[] | null;
 }
 
 export interface CharacterClassMongo {
@@ -36,7 +49,7 @@ export interface CharacterClassMongo {
   skill_choices?: ChoiceMongo;
   saving_throws: string[];
   equipment: CharacterEquipmentMongo[];
-  equipment_choices?: EquipmentOptionsMongo[][];
+  equipment_choices?: ChoiceMongo[];
   levels: CharacterClassLevelMongo[];
   spellcasting?: string;
 }
@@ -132,12 +145,9 @@ export interface CharacterClassApi {
   spell_choices?: ChoiceApi<ConjuroApi>[];
   traits: TraitApi[];
   traits_data: TraitDataMongo;
-  saving_throws: {
-    id: string;
-    name: string;
-  }[];
+  saving_throws: AttributeApi[];
   equipment?: CharacterEquipmentApi[];
-  equipment_choices?: EquipmentChoiceApi[][];
+  equipment_choices?: ChoiceApi<EquipmentApi>[];
   prof_bonus: number;
   spellcasting?: string;
   subclasesData?: SubclassesOptionsApi;

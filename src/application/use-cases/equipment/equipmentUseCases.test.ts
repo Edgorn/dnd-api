@@ -76,13 +76,13 @@ describe("Equipment Use Cases", () => {
         weight: 3,
         category: "Weapon",
         subcategory: "Martial Melee",
+        proficiencies: ["martial-weapons"],
         weapon: {
           category: "Martial Melee",
           damage: [{ dice: "1d8", type: "slashing" }],
           two_handed_damage: [{ dice: "1d10", type: "slashing" }],
           properties: ["versatile"],
-          range: "Melee",
-          proficiencies: ["martial-weapons"]
+          range: "Melee"
         }
       };
 
@@ -170,9 +170,9 @@ describe("Equipment Use Cases", () => {
             unit: "cubic_foot" as const
           }
         },
+        proficiencies: ["simple-weapons"],
         weapon: {
-          category: "Simple Melee",
-          proficiencies: ["simple-weapons"]
+          category: "Simple Melee"
         }
       };
 

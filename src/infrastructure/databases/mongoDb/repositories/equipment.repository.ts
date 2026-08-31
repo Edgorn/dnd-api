@@ -56,6 +56,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       equipSlot: data.equipSlot ?? null,
       storageTags: data.storageTags,
       containerStats: data.containerStats,
+      proficiencies: data.proficiencies,
       weapon: data.weapon,
       deletedAt: null
     });
@@ -206,6 +207,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     const idStr = equipment._id ? equipment._id.toString() : (equipment.id || equipment.index || "");
     const weapon = await this.formatWeapon(equipment.weapon);
+    const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(equipment.proficiencies ?? []);
 
     return {
       id: idStr,
@@ -223,6 +225,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       storageTags: equipment.storageTags,
       containerStats: equipment.containerStats,
       isMagic: equipment.isMagic ?? false,
+      proficiencies,
       weapon,
       armor: equipment.armor,
       bonuses: equipment.bonuses,
@@ -269,8 +272,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       ...override,
       damage: override.damage ?? base.damage,
       two_handed_damage: override.two_handed_damage ?? base.two_handed_damage,
-      properties: override.properties ?? base.properties,
-      proficiencies: override.proficiencies ?? base.proficiencies
+      properties: override.properties ?? base.properties
     };
   }
 
@@ -294,6 +296,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
     if (matched) {
       const mergedWeapon = this.mergeWeapon(matched.weapon, charEquipment.weapon);
       const weapon = await this.formatWeapon(mergedWeapon);
+      const proficienciesIds = charEquipment.proficiencies ?? matched.proficiencies ?? [];
+      const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(proficienciesIds);
       const contentSource = charEquipment.content ?? matched.content ?? [];
       const content = await this.getCharacterEquipmentsByIds(contentSource);
       const formattedEq = await this.formatEquipment(matched);
@@ -314,6 +318,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
         containerStats: charEquipment.containerStats ?? formattedEq.containerStats,
         bonuses: charEquipment.bonuses ?? formattedEq.bonuses,
         content,
+        proficiencies,
         weapon,
         armor: charEquipment.armor ?? matched.armor,
         isMagic: charEquipment.isMagic ?? matched.isMagic ?? false,
@@ -325,6 +330,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     const idStr = charEquipment.id || (charEquipment as any).index || "";
     const weapon = await this.formatWeapon(charEquipment.weapon);
+    const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(charEquipment.proficiencies ?? []);
     const content = await this.getCharacterEquipmentsByIds(charEquipment.content ?? []);
 
     return {
@@ -342,6 +348,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       storageTags: charEquipment.storageTags ?? undefined,
       containerStats: charEquipment.containerStats ?? undefined,
       bonuses: charEquipment.bonuses,
+      proficiencies,
       weapon,
       armor: charEquipment.armor,
       isMagic: charEquipment.isMagic ?? false,
@@ -357,7 +364,6 @@ export default class EquipmentRepository implements IEquipmentRepository {
     const damage = await this.formatDamages(weapon.damage ?? []);
     const properties = await this.propertyRepository.getByIds(weapon.properties ?? []);
     const two_handed_damage = await this.formatDamages(weapon.two_handed_damage ?? []);
-    const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(weapon.proficiencies ?? []);
 
     return {
       category: weapon.category,
@@ -365,8 +371,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       two_handed_damage,
       properties,
       range: weapon.range,
-      range_throw: weapon.range_throw,
-      proficiencies
+      range_throw: weapon.range_throw
     };
   }
 

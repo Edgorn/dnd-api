@@ -58,8 +58,7 @@ export const WeaponSchema = z.object({
   two_handed_damage: z.array(WeaponDamageSchema).optional(),
   properties: z.array(z.string()).optional(),
   range: z.string().optional(),
-  range_throw: WeaponRangeThrowSchema.optional(),
-  proficiencies: z.array(z.string()).optional()
+  range_throw: WeaponRangeThrowSchema.optional()
 });
 
 export const ArmorClassSchema = z.object({
@@ -93,6 +92,7 @@ export const CharacterEquipmentSchema: z.ZodType<any> = z.lazy(() =>
     equipSlot: EquipSlotSchema.nullable().optional(),
     storageTags: z.array(z.string()).nullable().optional(),
     containerStats: ContainerRulesSchema.nullable().optional(),
+    proficiencies: z.array(z.string()).optional(),
     weapon: WeaponSchema.optional(),
     armor: ArmorSchema.optional(),
     isMagic: z.boolean().optional(),
@@ -116,6 +116,7 @@ export const CreateEquipmentSchema = z.object({
   equipSlot: EquipSlotSchema.nullable().optional(),
   storageTags: z.array(z.string()).nullable().optional(),
   containerStats: ContainerRulesSchema.nullable().optional(),
+  proficiencies: z.array(z.string()).optional(),
   weapon: WeaponSchema.nullable().optional()
 });
 
@@ -130,6 +131,7 @@ export const UpdateEquipmentSchema = z.object({
   equipSlot: EquipSlotSchema.nullable().optional(),
   storageTags: z.array(z.string()).nullable().optional(),
   containerStats: ContainerRulesSchema.nullable().optional(),
+  proficiencies: z.array(z.string()).optional(),
   weapon: WeaponSchema.nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"

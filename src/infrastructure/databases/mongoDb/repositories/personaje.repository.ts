@@ -28,13 +28,14 @@ import fs from 'fs'
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import { CharacterAttributeApi } from '../../../../domain/types/attribute.types';
-import { evaluateFormula } from '../../../../utils/formulaEvaluator';
+import { evaluateFormula, buildPassiveSkillsMap } from '../../../../utils/formulaEvaluator';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import ICoinRepository from '../../../../domain/repositories/ICoinRepository';
 import { CoinApi } from '../../../../domain/types/coin.types';
-
-const nivel = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000, 0]
-const prof_bonus = [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
+import {
+  DEFAULT_PROFICIENCY_PROGRESSION,
+  DEFAULT_XP_PROGRESSION,
+} from '../../../../utils/systemRulesMerge';
 
 const attributesLabels: any = {
   str: 'Fuerza',
@@ -119,14 +120,28 @@ export default class PersonajeRepository implements IPersonajeRepository {
       history: background?.history?.split(/\r?\n/) ?? []
     }
 
-    let HP = hit_die ?? 1
+    let HP: number;
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(systems ?? []);
+    const apiAttributesForHp = await this.attributeService.formatAttributes(attributes, systems ?? []);
+
+    if (rulesConfig.hpInitialFormula) {
+      HP = Math.floor(evaluateFormula(
+        rulesConfig.hpInitialFormula,
+        apiAttributesForHp,
+        undefined,
+        { classVariables: { hitDie: hit_die ?? 1 } }
+      ));
+    } else {
+      HP = hit_die ?? 1;
+      const conVal = attributes.find(a => a.key === 'con')?.value ?? 10;
+      HP += Math.floor((conVal / 2) - 5);
+    }
 
     if (traits.includes('dwarven-toughness') || traits.includes('draconid-resistance')) {
       HP += 1
     }
 
-    const conVal = attributes.find(a => a.key === 'con')?.value ?? 10;
-    HP += Math.floor((conVal / 2) - 5)
+    const resolvedProfBonus = rulesConfig.proficiencyProgression?.[0] ?? prof_bonus ?? 0;
 
     let moneyArray: { quantity: number; unit: string }[] = [];
     if (Array.isArray(money)) {
@@ -150,7 +165,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       race: race,
       traits,
       traits_data: { ...traits_data },
-      prof_bonus: prof_bonus ?? 0,
+      prof_bonus: resolvedProfBonus,
       speed,
       plusSpeed: 0,
       size,
@@ -393,6 +408,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const dataLevel = await this.claseRepository.dataLevelUp?.(clase, level + 1, personaje?.subclasses ?? [])
     const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje?.systems ?? []);
     const raceLevel = await this.raceRepository.dataLevelUp(personaje?.raceId ?? '', level + 1)
 
     let raceTraitsData = {}
@@ -404,7 +420,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return {
       clase,
       hit_die: dataLevel?.hit_die ?? 0,
-      prof_bonus: prof_bonus[totalLevels] ?? 0,
+      prof_bonus: rulesConfig.proficiencyProgression?.[totalLevels]
+        ?? DEFAULT_PROFICIENCY_PROGRESSION[totalLevels]
+        ?? 0,
       traits: dataLevel?.traits ?? [],
       traits_data: deepMerge(dataLevel?.traits_data ?? {}, raceTraitsData),
       traits_options: dataLevel?.traits_options ?? undefined,
@@ -504,15 +522,30 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const conVal = personaje?.attributes?.find(a => a.key === 'con')?.value ?? 10
-    let HP = hit + Math.floor(((conVal) / 2) - 5)
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje?.systems ?? []);
+    const apiAttributesForHp = await this.attributeService.formatAttributes(
+      personaje?.attributes ?? [],
+      personaje?.systems ?? []
+    );
+    const classHitDie = personaje?.classes?.find(clas => clas.class === clase)?.hit_die ?? hit;
+
+    let HP: number;
+    if (rulesConfig.hpLevelUpFormula) {
+      HP = Math.floor(evaluateFormula(
+        rulesConfig.hpLevelUpFormula,
+        apiAttributesForHp,
+        undefined,
+        { classVariables: { hitDie: hit ?? classHitDie } }
+      ));
+    } else {
+      HP = hit + Math.floor(((conVal) / 2) - 5);
+    }
 
     if (traits.includes('dwarven-toughness')) {
       HP += 1
     }
 
-    /*if (clase === 'sorcerer' && traits.includes('draconid-resistance')) {
-      HP += 1
-    }*/
+    const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
 
     const traitsSinRepetidos = [...new Set([...personaje?.traits ?? [], ...traits ?? []])];
 
@@ -523,7 +556,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
       {
         $set: {
           XP: 0,
-          prof_bonus: Math.max(prof_bonus ?? 0, personaje?.prof_bonus ?? 0),
+          prof_bonus: Math.max(
+            rulesConfig.proficiencyProgression?.[totalLevels]
+              ?? DEFAULT_PROFICIENCY_PROGRESSION[totalLevels]
+              ?? prof_bonus
+              ?? 0,
+            personaje?.prof_bonus ?? 0
+          ),
           traits: traitsSinRepetidos,
           traits_data: { ...personaje?.traits_data, ...traits_data },
           subclasses: [...personaje?.subclasses ?? [], ...subclaseArray ?? []],
@@ -717,6 +756,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const traits = await this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data)
     const { CA } = await this.calcularCA(personaje, traits)
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
 
     let finalCampaignName = campaignName;
     if (finalCampaignName === undefined) {
@@ -739,7 +779,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
       HPMax: personaje.HPMax,
       HPActual: personaje.HPActual,
       XP: personaje.XP,
-      XPMax: nivel[level - 1]
+      XPMax: rulesConfig.xpProgression?.[level]
+        ?? DEFAULT_XP_PROGRESSION[level]
+        ?? DEFAULT_XP_PROGRESSION[level - 1]
+        ?? 0,
     }
   }
 
@@ -793,7 +836,24 @@ export default class PersonajeRepository implements IPersonajeRepository {
     })
 
     if (!armadura) {
-      if (personaje.traits.includes('barbarian-unarmored-defense')) {
+      const hasSpecialUnarmoredDefense =
+        personaje.traits.includes('barbarian-unarmored-defense')
+        || personaje.traits.includes('monk-unarmored-defense')
+        || personaje.traits.includes('draconid-resistance');
+
+      if (!hasSpecialUnarmoredDefense) {
+        const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
+        if (rulesConfig.baseAcFormula) {
+          const apiAttributes = await this.attributeService.formatAttributes(
+            personaje.attributes,
+            personaje.systems ?? []
+          );
+          CA = evaluateFormula(rulesConfig.baseAcFormula, apiAttributes);
+        } else {
+          const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10;
+          CA = 10 + Math.floor((dexVal / 2) - 5);
+        }
+      } else if (personaje.traits.includes('barbarian-unarmored-defense')) {
         const conVal = personaje.attributes.find(a => a.key === 'con')?.value ?? 10
         const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
         CA += Math.floor((conVal / 2) - 5) + Math.floor((dexVal / 2) - 5)
@@ -965,9 +1025,15 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const { CA, plusSpeed } = await this.calcularCA(personaje, traits)
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
 
-    const strVal = apiAttributes.find(a => a.key === 'str')?.value ?? 10
-    let cargaMaxima = strVal * 15
+    let cargaMaxima: number;
+    if (rulesConfig.carryingCapacityFormula) {
+      cargaMaxima = evaluateFormula(rulesConfig.carryingCapacityFormula, apiAttributes);
+    } else {
+      const strVal = apiAttributes.find(a => a.key === 'str')?.value ?? 10;
+      cargaMaxima = strVal * 15;
+    }
 
     if (traits?.find(trait => trait.id === "semblance-beast-bear")) {
       cargaMaxima *= 2
@@ -980,6 +1046,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
       apiAttributes,
       personaje?.prof_bonus ?? 0,
       hasJackOfAllTrades
+    );
+
+    const passiveSkills = buildPassiveSkillsMap(
+      rulesConfig.passiveSkillFormula,
+      skillsListEvaluated,
+      { attributes: apiAttributes }
     );
 
     const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
@@ -998,7 +1070,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
       background: personaje?.background,
       level,
       XP: personaje.XP,
-      XPMax: nivel[level - 1],
+      XPMax: rulesConfig.xpProgression?.[level]
+        ?? DEFAULT_XP_PROGRESSION[level]
+        ?? DEFAULT_XP_PROGRESSION[level - 1]
+        ?? 0,
       attributes: apiAttributes,
       systems: personaje.systems ?? [],
       initiativeBonus,
@@ -1008,6 +1083,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
         walk: speed.walk + plusSpeed
       },
       skills: skillsListEvaluated,
+      passiveSkills,
       languages: {
         understands: idiomas_understands,
         speaks: idiomas_speaks,
@@ -1250,8 +1326,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
       form.getTextField('HitDiceTotal').setText(personaje.classes?.map(clase => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');
 
       const skillPerception = personaje?.skills?.find(skill => skill?.key === 'perception')
+      const passivePerception = personaje?.passiveSkills?.perception;
 
-      if (skillPerception) {
+      if (passivePerception !== undefined) {
+        form.getTextField('PWP').setText(String(passivePerception));
+      } else if (skillPerception) {
         form.getTextField('PWP').setText(10 + skillPerception.modifier + '');
       } else {
         form.getTextField('PWP').setText(10 + bonus.wis + '');
@@ -1400,7 +1479,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     suma += this.sumaDaño(character, equip)
 
-    if (character?.proficiencies?.some(arma => equip?.weapon?.proficiencies?.some(p => p.id === arma?.id))) {
+    if (character?.proficiencies?.some(arma => equip?.proficiencies?.some(p => p.id === arma?.id))) {
       suma += character?.prof_bonus ?? 0
     }
 

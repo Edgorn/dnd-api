@@ -8,7 +8,8 @@ import ILanguageRepository from "../../../../domain/repositories/ILanguageReposi
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
-import { ChoiceApi } from '../../../../domain/types';
+import AttributeService from '../../../../domain/services/attribute.service';
+import { ChoiceApi, ChoiceMongo } from '../../../../domain/types';
 import {
   CharacterClassApi,
   CharacterClassLevelMongo,
@@ -25,7 +26,8 @@ import {
   SubclassesOptionsMongoOption
 } from '../../../../domain/types/characterClass.types';
 import { DoteApi } from '../../../../domain/types/dotes.types';
-import { formatearSalvacion } from '../../../../utils/formatters';
+import { EquipmentApi, EquipmentOptionsMongo } from '../../../../domain/types/equipment.types';
+import { AttributeApi } from '../../../../domain/types/attribute.types';
 import mongoose from 'mongoose';
 import CharacterClassModel from '../schemas/CharacterClass';
 import { NotFoundError } from '../../../../domain/errors/AppError';
@@ -40,7 +42,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     private readonly conjuroRepository?: IConjuroRepository,
     private readonly doteRepository?: IDoteRepository,
     private readonly invocacionRepository?: IInvocacionRepository,
-    private readonly languageRepository?: ILanguageRepository
+    private readonly languageRepository?: ILanguageRepository,
+    private readonly attributeService?: AttributeService
   ) { }
 
   async getBySystems(rulesets: string[], includeDeleted: boolean = false): Promise<CharacterClassApi[]> {
@@ -73,7 +76,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       ruleset: data.ruleset,
       name: data.name,
       description: data.description || [],
-      img: data.img || ""
+      img: data.img || "",
+      hit_die: data.hit_die ?? 8,
+      proficiencies: data.proficiencies ?? [],
+      saving_throws: data.saving_throws ?? [],
+      skill_choices: data.skill_choices ?? undefined,
+      equipment: data.equipment ?? [],
+      equipment_choices: data.equipment_choices ?? undefined
     });
 
     await newClass.save();
@@ -82,6 +91,19 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
   async update(data: InputUpdateCharacterClass): Promise<CharacterClassApi> {
     const { id, ...updateFields } = data;
+
+    if (updateFields.equipment_choices === null) {
+      updateFields.equipment_choices = [];
+    }
+
+    if (updateFields.equipment === null) {
+      updateFields.equipment = [];
+    }
+
+    if (updateFields.skill_choices === null) {
+      updateFields.skill_choices = undefined;
+    }
+
     const updatedClass = await CharacterClassModel.findByIdAndUpdate(
       id,
       { $set: updateFields },
@@ -268,7 +290,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spells,
       spell_choices,
       equipment,
-      equipment_choices
+      equipment_choices,
+      saving_throws
     ] = await Promise.all([
       this.traitRepository ? this.traitRepository.getTraitsByIndexes(dataLevel?.traits ?? [], dataLevel?.traits_data) : [],
       this.proficiencyRepository ? this.proficiencyRepository.getProficienciesByIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]) : [],
@@ -277,7 +300,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       this.conjuroRepository ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? '') : [],
       this.conjuroRepository ? this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices) : undefined,
       this.equipamientoRepository ? this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment) : [],
-      this.equipamientoRepository ? this.equipamientoRepository.formatearOpcionesDeEquipamientos(clase?.equipment_choices) : []
+      this.formatClassEquipmentChoices(clase?.equipment_choices, clase.ruleset || ""),
+      this.formatSavingThrows(clase.saving_throws ?? [], clase.ruleset || "")
     ]);
 
     const subclasesData = await this.formatearSubclaseType(dataLevel?.subclasses_options, dataLevel?.subclasses);
@@ -293,7 +317,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellcasting: clase.spellcasting,
       proficiencies,
       proficiencies_choices,
-      saving_throws: formatearSalvacion(clase?.saving_throws ?? []),
+      saving_throws,
       skill_choices,
       spells,
       spell_choices,
@@ -400,5 +424,46 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spell_choices,
       language_choices: languagesOptions
     };
+  }
+
+  private async formatSavingThrows(keys: string[], ruleset: string): Promise<AttributeApi[]> {
+    if (!keys.length || !this.attributeService || !ruleset) return [];
+
+    const attributes = await this.attributeService.getBySystems([ruleset]);
+    const byKey = new Map(attributes.map(attr => [attr.key, attr]));
+
+    return keys
+      .map(key => byKey.get(key))
+      .filter((attr): attr is AttributeApi => attr !== undefined);
+  }
+
+  private async formatClassEquipmentChoices(
+    rawChoices: unknown,
+    ruleset: string
+  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+    if (!rawChoices || !Array.isArray(rawChoices) || rawChoices.length === 0) {
+      return undefined;
+    }
+
+    if (!this.equipamientoRepository) return undefined;
+
+    if (Array.isArray(rawChoices[0])) {
+      const legacyFormatted = await this.equipamientoRepository.formatearOpcionesDeEquipamientos(
+        rawChoices as EquipmentOptionsMongo[][]
+      );
+
+      if (!legacyFormatted) return undefined;
+
+      return legacyFormatted.map(group => ({
+        choose: group[0]?.choose ?? 1,
+        options: group.flatMap(item => item.options) as EquipmentApi[],
+        query_type: "options" as const
+      }));
+    }
+
+    return this.equipamientoRepository.formatEquipmentItemChoices(
+      rawChoices as ChoiceMongo[],
+      ruleset
+    );
   }
 }

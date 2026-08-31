@@ -209,6 +209,7 @@ const router = Router();
  *             type: string
  *         initiativeBonus:
  *           type: number
+ *           description: Bono numérico de iniciativa calculado por el sistema (p.ej. modificador de Destreza). No incluye la tirada d20; el frontend debe sumar el dado por separado.
  *         HPMax:
  *           type: number
  *         CA:
@@ -291,6 +292,11 @@ const router = Router();
  *           type: object
  *         cargaMaxima:
  *           type: number
+ *         passiveSkills:
+ *           type: object
+ *           additionalProperties:
+ *             type: number
+ *           description: Valores de habilidades pasivas calculadas por key de skill (p.ej. perception).
  *         spellcasting:
  *           type: array
  *           items:

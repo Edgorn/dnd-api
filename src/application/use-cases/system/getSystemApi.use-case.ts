@@ -9,6 +9,7 @@ import { AttributeApi } from "../../../domain/types/attribute.types";
 import { SkillApi } from "../../../domain/types/skill.types";
 import { CoinApi } from "../../../domain/types/coin.types";
 import { AppError } from "../../../domain/errors/AppError";
+import { mergeRulesFromAncestry } from "../../../utils/systemRulesMerge";
 
 export default class GetSystemApi {
   constructor(
@@ -107,6 +108,8 @@ export default class GetSystemApi {
     const skills = Array.from(skillsMap.values());
     const coins = Array.from(coinsMap.values());
 
+    const mergedRules = mergeRulesFromAncestry(ancestry);
+
     const getMergedScalar = <T>(key: keyof System, defaultValue?: T): T | undefined => {
       for (const ancestor of ancestry) {
         const val = ancestor[key];
@@ -127,15 +130,22 @@ export default class GetSystemApi {
       parentId: sys.parentId ? sys.parentId.toString() : undefined,
       canEdit: isPublisher,
       racesCount,
-      globalModifierFormula: getMergedScalar<string>('globalModifierFormula'),
-      initiativeBonusFormula: getMergedScalar<string>('initiativeBonusFormula'),
+      globalModifierFormula: mergedRules.globalModifierFormula,
+      initiativeBonusFormula: mergedRules.initiativeBonusFormula,
       maxAttributeValue: getMergedScalar<number>('maxAttributeValue'),
-      defaultMinAttributeValue: getMergedScalar<number>('defaultMinAttributeValue'),
-      defaultMaxAttributeValue: getMergedScalar<number>('defaultMaxAttributeValue'),
-      creationMinAttributeValue: getMergedScalar<number>('creationMinAttributeValue'),
-      creationMaxAttributeValue: getMergedScalar<number>('creationMaxAttributeValue'),
-      maxLevel: getMergedScalar<number>('maxLevel'),
-      maxSpellLevel: getMergedScalar<number>('maxSpellLevel'),
+      defaultMinAttributeValue: mergedRules.defaultMinAttributeValue,
+      defaultMaxAttributeValue: mergedRules.defaultMaxAttributeValue,
+      creationMinAttributeValue: mergedRules.creationMinAttributeValue,
+      creationMaxAttributeValue: mergedRules.creationMaxAttributeValue,
+      maxLevel: mergedRules.maxLevel,
+      maxSpellLevel: mergedRules.maxSpellLevel,
+      xpProgression: mergedRules.xpProgression,
+      proficiencyProgression: mergedRules.proficiencyProgression,
+      hpInitialFormula: mergedRules.hpInitialFormula,
+      hpLevelUpFormula: mergedRules.hpLevelUpFormula,
+      baseAcFormula: mergedRules.baseAcFormula,
+      passiveSkillFormula: mergedRules.passiveSkillFormula,
+      carryingCapacityFormula: mergedRules.carryingCapacityFormula,
       attributes,
       skills,
       coins

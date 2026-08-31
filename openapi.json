@@ -221,6 +221,14 @@
           }
         }
       },
+      "SystemCharacterFormulaSyntax": {
+        "type": "string",
+        "description": "Expresión matemática evaluada en el servidor que devuelve un número fijo (bono, valor o total).\nTokens permitidos: `@attributes.{key}.modifier`, `@attributes.{key}.value`, `@class.{prop}` (ej. `@class.hitDie`),\n`@skills.{key}.totalModifier` y variables planas como `@proficiency`. Funciones: `max()`, `min()`.\nEl placeholder `{skillName}` solo está permitido en `passiveSkillFormula`.\nNo se admite notación de dados (`1d20`, `2d6`), texto libre ni tokens desconocidos.\nLas tiradas de dados las resuelve el cliente; estas fórmulas solo calculan modificadores o totales numéricos.\n"
+      },
+      "AttributeModifierFormulaSyntax": {
+        "type": "string",
+        "description": "Fórmula del modificador de atributo. Usa `value` o `valor` como variable del puntuaje.\nFunciones permitidas: `Math.floor`, `Math.ceil`, `Math.round`, `Math.trunc`, `Math.abs`.\nEjemplo: `Math.floor((valor - 10) / 2)`.\n"
+      },
       "SystemApi": {
         "type": "object",
         "properties": {
@@ -262,11 +270,11 @@
           },
           "globalModifierFormula": {
             "type": "string",
-            "description": "Fórmula opcional para modificar características."
+            "description": "Fórmula del modificador de atributo (no es una fórmula de personaje).\nVer AttributeModifierFormulaSyntax. Ejemplo: Math.floor((valor - 10) / 2).\n"
           },
           "initiativeBonusFormula": {
             "type": "string",
-            "description": "Fórmula opcional para calcular el bono de iniciativa."
+            "description": "Bono numérico de iniciativa (modificador), no la tirada completa.\nEjemplo válido: `@attributes.dex.modifier`. No incluir `1d20`: la tirada la hace el frontend\nsumando PersonajeApi.initiativeBonus. Ver SystemCharacterFormulaSyntax.\n"
           },
           "defaultMinAttributeValue": {
             "type": "number"
@@ -287,6 +295,40 @@
           "maxSpellLevel": {
             "type": "integer",
             "description": "Nivel máximo de conjuro en el sistema."
+          },
+          "xpProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Curva de experiencia acumulada por nivel (índice 0 = nivel 1)."
+          },
+          "proficiencyProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Bonificador de competencia por nivel total del personaje."
+          },
+          "hpInitialFormula": {
+            "type": "string",
+            "description": "Fórmula de puntos de golpe iniciales (nivel 1). Ver SystemCharacterFormulaSyntax.\nEjemplo: max(@class.hitDie) + @attributes.con.modifier\n"
+          },
+          "hpLevelUpFormula": {
+            "type": "string",
+            "description": "Fórmula de puntos de golpe por subida de nivel. Ver SystemCharacterFormulaSyntax.\nEjemplo: @class.hitDie + @attributes.con.modifier\n"
+          },
+          "baseAcFormula": {
+            "type": "string",
+            "description": "Fórmula de clase de armadura base sin armadura equipada. Ver SystemCharacterFormulaSyntax.\nEjemplo: 10 + @attributes.dex.modifier\n"
+          },
+          "passiveSkillFormula": {
+            "type": "string",
+            "description": "Plantilla de habilidades pasivas. Usa el placeholder {skillName}. Ver SystemCharacterFormulaSyntax.\nEjemplo: 10 + @skills.{skillName}.totalModifier\n"
+          },
+          "carryingCapacityFormula": {
+            "type": "string",
+            "description": "Fórmula de capacidad de carga máxima del personaje. Ver SystemCharacterFormulaSyntax.\nEjemplo: @attributes.str.value * 15\n"
           },
           "attributes": {
             "type": "array",
@@ -339,11 +381,11 @@
           },
           "globalModifierFormula": {
             "type": "string",
-            "description": "Fórmula opcional para modificar características."
+            "description": "Fórmula del modificador de atributo. Ver AttributeModifierFormulaSyntax.\nEjemplo: Math.floor((valor - 10) / 2).\n"
           },
           "initiativeBonusFormula": {
             "type": "string",
-            "description": "Fórmula opcional para calcular el bono de iniciativa."
+            "description": "Bono numérico de iniciativa (modificador), no la tirada completa.\nEjemplo válido: `@attributes.dex.modifier`. No incluir `1d20`. Ver SystemCharacterFormulaSyntax.\n"
           },
           "defaultMinAttributeValue": {
             "type": "number"
@@ -364,6 +406,40 @@
           "maxSpellLevel": {
             "type": "integer",
             "description": "Nivel máximo de conjuro en el sistema."
+          },
+          "xpProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Curva de experiencia acumulada por nivel (índice 0 = nivel 1). Debe coincidir con maxLevel."
+          },
+          "proficiencyProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Bonificador de competencia por nivel total. Debe coincidir con maxLevel."
+          },
+          "hpInitialFormula": {
+            "type": "string",
+            "description": "Fórmula de PG nivel 1. Ver SystemCharacterFormulaSyntax.\nEjemplo: max(@class.hitDie) + @attributes.con.modifier\n"
+          },
+          "hpLevelUpFormula": {
+            "type": "string",
+            "description": "Fórmula de PG por subida de nivel. Ver SystemCharacterFormulaSyntax.\nEjemplo: @class.hitDie + @attributes.con.modifier\n"
+          },
+          "baseAcFormula": {
+            "type": "string",
+            "description": "CA base sin armadura. Ver SystemCharacterFormulaSyntax.\nEjemplo: 10 + @attributes.dex.modifier\n"
+          },
+          "passiveSkillFormula": {
+            "type": "string",
+            "description": "Plantilla de habilidades pasivas con {skillName}. Ver SystemCharacterFormulaSyntax.\nEjemplo: 10 + @skills.{skillName}.totalModifier\n"
+          },
+          "carryingCapacityFormula": {
+            "type": "string",
+            "description": "Capacidad de carga. Ver SystemCharacterFormulaSyntax.\nEjemplo: @attributes.str.value * 15\n"
           }
         }
       },
@@ -387,11 +463,11 @@
           },
           "globalModifierFormula": {
             "type": "string",
-            "description": "Fórmula opcional para modificar características."
+            "description": "Fórmula del modificador de atributo. Ver AttributeModifierFormulaSyntax.\n"
           },
           "initiativeBonusFormula": {
             "type": "string",
-            "description": "Fórmula opcional para calcular el bono de iniciativa."
+            "description": "Bono numérico de iniciativa (modificador), no la tirada completa.\nEjemplo válido: `@attributes.dex.modifier`. No incluir `1d20`. Ver SystemCharacterFormulaSyntax.\n"
           },
           "defaultMinAttributeValue": {
             "type": "number"
@@ -412,6 +488,38 @@
           "maxSpellLevel": {
             "type": "integer",
             "description": "Nivel máximo de conjuro en el sistema."
+          },
+          "xpProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "proficiencyProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "hpInitialFormula": {
+            "type": "string",
+            "description": "Fórmula de PG nivel 1. Ver SystemCharacterFormulaSyntax."
+          },
+          "hpLevelUpFormula": {
+            "type": "string",
+            "description": "Fórmula de PG por subida de nivel. Ver SystemCharacterFormulaSyntax."
+          },
+          "baseAcFormula": {
+            "type": "string",
+            "description": "CA base sin armadura. Ver SystemCharacterFormulaSyntax."
+          },
+          "passiveSkillFormula": {
+            "type": "string",
+            "description": "Plantilla de habilidades pasivas con {skillName}. Ver SystemCharacterFormulaSyntax."
+          },
+          "carryingCapacityFormula": {
+            "type": "string",
+            "description": "Capacidad de carga. Ver SystemCharacterFormulaSyntax."
           }
         }
       },
@@ -1856,7 +1964,8 @@
             }
           },
           "initiativeBonus": {
-            "type": "number"
+            "type": "number",
+            "description": "Bono numérico de iniciativa calculado por el sistema (p.ej. modificador de Destreza). No incluye la tirada d20; el frontend debe sumar el dado por separado."
           },
           "HPMax": {
             "type": "number"
@@ -1979,6 +2088,13 @@
           },
           "cargaMaxima": {
             "type": "number"
+          },
+          "passiveSkills": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Valores de habilidades pasivas calculadas por key de skill (p.ej. perception)."
           },
           "spellcasting": {
             "type": "array",
@@ -2555,13 +2671,6 @@
           },
           "range_throw": {
             "$ref": "#/components/schemas/WeaponRangeThrow"
-          },
-          "proficiencies": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Proficiency"
-            },
-            "description": "Competencias asociadas al arma."
           }
         }
       },
@@ -2602,16 +2711,6 @@
           },
           "range_throw": {
             "$ref": "#/components/schemas/WeaponRangeThrow"
-          },
-          "proficiencies": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "IDs de MongoDB de las competencias asociadas.",
-            "example": [
-              "60d0fe4f5311236168a109cc"
-            ]
           }
         }
       },
@@ -2666,6 +2765,13 @@
           },
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
+          },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Proficiency"
+            },
+            "description": "Competencias requeridas para usar el equipamiento."
           },
           "weapon": {
             "$ref": "#/components/schemas/Weapon"
@@ -2730,6 +2836,16 @@
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
           },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de MongoDB de las competencias requeridas para usar el equipamiento.",
+            "example": [
+              "60d0fe4f5311236168a109cc"
+            ]
+          },
           "weapon": {
             "$ref": "#/components/schemas/WeaponInput"
           }
@@ -2783,6 +2899,16 @@
           },
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
+          },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de MongoDB de las competencias requeridas para usar el equipamiento.",
+            "example": [
+              "60d0fe4f5311236168a109cc"
+            ]
           },
           "weapon": {
             "$ref": "#/components/schemas/WeaponInput",
@@ -3018,21 +3144,13 @@
           "saving_throws": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/components/schemas/Attribute"
             },
-            "description": "Tiradas de salvación en las que es competente."
+            "description": "Tiradas de salvación. En persistencia se guardan keys de atributo; en respuesta se hidratan a Attribute."
           },
           "skill_choices": {
             "type": "object",
-            "description": "Opciones de habilidades a elegir."
+            "description": "Elección de habilidades (choose + options/filter)."
           },
           "spells": {
             "type": "array",
@@ -3069,12 +3187,9 @@
           "equipment_choices": {
             "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
+              "$ref": "#/components/schemas/EquipmentChoiceApi"
             },
-            "description": "Opciones de equipamiento inicial."
+            "description": "Opciones de equipamiento inicial resueltas (formato de trasfondo)."
           },
           "subclasesData": {
             "type": "object",
@@ -3120,6 +3235,42 @@
           "img": {
             "type": "string",
             "description": "URL de la imagen."
+          },
+          "hit_die": {
+            "type": "integer",
+            "description": "Dado de golpe de la clase (ej. 8, 10, 12)."
+          },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de competencias otorgadas por la clase."
+          },
+          "saving_throws": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keys de atributos para las tiradas de salvación (ej. str, dex)."
+          },
+          "skill_choices": {
+            "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput",
+            "description": "Elección de habilidades (choose + options o filter)."
+          },
+          "equipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackgroundCharacterEquipment"
+            },
+            "description": "Equipamiento fijo inicial."
+          },
+          "equipment_choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput"
+            },
+            "description": "Opciones de equipamiento inicial."
           }
         }
       },
@@ -3151,6 +3302,42 @@
           "img": {
             "type": "string",
             "description": "URL de la imagen."
+          },
+          "hit_die": {
+            "type": "integer",
+            "description": "Dado de golpe de la clase (ej. 8, 10, 12)."
+          },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de competencias otorgadas por la clase."
+          },
+          "saving_throws": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keys de atributos para las tiradas de salvación (ej. str, dex)."
+          },
+          "skill_choices": {
+            "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput",
+            "description": "Elección de habilidades (choose + options o filter)."
+          },
+          "equipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackgroundCharacterEquipment"
+            },
+            "description": "Equipamiento fijo inicial."
+          },
+          "equipment_choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput"
+            },
+            "description": "Opciones de equipamiento inicial."
           }
         }
       },
@@ -4056,6 +4243,7 @@
       },
       "post": {
         "summary": "Crear un nuevo sistema",
+        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\"\n}\n```\n",
         "tags": [
           "Sistemas"
         ],

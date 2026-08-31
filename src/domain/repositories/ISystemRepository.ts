@@ -1,4 +1,4 @@
-import { System, TypeCrearSystem, TypeModificarSystem } from "../types/system.types";
+import { System, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from "../types/system.types";
 
 export default interface ISystemRepository {
   getByUserId(userId: string, accessibleSystemIds: string[]): Promise<System[]>;
@@ -8,6 +8,7 @@ export default interface ISystemRepository {
   getByIdWithDeleted(id: string): Promise<System | null>;
   getGlobalModifierFormula(systems: string[]): Promise<string | undefined>;
   getInitiativeBonusFormula(systems: string[]): Promise<string | undefined>;
+  getMergedRulesConfig(systemIds: string[]): Promise<SystemRulesConfig>;
   verifySystemsNotBase(systems: string[]): Promise<void>;
   getSystemsAndAncestors(systems: string[]): Promise<string[]>;
   softDelete(id: string, deletedAt: Date): Promise<void>;

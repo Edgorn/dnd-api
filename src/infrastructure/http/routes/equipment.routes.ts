@@ -144,11 +144,6 @@ const router = Router();
  *           example: "Melee"
  *         range_throw:
  *           $ref: '#/components/schemas/WeaponRangeThrow'
- *         proficiencies:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/Proficiency'
- *           description: Competencias asociadas al arma.
  *     WeaponInput:
  *       type: object
  *       properties:
@@ -176,12 +171,6 @@ const router = Router();
  *           example: "Melee"
  *         range_throw:
  *           $ref: '#/components/schemas/WeaponRangeThrow'
- *         proficiencies:
- *           type: array
- *           items:
- *             type: string
- *           description: IDs de MongoDB de las competencias asociadas.
- *           example: ["60d0fe4f5311236168a109cc"]
  *     Equipment:
  *       type: object
  *       properties:
@@ -219,6 +208,11 @@ const router = Router();
  *           example: ["ammunition", "arrow"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Proficiency'
+ *           description: Competencias requeridas para usar el equipamiento.
  *         weapon:
  *           $ref: '#/components/schemas/Weapon'
  *     InputCreateEquipment:
@@ -264,6 +258,12 @@ const router = Router();
  *           example: ["ammunition", "arrow"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de MongoDB de las competencias requeridas para usar el equipamiento.
+ *           example: ["60d0fe4f5311236168a109cc"]
  *         weapon:
  *           $ref: '#/components/schemas/WeaponInput'
  *     InputUpdateEquipment:
@@ -301,6 +301,12 @@ const router = Router();
  *           example: ["ammunition", "arrow"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de MongoDB de las competencias requeridas para usar el equipamiento.
+ *           example: ["60d0fe4f5311236168a109cc"]
  *         weapon:
  *           $ref: '#/components/schemas/WeaponInput'
  *           nullable: true
