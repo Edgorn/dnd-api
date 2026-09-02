@@ -1,5 +1,5 @@
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
-import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import SkillService from '../../../../domain/services/skill.service';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
@@ -15,7 +15,7 @@ import ISystemRepository from '../../../../domain/repositories/ISystemRepository
 export default class RaceRepository implements IRaceRepository {
   constructor(
     private readonly languageRepository: ILanguageRepository,
-    private readonly conjuroRepository: IConjuroRepository,
+    private readonly spellRepository: ISpellRepository,
     private readonly skillService: SkillService,
     private readonly proficiencyRepository: IProficiencyRepository,
     private readonly doteRepository: IDoteRepository,
@@ -175,7 +175,7 @@ export default class RaceRepository implements IRaceRepository {
       this.proficiencyRepository.formatProficiencyChoices(raza?.proficiencies_choices),
       this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, ruleset),
       this.formatearVariantes(raza?.variants ?? [], ruleset),
-      this.conjuroRepository.formatearOpcionesDeConjuros(raza?.spell_choices),
+      this.spellRepository.formatSpellChoices(raza?.spell_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
       this.languageRepository.formatLanguageChoices(raza.language_choices, ruleset),
       raza.spellcasting ? this.attributeService.getById(raza.spellcasting.toString()) : Promise.resolve(undefined)

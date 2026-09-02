@@ -6,7 +6,7 @@ import { ProficiencyApi } from "./proficiencies.types"
 import { Damage, Speed } from "."
 import { CharacterEquipmentApi } from "./equipment.types"
 import { DoteApi } from "./dotes.types"
-import { ConjuroApi } from "./conjuros.types"
+import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 import { ClaseLevelUp, SpellcastingLevel } from "./characterClass.types"
 import { InvocacionApi } from "./invocaciones.types"
@@ -260,7 +260,7 @@ export interface PersonajeApi {
   money: ({
     quantity: number;
   } & CoinApi)[],
-  spells: Record<string, { list: ConjuroApi[]; type: string; }>,
+  spells: Record<string, { list: SpellApi[]; type: string; }>,
   cargaMaxima: number,
   spellcasting?: SpellcastingLevel[],
   invocations?: InvocacionApi[],

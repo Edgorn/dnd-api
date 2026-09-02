@@ -1,5 +1,5 @@
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
-import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
+import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import IDamageRepository from "../../../../domain/repositories/IDamageRepository";
 import TraitSchema from "../schemas/Trait";
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
@@ -9,7 +9,7 @@ import { SkillApi } from '../../../../domain/types/skill.types';
 import { CreateTrait, TraitApi, TraitDataMongo, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
-import { ConjuroApi } from "../../../../domain/types/conjuros.types";
+import { SpellApi } from "../../../../domain/types/spell.types";
 import { EstadoApi } from "../../../../domain/types/estados.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import { Types } from 'mongoose';
@@ -19,7 +19,7 @@ export default class TraitRepository implements ITraitRepository {
   constructor(
     private readonly damageRepository: IDamageRepository,
     private readonly proficiencyRepository: IProficiencyRepository,
-    private readonly conjuroRepository: IConjuroRepository,
+    private readonly spellRepository: ISpellRepository,
     private readonly estadoRepository: IEstadoRepository,
     private readonly skillRepository: ISkillRepository
   ) {}
@@ -130,7 +130,7 @@ export default class TraitRepository implements ITraitRepository {
       allConditionalResistances.size ? this.damageRepository.getByIds(Array.from(allConditionalResistances)) : [],
       allProficiencies.size ? this.proficiencyRepository.getProficienciesByIndices(Array.from(allProficiencies)) : [],
       allSkills.size ? this.skillRepository.getSkillsByIndices(Array.from(allSkills)) : [],
-      allSpells.size ? this.conjuroRepository.obtenerConjurosPorIndices(Array.from(allSpells)) : [],
+      allSpells.size ? this.spellRepository.getSpellsByIndexes(Array.from(allSpells)) : [],
       allConditionInmunities.size ? this.estadoRepository.obtenerEstadosPorIndices(Array.from(allConditionInmunities)) : [],
       allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : []
     ]);
@@ -145,7 +145,7 @@ export default class TraitRepository implements ITraitRepository {
         skillMap.set(item.key, item);
       }
     });
-    const spellMap = new Map<string, ConjuroApi>(fetchedSpells.map(item => [(item as any).index ?? (item as any).id, item]));
+    const spellMap = new Map<string, SpellApi>(fetchedSpells.map(item => [(item as any).index ?? (item as any).id, item]));
     const conditionInmunityMap = new Map<string, EstadoApi>(fetchedConditionInmunities.map(item => [(item as any).index ?? (item as any).id, item]));
     const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
 
@@ -165,7 +165,7 @@ export default class TraitRepository implements ITraitRepository {
 
       const spells = (trait.spells ?? [])
         .map(idx => spellMap.get(idx))
-        .filter((item): item is ConjuroApi => !!item);
+        .filter((item): item is SpellApi => !!item);
 
       const condition_inmunities = (trait.condition_inmunities ?? [])
         .map(idx => conditionInmunityMap.get(idx))

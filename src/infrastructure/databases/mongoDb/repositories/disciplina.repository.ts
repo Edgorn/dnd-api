@@ -1,4 +1,4 @@
-import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
+import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import IDisciplinaRepository from "../../../../domain/repositories/IDisciplinaRepository";
 const DisciplinaSchema = require('../schemas/Disciplina');
 
@@ -14,12 +14,12 @@ export default class DisciplinaRepository extends IDisciplinaRepository {
     }
   } 
  
-  conjuroRepository: IConjuroRepository
+  spellRepository: ISpellRepository
 
-  constructor(conjuroRepository: IConjuroRepository) {
+  constructor(spellRepository: ISpellRepository) {
     super()
     this.disciplinasMap = {}
-    this.conjuroRepository = conjuroRepository
+    this.spellRepository = spellRepository
     this.cargar();
   } 
 
@@ -34,7 +34,7 @@ export default class DisciplinaRepository extends IDisciplinaRepository {
     const disciplinas = await DisciplinaSchema.find();
     
     disciplinas.forEach(async (disciplina: any) => {
-    /*const spells = await this.conjuroRepository.obtenerConjurosPorIndices(disciplina?.spells ?? [])
+    /*const spells = await this.spellRepository.getSpellsByIndexes(disciplina?.spells ?? [])
       this.disciplinasMap[disciplina.index] = {
         index: disciplina.index,
         name: disciplina.name,

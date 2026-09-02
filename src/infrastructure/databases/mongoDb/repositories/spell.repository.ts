@@ -192,23 +192,6 @@ export default class SpellRepository implements ISpellRepository {
     return this.formatSpells(spells);
   }
 
-  // Legacy alias support for IConjuroRepository
-  formatearOpcionesDeConjuros(opciones: (ChoiceMongo | ChoiceSpell)[] | undefined): Promise<ChoiceApi<SpellApi>[] | undefined> {
-    return this.formatSpellChoices(opciones);
-  }
-
-  obtenerConjurosPorIndices(indices: string[]): Promise<SpellApi[]> {
-    return this.getSpellsByIndexes(indices);
-  }
-
-  obtenerConjurosPorNivelClase(nivel: number, clase?: string): Promise<SpellApi[]> {
-    return this.getSpellsByLevelAndClass(nivel, [], clase);
-  }
-
-  obtenerConjurosRituales(): Promise<SpellApi[]> {
-    return this.getRitualSpells([]);
-  }
-
   private formatSpells(spells: SpellMongo[]): SpellApi[] {
     return spells.map(spell => this.formatSpell(spell));
   }

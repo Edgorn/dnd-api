@@ -12,10 +12,4 @@ export default interface ISpellRepository {
   getSpellsByIndexes(indexes: string[]): Promise<SpellApi[]>;
   getSpellsByLevelAndClass(level: number, rulesets: string[], className?: string): Promise<SpellApi[]>;
   getRitualSpells(rulesets: string[]): Promise<SpellApi[]>;
-
-  // For backwards compatibility
-  formatearOpcionesDeConjuros(opciones: (ChoiceMongo | ChoiceSpell)[] | undefined): Promise<ChoiceApi<SpellApi>[] | undefined>;
-  obtenerConjurosPorIndices(indices: string[]): Promise<SpellApi[]>;
-  obtenerConjurosPorNivelClase(nivel: number, clase?: string): Promise<SpellApi[]>;
-  obtenerConjurosRituales(): Promise<SpellApi[]>;
 }

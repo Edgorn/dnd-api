@@ -1,7 +1,7 @@
 import { ObjectId } from "mongoose"
 import { Damage } from "."
 import { ProficiencyApi } from "./proficiencies.types"
-import { ConjuroApi } from "./conjuros.types"
+import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 
 export interface TraitMongo {
@@ -52,7 +52,7 @@ export interface TraitApi {
   proficiencies: ProficiencyApi[],
   skills?: string[],
   speed?: number,
-  spells?: ConjuroApi[]
+  spells?: SpellApi[]
   discard?: string[],
   bonuses?: {
     armor_class: number

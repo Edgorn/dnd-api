@@ -157,13 +157,6 @@ export default class EquipmentRepository implements IEquipmentRepository {
     return Promise.all(choices.map(choice => this.formatEquipmentItemChoice(choice, ruleset)));
   }
 
-  formatearOpcionesDeEquipamientoItems(
-    choices: ChoiceMongo[] | undefined,
-    ruleset?: string
-  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
-    return this.formatEquipmentItemChoices(choices, ruleset);
-  }
-
   async getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]> {
     const equipments = await EquipmentModel.find({
       category: { $in: types },
@@ -172,19 +165,6 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     const basic = equipments.map(e => this.formatEquipmentBasic(e));
     return ordenarPorNombre(basic);
-  }
-
-  // Legacy aliases
-  async obtenerEquipamientosPersonajePorIndices(equipments: CharacterEquipmentMongo[]): Promise<CharacterEquipmentApi[] | undefined> {
-    return this.getCharacterEquipmentsByIds(equipments);
-  }
-
-  async formatearOpcionesDeEquipamientos(equipmentsOptions: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined> {
-    return this.formatEquipmentChoices(equipmentsOptions);
-  }
-
-  async obtenerEquipamientosPorTipos(types: string[]): Promise<EquipmentBasic[]> {
-    return this.getEquipmentsByTypes(types);
   }
 
   // Formatting helpers

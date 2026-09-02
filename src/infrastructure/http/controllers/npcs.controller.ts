@@ -1,6 +1,6 @@
 import ObtenerTodosLosNpc from "../../../application/use-cases/npc/obtenerTodosLosNpc.use-case";
 import NpcService from "../../../domain/services/npc.service";
-import ConjuroRepository from "../../databases/mongoDb/repositories/conjuros.repository";
+import SpellRepository from "../../databases/mongoDb/repositories/spell.repository";
 import DamageRepository from "../../databases/mongoDb/repositories/damage.repository";
 import EstadoRepository from "../../databases/mongoDb/repositories/estado.repository";
 import LanguageRepository from "../../databases/mongoDb/repositories/language.repository";
@@ -11,7 +11,7 @@ const npcRepository = new NpcRepository(
   new DamageRepository(),
   new EstadoRepository(),
   new LanguageRepository(null as any),
-  new ConjuroRepository(null as any)
+  new SpellRepository(null as any)
 )
 
 const npcService = new NpcService(npcRepository)

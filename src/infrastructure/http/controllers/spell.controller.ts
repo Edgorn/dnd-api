@@ -164,8 +164,4 @@ export class SpellController {
       next(e);
     }
   };
-
-  // Legacy controller method alias
-  getConjurosPorNivel = this.getSpellsByLevel;
-  getConjurosRituales = this.getRitualSpells;
 }

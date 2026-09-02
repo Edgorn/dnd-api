@@ -44,13 +44,4 @@ export default class SpellService {
   getSpellsByIndexes(indexes: string[]): Promise<SpellApi[]> {
     return this.spellRepository.getSpellsByIndexes(indexes);
   }
-
-  // Backwards compatibility methods
-  obtenerConjurosPorNivel(nivel: number): Promise<SpellApi[]> {
-    return this.getSpellsByLevel(nivel, []);
-  }
-
-  obtenerConjurosRituales(): Promise<SpellApi[]> {
-    return this.getRitualSpells([]);
-  }
 }

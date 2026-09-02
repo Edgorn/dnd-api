@@ -1,4 +1,4 @@
-import IConjuroRepository from "../../../../domain/repositories/IConjuroRepository";
+import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import IInvocacionRepository from "../../../../domain/repositories/IInvocacionRepository";
 import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
 import InvocacionSchema from "../schemas/Invocacion";
@@ -11,7 +11,7 @@ export default class InvocacionRepository implements IInvocacionRepository {
   private todosConsultados = false
 
   constructor(
-    private readonly conjuroRepository: IConjuroRepository,
+    private readonly spellRepository: ISpellRepository,
     private readonly traitRepository: ITraitRepository
   ) {
     this.invocacionesMap = {}
@@ -80,8 +80,8 @@ export default class InvocacionRepository implements IInvocacionRepository {
 
   private async formatearInvocacion(invocacion: InvocacionMongo): Promise<InvocacionApi> {
     const traits = await this.traitRepository.getTraitsByIndexes(invocacion?.requirements?.traits ?? [])
-    const spells = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.spells ?? [])
-    const spells_required = await this.conjuroRepository.obtenerConjurosPorIndices(invocacion?.requirements?.spells ?? [])
+    const spells = await this.spellRepository.getSpellsByIndexes(invocacion?.spells ?? [])
+    const spells_required = await this.spellRepository.getSpellsByIndexes(invocacion?.requirements?.spells ?? [])
  
     return {
       index: invocacion.index,

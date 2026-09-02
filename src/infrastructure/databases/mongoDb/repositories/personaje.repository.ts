@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
-import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
 import Campaña from '../schemas/Campaña';
 import { Damage } from '../../../../domain/types';
@@ -10,12 +10,12 @@ import AttributeService from '../../../../domain/services/attribute.service';
 import SkillService from '../../../../domain/services/skill.service';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import ICharacterClassRepository from '../../../../domain/repositories/ICharacterClassRepository';
-import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
+import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
-import { ConjuroApi } from '../../../../domain/types/conjuros.types';
+import { SpellApi } from '../../../../domain/types/spell.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
 import { TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
 import { CharacterEquipmentApi } from '../../../../domain/types/equipment.types';
@@ -54,12 +54,12 @@ const nameTraits: any = {
 export default class PersonajeRepository implements IPersonajeRepository {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly equipamientoRepository: IEquipamientoRepository,
+    private readonly equipmentRepository: IEquipmentRepository,
     private readonly traitRepository: ITraitRepository,
     private readonly proficiencyRepository: IProficiencyRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly skillService: SkillService,
-    private readonly conjuroRepository: IConjuroRepository,
+    private readonly spellRepository: ISpellRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly claseRepository: ICharacterClassRepository,
     private readonly invocacionRepository: IInvocacionRepository,
@@ -307,7 +307,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const { id, equip, nuevoEstado, isMagic } = data
     const personaje = await Personaje.findById(id);
 
-    const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje?.equipment ?? [])
+    const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(personaje?.equipment ?? [])
 
     if (equipment) {
       const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === !!isMagic)
@@ -796,7 +796,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     let plusSpeed = 0
 
-    const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment.filter(eq => eq.equipped))
+    const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment.filter(eq => eq.equipped))
 
     equipment?.forEach(equip => {
       const armor = { ...equip, ...personaje.equipment.find(eq => eq.equipped && eq.id === equip.id) }
@@ -955,7 +955,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const idiomas_understands = await this.languageRepository.getLanguagesByIndex(personaje.languages?.understands ?? [])
     const idiomas_speaks = await this.languageRepository.getLanguagesByIndex(personaje.languages?.speaks ?? [])
-    const equipment = await this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(personaje.equipment)
+    const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment)
 
     const clases = personaje.classes
 
@@ -970,7 +970,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const spells = { ...personaje.spells }
     const updatedSpells: Record<string, {
-      list: ConjuroApi[],
+      list: SpellApi[],
       type: string
     }> = {}
 
@@ -982,7 +982,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           return
         }
 
-        const dataList = await this.conjuroRepository.obtenerConjurosPorIndices(indices)
+        const dataList = await this.spellRepository.getSpellsByIndexes(indices)
         let type = ""
 
         if (groupSpells === "race") {

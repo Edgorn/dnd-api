@@ -56,9 +56,4 @@ export default class EquipmentService {
   getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]> {
     return this.equipmentRepository.getEquipmentsByTypes(types);
   }
-
-  // Compatibility helper
-  obtenerEquipamientosPorTipos(types: string[]): Promise<EquipmentBasic[]> {
-    return this.getEquipmentsByTypes(types);
-  }
 }

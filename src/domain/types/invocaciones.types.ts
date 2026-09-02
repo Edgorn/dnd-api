@@ -1,4 +1,4 @@
-import { ConjuroApi } from "./conjuros.types"
+import { SpellApi } from "./spell.types"
 
 export interface InvocacionMongo {
   index: string,
@@ -18,7 +18,7 @@ export interface InvocacionApi {
   name: string,
   description: string[],
   summary: string[],
-  spells: ConjuroApi[],
+  spells: SpellApi[],
   skills: string[],
   requirements: {
     level: number,

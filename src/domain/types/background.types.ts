@@ -152,7 +152,3 @@ export interface OptionsNameApi {
   options: string[];
   choose: number;
 }
-
-// Aliases for legacy compatibility if needed
-export type TransfondoMongo = BackgroundMongo;
-export type TransfondoApi = BackgroundApi;

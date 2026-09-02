@@ -1,9 +1,9 @@
-import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import IDamageRepository from '../../../../domain/repositories/IDamageRepository';
 import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import INpcRepository from '../../../../domain/repositories/INpcRepository';
-import { ConjuroApi } from '../../../../domain/types/conjuros.types';
+import { SpellApi } from '../../../../domain/types/spell.types';
 import { CriaturaApi, CriaturaMongo } from '../../../../domain/types/criaturas.types';
 import NpcSchema from '../schemas/Npc';
 
@@ -12,7 +12,7 @@ export default class NpcRepository implements INpcRepository {
     private readonly damageRepository: IDamageRepository,
     private readonly estadoRepository: IEstadoRepository,
     private readonly languageRepository: ILanguageRepository,
-    private readonly conjurosRepository: IConjuroRepository,
+    private readonly spellsRepository: ISpellRepository,
   ) { }
 
   async obtenerTodos(): Promise<CriaturaApi[]> {
@@ -47,7 +47,7 @@ export default class NpcRepository implements INpcRepository {
       this.estadoRepository.obtenerEstadosPorIndices(npc?.condition_immunities ?? []),
       this.languageRepository.getLanguagesByIndex(npc?.languages?.speaks ?? []),
       this.languageRepository.getLanguagesByIndex(npc?.languages?.understands ?? []),
-      this.formatearConjurosCriatura(npc?.spell_slots ?? [])
+      this.formatCreatureSpellSlots(npc?.spell_slots ?? [])
     ])
        
     return {
@@ -85,12 +85,12 @@ export default class NpcRepository implements INpcRepository {
     }
   }
 
-  private async formatearConjurosCriatura(spell_slots: { [key: string]: string[] }): Promise<{ [key: string]: ConjuroApi[] }> {
-    const response: { [key: string]: ConjuroApi[] } = {}
+  private async formatCreatureSpellSlots(spell_slots: { [key: string]: string[] }): Promise<{ [key: string]: SpellApi[] }> {
+    const response: { [key: string]: SpellApi[] } = {}
 
     await Promise.all(
       Object.keys(spell_slots).map(async spell_slot => {
-        response[spell_slot] = await this.conjurosRepository.obtenerConjurosPorIndices(spell_slots[spell_slot])
+        response[spell_slot] = await this.spellsRepository.getSpellsByIndexes(spell_slots[spell_slot])
       })
     )
 

@@ -5,7 +5,7 @@ import { Response, NextFunction } from "express";
 import DamageRepository from "../../databases/mongoDb/repositories/damage.repository";
 import EstadoRepository from "../../databases/mongoDb/repositories/estado.repository";
 import LanguageRepository from "../../databases/mongoDb/repositories/language.repository";
-import ConjuroRepository from "../../databases/mongoDb/repositories/conjuros.repository";
+import SpellRepository from "../../databases/mongoDb/repositories/spell.repository";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import ObtenerCriaturasPorTipos from "../../../application/use-cases/criatura/obtenerCriaturasPorTipos.use-case";
 
@@ -13,7 +13,7 @@ const criaturaRepository = new CriaturaRepository(
   new DamageRepository(),
   new EstadoRepository(),
   new LanguageRepository(null as any),
-  new ConjuroRepository(null as any)
+  new SpellRepository(null as any)
 )
 
 const criaturaService = new CriaturaService(criaturaRepository)

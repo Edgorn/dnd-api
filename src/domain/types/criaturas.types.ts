@@ -1,5 +1,5 @@
 import { Damage } from "."
-import { ConjuroApi } from "./conjuros.types"
+import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 import { LanguageApi } from "./language.types"
 
@@ -91,7 +91,7 @@ export interface CriaturaApi {
   actions_aditional: [],
   actions_legendary: [],
   reactions: [],
-  spell_slots: { [key: string]: ConjuroApi[] }
+  spell_slots: { [key: string]: SpellApi[] }
 }
 
 export interface LanguagesCriaturaApi {

@@ -1,7 +1,7 @@
 import IBackgroundRepository from '../../../../domain/repositories/IBackgroundRepository';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
-import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
+import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
@@ -28,7 +28,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
     private readonly skillRepository: ISkillRepository,
     private readonly proficiencyRepository: IProficiencyRepository,
     private readonly languageRepository: ILanguageRepository,
-    private readonly equipamientoRepository: IEquipamientoRepository,
+    private readonly equipmentRepository: IEquipmentRepository,
     private readonly traitRepository: ITraitRepository,
     private readonly coinRepository: ICoinRepository
   ) { }
@@ -146,7 +146,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       this.languageRepository.formatLanguageChoices(background?.language_choices, background?.ruleset),
       this.proficiencyRepository.getProficienciesByIndices(background?.proficiencies ?? []),
       this.proficiencyRepository.formatProficiencyChoices(background?.proficiencies_choices),
-      this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(background?.equipment),
+      this.equipmentRepository.getCharacterEquipmentsByIds(background?.equipment),
       this.formatBackgroundEquipmentChoices(background?.equipment_choices, background?.ruleset),
       this.formatearVariants(background?.variants ?? [], background?.ruleset),
       this.coinRepository.getCoinsByIds(coinUnits)
@@ -213,7 +213,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
         : Promise.resolve(undefined),
       this.proficiencyRepository.formatProficiencyChoices(variant?.proficiencies_choices),
       this.formatearMixedChoices(variant.mixed_choices),
-      this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(variant?.equipment),
+      this.equipmentRepository.getCharacterEquipmentsByIds(variant?.equipment),
       this.formatBackgroundEquipmentChoices(variant?.equipment_choices, ruleset)
     ]);
 
@@ -248,7 +248,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
     }
 
     if (Array.isArray(rawChoices[0])) {
-      const legacyFormatted = await this.equipamientoRepository.formatearOpcionesDeEquipamientos(
+      const legacyFormatted = await this.equipmentRepository.formatEquipmentChoices(
         rawChoices as EquipmentOptionsMongo[][]
       );
 
@@ -261,7 +261,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       }));
     }
 
-    return this.equipamientoRepository.formatEquipmentItemChoices(
+    return this.equipmentRepository.formatEquipmentItemChoices(
       rawChoices as ChoiceMongo[],
       ruleset
     );

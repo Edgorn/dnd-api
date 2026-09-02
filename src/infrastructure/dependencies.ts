@@ -38,7 +38,6 @@ import GetEquipmentsByTypes from "../application/use-cases/equipment/getEquipmen
 import EquipmentService from "../domain/services/equipment.service";
 import EquipmentRepository from "./databases/mongoDb/repositories/equipment.repository";
 import { EquipmentController } from "./http/controllers/equipment.controller";
-import ObtenerEquipamientosPorTipo from "../application/use-cases/equipamiento/obtenerEquipamientosPorTipos.use-case";
 import GetCharactersByUser from "../application/use-cases/personaje/getCharactersByUser.use-case";
 import CrearPersonaje from "../application/use-cases/personaje/crearPersonaje.use-case";
 import ObtenerPersonajePorId from "../application/use-cases/personaje/obtenerPersonajePorId.use-case";
@@ -74,7 +73,6 @@ import UserService from "../domain/services/user.service";
 import RaceService from "../domain/services/race.service";
 import BackgroundService from "../domain/services/background.service";
 import CharacterClassService from "../domain/services/characterClass.service";
-import EquipamientoService from "../domain/services/equipamiento.service";
 import PersonajeService from "../domain/services/personaje.service";
 import SpellService from "../domain/services/spell.service";
 import SystemService from "../domain/services/system.service";
@@ -84,7 +82,6 @@ import CharacterClassRepository from "./databases/mongoDb/repositories/character
 import ProficiencyRepository from "./databases/mongoDb/repositories/proficiency.repository";
 import SpellRepository from "./databases/mongoDb/repositories/spell.repository";
 import DoteRepository from "./databases/mongoDb/repositories/dote.repository";
-import EquipamientoRepository from "./databases/mongoDb/repositories/equipamiento.repository";
 import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
 import LanguageRepository from "./databases/mongoDb/repositories/language.repository";
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
@@ -125,7 +122,6 @@ import { UserController } from "./http/controllers/user.controller";
 import { RaceController } from "./http/controllers/race.controller";
 import { BackgroundController } from "./http/controllers/background.controller";
 import { CharacterClassController } from "./http/controllers/characterClass.controller";
-import { EquipamientoController } from "./http/controllers/equipamiento.controller";
 import { PersonajeController } from "./http/controllers/personaje.controller";
 import { SpellController } from "./http/controllers/spell.controller";
 import { SystemController } from "./http/controllers/system.controller";
@@ -190,27 +186,24 @@ const systemRepository = new SystemRepository()
 const skillRepository = new SkillRepository(systemRepository)
 const proficiencyRepository = new ProficiencyRepository(systemRepository)
 const spellRepository = new SpellRepository(systemRepository)
-const conjuroRepository = spellRepository
 const damageRepository = new DamageRepository(systemRepository)
-const dañoRepository = damageRepository
 const propertyRepository = new PropertyRepository(systemRepository)
 const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propertyRepository, proficiencyRepository)
-const equipamientoRepository = equipmentRepository
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
-const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, conjuroRepository, estadoRepository, skillRepository)
+const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const skillService = new SkillService(skillRepository)
 const coinRepository = new CoinRepository(systemRepository)
-const invocacionRepository = new InvocacionRepository(conjuroRepository, traitRepository)
+const invocacionRepository = new InvocacionRepository(spellRepository, traitRepository)
 const characterClassRepository = new CharacterClassRepository(
   systemRepository,
   skillService,
   proficiencyRepository,
-  equipamientoRepository,
+  equipmentRepository,
   traitRepository,
-  conjuroRepository,
+  spellRepository,
   doteRepository,
   invocacionRepository,
   languageRepository,
@@ -219,7 +212,7 @@ const characterClassRepository = new CharacterClassRepository(
 
 const raceRepository = new RaceRepository(
   languageRepository,
-  conjuroRepository,
+  spellRepository,
   skillService,
   proficiencyRepository,
   doteRepository,
@@ -233,7 +226,7 @@ const backgroundRepository = new BackgroundRepository(
   skillRepository,
   proficiencyRepository,
   languageRepository,
-  equipamientoRepository,
+  equipmentRepository,
   traitRepository,
   coinRepository
 );
@@ -242,17 +235,17 @@ const criaturaRepository = new CriaturaRepository(
   damageRepository,
   estadoRepository,
   languageRepository,
-  conjuroRepository
+  spellRepository
 )
 
 const personajeRepository = new PersonajeRepository(
   userRepository,
-  equipamientoRepository,
+  equipmentRepository,
   traitRepository,
   proficiencyRepository,
   languageRepository,
   skillService,
-  conjuroRepository,
+  spellRepository,
   doteRepository,
   characterClassRepository,
   invocacionRepository,
@@ -286,10 +279,8 @@ const raceService = new RaceService(raceRepository)
 const backgroundService = new BackgroundService(backgroundRepository)
 const characterClassService = new CharacterClassService(characterClassRepository)
 const equipmentService = new EquipmentService(equipmentRepository)
-const equipamientoService = equipmentService
 const personajeService = new PersonajeService(personajeRepository)
 const spellService = new SpellService(spellRepository)
-const conjuroService = spellService
 const traitService = new TraitService(traitRepository)
 const systemService = new SystemService(systemRepository)
 const getSystemApi = new GetSystemApi(
@@ -334,7 +325,6 @@ const getEquipmentsBySystems = new GetEquipmentsBySystems(equipmentService);
 const softDeleteEquipment = new SoftDeleteEquipment(equipmentService, systemService);
 const restoreEquipment = new RestoreEquipment(equipmentService, systemService);
 const getEquipmentsByTypes = new GetEquipmentsByTypes(equipmentService);
-const obtenerEquipamientosPorTipo = new ObtenerEquipamientosPorTipo(equipamientoService);
 
 const getCharactersByUser = new GetCharactersByUser(personajeService);
 const crearPersonaje = new CrearPersonaje(personajeService, systemRepository);
@@ -427,7 +417,6 @@ export const backgroundController = new BackgroundController(
   softDeleteBackground,
   restoreBackground
 );
-export const transfondoController = backgroundController;
 
 export const characterClassController = new CharacterClassController(
   getCharacterClassesBySystems,
@@ -446,7 +435,6 @@ export const equipmentController = new EquipmentController(
   restoreEquipment,
   getEquipmentsByTypes
 );
-export const equipamientoController = equipmentController;
 
 export const personajeController = new PersonajeController(
   getCharactersByUser,
@@ -475,8 +463,6 @@ export const spellController = new SpellController(
   getSpellsByLevel,
   getRitualSpells
 );
-
-export const conjuroController = spellController;
 
 export const systemController = new SystemController(
   getSystemsByUser,

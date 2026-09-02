@@ -13,7 +13,7 @@ import equipmentRoutes from "./routes/equipment.routes";
 import campañaRoutes from "./routes/campaña.routes";
 import criaturasRoutes from "./routes/criaturas.routes";
 import npcsRoutes from "./routes/npcs.routes";
-import conjuroRoutes from "./routes/conjuro.routes";
+import spellRoutes from "./routes/spell.routes";
 import traitsRoutes from "./routes/trait.routes";
 import skillRoutes from "./routes/skill.routes";
 import languageRoutes from "./routes/language.routes";
@@ -65,7 +65,7 @@ app.use(equipmentRoutes);
 app.use(campañaRoutes)
 app.use(criaturasRoutes);
 app.use(npcsRoutes);
-app.use(conjuroRoutes);
+app.use(spellRoutes);
 app.use(traitsRoutes);
 app.use(skillRoutes);
 app.use(languageRoutes);

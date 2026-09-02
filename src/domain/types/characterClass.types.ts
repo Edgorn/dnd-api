@@ -1,6 +1,6 @@
 import { ChoiceApi, ChoiceMongo } from "."
 import { ProficiencyApi } from "./proficiencies.types"
-import { ChoiceSpell, ConjuroApi } from "./conjuros.types"
+import { ChoiceSpell, SpellApi } from "./spell.types"
 import { DoteApi } from "./dotes.types"
 import { EquipmentApi, CharacterEquipmentApi, CharacterEquipmentMongo } from "./equipment.types"
 import { SkillApi } from "./skill.types"
@@ -141,8 +141,8 @@ export interface CharacterClassApi {
   proficiencies: ProficiencyApi[];
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
   skill_choices?: ChoiceApi<SkillApi>;
-  spells?: ConjuroApi[];
-  spell_choices?: ChoiceApi<ConjuroApi>[];
+  spells?: SpellApi[];
+  spell_choices?: ChoiceApi<SpellApi>[];
   traits: TraitApi[];
   traits_data: TraitDataMongo;
   saving_throws: AttributeApi[];
@@ -172,13 +172,13 @@ export interface SubclassApi {
     name: string;
     options: TraitApi[];
   };
-  mixed_spell_choices?: ChoiceApi<ConjuroApi>[][];
+  mixed_spell_choices?: ChoiceApi<SpellApi>[][];
   skill_choices?: ChoiceApi<SkillApi>;
   double_skill_choices?: ChoiceApi<SkillApi>;
   language_choices?: ChoiceApi<LanguageApi>;
   proficiencies?: ProficiencyApi[];
-  spells?: ConjuroApi[];
-  spell_choices?: ChoiceApi<ConjuroApi>[];
+  spells?: SpellApi[];
+  spell_choices?: ChoiceApi<SpellApi>[];
 }
 
 export interface ClaseLevelUp {
@@ -193,10 +193,10 @@ export interface ClaseLevelUp {
   dotes?: ChoiceApi<DoteApi>;
   subclasesData?: SubclassesOptionsApi | null;
   double_skills?: number;
-  spells?: ConjuroApi[];
-  spell_choices?: ChoiceApi<ConjuroApi>[];
-  mixed_spell_choices?: ChoiceApi<ConjuroApi>[][];
-  spell_changes?: ChoiceApi<ConjuroApi>[][];
+  spells?: SpellApi[];
+  spell_choices?: ChoiceApi<SpellApi>[];
+  mixed_spell_choices?: ChoiceApi<SpellApi>[][];
+  spell_changes?: ChoiceApi<SpellApi>[][];
   skill_choices?: ChoiceApi<SkillApi>;
   invocations_choices?: ChoiceApi<InvocacionApi>;
   invocations_change?: ChoiceApi<InvocacionApi>;

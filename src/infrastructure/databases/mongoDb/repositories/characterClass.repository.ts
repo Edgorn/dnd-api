@@ -1,8 +1,8 @@
 import ICharacterClassRepository from '../../../../domain/repositories/ICharacterClassRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
-import IConjuroRepository from '../../../../domain/repositories/IConjuroRepository';
+import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
-import IEquipamientoRepository from '../../../../domain/repositories/IEquipamientoRepository';
+import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 import SkillService from '../../../../domain/services/skill.service';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
@@ -37,9 +37,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     private readonly systemRepository: ISystemRepository,
     private readonly skillService?: SkillService,
     private readonly proficiencyRepository?: IProficiencyRepository,
-    private readonly equipamientoRepository?: IEquipamientoRepository,
+    private readonly equipmentRepository?: IEquipmentRepository,
     private readonly traitRepository?: ITraitRepository,
-    private readonly conjuroRepository?: IConjuroRepository,
+    private readonly spellRepository?: ISpellRepository,
     private readonly doteRepository?: IDoteRepository,
     private readonly invocacionRepository?: IInvocacionRepository,
     private readonly languageRepository?: ILanguageRepository,
@@ -178,9 +178,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       dotes = await this.doteRepository.formatearOpcionesDeDote(1);
     }
 
-    const spell_choices = this.conjuroRepository ? await this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices) : undefined;
-    const mixed_spell = this.conjuroRepository ? await this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.mixed_spell_choices?.options) : undefined;
-    const spell_changes_aux = this.conjuroRepository ? await this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_changes?.options) : undefined;
+    const spell_choices = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined;
+    const mixed_spell = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.mixed_spell_choices?.options) : undefined;
+    const spell_changes_aux = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.spell_changes?.options) : undefined;
 
     const mixed_spell_choices = Array.from({ length: dataLevel?.mixed_spell_choices?.number ?? 0 }, () => mixed_spell?.map(opt => ({ ...opt })) ?? []);
     const spell_changes = Array.from({ length: dataLevel?.spell_changes?.number ?? 0 }, () => spell_changes_aux?.map(opt => ({ ...opt })) ?? []);
@@ -189,7 +189,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const invocations_choices = this.invocacionRepository ? await this.invocacionRepository.obtenerOpciones(dataLevel.invocations ?? 0) : undefined;
     const invocations_change = this.invocacionRepository ? await this.invocacionRepository.obtenerOpciones(dataLevel.invocations_change ?? 0) : undefined;
 
-    const spells = this.conjuroRepository ? await this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? '') : [];
+    const spells = this.spellRepository ? await this.spellRepository.getSpellsByLevelAndClass(dataLevel?.spell_group?.level ?? 0, [], dataLevel?.spell_group?.class ?? '') : [];
 
     let traits_options = undefined;
 
@@ -297,9 +297,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       this.proficiencyRepository ? this.proficiencyRepository.getProficienciesByIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]) : [],
       this.proficiencyRepository ? this.proficiencyRepository.formatProficiencyChoices(clase?.proficiencies_choices ?? []) : [],
       this.skillService ? this.skillService.formatSkillChoices(clase.skill_choices) : undefined,
-      this.conjuroRepository ? this.conjuroRepository.obtenerConjurosPorNivelClase(dataLevel?.spell_group?.level ?? 0, dataLevel?.spell_group?.class ?? '') : [],
-      this.conjuroRepository ? this.conjuroRepository.formatearOpcionesDeConjuros(dataLevel?.spell_choices) : undefined,
-      this.equipamientoRepository ? this.equipamientoRepository.obtenerEquipamientosPersonajePorIndices(clase?.equipment) : [],
+      this.spellRepository ? this.spellRepository.getSpellsByLevelAndClass(dataLevel?.spell_group?.level ?? 0, [], dataLevel?.spell_group?.class ?? '') : [],
+      this.spellRepository ? this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined,
+      this.equipmentRepository ? this.equipmentRepository.getCharacterEquipmentsByIds(clase?.equipment) : [],
       this.formatClassEquipmentChoices(clase?.equipment_choices, clase.ruleset || ""),
       this.formatSavingThrows(clase.saving_throws ?? [], clase.ruleset || "")
     ]);
@@ -403,15 +403,15 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       };
     }
 
-    const mixed_spell = this.conjuroRepository ? await this.conjuroRepository.formatearOpcionesDeConjuros(subclase?.mixed_spell_choices?.options) : undefined;
+    const mixed_spell = this.spellRepository ? await this.spellRepository.formatSpellChoices(subclase?.mixed_spell_choices?.options) : undefined;
     const mixed_spell_choices = Array.from({ length: subclase?.mixed_spell_choices?.number ?? 0 }, () => mixed_spell?.map(opt => ({ ...opt })) ?? []);
 
     const skill_choices = this.skillService ? await this.skillService.formatSkillChoices(subclase.skill_choices) : undefined;
     const proficiencies = this.proficiencyRepository ? await this.proficiencyRepository.getProficienciesByIndices(subclase?.proficiencies ?? []) : [];
-    const spells = this.conjuroRepository ? await this.conjuroRepository.obtenerConjurosPorIndices(subclase?.spells ?? []) : [];
+    const spells = this.spellRepository ? await this.spellRepository.getSpellsByIndexes(subclase?.spells ?? []) : [];
     const languagesOptions = this.languageRepository ? await this.languageRepository.formatLanguageChoices(subclase?.language_choices) : undefined;
     const double_skill_choices = this.skillService ? await this.skillService.formatSkillChoices(subclase?.double_skill_choices) : undefined;
-    const spell_choices = this.conjuroRepository ? await this.conjuroRepository.formatearOpcionesDeConjuros(subclase?.spell_choices) : undefined;
+    const spell_choices = this.spellRepository ? await this.spellRepository.formatSpellChoices(subclase?.spell_choices) : undefined;
 
     return {
       traits,
@@ -445,10 +445,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       return undefined;
     }
 
-    if (!this.equipamientoRepository) return undefined;
+    if (!this.equipmentRepository) return undefined;
 
     if (Array.isArray(rawChoices[0])) {
-      const legacyFormatted = await this.equipamientoRepository.formatearOpcionesDeEquipamientos(
+      const legacyFormatted = await this.equipmentRepository.formatEquipmentChoices(
         rawChoices as EquipmentOptionsMongo[][]
       );
 
@@ -461,7 +461,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       }));
     }
 
-    return this.equipamientoRepository.formatEquipmentItemChoices(
+    return this.equipmentRepository.formatEquipmentItemChoices(
       rawChoices as ChoiceMongo[],
       ruleset
     );
