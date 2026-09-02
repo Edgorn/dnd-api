@@ -29,6 +29,31 @@ const router = Router();
  *           type: number
  *           description: Valor de la característica para el personaje.
  *
+ *     SkillPersonajeApi:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         key:
+ *           type: string
+ *         attributeScore:
+ *           type: array
+ *           items:
+ *             type: string
+ *         value:
+ *           type: number
+ *           description: Nivel de competencia (0, 0.5, 1 o 2).
+ *         modifier:
+ *           type: number
+ *           description: Modificador total de la habilidad.
+ *         passive:
+ *           type: number
+ *           description: Valor pasivo calculado según passiveSkillFormula del sistema. Solo presente si el sistema define la fórmula.
+ *
  *     PersonajeBasico:
  *       type: object
  *       properties:
@@ -222,7 +247,7 @@ const router = Router();
  *         skills:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/SkillPersonajeApi'
  *         languages:
  *           type: object
  *         proficiencies:
@@ -292,11 +317,6 @@ const router = Router();
  *           type: object
  *         cargaMaxima:
  *           type: number
- *         passiveSkills:
- *           type: object
- *           additionalProperties:
- *             type: number
- *           description: Valores de habilidades pasivas calculadas por key de skill (p.ej. perception).
  *         spellcasting:
  *           type: array
  *           items:

@@ -14,8 +14,12 @@ const router = Router();
  *       description: |
  *         Expresión matemática evaluada en el servidor que devuelve un número fijo (bono, valor o total).
  *         Tokens permitidos: `@attributes.{key}.modifier`, `@attributes.{key}.value`, `@class.{prop}` (ej. `@class.hitDie`),
- *         `@skills.{key}.totalModifier` y variables planas como `@proficiency`. Funciones: `max()`, `min()`.
+ *         `@skills.{key}.totalModifier`, variables planas como `@proficiencyBonus` y `@level`, y tokens de arma
+ *         `@weapon.attributeModifier`, `@weapon.attributeValue`, `@weapon.isProficient`, `@weapon.isMagic`,
+ *         `@weapon.isRanged`, `@weapon.isTwoHanded`, `@weapon.hasProperty.{propertyId}` (0/1).
+ *         Funciones: `max()`, `min()`. Condicionales ternarios (`? :`) y comparaciones (`>`, `<`, `==`).
  *         El placeholder `{skillName}` solo está permitido en `passiveSkillFormula`.
+ *         Los tokens `@weapon.*` solo están permitidos en `attackBonusFormula` y `damageBonusFormula`.
  *         No se admite notación de dados (`1d20`, `2d6`), texto libre ni tokens desconocidos.
  *         Las tiradas de dados las resuelve el cliente; estas fórmulas solo calculan modificadores o totales numéricos.
  *     AttributeModifierFormulaSyntax:
@@ -114,6 +118,28 @@ const router = Router();
  *           description: |
  *             Fórmula de capacidad de carga máxima del personaje. Ver SystemCharacterFormulaSyntax.
  *             Ejemplo: @attributes.str.value * 15
+ *         attackBonusFormula:
+ *           type: string
+ *           description: |
+ *             Fórmula del bono de ataque con armas. Ver SystemCharacterFormulaSyntax.
+ *             Ejemplo: @weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic
+ *         damageBonusFormula:
+ *           type: string
+ *           description: |
+ *             Fórmula del bono de daño con armas. Ver SystemCharacterFormulaSyntax.
+ *             Ejemplo: @weapon.attributeModifier + @weapon.isMagic
+ *         meleeAttackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             Atributos base para armas cuerpo a cuerpo (ej. ["str"]). Se combinan con attackAttributes de las properties.
+ *         rangedAttackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             Atributos base para armas a distancia (ej. ["dex"]). Se combinan con attackAttributes de las properties.
  *         attributes:
  *           type: array
  *           items:
@@ -208,6 +234,26 @@ const router = Router();
  *           description: |
  *             Capacidad de carga. Ver SystemCharacterFormulaSyntax.
  *             Ejemplo: @attributes.str.value * 15
+ *         attackBonusFormula:
+ *           type: string
+ *           description: |
+ *             Bono de ataque con armas. Ver SystemCharacterFormulaSyntax.
+ *             Ejemplo: @weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic
+ *         damageBonusFormula:
+ *           type: string
+ *           description: |
+ *             Bono de daño con armas. Ver SystemCharacterFormulaSyntax.
+ *             Ejemplo: @weapon.attributeModifier + @weapon.isMagic
+ *         meleeAttackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Atributos base para armas cuerpo a cuerpo (ej. ["str"]).
+ *         rangedAttackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Atributos base para armas a distancia (ej. ["dex"]).
  *     TypeModificarSystem:
  *       type: object
  *       properties:
@@ -267,6 +313,22 @@ const router = Router();
  *         carryingCapacityFormula:
  *           type: string
  *           description: Capacidad de carga. Ver SystemCharacterFormulaSyntax.
+ *         attackBonusFormula:
+ *           type: string
+ *           description: Bono de ataque con armas. Ver SystemCharacterFormulaSyntax.
+ *         damageBonusFormula:
+ *           type: string
+ *           description: Bono de daño con armas. Ver SystemCharacterFormulaSyntax.
+ *         meleeAttackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Atributos base para armas cuerpo a cuerpo.
+ *         rangedAttackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Atributos base para armas a distancia.
  */
 
 /**
@@ -315,7 +377,11 @@ router.get('/systems', authMiddleware, systemController.getSystems);
  *         "baseAcFormula": "10 + @attributes.dex.modifier",
  *         "passiveSkillFormula": "10 + @skills.{skillName}.totalModifier",
  *         "carryingCapacityFormula": "@attributes.str.value * 15",
- *         "initiativeBonusFormula": "@attributes.dex.modifier"
+ *         "initiativeBonusFormula": "@attributes.dex.modifier",
+ *         "meleeAttackAttributes": ["str"],
+ *         "rangedAttackAttributes": ["dex"],
+ *         "attackBonusFormula": "@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic",
+ *         "damageBonusFormula": "@weapon.attributeModifier + @weapon.isMagic"
  *       }
  *       ```
  *     tags:

@@ -3,6 +3,7 @@ export interface Property {
   name: string;
   description: string;
   ruleset: string;
+  attackAttributes?: string[];
   deletedAt?: Date | null;
 }
 
@@ -12,10 +13,12 @@ export interface InputCreateProperty {
   ruleset: string;
   name: string;
   description: string;
+  attackAttributes?: string[];
 }
 
 export interface InputUpdateProperty {
   id: string;
   name?: string;
   description?: string;
+  attackAttributes?: string[];
 }

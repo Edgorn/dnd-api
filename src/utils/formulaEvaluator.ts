@@ -8,7 +8,17 @@ export interface FormulaEvaluationContext {
   skills?: SkillPersonajeApi[];
 }
 
-const ALLOWED_EVALUATED_CHARS = /^[0-9+\-*/().\smaxin]+$/;
+export interface WeaponFormulaContext {
+  attributeModifier: number;
+  attributeValue: number;
+  isProficient: number;
+  isMagic: number;
+  isRanged: number;
+  isTwoHanded: number;
+  propertyIds?: string[];
+}
+
+const ALLOWED_EVALUATED_CHARS = /^[0-9+\-*/().\s?:<>=!&|maxin]+$/;
 
 function replaceClassTokens(formula: string, classVariables?: Record<string, number>): string {
   return formula.replace(/@class\.(\w+)/g, (_match, prop: string) => {
@@ -18,7 +28,7 @@ function replaceClassTokens(formula: string, classVariables?: Record<string, num
 }
 
 function replaceSkillTokens(formula: string, skills?: SkillPersonajeApi[]): string {
-  return formula.replace(/@skills\.(\w+)\.totalModifier/g, (_match, key: string) => {
+  return formula.replace(/@skills\.([\w-]+)\.totalModifier/g, (_match, key: string) => {
     const skill = skills?.find(s => s.key === key);
     return skill?.modifier !== undefined ? String(skill.modifier) : "0";
   });
@@ -31,6 +41,25 @@ function replaceAttributeTokens(formula: string, attributes: CharacterAttributeA
     const val = attr[prop as "modifier" | "value"];
     return val !== undefined ? String(val) : "0";
   });
+}
+
+function replaceWeaponTokens(formula: string, weapon?: WeaponFormulaContext): string {
+  if (!weapon) return formula;
+
+  let result = formula;
+  result = result.replace(/@weapon\.attributeModifier\b/g, String(weapon.attributeModifier));
+  result = result.replace(/@weapon\.attributeValue\b/g, String(weapon.attributeValue));
+  result = result.replace(/@weapon\.isProficient\b/g, String(weapon.isProficient));
+  result = result.replace(/@weapon\.isMagic\b/g, String(weapon.isMagic));
+  result = result.replace(/@weapon\.isRanged\b/g, String(weapon.isRanged));
+  result = result.replace(/@weapon\.isTwoHanded\b/g, String(weapon.isTwoHanded));
+
+  result = result.replace(/@weapon\.hasProperty\.(\w+)/g, (_match, propertyId: string) => {
+    const hasProperty = weapon.propertyIds?.includes(propertyId) ?? false;
+    return hasProperty ? "1" : "0";
+  });
+
+  return result;
 }
 
 function replaceFlatVariables(formula: string, variables?: Record<string, number | string>): string {
@@ -65,7 +94,7 @@ function evaluateMathExpression(expression: string): number {
 }
 
 /**
- * Evalúa una fórmula de bono de personaje resolviendo tokens de atributos, clase, skills y variables.
+ * Evalúa una fórmula de bono de personaje resolviendo tokens de atributos, clase, skills, arma y variables.
  */
 export function evaluateFormula(
   formula: string,
@@ -74,6 +103,7 @@ export function evaluateFormula(
   options?: {
     classVariables?: Record<string, number>;
     skills?: SkillPersonajeApi[];
+    weapon?: WeaponFormulaContext;
   }
 ): number {
   if (!formula) return 0;
@@ -82,6 +112,7 @@ export function evaluateFormula(
   evaluatedFormula = replaceAttributeTokens(evaluatedFormula, attributes);
   evaluatedFormula = replaceClassTokens(evaluatedFormula, options?.classVariables);
   evaluatedFormula = replaceSkillTokens(evaluatedFormula, options?.skills);
+  evaluatedFormula = replaceWeaponTokens(evaluatedFormula, options?.weapon);
   evaluatedFormula = replaceFlatVariables(evaluatedFormula, variables);
 
   return evaluateMathExpression(evaluatedFormula);
@@ -109,21 +140,17 @@ export function evaluatePassiveSkillFormula(
   );
 }
 
-export function buildPassiveSkillsMap(
+export function enrichSkillsWithPassive(
   formula: string | undefined,
   skills: SkillPersonajeApi[],
   context: Omit<FormulaEvaluationContext, "skills">
-): Record<string, number> {
-  if (!formula) return {};
+): SkillPersonajeApi[] {
+  if (!formula) return skills;
 
-  const result: Record<string, number> = {};
-  for (const skill of skills) {
-    result[skill.key] = evaluatePassiveSkillFormula(formula, skill.key, {
-      ...context,
-      skills,
-    });
-  }
-  return result;
+  return skills.map(skill => ({
+    ...skill,
+    passive: evaluatePassiveSkillFormula(formula, skill.key, { ...context, skills }),
+  }));
 }
 
 /**

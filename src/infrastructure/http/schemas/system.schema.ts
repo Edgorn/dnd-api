@@ -26,6 +26,15 @@ const passiveSkillFormulaSchema = z.string().optional().superRefine((val, ctx) =
   }
 });
 
+const weaponFormulaSchema = (fieldLabel: string) =>
+  z.string().optional().superRefine((val, ctx) => {
+    if (val === undefined) return;
+    const error = validateSystemFormula(val, { allowWeaponTokens: true });
+    if (error) {
+      ctx.addIssue({ code: "custom", message: `${fieldLabel}: ${error}` });
+    }
+  });
+
 const progressionArrayRefinement = (
   data: {
     maxLevel?: number;
@@ -77,6 +86,10 @@ export const systemRulesFields = {
   baseAcFormula: systemFormulaSchema("baseAcFormula"),
   passiveSkillFormula: passiveSkillFormulaSchema,
   carryingCapacityFormula: systemFormulaSchema("carryingCapacityFormula"),
+  attackBonusFormula: weaponFormulaSchema("attackBonusFormula"),
+  damageBonusFormula: weaponFormulaSchema("damageBonusFormula"),
+  meleeAttackAttributes: z.array(z.string()).optional(),
+  rangedAttackAttributes: z.array(z.string()).optional(),
 };
 
 export const CreateSystemSchema = z

@@ -254,7 +254,6 @@ export interface PersonajeApi {
   conditional_resistances: { name: string, resistances: Damage[] }[],
   condition_inmunities: { name: string, estados: EstadoApi[] }[],
   prof_bonus: number,
-  passiveSkills: Record<string, number>,
   saving_throws: string[],
   equipment: CharacterEquipmentApi[],
   dotes: DoteApi[],

@@ -14,11 +14,15 @@ const SCALAR_RULE_KEYS: (keyof SystemRulesConfig)[] = [
   "baseAcFormula",
   "passiveSkillFormula",
   "carryingCapacityFormula",
+  "attackBonusFormula",
+  "damageBonusFormula",
 ];
 
 const ARRAY_RULE_KEYS: (keyof SystemRulesConfig)[] = [
   "xpProgression",
   "proficiencyProgression",
+  "meleeAttackAttributes",
+  "rangedAttackAttributes",
 ];
 
 export function mergeRulesFromAncestry(ancestry: System[]): SystemRulesConfig {
@@ -53,3 +57,6 @@ export const DEFAULT_XP_PROGRESSION = [
 export const DEFAULT_PROFICIENCY_PROGRESSION = [
   2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6,
 ];
+
+export const DEFAULT_MELEE_ATTACK_ATTRIBUTES = ["str"];
+export const DEFAULT_RANGED_ATTACK_ATTRIBUTES = ["dex"];

@@ -24,6 +24,12 @@ const router = Router();
  *         ruleset:
  *           type: string
  *           description: ID o clave del sistema al que pertenece.
+ *         attackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             Atributos alternativos que habilita esta propiedad para el cálculo de ataque/daño (ej. Sutil -> ["dex"]).
  *     InputCreateProperty:
  *       type: object
  *       required:
@@ -40,6 +46,11 @@ const router = Router();
  *         description:
  *           type: string
  *           description: Descripción.
+ *         attackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Atributos alternativos habilitados por la propiedad (ej. ["dex"] para Sutil).
  *     InputUpdateProperty:
  *       type: object
  *       properties:
@@ -49,6 +60,11 @@ const router = Router();
  *         description:
  *           type: string
  *           description: Descripción.
+ *         attackAttributes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Atributos alternativos habilitados por la propiedad.
  */
 
 /**

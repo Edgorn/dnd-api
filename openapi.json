@@ -223,7 +223,7 @@
       },
       "SystemCharacterFormulaSyntax": {
         "type": "string",
-        "description": "Expresión matemática evaluada en el servidor que devuelve un número fijo (bono, valor o total).\nTokens permitidos: `@attributes.{key}.modifier`, `@attributes.{key}.value`, `@class.{prop}` (ej. `@class.hitDie`),\n`@skills.{key}.totalModifier` y variables planas como `@proficiency`. Funciones: `max()`, `min()`.\nEl placeholder `{skillName}` solo está permitido en `passiveSkillFormula`.\nNo se admite notación de dados (`1d20`, `2d6`), texto libre ni tokens desconocidos.\nLas tiradas de dados las resuelve el cliente; estas fórmulas solo calculan modificadores o totales numéricos.\n"
+        "description": "Expresión matemática evaluada en el servidor que devuelve un número fijo (bono, valor o total).\nTokens permitidos: `@attributes.{key}.modifier`, `@attributes.{key}.value`, `@class.{prop}` (ej. `@class.hitDie`),\n`@skills.{key}.totalModifier`, variables planas como `@proficiencyBonus` y `@level`, y tokens de arma\n`@weapon.attributeModifier`, `@weapon.attributeValue`, `@weapon.isProficient`, `@weapon.isMagic`,\n`@weapon.isRanged`, `@weapon.isTwoHanded`, `@weapon.hasProperty.{propertyId}` (0/1).\nFunciones: `max()`, `min()`. Condicionales ternarios (`? :`) y comparaciones (`>`, `<`, `==`).\nEl placeholder `{skillName}` solo está permitido en `passiveSkillFormula`.\nLos tokens `@weapon.*` solo están permitidos en `attackBonusFormula` y `damageBonusFormula`.\nNo se admite notación de dados (`1d20`, `2d6`), texto libre ni tokens desconocidos.\nLas tiradas de dados las resuelve el cliente; estas fórmulas solo calculan modificadores o totales numéricos.\n"
       },
       "AttributeModifierFormulaSyntax": {
         "type": "string",
@@ -329,6 +329,28 @@
           "carryingCapacityFormula": {
             "type": "string",
             "description": "Fórmula de capacidad de carga máxima del personaje. Ver SystemCharacterFormulaSyntax.\nEjemplo: @attributes.str.value * 15\n"
+          },
+          "attackBonusFormula": {
+            "type": "string",
+            "description": "Fórmula del bono de ataque con armas. Ver SystemCharacterFormulaSyntax.\nEjemplo: @weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\n"
+          },
+          "damageBonusFormula": {
+            "type": "string",
+            "description": "Fórmula del bono de daño con armas. Ver SystemCharacterFormulaSyntax.\nEjemplo: @weapon.attributeModifier + @weapon.isMagic\n"
+          },
+          "meleeAttackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos base para armas cuerpo a cuerpo (ej. [\"str\"]). Se combinan con attackAttributes de las properties.\n"
+          },
+          "rangedAttackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos base para armas a distancia (ej. [\"dex\"]). Se combinan con attackAttributes de las properties.\n"
           },
           "attributes": {
             "type": "array",
@@ -440,6 +462,28 @@
           "carryingCapacityFormula": {
             "type": "string",
             "description": "Capacidad de carga. Ver SystemCharacterFormulaSyntax.\nEjemplo: @attributes.str.value * 15\n"
+          },
+          "attackBonusFormula": {
+            "type": "string",
+            "description": "Bono de ataque con armas. Ver SystemCharacterFormulaSyntax.\nEjemplo: @weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\n"
+          },
+          "damageBonusFormula": {
+            "type": "string",
+            "description": "Bono de daño con armas. Ver SystemCharacterFormulaSyntax.\nEjemplo: @weapon.attributeModifier + @weapon.isMagic\n"
+          },
+          "meleeAttackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos base para armas cuerpo a cuerpo (ej. [\"str\"])."
+          },
+          "rangedAttackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos base para armas a distancia (ej. [\"dex\"])."
           }
         }
       },
@@ -520,6 +564,28 @@
           "carryingCapacityFormula": {
             "type": "string",
             "description": "Capacidad de carga. Ver SystemCharacterFormulaSyntax."
+          },
+          "attackBonusFormula": {
+            "type": "string",
+            "description": "Bono de ataque con armas. Ver SystemCharacterFormulaSyntax."
+          },
+          "damageBonusFormula": {
+            "type": "string",
+            "description": "Bono de daño con armas. Ver SystemCharacterFormulaSyntax."
+          },
+          "meleeAttackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos base para armas cuerpo a cuerpo."
+          },
+          "rangedAttackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos base para armas a distancia."
           }
         }
       },
@@ -1634,6 +1700,13 @@
           "ruleset": {
             "type": "string",
             "description": "ID o clave del sistema al que pertenece."
+          },
+          "attackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos alternativos que habilita esta propiedad para el cálculo de ataque/daño (ej. Sutil -> [\"dex\"]).\n"
           }
         }
       },
@@ -1656,6 +1729,13 @@
           "description": {
             "type": "string",
             "description": "Descripción."
+          },
+          "attackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos alternativos habilitados por la propiedad (ej. [\"dex\"] para Sutil)."
           }
         }
       },
@@ -1669,6 +1749,13 @@
           "description": {
             "type": "string",
             "description": "Descripción."
+          },
+          "attackAttributes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Atributos alternativos habilitados por la propiedad."
           }
         }
       },
@@ -1698,6 +1785,41 @@
           "value": {
             "type": "number",
             "description": "Valor de la característica para el personaje."
+          }
+        }
+      },
+      "SkillPersonajeApi": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "attributeScore": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "value": {
+            "type": "number",
+            "description": "Nivel de competencia (0, 0.5, 1 o 2)."
+          },
+          "modifier": {
+            "type": "number",
+            "description": "Modificador total de la habilidad."
+          },
+          "passive": {
+            "type": "number",
+            "description": "Valor pasivo calculado según passiveSkillFormula del sistema. Solo presente si el sistema define la fórmula."
           }
         }
       },
@@ -1984,7 +2106,7 @@
           "skills": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/SkillPersonajeApi"
             }
           },
           "languages": {
@@ -2088,13 +2210,6 @@
           },
           "cargaMaxima": {
             "type": "number"
-          },
-          "passiveSkills": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "number"
-            },
-            "description": "Valores de habilidades pasivas calculadas por key de skill (p.ej. perception)."
           },
           "spellcasting": {
             "type": "array",
@@ -4243,7 +4358,7 @@
       },
       "post": {
         "summary": "Crear un nuevo sistema",
-        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\"\n}\n```\n",
+        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\"\n}\n```\n",
         "tags": [
           "Sistemas"
         ],

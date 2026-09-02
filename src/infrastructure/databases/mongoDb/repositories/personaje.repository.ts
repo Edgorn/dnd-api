@@ -28,7 +28,8 @@ import fs from 'fs'
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import { CharacterAttributeApi } from '../../../../domain/types/attribute.types';
-import { evaluateFormula, buildPassiveSkillsMap } from '../../../../utils/formulaEvaluator';
+import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
+import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import ICoinRepository from '../../../../domain/repositories/ICoinRepository';
 import { CoinApi } from '../../../../domain/types/coin.types';
@@ -1048,11 +1049,20 @@ export default class PersonajeRepository implements IPersonajeRepository {
       hasJackOfAllTrades
     );
 
-    const passiveSkills = buildPassiveSkillsMap(
+    const skillsWithPassive = enrichSkillsWithPassive(
       rulesConfig.passiveSkillFormula,
       skillsListEvaluated,
       { attributes: apiAttributes }
     );
+
+    const equipmentWithCombatBonuses = enrichEquipmentWithCombatBonuses({
+      equipment: equipment ?? [],
+      attributes: apiAttributes,
+      proficiencies: proficienciesUnicos,
+      proficiencyBonus: personaje?.prof_bonus ?? 0,
+      level,
+      rules: rulesConfig,
+    });
 
     const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
     const money = await this.normalizeAndFormatMoney(personaje);
@@ -1082,8 +1092,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       speed: {
         walk: speed.walk + plusSpeed
       },
-      skills: skillsListEvaluated,
-      passiveSkills,
+      skills: skillsWithPassive,
       languages: {
         understands: idiomas_understands,
         speaks: idiomas_speaks,
@@ -1097,7 +1106,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       condition_inmunities,
       prof_bonus: personaje.prof_bonus,
       saving_throws: personaje.saving_throws,
-      equipment: equipment ?? [],
+      equipment: equipmentWithCombatBonuses,
       dotes,
       money,
       spells: updatedSpells,
@@ -1326,7 +1335,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       form.getTextField('HitDiceTotal').setText(personaje.classes?.map(clase => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');
 
       const skillPerception = personaje?.skills?.find(skill => skill?.key === 'perception')
-      const passivePerception = personaje?.passiveSkills?.perception;
+      const passivePerception = skillPerception?.passive;
 
       if (passivePerception !== undefined) {
         form.getTextField('PWP').setText(String(passivePerception));
@@ -1454,6 +1463,19 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   private sumaDaño(character: PersonajeApi, equip: CharacterEquipmentApi) {
+    if (equip.damageBonus !== undefined) {
+      let suma = equip.damageBonus;
+
+      if (
+        equip?.weapon?.range === 'Distancia'
+        && character?.traits?.map(trait => trait.id)?.includes("fighter-fighting-style-archery")
+      ) {
+        suma += 2;
+      }
+
+      return suma;
+    }
+
     let suma = equip?.isMagic ? 1 : 0
 
     const getAttrVal = (key: string) => character.attributes?.find(a => a.key === key)?.value ?? 10
@@ -1475,6 +1497,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   private sumaGolpe(character: PersonajeApi, equip: CharacterEquipmentApi) {
+    if (equip.attackBonus !== undefined) {
+      return equip.attackBonus;
+    }
+
     let suma = 0
 
     suma += this.sumaDaño(character, equip)

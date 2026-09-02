@@ -23,6 +23,10 @@ const system: Schema = new Schema<System>({
   baseAcFormula: String,
   passiveSkillFormula: String,
   carryingCapacityFormula: String,
+  attackBonusFormula: String,
+  damageBonusFormula: String,
+  meleeAttackAttributes: [String],
+  rangedAttackAttributes: [String],
   deletedAt: { type: Date, default: null }
 }, { collection: 'systems' });
 

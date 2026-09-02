@@ -146,6 +146,10 @@ export default class GetSystemApi {
       baseAcFormula: mergedRules.baseAcFormula,
       passiveSkillFormula: mergedRules.passiveSkillFormula,
       carryingCapacityFormula: mergedRules.carryingCapacityFormula,
+      attackBonusFormula: mergedRules.attackBonusFormula,
+      damageBonusFormula: mergedRules.damageBonusFormula,
+      meleeAttackAttributes: mergedRules.meleeAttackAttributes,
+      rangedAttackAttributes: mergedRules.rangedAttackAttributes,
       attributes,
       skills,
       coins

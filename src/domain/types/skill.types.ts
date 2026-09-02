@@ -26,7 +26,8 @@ export type SkillApiPublic = Omit<SkillApi, 'deletedAt'>;
 
 export interface SkillPersonajeApi extends Omit<SkillApi, 'ruleset' | 'bonusFormula'> {
   value: number,
-  modifier: number
+  modifier: number,
+  passive?: number
 }
 
 export interface InputCreateSkill {

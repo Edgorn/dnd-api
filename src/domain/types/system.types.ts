@@ -27,6 +27,10 @@ export interface System {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  attackBonusFormula?: string;
+  damageBonusFormula?: string;
+  meleeAttackAttributes?: string[];
+  rangedAttackAttributes?: string[];
   deletedAt?: Date;
 }
 
@@ -46,6 +50,10 @@ export interface SystemRulesConfig {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  attackBonusFormula?: string;
+  damageBonusFormula?: string;
+  meleeAttackAttributes?: string[];
+  rangedAttackAttributes?: string[];
 }
 
 export interface SystemApi {
@@ -74,6 +82,10 @@ export interface SystemApi {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  attackBonusFormula?: string;
+  damageBonusFormula?: string;
+  meleeAttackAttributes?: string[];
+  rangedAttackAttributes?: string[];
   attributes: AttributeApi[];
   skills: SkillApi[];
   coins: CoinApi[];
@@ -102,6 +114,10 @@ export interface TypeCrearSystem {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  attackBonusFormula?: string;
+  damageBonusFormula?: string;
+  meleeAttackAttributes?: string[];
+  rangedAttackAttributes?: string[];
 }
 
 export interface TypeModificarSystem {
@@ -128,4 +144,8 @@ export interface TypeModificarSystem {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  attackBonusFormula?: string;
+  damageBonusFormula?: string;
+  meleeAttackAttributes?: string[];
+  rangedAttackAttributes?: string[];
 }

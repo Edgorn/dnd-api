@@ -167,6 +167,8 @@ export interface EquipmentApi {
 export interface CharacterEquipmentApi extends EquipmentApi {
   quantity: number;
   equipped?: boolean;
+  attackBonus?: number;
+  damageBonus?: number;
 }
 
 export interface EquipmentOptionsMongo {

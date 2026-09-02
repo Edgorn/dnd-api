@@ -109,6 +109,10 @@ export default class SystemRepository implements ISystemRepository {
       baseAcFormula: data.baseAcFormula,
       passiveSkillFormula: data.passiveSkillFormula,
       carryingCapacityFormula: data.carryingCapacityFormula,
+      attackBonusFormula: data.attackBonusFormula,
+      damageBonusFormula: data.damageBonusFormula,
+      meleeAttackAttributes: data.meleeAttackAttributes,
+      rangedAttackAttributes: data.rangedAttackAttributes,
     });
 
     const resultado = await nuevoSistema.save();
@@ -139,6 +143,10 @@ export default class SystemRepository implements ISystemRepository {
       baseAcFormula,
       passiveSkillFormula,
       carryingCapacityFormula,
+      attackBonusFormula,
+      damageBonusFormula,
+      meleeAttackAttributes,
+      rangedAttackAttributes,
     } = data;
 
     const updateFields: Record<string, unknown> = {};
@@ -167,6 +175,10 @@ export default class SystemRepository implements ISystemRepository {
     if (baseAcFormula !== undefined) updateFields.baseAcFormula = baseAcFormula;
     if (passiveSkillFormula !== undefined) updateFields.passiveSkillFormula = passiveSkillFormula;
     if (carryingCapacityFormula !== undefined) updateFields.carryingCapacityFormula = carryingCapacityFormula;
+    if (attackBonusFormula !== undefined) updateFields.attackBonusFormula = attackBonusFormula;
+    if (damageBonusFormula !== undefined) updateFields.damageBonusFormula = damageBonusFormula;
+    if (meleeAttackAttributes !== undefined) updateFields.meleeAttackAttributes = meleeAttackAttributes;
+    if (rangedAttackAttributes !== undefined) updateFields.rangedAttackAttributes = rangedAttackAttributes;
 
     const resultado = await SistemasModel.findByIdAndUpdate(
       id,

@@ -17,6 +17,7 @@ export default class PropertyRepository implements IPropertyRepository {
         ruleset: data.ruleset,
         name: data.name,
         description: data.description,
+        attackAttributes: data.attackAttributes,
         deletedAt: null
       });
 
@@ -102,6 +103,7 @@ export default class PropertyRepository implements IPropertyRepository {
       name: property.name,
       description: property.description,
       ruleset: property.ruleset || '',
+      attackAttributes: property.attackAttributes,
       deletedAt: property.deletedAt
     };
   }
