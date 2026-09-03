@@ -14,6 +14,7 @@ import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import VincularPacto from "../../../application/use-cases/personaje/vincularPacto.use-case";
 import AprenderConjuros from "../../../application/use-cases/personaje/aprenderConjuros.use-case";
 import AñadirForma from "../../../application/use-cases/personaje/añadirForma.use-case";
+import ToggleFavoriteEquipment from "../../../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import { ValidationError } from "../../../domain/errors/AppError";
 
 export class PersonajeController {
@@ -31,7 +32,8 @@ export class PersonajeController {
     private readonly crearPdf: CrearPdf,
     private readonly vincularPacto: VincularPacto,
     private readonly aprenderConjuros: AprenderConjuros,
-    private readonly añadirForma: AñadirForma
+    private readonly añadirForma: AñadirForma,
+    private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment
   ) { }
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -112,6 +114,15 @@ export class PersonajeController {
   vincularArmaPacto = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const data = await this.vincularPacto.execute(req.body)
+      res.status(200).json(data);
+    } catch (e) {
+      next(e);
+    }
+  };
+
+  toggleFavoriteEquipmentHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await this.toggleFavoriteEquipment.execute(req.body);
       res.status(200).json(data);
     } catch (e) {
       next(e);

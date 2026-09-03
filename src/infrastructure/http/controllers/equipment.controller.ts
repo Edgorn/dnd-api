@@ -8,6 +8,7 @@ import GetEquipmentsBySystems from "../../../application/use-cases/equipment/get
 import SoftDeleteEquipment from "../../../application/use-cases/equipment/softDeleteEquipment.use-case";
 import RestoreEquipment from "../../../application/use-cases/equipment/restoreEquipment.use-case";
 import GetEquipmentsByTypes from "../../../application/use-cases/equipment/getEquipmentsByTypes.use-case";
+import GetEquipmentsWeapons from "../../../application/use-cases/equipment/getEquipmentsWeapons.use-case";
 
 export class EquipmentController {
   constructor(
@@ -17,7 +18,8 @@ export class EquipmentController {
     private readonly getEquipmentsBySystemsUseCase: GetEquipmentsBySystems,
     private readonly softDeleteEquipmentUseCase: SoftDeleteEquipment,
     private readonly restoreEquipmentUseCase: RestoreEquipment,
-    private readonly getEquipmentsByTypesUseCase: GetEquipmentsByTypes
+    private readonly getEquipmentsByTypesUseCase: GetEquipmentsByTypes,
+    private readonly getEquipmentsWeaponsUseCase: GetEquipmentsWeapons
   ) { }
 
   getBySystems = async (req: Request, res: Response, next: NextFunction) => {
@@ -127,6 +129,25 @@ export class EquipmentController {
       return res.status(200).json(data);
     } catch (e) {
       console.error("[EquipmentController.getByTypes] Error:", e);
+      next(e);
+    }
+  };
+
+  getWeapons = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { ruleset } = req.query;
+      let rulesets: string[] | undefined;
+
+      if (typeof ruleset === "string") {
+        rulesets = [ruleset];
+      } else if (Array.isArray(ruleset)) {
+        rulesets = ruleset as string[];
+      }
+
+      const data = await this.getEquipmentsWeaponsUseCase.execute(rulesets);
+      return res.status(200).json(data);
+    } catch (e) {
+      console.error("[EquipmentController.getWeapons] Error:", e);
       next(e);
     }
   };

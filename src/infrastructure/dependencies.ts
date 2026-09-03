@@ -35,6 +35,7 @@ import GetEquipmentsBySystems from "../application/use-cases/equipment/getEquipm
 import SoftDeleteEquipment from "../application/use-cases/equipment/softDeleteEquipment.use-case";
 import RestoreEquipment from "../application/use-cases/equipment/restoreEquipment.use-case";
 import GetEquipmentsByTypes from "../application/use-cases/equipment/getEquipmentsByTypes.use-case";
+import GetEquipmentsWeapons from "../application/use-cases/equipment/getEquipmentsWeapons.use-case";
 import EquipmentService from "../domain/services/equipment.service";
 import EquipmentRepository from "./databases/mongoDb/repositories/equipment.repository";
 import { EquipmentController } from "./http/controllers/equipment.controller";
@@ -50,6 +51,7 @@ import EquiparArmadura from "../application/use-cases/personaje/equiparArmadura.
 import ModificarDinero from "../application/use-cases/personaje/modificarDinero.use-case";
 import ObtenerPdf from "../application/use-cases/personaje/obtenerPdf.use-case";
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
+import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuros.use-case";
 import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
@@ -325,6 +327,7 @@ const getEquipmentsBySystems = new GetEquipmentsBySystems(equipmentService);
 const softDeleteEquipment = new SoftDeleteEquipment(equipmentService, systemService);
 const restoreEquipment = new RestoreEquipment(equipmentService, systemService);
 const getEquipmentsByTypes = new GetEquipmentsByTypes(equipmentService);
+const getEquipmentsWeapons = new GetEquipmentsWeapons(equipmentService);
 
 const getCharactersByUser = new GetCharactersByUser(personajeService);
 const crearPersonaje = new CrearPersonaje(personajeService, systemRepository);
@@ -338,6 +341,7 @@ const equiparArmadura = new EquiparArmadura(personajeService);
 const modificarDinero = new ModificarDinero(personajeService);
 const obtenerPdf = new ObtenerPdf(personajeService);
 const vincularPacto = new VincularPacto(personajeService);
+const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
 const aprenderConjuros = new AprenderConjuros(personajeService);
 const añadirForma = new AñadirForma(personajeService);
 const createSystem = new CreateSystem(systemService, getSystemApi);
@@ -433,7 +437,8 @@ export const equipmentController = new EquipmentController(
   getEquipmentsBySystems,
   softDeleteEquipment,
   restoreEquipment,
-  getEquipmentsByTypes
+  getEquipmentsByTypes,
+  getEquipmentsWeapons
 );
 
 export const personajeController = new PersonajeController(
@@ -450,7 +455,8 @@ export const personajeController = new PersonajeController(
   obtenerPdf,
   vincularPacto,
   aprenderConjuros,
-  añadirForma
+  añadirForma,
+  toggleFavoriteEquipment
 )
 
 export const spellController = new SpellController(

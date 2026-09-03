@@ -24,7 +24,7 @@ import EquipmentModel from "../schemas/Equipment";
 import DamageRepository from "./damage.repository";
 import PropertyRepository from "./property.repository";
 import ProficiencyRepository from "./proficiency.repository";
-import { ordenarPorNombre } from "../../../../utils/formatters";
+import { ordenarPorNombre, ordenarPorFavoritoYNombre } from "../../../../utils/formatters";
 
 export default class EquipmentRepository implements IEquipmentRepository {
   private readonly systemRepository?: ISystemRepository;
@@ -136,7 +136,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }).lean();
 
     const formatted = await this.formatCharacterEquipments(equipments, dbEquipments);
-    return ordenarPorNombre(formatted);
+    return ordenarPorFavoritoYNombre(formatted);
   }
 
   async formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined> {
@@ -163,6 +163,24 @@ export default class EquipmentRepository implements IEquipmentRepository {
       deletedAt: null
     }).lean();
 
+    const basic = equipments.map(e => this.formatEquipmentBasic(e));
+    return ordenarPorNombre(basic);
+  }
+
+  async getWeapons(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+    const query: Record<string, unknown> = {
+      weapon: { $exists: true, $ne: null },
+      deletedAt: null
+    };
+
+    if (rulesets.length > 0) {
+      const expandedRulesets = this.systemRepository
+        ? await this.systemRepository.getSystemsAndAncestors(rulesets)
+        : rulesets;
+      query.ruleset = { $in: expandedRulesets };
+    }
+
+    const equipments = await EquipmentModel.find(query).lean();
     const basic = equipments.map(e => this.formatEquipmentBasic(e));
     return ordenarPorNombre(basic);
   }
@@ -303,6 +321,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
         armor: charEquipment.armor ?? matched.armor,
         isMagic: charEquipment.isMagic ?? matched.isMagic ?? false,
         isBond: charEquipment.isBond ?? false,
+        isFavorite: charEquipment.isFavorite ?? false,
         equipped: charEquipment.equipped ?? false,
         cost: charEquipment.cost ?? formattedEq.cost
       };
@@ -333,6 +352,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       armor: charEquipment.armor,
       isMagic: charEquipment.isMagic ?? false,
       isBond: charEquipment.isBond ?? false,
+      isFavorite: charEquipment.isFavorite ?? false,
       equipped: charEquipment.equipped ?? false,
       deletedAt: null
     };

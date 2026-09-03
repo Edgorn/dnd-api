@@ -7,6 +7,36 @@ const proficiencyRouter = Router();
 
 /**
  * @openapi
+ * components:
+ *   schemas:
+ *     Proficiency:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: ID de MongoDB de la competencia.
+ *         name:
+ *           type: string
+ *           description: Nombre de la competencia.
+ *         type:
+ *           type: string
+ *           description: Tipo de competencia (ej. armor, weapon, tool).
+ *         parentProficiencyId:
+ *           type: string
+ *           nullable: true
+ *           description: ID de la competencia padre, o null si no tiene.
+ *         ruleset:
+ *           type: string
+ *           description: Sistema de juego al que pertenece la competencia.
+ *         deletedAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Fecha de borrado lógico, o null si está activa.
+ */
+
+/**
+ * @openapi
  * tags:
  *   name: Competencias
  *   description: Operaciones relacionadas con las competencias.

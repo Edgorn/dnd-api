@@ -21,6 +21,7 @@ export interface PersonajeEquipmentMongo {
   equipped?: boolean;
   isMagic?: boolean;
   isBond?: boolean;
+  isFavorite?: boolean;
 }
 
 export interface TypeCrearPersonaje {
@@ -107,6 +108,22 @@ export interface TypeEquiparArmadura {
   equip: string,
   id: string,
   isMagic: boolean
+}
+
+export interface TypeToggleFavoriteEquipment {
+  id: string;
+  equip: string;
+  isMagic: boolean;
+  isBond: boolean;
+  isFavorite: boolean;
+}
+
+export interface ToggleFavoriteEquipmentResponse {
+  id: string;
+  equip: string;
+  isMagic: boolean;
+  isBond: boolean;
+  isFavorite: boolean;
 }
 
 export interface PersonajeBasico {

@@ -104,6 +104,7 @@ export interface CharacterEquipmentMongo {
   armor?: ArmorMongo;
   isMagic?: boolean;
   isBond?: boolean;
+  isFavorite?: boolean;
   equipped?: boolean;
   bonuses?: {
     armor_class?: number;
@@ -167,6 +168,7 @@ export interface EquipmentApi {
 export interface CharacterEquipmentApi extends EquipmentApi {
   quantity: number;
   equipped?: boolean;
+  isFavorite?: boolean;
   attackBonus?: number;
   damageBonus?: number;
 }

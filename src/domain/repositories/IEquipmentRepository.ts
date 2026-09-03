@@ -23,4 +23,5 @@ export default interface IEquipmentRepository {
   formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined>;
   formatEquipmentItemChoices(choices: ChoiceMongo[] | undefined, ruleset?: string): Promise<ChoiceApi<EquipmentApi>[] | undefined>;
   getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]>;
+  getWeapons(rulesets: string[]): Promise<EquipmentBasic[]>;
 }

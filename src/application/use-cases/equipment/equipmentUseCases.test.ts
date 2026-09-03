@@ -6,6 +6,7 @@ import GetEquipmentsBySystems from "./getEquipmentsBySystems.use-case";
 import SoftDeleteEquipment from "./softDeleteEquipment.use-case";
 import RestoreEquipment from "./restoreEquipment.use-case";
 import GetEquipmentsByTypes from "./getEquipmentsByTypes.use-case";
+import GetEquipmentsWeapons from "./getEquipmentsWeapons.use-case";
 import { AppError, NotFoundError } from "../../../domain/errors/AppError";
 
 describe("Equipment Use Cases", () => {
@@ -20,7 +21,8 @@ describe("Equipment Use Cases", () => {
       getBySystems: vi.fn(),
       softDelete: vi.fn(),
       restore: vi.fn(),
-      getEquipmentsByTypes: vi.fn()
+      getEquipmentsByTypes: vi.fn(),
+      getWeapons: vi.fn()
     };
 
     systemServiceMock = {
@@ -347,6 +349,25 @@ describe("Equipment Use Cases", () => {
       const result = await useCase.execute(["Weapon"]);
       expect(result).toEqual([{ id: "eq1", name: "Dagger" }]);
       expect(equipmentServiceMock.getEquipmentsByTypes).toHaveBeenCalledWith(["Weapon"]);
+    });
+  });
+
+  describe("GetEquipmentsWeapons", () => {
+    it("should return weapons filtered by weapon field", async () => {
+      const useCase = new GetEquipmentsWeapons(equipmentServiceMock);
+      equipmentServiceMock.getWeapons.mockResolvedValue([{ id: "eq1", name: "Longsword" }]);
+
+      const result = await useCase.execute(["sys1"]);
+      expect(result).toEqual([{ id: "eq1", name: "Longsword" }]);
+      expect(equipmentServiceMock.getWeapons).toHaveBeenCalledWith(["sys1"]);
+    });
+
+    it("should default to empty rulesets when none provided", async () => {
+      const useCase = new GetEquipmentsWeapons(equipmentServiceMock);
+      equipmentServiceMock.getWeapons.mockResolvedValue([]);
+
+      await useCase.execute(undefined);
+      expect(equipmentServiceMock.getWeapons).toHaveBeenCalledWith([]);
     });
   });
 });

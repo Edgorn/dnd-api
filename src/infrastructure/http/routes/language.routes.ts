@@ -32,6 +32,22 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Array de IDs de los sistemas a los que pertenece el idioma.
+ *     CreatureLanguages:
+ *       type: object
+ *       properties:
+ *         understands:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Language'
+ *           description: Idiomas que el personaje comprende.
+ *         speaks:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Language'
+ *           description: Idiomas que el personaje habla.
+ *         notes:
+ *           type: string
+ *           description: Notas adicionales sobre los idiomas del personaje.
  *     LanguageChoiceApi:
  *       type: object
  *       properties:

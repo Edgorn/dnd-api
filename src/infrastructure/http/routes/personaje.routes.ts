@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
+import { validateSchema } from "../middlewares/validateSchema";
+import { ToggleFavoriteEquipmentSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -53,6 +55,200 @@ const router = Router();
  *         passive:
  *           type: number
  *           description: Valor pasivo calculado según passiveSkillFormula del sistema. Solo presente si el sistema define la fórmula.
+ *
+ *     Dote:
+ *       type: object
+ *       properties:
+ *         index:
+ *           type: string
+ *           description: Identificador del dote.
+ *         name:
+ *           type: string
+ *           description: Nombre del dote.
+ *         description:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Descripción detallada del dote.
+ *         summary:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Resumen del dote.
+ *
+ *     Estado:
+ *       type: object
+ *       properties:
+ *         index:
+ *           type: string
+ *           description: Identificador del estado.
+ *         name:
+ *           type: string
+ *           description: Nombre del estado (ej. Envenenado, Aturdido).
+ *
+ *     ConditionalResistance:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre o fuente de la resistencia condicional.
+ *         resistances:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Damage'
+ *           description: Tipos de daño a los que aplica la resistencia.
+ *
+ *     ConditionImmunity:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre o fuente de la inmunidad a condiciones.
+ *         estados:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Estado'
+ *           description: Estados a los que es inmune el personaje.
+ *
+ *     PersonajeSpellList:
+ *       type: object
+ *       properties:
+ *         list:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Spell'
+ *           description: Lista de conjuros de ese nivel o grupo.
+ *         type:
+ *           type: string
+ *           description: Tipo de lista de conjuros (ej. prepared, known).
+ *
+ *     SpellcastingLevel:
+ *       type: object
+ *       properties:
+ *         class:
+ *           type: string
+ *           description: ID o nombre de la clase de conjuro.
+ *         ability:
+ *           type: string
+ *           description: Característica usada para lanzar conjuros.
+ *         spellcasting:
+ *           type: object
+ *           additionalProperties:
+ *             type: number
+ *           description: Ranuras de conjuro por nivel (clave = nivel, valor = cantidad).
+ *
+ *     Invocacion:
+ *       type: object
+ *       properties:
+ *         index:
+ *           type: string
+ *           description: Identificador de la invocación.
+ *         name:
+ *           type: string
+ *           description: Nombre de la invocación.
+ *         description:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Descripción detallada de la invocación.
+ *         summary:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Resumen de la invocación.
+ *         spells:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Spell'
+ *           description: Conjuros otorgados por la invocación.
+ *         skills:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de habilidades otorgadas.
+ *         requirements:
+ *           type: object
+ *           properties:
+ *             level:
+ *               type: number
+ *               description: Nivel mínimo requerido.
+ *             spells:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   index:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *               description: Conjuros prerequisito.
+ *             traits:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   index:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *               description: Rasgos prerequisito.
+ *
+ *     CriaturaForm:
+ *       type: object
+ *       description: Forma alternativa del personaje (criatura transformada).
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Identificador de la criatura.
+ *         name:
+ *           type: string
+ *           description: Nombre de la forma.
+ *         type:
+ *           type: string
+ *           description: Tipo de criatura.
+ *         subtype:
+ *           type: string
+ *           description: Subtipo de criatura.
+ *         alignment:
+ *           type: string
+ *           description: Alineamiento de la forma.
+ *         size:
+ *           type: string
+ *           description: Tamaño de la forma.
+ *         armor_class:
+ *           type: object
+ *           properties:
+ *             type:
+ *               type: string
+ *             value:
+ *               type: number
+ *           description: Clase de armadura de la forma.
+ *         hit_points:
+ *           type: number
+ *           description: Puntos de golpe de la forma.
+ *         hit_dice:
+ *           type: string
+ *           description: Dado de golpe de la forma.
+ *         speed:
+ *           type: object
+ *           properties:
+ *             walk:
+ *               type: number
+ *             fly:
+ *               type: number
+ *             climb:
+ *               type: number
+ *             swim:
+ *               type: number
+ *             notes:
+ *               type: string
+ *           description: Velocidades de la forma.
+ *         challenge_rating:
+ *           type: string
+ *           description: Nivel de desafío de la forma.
+ *         xp:
+ *           type: number
+ *           description: Experiencia asociada a la forma.
  *
  *     PersonajeBasico:
  *       type: object
@@ -249,29 +445,30 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/SkillPersonajeApi'
  *         languages:
- *           type: object
+ *           $ref: '#/components/schemas/CreatureLanguages'
  *         proficiencies:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/Proficiency'
  *         traits:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/Trait'
  *         traits_data:
  *           type: object
+ *           description: Datos dinámicos de elecciones de rasgos del personaje (TraitDataMongo).
  *         resistances:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/Damage'
  *         conditional_resistances:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/ConditionalResistance'
  *         condition_inmunities:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/ConditionImmunity'
  *         prof_bonus:
  *           type: number
  *         saving_throws:
@@ -281,54 +478,35 @@ const router = Router();
  *         equipment:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/CharacterEquipmentApi'
  *         dotes:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/Dote'
  *         money:
  *           type: array
  *           items:
- *             type: object
- *             properties:
- *               quantity:
- *                 type: number
- *                 description: Cantidad de monedas.
- *               id:
- *                 type: string
- *               ruleset:
- *                 type: string
- *               name:
- *                 type: string
- *               abbreviation:
- *                 type: string
- *               isBase:
- *                 type: boolean
- *               multiplier:
- *                 type: number
- *               weight:
- *                 type: number
- *               deletedAt:
- *                 type: string
- *                 format: date-time
- *                 nullable: true
- *           description: Monedas del personaje con información completa.
+ *             $ref: '#/components/schemas/PersonajeMoneyItem'
+ *           description: Lista completa de monedas del sistema del personaje (incluyendo sistemas ancestros). Las monedas no poseídas se devuelven con quantity 0. Incluye información completa de la moneda (color, abreviatura, etc.).
  *         spells:
  *           type: object
+ *           additionalProperties:
+ *             $ref: '#/components/schemas/PersonajeSpellList'
+ *           description: Conjuros del personaje agrupados por nivel o clase.
  *         cargaMaxima:
  *           type: number
  *         spellcasting:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/SpellcastingLevel'
  *         invocations:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/Invocacion'
  *         forms:
  *           type: array
  *           items:
- *             type: object
+ *             $ref: '#/components/schemas/CriaturaForm'
  *
  *     InputCrearPersonaje:
  *       type: object
@@ -549,6 +727,82 @@ router.get('/character/:id/pdf', authMiddleware, personajeController.generarPdf)
 router.post('/character/addEquipment', authMiddleware, personajeController.añadirEquipamiento);
 router.post('/character/deleteEquipment', authMiddleware, personajeController.eliminarEquipamiento);
 router.post('/character/equipArmor', authMiddleware, personajeController.equiparArmadura);
+
+/**
+ * @openapi
+ * /character/toggleFavoriteEquipment:
+ *   post:
+ *     summary: Marcar o desmarcar un equipamiento como favorito
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *               - equip
+ *               - isMagic
+ *               - isBond
+ *               - isFavorite
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: ID de MongoDB del personaje.
+ *               equip:
+ *                 type: string
+ *                 description: ID de MongoDB del equipamiento base.
+ *               isMagic:
+ *                 type: boolean
+ *                 description: Indica si el equipamiento es mágico.
+ *               isBond:
+ *                 type: boolean
+ *                 description: Indica si el equipamiento está vinculado por pacto.
+ *               isFavorite:
+ *                 type: boolean
+ *                 description: Nuevo estado de favorito del equipamiento.
+ *     responses:
+ *       200:
+ *         description: Favorito actualizado con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - id
+ *                 - equip
+ *                 - isMagic
+ *                 - isBond
+ *                 - isFavorite
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: ID de MongoDB del personaje.
+ *                 equip:
+ *                   type: string
+ *                   description: ID de MongoDB del equipamiento base.
+ *                 isMagic:
+ *                   type: boolean
+ *                   description: Indica si el equipamiento es mágico.
+ *                 isBond:
+ *                   type: boolean
+ *                   description: Indica si el equipamiento está vinculado por pacto.
+ *                 isFavorite:
+ *                   type: boolean
+ *                   description: Nuevo estado de favorito del equipamiento.
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje o equipamiento no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/toggleFavoriteEquipment', authMiddleware, validateSchema(ToggleFavoriteEquipmentSchema), personajeController.toggleFavoriteEquipmentHandler);
+
 router.post('/character/updateMoney', authMiddleware, personajeController.modificarDinero);
 router.post('/character/vincularPacto', authMiddleware, personajeController.vincularArmaPacto);
 router.post('/character/changeXp', authMiddleware, personajeController.changeXp);

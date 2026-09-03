@@ -215,6 +215,71 @@ const router = Router();
  *           description: Competencias requeridas para usar el equipamiento.
  *         weapon:
  *           $ref: '#/components/schemas/Weapon'
+ *     CharacterEquipmentApi:
+ *       allOf:
+ *         - $ref: '#/components/schemas/Equipment'
+ *         - type: object
+ *           required:
+ *             - quantity
+ *           properties:
+ *             quantity:
+ *               type: number
+ *               description: Cantidad de unidades de este equipamiento en el inventario del personaje.
+ *             equipped:
+ *               type: boolean
+ *               description: Indica si el objeto está equipado.
+ *             isMagic:
+ *               type: boolean
+ *               description: Indica si el objeto es mágico.
+ *             isBond:
+ *               type: boolean
+ *               description: Indica si el objeto está vinculado por pacto.
+ *             isFavorite:
+ *               type: boolean
+ *               description: Indica si el equipamiento está marcado como favorito.
+ *             attackBonus:
+ *               type: number
+ *               description: Bono de ataque calculado por el sistema. Solo presente en armas cuando el sistema define attackBonusFormula.
+ *             damageBonus:
+ *               type: number
+ *               description: Bono de daño calculado por el sistema. Solo presente en armas cuando el sistema define damageBonusFormula.
+ *             content:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/CharacterEquipmentApi'
+ *               description: Objetos contenidos en el equipamiento (contenedores).
+ *             armor:
+ *               type: object
+ *               description: Datos de armadura del equipamiento.
+ *               properties:
+ *                 category:
+ *                   type: string
+ *                 class:
+ *                   type: object
+ *                   properties:
+ *                     base:
+ *                       type: number
+ *                     dex_bonus:
+ *                       type: number
+ *                     max_bonus:
+ *                       type: number
+ *                 str_minimum:
+ *                   type: number
+ *                 stealth_disadvantage:
+ *                   type: number
+ *             bonuses:
+ *               type: object
+ *               description: Bonificaciones adicionales del equipamiento.
+ *               properties:
+ *                 armor_class:
+ *                   type: number
+ *                 saving_throws:
+ *                   type: number
+ *             deletedAt:
+ *               type: string
+ *               format: date-time
+ *               nullable: true
+ *               description: Fecha de borrado lógico, o null si está activo.
  *     InputCreateEquipment:
  *       type: object
  *       required:
@@ -342,6 +407,49 @@ const router = Router();
  *         description: Error interno del servidor.
  */
 router.get("/equipment", authMiddleware, equipmentController.getBySystems);
+
+/**
+ * @openapi
+ * /equipment/weapons:
+ *   get:
+ *     summary: Obtener equipamientos que son armas
+ *     description: Devuelve equipamientos que tienen definido el campo weapon, sin depender de category o subcategory.
+ *     tags:
+ *       - Equipamiento
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema para filtrar equipamientos (incluye ancestros).
+ *     responses:
+ *       200:
+ *         description: Lista de armas devuelta con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   category:
+ *                     type: string
+ *                   subcategory:
+ *                     type: string
+ *                   weapon:
+ *                     $ref: '#/components/schemas/Weapon'
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error interno del servidor.
+ */
+router.get("/equipment/weapons", authMiddleware, equipmentController.getWeapons);
 
 /**
  * @openapi

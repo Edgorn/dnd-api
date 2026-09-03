@@ -3,7 +3,8 @@ import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from '../../../../domain/types/personajes.types';
+import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel } from '../../../../domain/types/personajes.types';
+import { NotFoundError } from '../../../../domain/errors/AppError';
 import Campaña from '../schemas/Campaña';
 import { Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -33,6 +34,11 @@ import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuse
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import ICoinRepository from '../../../../domain/repositories/ICoinRepository';
 import { CoinApi } from '../../../../domain/types/coin.types';
+import {
+  buildPersonajeMoneyItems,
+  getOrphanUnitIds,
+  parseCharacterMoneyQuantities,
+} from '../../../../utils/characterMoney';
 import {
   DEFAULT_PROFICIENCY_PROGRESSION,
   DEFAULT_XP_PROGRESSION,
@@ -352,6 +358,77 @@ export default class PersonajeRepository implements IPersonajeRepository {
       completo,
       basico
     }
+  }
+
+  async toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse> {
+    const { id, equip, isMagic, isBond, isFavorite } = data;
+    const normalizedIsMagic = !!isMagic;
+    const normalizedIsBond = !!isBond;
+
+    const updated = await Personaje.findOneAndUpdate(
+      {
+        _id: id as any,
+        equipment: {
+          $elemMatch: {
+            id: equip,
+            isMagic: normalizedIsMagic,
+            isBond: normalizedIsBond,
+          },
+        },
+      },
+      { $set: { "equipment.$[elem].isFavorite": isFavorite } },
+      {
+        arrayFilters: [
+          {
+            "elem.id": equip,
+            "elem.isMagic": normalizedIsMagic,
+            "elem.isBond": normalizedIsBond,
+          },
+        ],
+        returnDocument: "after",
+      }
+    );
+
+    if (updated) {
+      return {
+        id,
+        equip,
+        isMagic: normalizedIsMagic,
+        isBond: normalizedIsBond,
+        isFavorite,
+      };
+    }
+
+    const personaje = await Personaje.findById(id);
+
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+    }
+
+    const equipment = personaje.equipment ?? [];
+    const idx = equipment.findIndex(
+      eq => eq.id === equip && !!eq.isMagic === normalizedIsMagic && !!eq.isBond === normalizedIsBond
+    );
+
+    if (idx === -1) {
+      throw new NotFoundError("No se encontró el equipamiento en el personaje");
+    }
+
+    equipment[idx].isFavorite = isFavorite;
+
+    await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { equipment } },
+      { returnDocument: "after" }
+    );
+
+    return {
+      id,
+      equip,
+      isMagic: normalizedIsMagic,
+      isBond: normalizedIsBond,
+      isFavorite,
+    };
   }
 
   async modificarDinero(id: string, money: { quantity: number; unit: string }[]): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
@@ -1118,65 +1195,42 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   private async normalizeAndFormatMoney(personaje: PersonajeMongo): Promise<({ quantity: number } & CoinApi)[]> {
+    const systems = personaje.systems ?? [];
     const raw = personaje?.money;
-    if (!raw) return [];
 
-    if (Array.isArray(raw)) {
-      const coinUnits = raw.map(m => m?.unit).filter(Boolean);
-      if (coinUnits.length === 0) return [];
-      const coins = await this.coinRepository.getCoinsByIds(coinUnits);
-      return raw.map(m => {
-        const coin = coins.find(c => c.id === m?.unit);
+    if (systems.length === 0) {
+      return this.formatMoneyFromUnitsOnly(raw);
+    }
+
+    const systemCoins = await this.coinRepository.getBySystems(systems);
+    const quantities = parseCharacterMoneyQuantities(raw, systemCoins);
+    const orphanUnitIds = getOrphanUnitIds(quantities, systemCoins);
+    const orphanCoins = orphanUnitIds.length > 0
+      ? await this.coinRepository.getCoinsByIds(orphanUnitIds)
+      : [];
+
+    return buildPersonajeMoneyItems(systemCoins, quantities, orphanCoins);
+  }
+
+  private async formatMoneyFromUnitsOnly(raw: unknown): Promise<({ quantity: number } & CoinApi)[]> {
+    const quantities = parseCharacterMoneyQuantities(raw);
+    const unitIds = [...quantities.keys()];
+
+    if (unitIds.length === 0) {
+      return [];
+    }
+
+    const coins = await this.coinRepository.getCoinsByIds(unitIds);
+    return unitIds
+      .map(unitId => {
+        const coin = coins.find(c => c.id === unitId);
         if (!coin) return null;
         return {
-          quantity: m?.quantity ?? 0,
-          ...coin
+          quantity: quantities.get(unitId) ?? 0,
+          ...coin,
         };
-      }).filter(Boolean) as ({ quantity: number } & CoinApi)[];
-    }
-
-    if (typeof raw === 'object' && 'unit' in raw && 'quantity' in raw) {
-      const coin = await this.coinRepository.getById((raw as any).unit);
-      if (!coin) return [];
-      return [{
-        quantity: (raw as any).quantity ?? 0,
-        ...coin
-      }];
-    }
-
-    if (typeof raw === 'object') {
-      const systems = personaje.systems ?? [];
-      const coins = await this.coinRepository.getBySystems(systems);
-      const result: ({ quantity: number } & CoinApi)[] = [];
-
-      const legacyKeys: { key: string, abbrs: string[], names: string[] }[] = [
-        { key: 'pc', abbrs: ['pc', 'cp'], names: ['cobre', 'copper'] },
-        { key: 'pp', abbrs: ['pp', 'sp'], names: ['plata', 'silver'] },
-        { key: 'pe', abbrs: ['pe', 'ep'], names: ['electrum'] },
-        { key: 'po', abbrs: ['po', 'gp'], names: ['oro', 'gold'] },
-        { key: 'ppt', abbrs: ['ppt'], names: ['platino', 'platinum'] }
-      ];
-
-      for (const legacy of legacyKeys) {
-        const qty = (raw as any)[legacy.key];
-        if (typeof qty === 'number' && qty > 0) {
-          const coin = coins.find(c => 
-            legacy.abbrs.includes(c.abbreviation.toLowerCase()) || 
-            legacy.names.some(n => c.name.toLowerCase().includes(n))
-          );
-          if (coin) {
-            result.push({
-              quantity: qty,
-              ...coin
-            });
-          }
-        }
-      }
-
-      return result;
-    }
-
-    return [];
+      })
+      .filter(Boolean) as ({ quantity: number } & CoinApi)[];
   }
 
   private async generarPdf(personaje: PersonajeApi, idUser: string): Promise<any> {

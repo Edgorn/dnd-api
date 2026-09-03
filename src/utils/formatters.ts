@@ -19,6 +19,13 @@ export const ordenarPorNombre = <T extends { name: string }>(items: T[]): T[] =>
   );
 }
 
+export const ordenarPorFavoritoYNombre = <T extends { name: string; isFavorite?: boolean }>(items: T[]): T[] =>
+  [...items].sort((a, b) => {
+    const favDiff = Number(!!b.isFavorite) - Number(!!a.isFavorite);
+    if (favDiff !== 0) return favDiff;
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
+
 export const formatearAbilityBonusChoices = (ability_bonus_choices: ChoiceMongo): ChoiceApi<AbilityBonusesApi> | undefined => {
   if (!ability_bonus_choices) return undefined;
 

@@ -41,6 +41,16 @@ const router = Router();
  *           format: date-time
  *           nullable: true
  *           description: Fecha de borrado lógico, o null si está activa.
+ *     PersonajeMoneyItem:
+ *       allOf:
+ *         - $ref: '#/components/schemas/Coin'
+ *         - type: object
+ *           required:
+ *             - quantity
+ *           properties:
+ *             quantity:
+ *               type: number
+ *               description: Cantidad de monedas del personaje.
  *     InputCreateCoin:
  *       type: object
  *       required:

@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeSubirNivel } from "../types/personajes.types";
+import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -30,6 +30,10 @@ export default class PersonajeService {
 
   equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
     return this.personajeRepository.equiparArmadura(data);
+  }
+
+  toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse> {
+    return this.personajeRepository.toggleFavoriteEquipment(data);
   }
 
   modificarDinero(id: string, money: { quantity: number; unit: string }[]): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {

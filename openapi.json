@@ -1759,6 +1759,38 @@
           }
         }
       },
+      "Proficiency": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB de la competencia."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la competencia."
+          },
+          "type": {
+            "type": "string",
+            "description": "Tipo de competencia (ej. armor, weapon, tool)."
+          },
+          "parentProficiencyId": {
+            "type": "string",
+            "nullable": true,
+            "description": "ID de la competencia padre, o null si no tiene."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "Sistema de juego al que pertenece la competencia."
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Fecha de borrado lógico, o null si está activa."
+          }
+        }
+      },
       "AtributoPersonajeApi": {
         "type": "object",
         "properties": {
@@ -1820,6 +1852,273 @@
           "passive": {
             "type": "number",
             "description": "Valor pasivo calculado según passiveSkillFormula del sistema. Solo presente si el sistema define la fórmula."
+          }
+        }
+      },
+      "Dote": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "string",
+            "description": "Identificador del dote."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del dote."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descripción detallada del dote."
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Resumen del dote."
+          }
+        }
+      },
+      "Estado": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "string",
+            "description": "Identificador del estado."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del estado (ej. Envenenado, Aturdido)."
+          }
+        }
+      },
+      "ConditionalResistance": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre o fuente de la resistencia condicional."
+          },
+          "resistances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Damage"
+            },
+            "description": "Tipos de daño a los que aplica la resistencia."
+          }
+        }
+      },
+      "ConditionImmunity": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre o fuente de la inmunidad a condiciones."
+          },
+          "estados": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Estado"
+            },
+            "description": "Estados a los que es inmune el personaje."
+          }
+        }
+      },
+      "PersonajeSpellList": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Spell"
+            },
+            "description": "Lista de conjuros de ese nivel o grupo."
+          },
+          "type": {
+            "type": "string",
+            "description": "Tipo de lista de conjuros (ej. prepared, known)."
+          }
+        }
+      },
+      "SpellcastingLevel": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "type": "string",
+            "description": "ID o nombre de la clase de conjuro."
+          },
+          "ability": {
+            "type": "string",
+            "description": "Característica usada para lanzar conjuros."
+          },
+          "spellcasting": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Ranuras de conjuro por nivel (clave = nivel, valor = cantidad)."
+          }
+        }
+      },
+      "Invocacion": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "string",
+            "description": "Identificador de la invocación."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la invocación."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descripción detallada de la invocación."
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Resumen de la invocación."
+          },
+          "spells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Spell"
+            },
+            "description": "Conjuros otorgados por la invocación."
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de habilidades otorgadas."
+          },
+          "requirements": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "number",
+                "description": "Nivel mínimo requerido."
+              },
+              "spells": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Conjuros prerequisito."
+              },
+              "traits": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Rasgos prerequisito."
+              }
+            }
+          }
+        }
+      },
+      "CriaturaForm": {
+        "type": "object",
+        "description": "Forma alternativa del personaje (criatura transformada).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador de la criatura."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la forma."
+          },
+          "type": {
+            "type": "string",
+            "description": "Tipo de criatura."
+          },
+          "subtype": {
+            "type": "string",
+            "description": "Subtipo de criatura."
+          },
+          "alignment": {
+            "type": "string",
+            "description": "Alineamiento de la forma."
+          },
+          "size": {
+            "type": "string",
+            "description": "Tamaño de la forma."
+          },
+          "armor_class": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "description": "Clase de armadura de la forma."
+          },
+          "hit_points": {
+            "type": "number",
+            "description": "Puntos de golpe de la forma."
+          },
+          "hit_dice": {
+            "type": "string",
+            "description": "Dado de golpe de la forma."
+          },
+          "speed": {
+            "type": "object",
+            "properties": {
+              "walk": {
+                "type": "number"
+              },
+              "fly": {
+                "type": "number"
+              },
+              "climb": {
+                "type": "number"
+              },
+              "swim": {
+                "type": "number"
+              },
+              "notes": {
+                "type": "string"
+              }
+            },
+            "description": "Velocidades de la forma."
+          },
+          "challenge_rating": {
+            "type": "string",
+            "description": "Nivel de desafío de la forma."
+          },
+          "xp": {
+            "type": "number",
+            "description": "Experiencia asociada a la forma."
           }
         }
       },
@@ -2110,39 +2409,40 @@
             }
           },
           "languages": {
-            "type": "object"
+            "$ref": "#/components/schemas/CreatureLanguages"
           },
           "proficiencies": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/Proficiency"
             }
           },
           "traits": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/Trait"
             }
           },
           "traits_data": {
-            "type": "object"
+            "type": "object",
+            "description": "Datos dinámicos de elecciones de rasgos del personaje (TraitDataMongo)."
           },
           "resistances": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/Damage"
             }
           },
           "conditional_resistances": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/ConditionalResistance"
             }
           },
           "condition_inmunities": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/ConditionImmunity"
             }
           },
           "prof_bonus": {
@@ -2157,56 +2457,28 @@
           "equipment": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/CharacterEquipmentApi"
             }
           },
           "dotes": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/Dote"
             }
           },
           "money": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "quantity": {
-                  "type": "number",
-                  "description": "Cantidad de monedas."
-                },
-                "id": {
-                  "type": "string"
-                },
-                "ruleset": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "abbreviation": {
-                  "type": "string"
-                },
-                "isBase": {
-                  "type": "boolean"
-                },
-                "multiplier": {
-                  "type": "number"
-                },
-                "weight": {
-                  "type": "number"
-                },
-                "deletedAt": {
-                  "type": "string",
-                  "format": "date-time",
-                  "nullable": true
-                }
-              }
+              "$ref": "#/components/schemas/PersonajeMoneyItem"
             },
-            "description": "Monedas del personaje con información completa."
+            "description": "Lista completa de monedas del sistema del personaje (incluyendo sistemas ancestros). Las monedas no poseídas se devuelven con quantity 0. Incluye información completa de la moneda (color, abreviatura, etc.)."
           },
           "spells": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PersonajeSpellList"
+            },
+            "description": "Conjuros del personaje agrupados por nivel o clase."
           },
           "cargaMaxima": {
             "type": "number"
@@ -2214,19 +2486,19 @@
           "spellcasting": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/SpellcastingLevel"
             }
           },
           "invocations": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/Invocacion"
             }
           },
           "forms": {
             "type": "array",
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/CriaturaForm"
             }
           }
         }
@@ -2501,6 +2773,29 @@
               "type": "string"
             },
             "description": "Array de IDs de los sistemas a los que pertenece el idioma."
+          }
+        }
+      },
+      "CreatureLanguages": {
+        "type": "object",
+        "properties": {
+          "understands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Language"
+            },
+            "description": "Idiomas que el personaje comprende."
+          },
+          "speaks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Language"
+            },
+            "description": "Idiomas que el personaje habla."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notas adicionales sobre los idiomas del personaje."
           }
         }
       },
@@ -2893,6 +3188,103 @@
           }
         }
       },
+      "CharacterEquipmentApi": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Equipment"
+          },
+          {
+            "type": "object",
+            "required": [
+              "quantity"
+            ],
+            "properties": {
+              "quantity": {
+                "type": "number",
+                "description": "Cantidad de unidades de este equipamiento en el inventario del personaje."
+              },
+              "equipped": {
+                "type": "boolean",
+                "description": "Indica si el objeto está equipado."
+              },
+              "isMagic": {
+                "type": "boolean",
+                "description": "Indica si el objeto es mágico."
+              },
+              "isBond": {
+                "type": "boolean",
+                "description": "Indica si el objeto está vinculado por pacto."
+              },
+              "isFavorite": {
+                "type": "boolean",
+                "description": "Indica si el equipamiento está marcado como favorito."
+              },
+              "attackBonus": {
+                "type": "number",
+                "description": "Bono de ataque calculado por el sistema. Solo presente en armas cuando el sistema define attackBonusFormula."
+              },
+              "damageBonus": {
+                "type": "number",
+                "description": "Bono de daño calculado por el sistema. Solo presente en armas cuando el sistema define damageBonusFormula."
+              },
+              "content": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CharacterEquipmentApi"
+                },
+                "description": "Objetos contenidos en el equipamiento (contenedores)."
+              },
+              "armor": {
+                "type": "object",
+                "description": "Datos de armadura del equipamiento.",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "class": {
+                    "type": "object",
+                    "properties": {
+                      "base": {
+                        "type": "number"
+                      },
+                      "dex_bonus": {
+                        "type": "number"
+                      },
+                      "max_bonus": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "str_minimum": {
+                    "type": "number"
+                  },
+                  "stealth_disadvantage": {
+                    "type": "number"
+                  }
+                }
+              },
+              "bonuses": {
+                "type": "object",
+                "description": "Bonificaciones adicionales del equipamiento.",
+                "properties": {
+                  "armor_class": {
+                    "type": "number"
+                  },
+                  "saving_throws": {
+                    "type": "number"
+                  }
+                }
+              },
+              "deletedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "Fecha de borrado lógico, o null si está activo."
+              }
+            }
+          }
+        ]
+      },
       "InputCreateEquipment": {
         "type": "object",
         "required": [
@@ -3139,6 +3531,25 @@
             "description": "Fecha de borrado lógico, o null si está activa."
           }
         }
+      },
+      "PersonajeMoneyItem": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Coin"
+          },
+          {
+            "type": "object",
+            "required": [
+              "quantity"
+            ],
+            "properties": {
+              "quantity": {
+                "type": "number",
+                "description": "Cantidad de monedas del personaje."
+              }
+            }
+          }
+        ]
       },
       "InputCreateCoin": {
         "type": "object",
@@ -5938,6 +6349,108 @@
         }
       }
     },
+    "/character/toggleFavoriteEquipment": {
+      "post": {
+        "summary": "Marcar o desmarcar un equipamiento como favorito",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "equip",
+                  "isMagic",
+                  "isBond",
+                  "isFavorite"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "ID de MongoDB del personaje."
+                  },
+                  "equip": {
+                    "type": "string",
+                    "description": "ID de MongoDB del equipamiento base."
+                  },
+                  "isMagic": {
+                    "type": "boolean",
+                    "description": "Indica si el equipamiento es mágico."
+                  },
+                  "isBond": {
+                    "type": "boolean",
+                    "description": "Indica si el equipamiento está vinculado por pacto."
+                  },
+                  "isFavorite": {
+                    "type": "boolean",
+                    "description": "Nuevo estado de favorito del equipamiento."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Favorito actualizado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "equip",
+                    "isMagic",
+                    "isBond",
+                    "isFavorite"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "ID de MongoDB del personaje."
+                    },
+                    "equip": {
+                      "type": "string",
+                      "description": "ID de MongoDB del equipamiento base."
+                    },
+                    "isMagic": {
+                      "type": "boolean",
+                      "description": "Indica si el equipamiento es mágico."
+                    },
+                    "isBond": {
+                      "type": "boolean",
+                      "description": "Indica si el equipamiento está vinculado por pacto."
+                    },
+                    "isFavorite": {
+                      "type": "boolean",
+                      "description": "Nuevo estado de favorito del equipamiento."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Personaje o equipamiento no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
     "/magic-schools": {
       "get": {
         "summary": "Obtener escuelas de magia filtradas por sistemas",
@@ -6488,6 +7001,68 @@
           },
           "404": {
             "description": "Sistema asociado no encontrado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/equipment/weapons": {
+      "get": {
+        "summary": "Obtener equipamientos que son armas",
+        "description": "Devuelve equipamientos que tienen definido el campo weapon, sin depender de category o subcategory.",
+        "tags": [
+          "Equipamiento"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema para filtrar equipamientos (incluye ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de armas devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "subcategory": {
+                        "type": "string"
+                      },
+                      "weapon": {
+                        "$ref": "#/components/schemas/Weapon"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
           },
           "500": {
             "description": "Error interno del servidor."
