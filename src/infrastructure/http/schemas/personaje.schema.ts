@@ -16,3 +16,13 @@ export const UpdateCharacterMoneySchema = z.object({
     })
   ),
 });
+
+const CharacterEquipmentMutationSchema = z.object({
+  equip: z.string().min(1, "ID de equipamiento requerido"),
+  quantity: z.number().int().min(1, "La cantidad debe ser un entero mayor o igual a 1"),
+  isMagic: z.boolean(),
+  isBond: z.boolean(),
+});
+
+export const AddCharacterEquipmentSchema = CharacterEquipmentMutationSchema;
+export const DeleteCharacterEquipmentSchema = CharacterEquipmentMutationSchema;

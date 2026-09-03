@@ -1,13 +1,13 @@
 import { TypeEntradaPersonajeCampaña } from "../types/campañas.types";
-import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAñadirEquipamiento, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, ClaseLevelUpCharacter, TypeSubirNivel, UpdateCharacterMoneyResponse } from "../types/personajes.types";
+import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAddEquipment, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, ClaseLevelUpCharacter, TypeSubirNivel, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]>
   crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null>
   consultarPorId(idCharacter: string, user: string): Promise<PersonajeApi>
   obtenerPdf(idCharacter: string, user: string): Promise<any>
-  añadirEquipamiento(data: TypeAñadirEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
-  eliminarEquipamiento(data: TypeEliminarEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
+  addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse>
+  deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse>
   equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
   toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse>
   updateMoney(id: string, money: { quantity: number; unit: string }[]): Promise<UpdateCharacterMoneyResponse>

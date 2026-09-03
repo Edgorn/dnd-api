@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse } from "../types/personajes.types";
+import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -20,12 +20,12 @@ export default class PersonajeService {
     return this.personajeRepository.obtenerPdf(idCharacter, user);
   }
 
-  añadirEquipamiento(data: TypeAñadirEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    return this.personajeRepository.añadirEquipamiento(data);
+  addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse> {
+    return this.personajeRepository.addEquipment(data);
   }
 
-  eliminarEquipamiento(data: TypeEliminarEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    return this.personajeRepository.eliminarEquipamiento(data);
+  deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse> {
+    return this.personajeRepository.deleteEquipment(data);
   }
 
   equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {

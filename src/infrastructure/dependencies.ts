@@ -45,8 +45,8 @@ import ObtenerPersonajePorId from "../application/use-cases/personaje/obtenerPer
 import ModificarXp from "../application/use-cases/personaje/modificarXp.use-case";
 import SubirNivelDatos from "../application/use-cases/personaje/subirNivelDatos.use-case";
 import SubirNivel from "../application/use-cases/personaje/subirNivel.use-case";
-import AñadirEquipo from "../application/use-cases/personaje/añadirEquipo.use-case";
-import EliminarEquipo from "../application/use-cases/personaje/eliminarEquipo.use-case";
+import AddEquipment from "../application/use-cases/personaje/addEquipment.use-case";
+import DeleteEquipment from "../application/use-cases/personaje/deleteEquipment.use-case";
 import EquiparArmadura from "../application/use-cases/personaje/equiparArmadura.use-case.";
 import UpdateMoney from "../application/use-cases/personaje/updateMoney.use-case";
 import ObtenerPdf from "../application/use-cases/personaje/obtenerPdf.use-case";
@@ -335,8 +335,8 @@ const obtenerPersonajePorId = new ObtenerPersonajePorId(personajeService);
 const modificarXp = new ModificarXp(personajeService)
 const subirNivelDatos = new SubirNivelDatos(personajeService)
 const subirNivel = new SubirNivel(personajeService)
-const añadirEquipo = new AñadirEquipo(personajeService);
-const eliminarEquipo = new EliminarEquipo(personajeService);
+const addEquipment = new AddEquipment(personajeService);
+const deleteEquipment = new DeleteEquipment(personajeService);
 const equiparArmadura = new EquiparArmadura(personajeService);
 const updateMoney = new UpdateMoney(personajeService);
 const obtenerPdf = new ObtenerPdf(personajeService);
@@ -448,8 +448,8 @@ export const personajeController = new PersonajeController(
   modificarXp,
   subirNivelDatos,
   subirNivel,
-  añadirEquipo,
-  eliminarEquipo,
+  addEquipment,
+  deleteEquipment,
   equiparArmadura,
   updateMoney,
   obtenerPdf,

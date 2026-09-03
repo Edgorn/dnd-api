@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -724,8 +724,139 @@ router.post('/character', authMiddleware, personajeController.createCharacter);
 router.get('/character/:id', authMiddleware, personajeController.getCharacter);
 
 router.get('/character/:id/pdf', authMiddleware, personajeController.generarPdf);
-router.post('/character/addEquipment', authMiddleware, personajeController.añadirEquipamiento);
-router.post('/character/deleteEquipment', authMiddleware, personajeController.eliminarEquipamiento);
+
+/**
+ * @openapi
+ * /character/{id}/equipment:
+ *   post:
+ *     summary: Añadir equipamiento al inventario de un personaje
+ *     description: Añade o incrementa la cantidad de un equipamiento en el inventario. Devuelve solo el array de equipamiento formateado.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - equip
+ *               - quantity
+ *               - isMagic
+ *               - isBond
+ *             properties:
+ *               equip:
+ *                 type: string
+ *                 description: ID de MongoDB del equipamiento base.
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Cantidad a añadir.
+ *               isMagic:
+ *                 type: boolean
+ *                 description: Indica si el equipamiento es mágico.
+ *               isBond:
+ *                 type: boolean
+ *                 description: Indica si el equipamiento está vinculado por pacto.
+ *     responses:
+ *       200:
+ *         description: Equipamiento añadido con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - equipment
+ *               properties:
+ *                 equipment:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterEquipmentApi'
+ *                   description: Inventario completo del personaje formateado.
+ *       400:
+ *         description: Datos de entrada inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ *   delete:
+ *     summary: Eliminar equipamiento del inventario de un personaje
+ *     description: Reduce o elimina un equipamiento del inventario. No permite eliminar ítems favoritos o equipados. Devuelve solo el array de equipamiento formateado.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - equip
+ *               - quantity
+ *               - isMagic
+ *               - isBond
+ *             properties:
+ *               equip:
+ *                 type: string
+ *                 description: ID de MongoDB del equipamiento base.
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Cantidad a eliminar.
+ *               isMagic:
+ *                 type: boolean
+ *                 description: Indica si el equipamiento es mágico.
+ *               isBond:
+ *                 type: boolean
+ *                 description: Indica si el equipamiento está vinculado por pacto.
+ *     responses:
+ *       200:
+ *         description: Equipamiento eliminado con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - equipment
+ *               properties:
+ *                 equipment:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterEquipmentApi'
+ *                   description: Inventario completo del personaje formateado.
+ *       400:
+ *         description: Datos de entrada inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje o equipamiento no encontrado.
+ *       409:
+ *         description: El equipamiento está marcado como favorito o está equipado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/equipment', authMiddleware, validateSchema(AddCharacterEquipmentSchema), personajeController.addEquipment);
+router.delete('/character/:id/equipment', authMiddleware, validateSchema(DeleteCharacterEquipmentSchema), personajeController.deleteEquipment);
 router.post('/character/equipArmor', authMiddleware, personajeController.equiparArmadura);
 
 /**

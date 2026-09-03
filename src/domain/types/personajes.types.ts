@@ -95,12 +95,24 @@ export interface TypeSubirNivel {
   }
 }
 
-export interface TypeAñadirEquipamiento {
-  cantidad: number, equip: string, id: string, isMagic: boolean, isBond: boolean
+export interface TypeAddEquipment {
+  quantity: number;
+  equip: string;
+  id: string;
+  isMagic: boolean;
+  isBond: boolean;
 }
 
-export interface TypeEliminarEquipamiento {
-  cantidad: number, equip: string, id: string, isMagic: boolean, isBond: boolean
+export interface TypeDeleteEquipment {
+  quantity: number;
+  equip: string;
+  id: string;
+  isMagic: boolean;
+  isBond: boolean;
+}
+
+export interface UpdateCharacterEquipmentResponse {
+  equipment: CharacterEquipmentApi[];
 }
 
 export interface TypeEquiparArmadura {

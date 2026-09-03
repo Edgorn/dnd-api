@@ -3,8 +3,8 @@ import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse } from '../../../../domain/types/personajes.types';
-import { NotFoundError } from '../../../../domain/errors/AppError';
+import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
+import { NotFoundError, ConflictError } from '../../../../domain/errors/AppError';
 import Campaña from '../schemas/Campaña';
 import { Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -223,90 +223,115 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return this.generarPdf(personaje, user)
   }
 
-  async añadirEquipamiento(data: TypeAñadirEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { id, equip, cantidad, isMagic, isBond } = data
+  async addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse> {
+    const { id, equip, quantity, isMagic, isBond } = data;
     const personaje = await Personaje.findById(id);
-    const equipment = personaje?.equipment ?? []
 
-    if (isBond) {
-      equipment.push({ id: equip, quantity: cantidad, isMagic, isBond, equipped: false })
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+    }
+
+    const equipment = [...(personaje.equipment ?? [])];
+    const normalizedIsMagic = !!isMagic;
+    const normalizedIsBond = !!isBond;
+
+    if (normalizedIsBond) {
+      equipment.push({
+        id: equip,
+        quantity,
+        isMagic: normalizedIsMagic,
+        isBond: true,
+        equipped: false,
+      });
     } else {
-      const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === !!isMagic)
+      const idx = equipment.findIndex(
+        eq => eq.id === equip && !!eq.isMagic === normalizedIsMagic && !eq.isBond
+      );
 
       if (idx > -1) {
-        equipment[idx].quantity += cantidad
+        equipment[idx].quantity += quantity;
       } else {
-        equipment.push({ id: equip, quantity: cantidad, isMagic, equipped: false, isBond })
+        equipment.push({
+          id: equip,
+          quantity,
+          isMagic: normalizedIsMagic,
+          equipped: false,
+          isBond: false,
+        });
       }
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          equipment
-        }
-      },
-      { returnDocument: 'after' }
+      { $set: { equipment } },
+      { returnDocument: "after" }
     );
 
     if (!resultado) {
-      return null
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
-
-    const completo = await this.formatearPersonaje(resultado)
-    const basico = await this.formatearPersonajeBasico(resultado)
 
     return {
-      completo,
-      basico
-    }
+      equipment: await this.formatCharacterEquipment(resultado),
+    };
   }
 
-  async eliminarEquipamiento(data: TypeEliminarEquipamiento): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { id, equip, cantidad, isMagic, isBond } = data
+  async deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse> {
+    const { id, equip, quantity, isMagic, isBond } = data;
     const personaje = await Personaje.findById(id);
-    const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === !!isMagic && !!eq.isBond === !!isBond)
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+    }
 
-    if (idx > -1) {
-      if (isBond) {
-        if (isMagic) {
-          equipment[idx].isBond = false
-        } else {
-          equipment.splice(idx, 1)
-        }
+    const equipment = [...(personaje.equipment ?? [])];
+    const normalizedIsMagic = !!isMagic;
+    const normalizedIsBond = !!isBond;
+
+    const idx = equipment.findIndex(
+      eq =>
+        eq.id === equip
+        && !!eq.isMagic === normalizedIsMagic
+        && !!eq.isBond === normalizedIsBond
+    );
+
+    if (idx === -1) {
+      throw new NotFoundError("No se encontró el equipamiento en el personaje");
+    }
+
+    const item = equipment[idx];
+
+    if (item.isFavorite || item.equipped) {
+      throw new ConflictError(
+        "No se puede eliminar un equipamiento favorito o equipado"
+      );
+    }
+
+    if (normalizedIsBond) {
+      if (normalizedIsMagic) {
+        equipment[idx] = { ...item, isBond: false };
       } else {
-        if (equipment[idx].quantity === cantidad) {
-          equipment.splice(idx, 1)
-        } else {
-          equipment[idx].quantity -= cantidad
-        }
+        equipment.splice(idx, 1);
       }
+    } else if (item.quantity <= quantity) {
+      equipment.splice(idx, 1);
+    } else {
+      equipment[idx] = { ...item, quantity: item.quantity - quantity };
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          equipment
-        }
-      },
-      { returnDocument: 'after' }
+      { $set: { equipment } },
+      { returnDocument: "after" }
     );
 
     if (!resultado) {
-      return null
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
-
-    const completo = await this.formatearPersonaje(resultado)
-    const basico = await this.formatearPersonajeBasico(resultado)
 
     return {
-      completo,
-      basico
-    }
+      equipment: await this.formatCharacterEquipment(resultado),
+    };
   }
 
   async equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
@@ -1191,6 +1216,32 @@ export default class PersonajeRepository implements IPersonajeRepository {
       invocations,
       forms: forms
     }
+  }
+
+  private async formatCharacterEquipment(
+    personaje: PersonajeMongo
+  ): Promise<CharacterEquipmentApi[]> {
+    const level =
+      personaje.classes?.map(cl => cl.level).reduce((acc, value) => acc + value, 0) ?? 0;
+
+    const [equipment, apiAttributes, proficiencies, rulesConfig] = await Promise.all([
+      this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment ?? []),
+      this.attributeService.formatAttributes(
+        this.calcularAttributes(personaje),
+        personaje.systems ?? []
+      ),
+      this.proficiencyRepository.getProficienciesByIndices(personaje?.proficiencies ?? []),
+      this.systemRepository.getMergedRulesConfig(personaje.systems ?? []),
+    ]);
+
+    return enrichEquipmentWithCombatBonuses({
+      equipment: equipment ?? [],
+      attributes: apiAttributes,
+      proficiencies,
+      proficiencyBonus: personaje?.prof_bonus ?? 0,
+      level,
+      rules: rulesConfig,
+    });
   }
 
   private async normalizeAndFormatMoney(personaje: PersonajeMongo): Promise<({ quantity: number } & CoinApi)[]> {

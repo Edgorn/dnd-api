@@ -4,8 +4,8 @@ import ConsultarPersonaje from "../../../application/use-cases/personaje/obtener
 import ModificarXp from "../../../application/use-cases/personaje/modificarXp.use-case";
 import SubirNivelDatos from "../../../application/use-cases/personaje/subirNivelDatos.use-case";
 import SubirNivel from "../../../application/use-cases/personaje/subirNivel.use-case";
-import AñadirEquipo from "../../../application/use-cases/personaje/añadirEquipo.use-case";
-import EliminarEquipo from "../../../application/use-cases/personaje/eliminarEquipo.use-case";
+import AddEquipment from "../../../application/use-cases/personaje/addEquipment.use-case";
+import DeleteEquipment from "../../../application/use-cases/personaje/deleteEquipment.use-case";
 import EquipArmor from "../../../application/use-cases/personaje/equiparArmadura.use-case.";
 import CrearPdf from "../../../application/use-cases/personaje/obtenerPdf.use-case";
 import UpdateMoney from "../../../application/use-cases/personaje/updateMoney.use-case";
@@ -25,8 +25,8 @@ export class PersonajeController {
     private readonly modificarXp: ModificarXp,
     private readonly subirNivelDatos: SubirNivelDatos,
     private readonly subirNivel: SubirNivel,
-    private readonly añadirEquipo: AñadirEquipo,
-    private readonly eliminarEquipo: EliminarEquipo,
+    private readonly addEquipmentUseCase: AddEquipment,
+    private readonly deleteEquipmentUseCase: DeleteEquipment,
     private readonly equipArmor: EquipArmor,
     private readonly updateMoneyUseCase: UpdateMoney,
     private readonly crearPdf: CrearPdf,
@@ -84,20 +84,34 @@ export class PersonajeController {
     }
   };
 
-  añadirEquipamiento = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  addEquipment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.añadirEquipo.execute(req.body)
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const data = await this.addEquipmentUseCase.execute({ id, ...req.body });
       res.status(200).json(data);
     } catch (e) {
+      console.error("[PersonajeController.addEquipment] Error:", e);
       next(e);
     }
   };
 
-  eliminarEquipamiento = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  deleteEquipment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.eliminarEquipo.execute(req.body)
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const data = await this.deleteEquipmentUseCase.execute({ id, ...req.body });
       res.status(200).json(data);
     } catch (e) {
+      console.error("[PersonajeController.deleteEquipment] Error:", e);
       next(e);
     }
   };
