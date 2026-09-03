@@ -1,6 +1,7 @@
 import { CoinApi } from "../domain/types/coin.types";
+import { PersonajeMoneyItem } from "../domain/types/personajes.types";
 
-export type PersonajeMoneyItem = { quantity: number } & CoinApi;
+export type { PersonajeMoneyItem };
 
 const LEGACY_COIN_KEYS: { key: string; abbrs: string[]; names: string[] }[] = [
   { key: "pc", abbrs: ["pc", "cp"], names: ["cobre", "copper"] },

@@ -8,7 +8,7 @@ import AñadirEquipo from "../../../application/use-cases/personaje/añadirEquip
 import EliminarEquipo from "../../../application/use-cases/personaje/eliminarEquipo.use-case";
 import EquipArmor from "../../../application/use-cases/personaje/equiparArmadura.use-case.";
 import CrearPdf from "../../../application/use-cases/personaje/obtenerPdf.use-case";
-import UpdateMoney from "../../../application/use-cases/personaje/modificarDinero.use-case";
+import UpdateMoney from "../../../application/use-cases/personaje/updateMoney.use-case";
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import VincularPacto from "../../../application/use-cases/personaje/vincularPacto.use-case";
@@ -28,7 +28,7 @@ export class PersonajeController {
     private readonly añadirEquipo: AñadirEquipo,
     private readonly eliminarEquipo: EliminarEquipo,
     private readonly equipArmor: EquipArmor,
-    private readonly updateMoney: UpdateMoney,
+    private readonly updateMoneyUseCase: UpdateMoney,
     private readonly crearPdf: CrearPdf,
     private readonly vincularPacto: VincularPacto,
     private readonly aprenderConjuros: AprenderConjuros,
@@ -129,10 +129,16 @@ export class PersonajeController {
     }
   };
 
-  modificarDinero = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  updateMoney = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { id, money } = req.body
-      const data = await this.updateMoney.execute(id, money)
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const { money } = req.body;
+      const data = await this.updateMoneyUseCase.execute(id, money);
       res.status(200).json(data);
     } catch (e) {
       next(e);

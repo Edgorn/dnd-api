@@ -7,3 +7,12 @@ export const ToggleFavoriteEquipmentSchema = z.object({
   isBond: z.boolean(),
   isFavorite: z.boolean(),
 });
+
+export const UpdateCharacterMoneySchema = z.object({
+  money: z.array(
+    z.object({
+      unit: z.string().min(1, "ID de moneda requerido"),
+      quantity: z.number(),
+    })
+  ),
+});

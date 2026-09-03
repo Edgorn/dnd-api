@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -803,7 +803,72 @@ router.post('/character/equipArmor', authMiddleware, personajeController.equipar
  */
 router.post('/character/toggleFavoriteEquipment', authMiddleware, validateSchema(ToggleFavoriteEquipmentSchema), personajeController.toggleFavoriteEquipmentHandler);
 
-router.post('/character/updateMoney', authMiddleware, personajeController.modificarDinero);
+/**
+ * @openapi
+ * /character/{id}/money:
+ *   put:
+ *     summary: Actualizar el dinero de un personaje
+ *     description: Reemplaza completamente el dinero del personaje y devuelve solo el array de monedas formateado (con datos de Coin del sistema).
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - money
+ *             properties:
+ *               money:
+ *                 type: array
+ *                 description: Lista completa de monedas a guardar (unit = ID de la moneda, quantity = cantidad).
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - unit
+ *                     - quantity
+ *                   properties:
+ *                     unit:
+ *                       type: string
+ *                       description: ID de la moneda.
+ *                     quantity:
+ *                       type: number
+ *                       description: Cantidad de esa moneda.
+ *     responses:
+ *       200:
+ *         description: Dinero actualizado con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - money
+ *               properties:
+ *                 money:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PersonajeMoneyItem'
+ *                   description: Lista completa de monedas del sistema del personaje (incluyendo sistemas ancestros). Las monedas no poseídas se devuelven con quantity 0.
+ *       400:
+ *         description: Datos de entrada inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.put('/character/:id/money', authMiddleware, validateSchema(UpdateCharacterMoneySchema), personajeController.updateMoney);
 router.post('/character/vincularPacto', authMiddleware, personajeController.vincularArmaPacto);
 router.post('/character/changeXp', authMiddleware, personajeController.changeXp);
 router.post('/character/levelUpData', authMiddleware, personajeController.levelUpData);

@@ -126,6 +126,12 @@ export interface ToggleFavoriteEquipmentResponse {
   isFavorite: boolean;
 }
 
+export type PersonajeMoneyItem = { quantity: number } & CoinApi;
+
+export interface UpdateCharacterMoneyResponse {
+  money: PersonajeMoneyItem[];
+}
+
 export interface PersonajeBasico {
   id: string,
   img: string,

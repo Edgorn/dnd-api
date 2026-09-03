@@ -48,7 +48,7 @@ import SubirNivel from "../application/use-cases/personaje/subirNivel.use-case";
 import AñadirEquipo from "../application/use-cases/personaje/añadirEquipo.use-case";
 import EliminarEquipo from "../application/use-cases/personaje/eliminarEquipo.use-case";
 import EquiparArmadura from "../application/use-cases/personaje/equiparArmadura.use-case.";
-import ModificarDinero from "../application/use-cases/personaje/modificarDinero.use-case";
+import UpdateMoney from "../application/use-cases/personaje/updateMoney.use-case";
 import ObtenerPdf from "../application/use-cases/personaje/obtenerPdf.use-case";
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
 import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
@@ -338,7 +338,7 @@ const subirNivel = new SubirNivel(personajeService)
 const añadirEquipo = new AñadirEquipo(personajeService);
 const eliminarEquipo = new EliminarEquipo(personajeService);
 const equiparArmadura = new EquiparArmadura(personajeService);
-const modificarDinero = new ModificarDinero(personajeService);
+const updateMoney = new UpdateMoney(personajeService);
 const obtenerPdf = new ObtenerPdf(personajeService);
 const vincularPacto = new VincularPacto(personajeService);
 const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
@@ -451,7 +451,7 @@ export const personajeController = new PersonajeController(
   añadirEquipo,
   eliminarEquipo,
   equiparArmadura,
-  modificarDinero,
+  updateMoney,
   obtenerPdf,
   vincularPacto,
   aprenderConjuros,

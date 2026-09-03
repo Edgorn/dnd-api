@@ -3,7 +3,7 @@ import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel } from '../../../../domain/types/personajes.types';
+import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAñadirEquipamiento, TypeCrearPersonaje, TypeEliminarEquipamiento, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse } from '../../../../domain/types/personajes.types';
 import { NotFoundError } from '../../../../domain/errors/AppError';
 import Campaña from '../schemas/Campaña';
 import { Damage } from '../../../../domain/types';
@@ -431,29 +431,28 @@ export default class PersonajeRepository implements IPersonajeRepository {
     };
   }
 
-  async modificarDinero(id: string, money: { quantity: number; unit: string }[]): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const moneyArray = Array.isArray(money) ? money : (money && typeof money === 'object' && 'unit' in money ? [money] : []);
+  async updateMoney(id: string, money: { quantity: number; unit: string }[]): Promise<UpdateCharacterMoneyResponse> {
+    const moneyArray = Array.isArray(money)
+      ? money
+      : (money && typeof money === "object" && "unit" in money ? [money] : []);
+
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
         $set: {
-          money: moneyArray
-        }
+          money: moneyArray,
+        },
       },
-      { returnDocument: 'after' }
+      { returnDocument: "after" }
     );
 
     if (!resultado) {
-      return null
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const completo = await this.formatearPersonaje(resultado)
-    const basico = await this.formatearPersonajeBasico(resultado)
+    const formattedMoney = await this.normalizeAndFormatMoney(resultado);
 
-    return {
-      completo,
-      basico
-    }
+    return { money: formattedMoney };
   }
 
   async cambiarXp({ id, XP }: { id: string, XP: number }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
