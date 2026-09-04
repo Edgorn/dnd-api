@@ -453,6 +453,54 @@ router.get("/equipment/weapons", authMiddleware, equipmentController.getWeapons)
 
 /**
  * @openapi
+ * /equipment/armor:
+ *   get:
+ *     summary: Obtener equipamientos de armadura o ropa
+ *     description: Devuelve equipamientos con ranura de cuerpo (head, neck, cloak, armor, hands, waist, feet, ring), sin depender de category o subcategory. Excluye ranuras de arma.
+ *     tags:
+ *       - Equipamiento
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema para filtrar equipamientos (incluye ancestros).
+ *     responses:
+ *       200:
+ *         description: Lista de armaduras y ropa devuelta con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   category:
+ *                     type: string
+ *                   subcategory:
+ *                     type: string
+ *                   equipSlot:
+ *                     $ref: '#/components/schemas/EquipSlot'
+ *                   armor:
+ *                     type: object
+ *                     properties:
+ *                       category:
+ *                         type: string
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error interno del servidor.
+ */
+router.get("/equipment/armor", authMiddleware, equipmentController.getArmor);
+
+/**
+ * @openapi
  * /equipment/{id}:
  *   get:
  *     summary: Obtener un equipamiento por su ID

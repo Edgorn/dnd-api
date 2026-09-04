@@ -1,8 +1,9 @@
 import { rgb, StandardFonts } from "pdf-lib";
 import { PersonajeApi } from "../domain/types/personajes.types";
-import { CharacterEquipmentApi } from "../domain/types/equipment.types";
+import { CharacterEquipmentApi, BODY_EQUIP_SLOTS } from "../domain/types/equipment.types";
 import { DoteApi } from "../domain/types/dotes.types";
 import { TraitApi } from "../domain/types/traits.types";
+import { Ideal } from "../domain/types/background.types";
 
 const abilities: { [key: string]: string } = {
   str: 'FUE',
@@ -377,9 +378,11 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
     y: page1.getHeight() - 147
   })
 
+  const ideal0 = (background?.ideals as Ideal[] | undefined)?.[0];
+
   escribirParrafo({
-    titulo: background?.ideals?.[0]?.title ?? '',
-    descripcion: background?.ideals?.[0]?.description ?? '',
+    titulo: ideal0?.title ?? '',
+    descripcion: ideal0?.description ?? '',
     fontTitle: fontBold,
     fontText: fontRegular,
     maxWidth,
@@ -422,23 +425,6 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
   })
 }
 
-const equipoPersonalizadoUno = (equip: any) => {
-  return equip.index === "Sombrero de hechicería (carta)"
-    || equip.index === "Pértiga contraíble (carta)"
-    || equip.index === "Piedras Mensajeras (carta)"
-    || equip.index === "Amuleto de oso (Furia +1CA y ventaja pruebas para resistir ser derribado/empujado)"
-    || equip.index === "Amuleto de relojería (carta)"
-    || equip.index === "Varita de pirotecnia (carta)"
-}
-
-const equipoPersonalizadoDos = (equip: any) => {
-  return equip.index !== "Sombrero de hechicería (carta)"
-    && equip.index !== "Pértiga contraíble (carta)"
-    && equip.index !== "Piedras Mensajeras (carta)"
-    && equip.index !== "Amuleto de oso (Furia +1CA y ventaja pruebas para resistir ser derribado/empujado)"
-    && equip.index !== "Amuleto de relojería (carta)"
-    && equip.index !== "Varita de pirotecnia (carta)"
-}
 
 const armaduras: any = {
   'Armadura de cuero tachonado': 'Cuero tachonado'
@@ -451,10 +437,29 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
+  const bodyArmor = equipment.find(equip => equip.equipped && equip.equipSlot === 'armor');
+
+  if (bodyArmor) {
+    escribirParrafo({
+      titulo: '',
+      descripcion: (bodyArmor.name + (bodyArmor.isMagic ? ' +1' : '')),
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth: 131,
+      page: page1,
+      x: 270,
+      y: page1.getHeight() - 609
+    })
+    //form.getTextField('ArmorWorn').setText(bodyArmor.name + (bodyArmor.isMagic ? ' +1' : ''));
+    // TODO: calcular CA de la armadura equipada y escribirla en ACworn
+    // form.getTextField('ACworn').setText('+' + (CA - 10));
+  }
+
   const equipo = equipment
-    .filter(equip => equip.category === "Arma" || equip.category === "Armadura" || equip.category === "Munición" || equipoPersonalizadoUno(equip))
+    .filter(equip => equip.weapon !== undefined || (equip.equipSlot !== undefined && equip.equipSlot !== null))
     .map(equip => {
-      if (equip.category === 'Armadura' && equip?.armor?.category !== 'Escudo' && equip.equipped) {
+      /*
+      if (equip.armor !== undefined && equip.armor.category !== 'Escudo' && equip.equipped) {
         let CA = equip?.armor?.class?.base ?? 10
 
         if (equip.isMagic) {
@@ -477,9 +482,9 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
           y: page1.getHeight() - 609
         })
 
-        //form.getTextField('ArmorWorn').setText(equip?.name ?? '' + '');
-        form.getTextField('ACworn').setText('+' + (CA - 10));
-      }
+        //form.getTextField('ArmorWorn').setText("asdsadas");
+        //form.getTextField('ACworn').setText("123123123");
+      }*/
 
       let dataProperties = ''
 
@@ -507,8 +512,8 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
     })
 
   const tesoro = equipment
-    .filter((equip: any) => equip.category !== "Arma" && equip.category !== "Armadura" && equip.category !== "Munición" && equipoPersonalizadoDos(equip))
-    .map((equip: any) => equip.quantity + 'x ' + equip.name)
+    .filter(equip => equip.weapon === undefined && (equip.equipSlot === undefined || equip.equipSlot === null))
+    .map(equip => equip.quantity + 'x ' + equip.name)
 
   escribirParrafo({
     titulo: '',

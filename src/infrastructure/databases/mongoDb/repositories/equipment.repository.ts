@@ -16,7 +16,8 @@ import {
   WeaponApi,
   WeaponDamageMongo,
   WeaponDamageApi,
-  WeaponBasic
+  WeaponBasic,
+  BODY_EQUIP_SLOTS
 } from "../../../../domain/types/equipment.types";
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
 import { NotFoundError } from "../../../../domain/errors/AppError";
@@ -185,6 +186,24 @@ export default class EquipmentRepository implements IEquipmentRepository {
     return ordenarPorNombre(basic);
   }
 
+  async getArmor(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+    const query: Record<string, unknown> = {
+      equipSlot: { $in: [...BODY_EQUIP_SLOTS] },
+      deletedAt: null
+    };
+
+    if (rulesets.length > 0) {
+      const expandedRulesets = this.systemRepository
+        ? await this.systemRepository.getSystemsAndAncestors(rulesets)
+        : rulesets;
+      query.ruleset = { $in: expandedRulesets };
+    }
+
+    const equipments = await EquipmentModel.find(query).lean();
+    const basic = equipments.map(e => this.formatEquipmentBasic(e));
+    return ordenarPorNombre(basic);
+  }
+
   // Formatting helpers
   private async formatEquipment(equipment: any): Promise<EquipmentApi> {
     let description = "";
@@ -238,6 +257,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       name: equipment.name || "",
       category: equipment.category || "",
       subcategory: equipment.subcategory || "",
+      equipSlot: equipment.equipSlot ?? null,
       weapon: this.formatWeaponBasic(equipment.weapon),
       armor: equipment.armor
     };

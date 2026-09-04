@@ -36,6 +36,7 @@ import SoftDeleteEquipment from "../application/use-cases/equipment/softDeleteEq
 import RestoreEquipment from "../application/use-cases/equipment/restoreEquipment.use-case";
 import GetEquipmentsByTypes from "../application/use-cases/equipment/getEquipmentsByTypes.use-case";
 import GetEquipmentsWeapons from "../application/use-cases/equipment/getEquipmentsWeapons.use-case";
+import GetEquipmentsArmor from "../application/use-cases/equipment/getEquipmentsArmor.use-case";
 import EquipmentService from "../domain/services/equipment.service";
 import EquipmentRepository from "./databases/mongoDb/repositories/equipment.repository";
 import { EquipmentController } from "./http/controllers/equipment.controller";
@@ -47,7 +48,7 @@ import SubirNivelDatos from "../application/use-cases/personaje/subirNivelDatos.
 import SubirNivel from "../application/use-cases/personaje/subirNivel.use-case";
 import AddEquipment from "../application/use-cases/personaje/addEquipment.use-case";
 import DeleteEquipment from "../application/use-cases/personaje/deleteEquipment.use-case";
-import EquiparArmadura from "../application/use-cases/personaje/equiparArmadura.use-case.";
+import EquipArmor from "../application/use-cases/personaje/equipArmor.use-case";
 import UpdateMoney from "../application/use-cases/personaje/updateMoney.use-case";
 import ObtenerPdf from "../application/use-cases/personaje/obtenerPdf.use-case";
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
@@ -328,6 +329,7 @@ const softDeleteEquipment = new SoftDeleteEquipment(equipmentService, systemServ
 const restoreEquipment = new RestoreEquipment(equipmentService, systemService);
 const getEquipmentsByTypes = new GetEquipmentsByTypes(equipmentService);
 const getEquipmentsWeapons = new GetEquipmentsWeapons(equipmentService);
+const getEquipmentsArmor = new GetEquipmentsArmor(equipmentService);
 
 const getCharactersByUser = new GetCharactersByUser(personajeService);
 const crearPersonaje = new CrearPersonaje(personajeService, systemRepository);
@@ -337,7 +339,7 @@ const subirNivelDatos = new SubirNivelDatos(personajeService)
 const subirNivel = new SubirNivel(personajeService)
 const addEquipment = new AddEquipment(personajeService);
 const deleteEquipment = new DeleteEquipment(personajeService);
-const equiparArmadura = new EquiparArmadura(personajeService);
+const equiparArmadura = new EquipArmor(personajeService);
 const updateMoney = new UpdateMoney(personajeService);
 const obtenerPdf = new ObtenerPdf(personajeService);
 const vincularPacto = new VincularPacto(personajeService);
@@ -438,7 +440,8 @@ export const equipmentController = new EquipmentController(
   softDeleteEquipment,
   restoreEquipment,
   getEquipmentsByTypes,
-  getEquipmentsWeapons
+  getEquipmentsWeapons,
+  getEquipmentsArmor
 );
 
 export const personajeController = new PersonajeController(

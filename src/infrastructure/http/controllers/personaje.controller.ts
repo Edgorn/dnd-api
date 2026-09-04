@@ -6,7 +6,7 @@ import SubirNivelDatos from "../../../application/use-cases/personaje/subirNivel
 import SubirNivel from "../../../application/use-cases/personaje/subirNivel.use-case";
 import AddEquipment from "../../../application/use-cases/personaje/addEquipment.use-case";
 import DeleteEquipment from "../../../application/use-cases/personaje/deleteEquipment.use-case";
-import EquipArmor from "../../../application/use-cases/personaje/equiparArmadura.use-case.";
+import EquipArmor from "../../../application/use-cases/personaje/equipArmor.use-case";
 import CrearPdf from "../../../application/use-cases/personaje/obtenerPdf.use-case";
 import UpdateMoney from "../../../application/use-cases/personaje/updateMoney.use-case";
 import { Response, NextFunction } from "express";
@@ -116,11 +116,18 @@ export class PersonajeController {
     }
   };
 
-  equiparArmadura = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  updateEquipmentEquipped = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.equipArmor.execute(req.body)
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const data = await this.equipArmor.execute({ id, ...req.body });
       res.status(200).json(data);
     } catch (e) {
+      console.error("[PersonajeController.updateEquipmentEquipped] Error:", e);
       next(e);
     }
   };

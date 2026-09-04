@@ -28,7 +28,7 @@ export default class PersonajeService {
     return this.personajeRepository.deleteEquipment(data);
   }
 
-  equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
+  equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
     return this.personajeRepository.equiparArmadura(data);
   }
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -493,7 +493,7 @@ const router = Router();
  *           additionalProperties:
  *             $ref: '#/components/schemas/PersonajeSpellList'
  *           description: Conjuros del personaje agrupados por nivel o clase.
- *         cargaMaxima:
+ *         maxCarryingCapacity:
  *           type: number
  *         spellcasting:
  *           type: array
@@ -790,6 +790,12 @@ router.get('/character/:id/pdf', authMiddleware, personajeController.generarPdf)
  *         description: Personaje no encontrado.
  *       500:
  *         description: Error del servidor.
+ */
+router.post('/character/:id/equipment', authMiddleware, validateSchema(AddCharacterEquipmentSchema), personajeController.addEquipment);
+
+/**
+ * @openapi
+ * /character/{id}/equipment:
  *   delete:
  *     summary: Eliminar equipamiento del inventario de un personaje
  *     description: Reduce o elimina un equipamiento del inventario. No permite eliminar ítems favoritos o equipados. Devuelve solo el array de equipamiento formateado.
@@ -855,9 +861,77 @@ router.get('/character/:id/pdf', authMiddleware, personajeController.generarPdf)
  *       500:
  *         description: Error del servidor.
  */
-router.post('/character/:id/equipment', authMiddleware, validateSchema(AddCharacterEquipmentSchema), personajeController.addEquipment);
 router.delete('/character/:id/equipment', authMiddleware, validateSchema(DeleteCharacterEquipmentSchema), personajeController.deleteEquipment);
-router.post('/character/equipArmor', authMiddleware, personajeController.equiparArmadura);
+
+/**
+ * @openapi
+ * /character/{id}/equipment/equipped:
+ *   patch:
+ *     summary: Equipar o desequipar un ítem del inventario
+ *     description: |
+ *       Cambia el estado equipped de un ítem del inventario.
+ *       Al equipar, desequipa automáticamente cualquier otro ítem con la misma ranura (equipSlot).
+ *       El ítem debe tener equipSlot definido. Devuelve el personaje completo y básico (incluye CA recalculada).
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - equip
+ *               - isMagic
+ *               - isBond
+ *               - equipped
+ *             properties:
+ *               equip:
+ *                 type: string
+ *                 description: ID de MongoDB del equipamiento base.
+ *               isMagic:
+ *                 type: boolean
+ *                 description: Indica si el equipamiento es mágico.
+ *               isBond:
+ *                 type: boolean
+ *                 description: Indica si el equipamiento está vinculado por pacto.
+ *               equipped:
+ *                 type: boolean
+ *                 description: true para equipar, false para desequipar.
+ *     responses:
+ *       200:
+ *         description: Estado de equipamiento actualizado con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - completo
+ *                 - basico
+ *               properties:
+ *                 completo:
+ *                   $ref: '#/components/schemas/PersonajeApi'
+ *                 basico:
+ *                   $ref: '#/components/schemas/PersonajeBasico'
+ *       400:
+ *         description: Datos inválidos o el equipamiento no tiene ranura (equipSlot).
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje o equipamiento no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema(UpdateCharacterEquipmentEquippedSchema), personajeController.updateEquipmentEquipped);
 
 /**
  * @openapi

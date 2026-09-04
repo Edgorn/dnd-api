@@ -26,3 +26,10 @@ const CharacterEquipmentMutationSchema = z.object({
 
 export const AddCharacterEquipmentSchema = CharacterEquipmentMutationSchema;
 export const DeleteCharacterEquipmentSchema = CharacterEquipmentMutationSchema;
+
+export const UpdateCharacterEquipmentEquippedSchema = z.object({
+  equip: z.string().min(1, "ID de equipamiento requerido"),
+  isMagic: z.boolean(),
+  isBond: z.boolean(),
+  equipped: z.boolean(),
+});

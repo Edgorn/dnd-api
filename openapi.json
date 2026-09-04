@@ -2480,7 +2480,7 @@
             },
             "description": "Conjuros del personaje agrupados por nivel o clase."
           },
-          "cargaMaxima": {
+          "maxCarryingCapacity": {
             "type": "number"
           },
           "spellcasting": {
@@ -6542,6 +6542,101 @@
         }
       }
     },
+    "/character/{id}/equipment/equipped": {
+      "patch": {
+        "summary": "Equipar o desequipar un ítem del inventario",
+        "description": "Cambia el estado equipped de un ítem del inventario.\nAl equipar, desequipa automáticamente cualquier otro ítem con la misma ranura (equipSlot).\nEl ítem debe tener equipSlot definido. Devuelve el personaje completo y básico (incluye CA recalculada).\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "equip",
+                  "isMagic",
+                  "isBond",
+                  "equipped"
+                ],
+                "properties": {
+                  "equip": {
+                    "type": "string",
+                    "description": "ID de MongoDB del equipamiento base."
+                  },
+                  "isMagic": {
+                    "type": "boolean",
+                    "description": "Indica si el equipamiento es mágico."
+                  },
+                  "isBond": {
+                    "type": "boolean",
+                    "description": "Indica si el equipamiento está vinculado por pacto."
+                  },
+                  "equipped": {
+                    "type": "boolean",
+                    "description": "true para equipar, false para desequipar."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado de equipamiento actualizado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "completo",
+                    "basico"
+                  ],
+                  "properties": {
+                    "completo": {
+                      "$ref": "#/components/schemas/PersonajeApi"
+                    },
+                    "basico": {
+                      "$ref": "#/components/schemas/PersonajeBasico"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o el equipamiento no tiene ranura (equipSlot)."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Personaje o equipamiento no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
     "/character/toggleFavoriteEquipment": {
       "post": {
         "summary": "Marcar o desmarcar un equipamiento como favorito",
@@ -7344,6 +7439,76 @@
                       },
                       "weapon": {
                         "$ref": "#/components/schemas/Weapon"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/equipment/armor": {
+      "get": {
+        "summary": "Obtener equipamientos de armadura o ropa",
+        "description": "Devuelve equipamientos con ranura de cuerpo (head, neck, cloak, armor, hands, waist, feet, ring), sin depender de category o subcategory. Excluye ranuras de arma.",
+        "tags": [
+          "Equipamiento"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema para filtrar equipamientos (incluye ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de armaduras y ropa devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "subcategory": {
+                        "type": "string"
+                      },
+                      "equipSlot": {
+                        "$ref": "#/components/schemas/EquipSlot"
+                      },
+                      "armor": {
+                        "type": "object",
+                        "properties": {
+                          "category": {
+                            "type": "string"
+                          }
+                        }
                       }
                     }
                   }

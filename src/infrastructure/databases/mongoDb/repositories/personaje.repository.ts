@@ -4,7 +4,7 @@ import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
-import { NotFoundError, ConflictError } from '../../../../domain/errors/AppError';
+import { NotFoundError, ConflictError, ValidationError } from '../../../../domain/errors/AppError';
 import Campaña from '../schemas/Campaña';
 import { Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -334,55 +334,73 @@ export default class PersonajeRepository implements IPersonajeRepository {
     };
   }
 
-  async equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { id, equip, nuevoEstado, isMagic } = data
+  async equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
+    const { id, equip, equipped, isMagic, isBond } = data;
+    const normalizedIsMagic = !!isMagic;
+    const normalizedIsBond = !!isBond;
+
     const personaje = await Personaje.findById(id);
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+    }
 
-    const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(personaje?.equipment ?? [])
+    const equipment = [...(personaje.equipment ?? [])];
+    const idx = equipment.findIndex(
+      eq =>
+        eq.id === equip
+        && !!eq.isMagic === normalizedIsMagic
+        && !!eq.isBond === normalizedIsBond
+    );
 
-    if (equipment) {
-      const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === !!isMagic)
+    if (idx === -1) {
+      throw new NotFoundError("No se encontró el equipamiento en el personaje");
+    }
 
-      if (idx > -1) {
-        if (equip === 'shield') {
-          equipment.forEach(item => {
-            if (item.id === "shield") {
-              item.equipped = false;
-            }
-          });
-        } else if (equip === 'Armadura') {
-          equipment.forEach(item => {
-            if (item.id === "Armadura") {
-              item.equipped = false;
-            }
-          });
-        } else {
-          equipment[idx].equipped = nuevoEstado
+    if (equipped) {
+      const formatted = await this.equipmentRepository.getCharacterEquipmentsByIds(equipment) ?? [];
+
+      const matchesItem = (
+        raw: { id?: string; isMagic?: boolean; isBond?: boolean },
+        fmt: { id: string; isMagic?: boolean; isBond?: boolean }
+      ) =>
+        fmt.id === raw.id
+        && !!fmt.isMagic === !!raw.isMagic
+        && !!fmt.isBond === !!raw.isBond;
+
+      const targetFormatted = formatted.find(fmt => matchesItem(equipment[idx], fmt));
+      const targetSlot = targetFormatted?.equipSlot ?? null;
+
+      if (!targetSlot) {
+        throw new ValidationError("El equipamiento no tiene ranura de equipamiento (equipSlot)");
+      }
+
+      for (let i = 0; i < equipment.length; i++) {
+        if (i === idx) continue;
+        const itemFormatted = formatted.find(fmt => matchesItem(equipment[i], fmt));
+        if (itemFormatted?.equipSlot === targetSlot) {
+          equipment[i] = { ...equipment[i], equipped: false };
         }
       }
+
+      equipment[idx] = { ...equipment[idx], equipped: true };
+    } else {
+      equipment[idx] = { ...equipment[idx], equipped: false };
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          equipment
-        }
-      },
-      { returnDocument: 'after' }
+      { $set: { equipment } },
+      { returnDocument: "after" }
     );
 
     if (!resultado) {
-      return null
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const completo = await this.formatearPersonaje(resultado)
-    const basico = await this.formatearPersonajeBasico(resultado)
+    const completo = await this.formatearPersonaje(resultado);
+    const basico = await this.formatearPersonajeBasico(resultado);
 
-    return {
-      completo,
-      basico
-    }
+    return { completo, basico };
   }
 
   async toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse> {
@@ -1129,16 +1147,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const { CA, plusSpeed } = await this.calcularCA(personaje, traits)
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
 
-    let cargaMaxima: number;
+    let maxCarryingCapacity: number;
     if (rulesConfig.carryingCapacityFormula) {
-      cargaMaxima = evaluateFormula(rulesConfig.carryingCapacityFormula, apiAttributes);
+      maxCarryingCapacity = evaluateFormula(rulesConfig.carryingCapacityFormula, apiAttributes);
     } else {
       const strVal = apiAttributes.find(a => a.key === 'str')?.value ?? 10;
-      cargaMaxima = strVal * 15;
+      maxCarryingCapacity = strVal * 15;
     }
 
     if (traits?.find(trait => trait.id === "semblance-beast-bear")) {
-      cargaMaxima *= 2
+      maxCarryingCapacity *= 2
     }
 
     const hasJackOfAllTrades = !!traits?.find(trait => trait.id === "jack-of-all-trades");
@@ -1211,7 +1229,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       dotes,
       money,
       spells: updatedSpells,
-      cargaMaxima,
+      maxCarryingCapacity,
       spellcasting: spellcasting.filter(item => item !== null),
       invocations,
       forms: forms
@@ -1328,10 +1346,17 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
       const usuario = await this.userRepository.getUserName(idUser)
 
-      const background = personaje?.background?.type ? personaje?.background?.name + ' (' + personaje?.background?.type + ')' : personaje?.background?.name
+      const backgroundTypeName =
+        typeof personaje?.background?.type === 'string'
+          ? personaje?.background?.type
+          : personaje?.background?.type?.name;
+
+      const background = personaje?.background?.type
+        ? `${personaje?.background?.name ?? ''}${backgroundTypeName ? ` (${backgroundTypeName})` : ''}`
+        : (personaje?.background?.name ?? '');
 
       form.getTextField('CharacterName').setText(personaje?.name);
-      form.getTextField('ClassLevel').setText(personaje?.classes?.map((cl: any) => cl?.name + ' ' + cl?.level)?.join(', '));
+      form.getTextField('ClassLevel').setText((personaje?.classes ?? []).map(cl => `${cl.name} ${cl.level}`).join(', '));
       form.getDropdown('Background').addOptions([background ?? ""]);
       form.getDropdown('Background').select(background ?? "");
       form.getTextField('PlayerName').setText(usuario);
@@ -1402,7 +1427,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
 
       personaje?.equipment
-        ?.filter(equi => equi?.category === 'Arma')
+        ?.filter(equi => equi?.weapon !== undefined)
         ?.forEach((equi, index: number) => {
           if (index + golpeCuerpo < 3) {
             form.getTextField('Attack' + (index + golpeCuerpo + 1)).setText(equi.name + " " + (equi.isMagic ? " +1" : ""));

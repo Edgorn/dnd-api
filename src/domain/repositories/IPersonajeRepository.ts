@@ -8,7 +8,7 @@ export default interface IPersonajeRepository {
   obtenerPdf(idCharacter: string, user: string): Promise<any>
   addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse>
   deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse>
-  equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
+  equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }>
   toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse>
   updateMoney(id: string, money: { quantity: number; unit: string }[]): Promise<UpdateCharacterMoneyResponse>
   cambiarXp({ id, XP }: { id: string, XP: number }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>

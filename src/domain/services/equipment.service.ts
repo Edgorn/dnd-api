@@ -60,4 +60,8 @@ export default class EquipmentService {
   getWeapons(rulesets: string[] = []): Promise<EquipmentBasic[]> {
     return this.equipmentRepository.getWeapons(rulesets);
   }
+
+  getArmor(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+    return this.equipmentRepository.getArmor(rulesets);
+  }
 }

@@ -116,10 +116,11 @@ export interface UpdateCharacterEquipmentResponse {
 }
 
 export interface TypeEquiparArmadura {
-  nuevoEstado: boolean,
-  equip: string,
-  id: string,
-  isMagic: boolean
+  equipped: boolean;
+  equip: string;
+  id: string;
+  isMagic: boolean;
+  isBond: boolean;
 }
 
 export interface TypeToggleFavoriteEquipment {
@@ -296,7 +297,7 @@ export interface PersonajeApi {
     quantity: number;
   } & CoinApi)[],
   spells: Record<string, { list: SpellApi[]; type: string; }>,
-  cargaMaxima: number,
+  maxCarryingCapacity: number,
   spellcasting?: SpellcastingLevel[],
   invocations?: InvocacionApi[],
   forms?: CriaturaApi[]

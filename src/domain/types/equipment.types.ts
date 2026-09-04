@@ -64,6 +64,18 @@ export type EquipSlot =
   | 'off_hand'
   | 'two_handed';
 
+/** Body / clothing equip slots (excludes weapon hand slots). */
+export const BODY_EQUIP_SLOTS: readonly EquipSlot[] = [
+  'head',
+  'neck',
+  'cloak',
+  'armor',
+  'hands',
+  'waist',
+  'feet',
+  'ring'
+] as const;
+
 export interface LiquidVolumeDef {
   value: number;
   unit: LiquidUnit;
@@ -190,6 +202,7 @@ export interface EquipmentBasic {
   name: string;
   category?: string;
   subcategory?: string;
+  equipSlot?: EquipSlot | null;
   weapon?: WeaponBasic;
   armor?: ArmorBasic;
 }
