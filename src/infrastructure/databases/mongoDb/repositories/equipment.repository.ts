@@ -82,11 +82,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
   }
 
   async getById(id: string): Promise<EquipmentApi | null> {
-    const query = id.match(/^[0-9a-fA-F]{24}$/)
-      ? { _id: id }
-      : { $or: [{ _id: id }, { index: id }] };
-
-    const equipment = await EquipmentModel.findOne(query).lean();
+    const equipment = await EquipmentModel.findOne({ _id: id }).lean();
     if (!equipment) return null;
     return await this.formatEquipment(equipment);
   }
@@ -126,14 +122,11 @@ export default class EquipmentRepository implements IEquipmentRepository {
     if (!equipments) return undefined;
     if (!equipments.length) return [];
 
-    const ids = equipments.map(e => e.id || (e as any).index).filter((id): id is string => Boolean(id));
+    const ids = equipments.map(e => e.id).filter((id): id is string => Boolean(id));
     const objectIds = ids.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
 
     const dbEquipments = await EquipmentModel.find({
-      $or: [
-        { _id: { $in: objectIds } },
-        { index: { $in: ids } }
-      ]
+      _id: { $in: objectIds }
     }).lean();
 
     const formatted = await this.formatCharacterEquipments(equipments, dbEquipments);
@@ -222,7 +215,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       }
     }
 
-    const idStr = equipment._id ? equipment._id.toString() : (equipment.id || equipment.index || "");
+    const idStr = equipment._id.toString();
     const weapon = await this.formatWeapon(equipment.weapon);
     const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(equipment.proficiencies ?? []);
 
@@ -251,7 +244,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
   }
 
   private formatEquipmentBasic(equipment: any): EquipmentBasic {
-    const idStr = equipment._id ? equipment._id.toString() : (equipment.id || equipment.index || "");
+    const idStr = equipment._id.toString();
     return {
       id: idStr,
       name: equipment.name || "",
@@ -305,10 +298,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
   ): Promise<CharacterEquipmentApi> {
     const quantity = charEquipment.quantity ?? 1;
     const matched = dbEquipments.find(
-      e => (e._id && e._id.toString() === charEquipment.id) ||
-           (e._id && e._id.toString() === (charEquipment as any).index) ||
-           (e.index && e.index === (charEquipment as any).index) ||
-           (e.index && e.index === charEquipment.id)
+      e => e._id && e._id.toString() === charEquipment.id
     );
 
     if (matched) {
@@ -347,7 +337,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       };
     }
 
-    const idStr = charEquipment.id || (charEquipment as any).index || "";
+    const idStr = charEquipment.id || "";
     const weapon = await this.formatWeapon(charEquipment.weapon);
     const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(charEquipment.proficiencies ?? []);
     const content = await this.getCharacterEquipmentsByIds(charEquipment.content ?? []);
@@ -420,7 +410,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
             };
           } else {
             return {
-              id: option.id || (option as any).index,
+              id: option.id,
               quantity: option.quantity ?? 1
             };
           }
@@ -552,7 +542,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       .lean();
 
     return this.formatCharacterEquipments(
-      equipments.map(e => ({ id: e._id.toString(), index: e._id.toString(), quantity: 1 })),
+      equipments.map(e => ({ id: e._id.toString(), quantity: 1 })),
       equipments
     );
   }

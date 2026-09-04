@@ -126,8 +126,7 @@ export interface CharacterEquipmentMongo {
 }
 
 export interface EquipmentMongo {
-  _id?: ObjectId | string;
-  id?: string;
+  _id: ObjectId;
   ruleset?: string;
   name: string;
   description?: string | string[];
