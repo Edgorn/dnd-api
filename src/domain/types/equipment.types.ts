@@ -1,5 +1,6 @@
 import { ObjectId } from "mongoose";
 import { ChoiceApi } from ".";
+import { CoinApi } from "./coin.types";
 import { Property } from "./property.types";
 import { ProficiencyApi } from "./proficiencies.types";
 
@@ -100,6 +101,8 @@ export interface EquipmentCost {
   unit: string;
 }
 
+export type EquipmentCostApi = { quantity: number } & CoinApi;
+
 export interface CharacterEquipmentMongo {
   id?: string;
   quantity?: number;
@@ -156,7 +159,7 @@ export interface EquipmentApi {
   ruleset: string;
   name: string;
   description: string;
-  cost: EquipmentCost;
+  cost: EquipmentCostApi;
   weight: number;
   category: string;
   subcategory: string;
@@ -164,7 +167,7 @@ export interface EquipmentApi {
   storageTags?: string[];
   containerStats?: ContainerRules;
   proficiencies?: ProficiencyApi[];
-  content?: CharacterEquipmentApi[];
+  content?: EquipmentInstanceApi[];
   equipped?: boolean;
   weapon?: WeaponApi;
   armor?: ArmorMongo;
@@ -177,10 +180,14 @@ export interface EquipmentApi {
   deletedAt?: Date | null;
 }
 
-export interface CharacterEquipmentApi extends EquipmentApi {
+export interface EquipmentInstanceApi extends EquipmentApi {
   quantity: number;
   equipped?: boolean;
   isFavorite?: boolean;
+}
+
+export interface CharacterEquipmentApi extends EquipmentInstanceApi {
+  isProficient: boolean;
   attackBonus?: number;
   damageBonus?: number;
 }
@@ -195,7 +202,7 @@ export interface EquipmentOptionsMongo {
 export interface EquipmentChoiceApi {
   name: string;
   choose: number;
-  options: CharacterEquipmentApi[];
+  options: EquipmentInstanceApi[];
 }
 
 export type EquipmentChoiceFilter = Record<string, string | number | (string | number)[]>;
@@ -267,6 +274,7 @@ export interface InputCreateEquipment {
   containerStats?: ContainerRules | null;
   proficiencies?: string[] | null;
   weapon?: WeaponMongo | null;
+  content?: CharacterEquipmentMongo[];
 }
 
 export interface InputUpdateEquipment {
@@ -283,4 +291,5 @@ export interface InputUpdateEquipment {
   containerStats?: ContainerRules | null;
   proficiencies?: string[] | null;
   weapon?: WeaponMongo | null;
+  content?: CharacterEquipmentMongo[];
 }

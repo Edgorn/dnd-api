@@ -23,6 +23,17 @@ const router = Router();
  *           type: string
  *           description: ID de MongoDB de la moneda asociada (Coin).
  *           example: "60d0fe4f5311236168a109ca"
+ *     EquipmentCostApi:
+ *       allOf:
+ *         - $ref: '#/components/schemas/Coin'
+ *         - type: object
+ *           required:
+ *             - quantity
+ *           properties:
+ *             quantity:
+ *               type: number
+ *               description: Cantidad de monedas del coste del equipamiento.
+ *               example: 10
  *     LiquidVolumeDef:
  *       type: object
  *       required:
@@ -187,7 +198,7 @@ const router = Router();
  *           type: string
  *           description: Descripción detallada del objeto.
  *         cost:
- *           $ref: '#/components/schemas/EquipmentCost'
+ *           $ref: '#/components/schemas/EquipmentCostApi'
  *         weight:
  *           type: number
  *           description: Peso del objeto en libras o kilogramos.
@@ -215,7 +226,53 @@ const router = Router();
  *           description: Competencias requeridas para usar el equipamiento.
  *         weapon:
  *           $ref: '#/components/schemas/Weapon'
- *     CharacterEquipmentApi:
+ *         content:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentInstanceApi'
+ *           description: Objetos contenidos en el equipamiento (contenedores o packs).
+ *         armor:
+ *           type: object
+ *           description: Datos de armadura del equipamiento.
+ *           properties:
+ *             category:
+ *               type: string
+ *             class:
+ *               type: object
+ *               properties:
+ *                 base:
+ *                   type: number
+ *                 dex_bonus:
+ *                   type: number
+ *                 max_bonus:
+ *                   type: number
+ *             str_minimum:
+ *               type: number
+ *             stealth_disadvantage:
+ *               type: number
+ *         equipped:
+ *           type: boolean
+ *           description: Indica si el objeto está equipado.
+ *         isMagic:
+ *           type: boolean
+ *           description: Indica si el objeto es mágico.
+ *         isBond:
+ *           type: boolean
+ *           description: Indica si el objeto está vinculado por pacto.
+ *         bonuses:
+ *           type: object
+ *           description: Bonificaciones adicionales del equipamiento.
+ *           properties:
+ *             armor_class:
+ *               type: number
+ *             saving_throws:
+ *               type: number
+ *         deletedAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Fecha de borrado lógico, o null si está activo.
+ *     EquipmentInstanceApi:
  *       allOf:
  *         - $ref: '#/components/schemas/Equipment'
  *         - type: object
@@ -224,62 +281,26 @@ const router = Router();
  *           properties:
  *             quantity:
  *               type: number
- *               description: Cantidad de unidades de este equipamiento en el inventario del personaje.
- *             equipped:
- *               type: boolean
- *               description: Indica si el objeto está equipado.
- *             isMagic:
- *               type: boolean
- *               description: Indica si el objeto es mágico.
- *             isBond:
- *               type: boolean
- *               description: Indica si el objeto está vinculado por pacto.
+ *               description: Cantidad de unidades de este equipamiento.
  *             isFavorite:
  *               type: boolean
  *               description: Indica si el equipamiento está marcado como favorito.
+ *     CharacterEquipmentApi:
+ *       allOf:
+ *         - $ref: '#/components/schemas/EquipmentInstanceApi'
+ *         - type: object
+ *           required:
+ *             - isProficient
+ *           properties:
+ *             isProficient:
+ *               type: boolean
+ *               description: Indica si el personaje cumple las competencias requeridas por el equipamiento. Si el objeto no exige competencias, es true.
  *             attackBonus:
  *               type: number
  *               description: Bono de ataque calculado por el sistema. Solo presente en armas cuando el sistema define attackBonusFormula.
  *             damageBonus:
  *               type: number
  *               description: Bono de daño calculado por el sistema. Solo presente en armas cuando el sistema define damageBonusFormula.
- *             content:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/CharacterEquipmentApi'
- *               description: Objetos contenidos en el equipamiento (contenedores).
- *             armor:
- *               type: object
- *               description: Datos de armadura del equipamiento.
- *               properties:
- *                 category:
- *                   type: string
- *                 class:
- *                   type: object
- *                   properties:
- *                     base:
- *                       type: number
- *                     dex_bonus:
- *                       type: number
- *                     max_bonus:
- *                       type: number
- *                 str_minimum:
- *                   type: number
- *                 stealth_disadvantage:
- *                   type: number
- *             bonuses:
- *               type: object
- *               description: Bonificaciones adicionales del equipamiento.
- *               properties:
- *                 armor_class:
- *                   type: number
- *                 saving_throws:
- *                   type: number
- *             deletedAt:
- *               type: string
- *               format: date-time
- *               nullable: true
- *               description: Fecha de borrado lógico, o null si está activo.
  *     InputCreateEquipment:
  *       type: object
  *       required:
@@ -331,6 +352,20 @@ const router = Router();
  *           example: ["60d0fe4f5311236168a109cc"]
  *         weapon:
  *           $ref: '#/components/schemas/WeaponInput'
+ *         content:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: ID de MongoDB del equipamiento contenido.
+ *                 example: "60d0fe4f5311236168a109ca"
+ *               quantity:
+ *                 type: number
+ *                 description: Cantidad de unidades del objeto contenido.
+ *                 example: 1
+ *           description: Contenido inicial del equipamiento (packs o contenedores). Referencias por id y cantidad.
  *     InputUpdateEquipment:
  *       type: object
  *       properties:
@@ -375,6 +410,20 @@ const router = Router();
  *         weapon:
  *           $ref: '#/components/schemas/WeaponInput'
  *           nullable: true
+ *         content:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: ID de MongoDB del equipamiento contenido.
+ *                 example: "60d0fe4f5311236168a109ca"
+ *               quantity:
+ *                 type: number
+ *                 description: Cantidad de unidades del objeto contenido.
+ *                 example: 1
+ *           description: Contenido del equipamiento (packs o contenedores). Referencias por id y cantidad.
  */
 
 /**

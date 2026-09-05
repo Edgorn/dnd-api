@@ -4,7 +4,7 @@ import {
   InputCreateEquipment,
   InputUpdateEquipment,
   CharacterEquipmentMongo,
-  CharacterEquipmentApi,
+  EquipmentInstanceApi,
   EquipmentOptionsMongo,
   EquipmentChoiceApi,
   EquipmentChoiceMongo,
@@ -39,7 +39,7 @@ export default class EquipmentService {
     return this.equipmentRepository.restore(id);
   }
 
-  getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<CharacterEquipmentApi[] | undefined> {
+  getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<EquipmentInstanceApi[] | undefined> {
     return this.equipmentRepository.getCharacterEquipmentsByIds(equipments);
   }
 

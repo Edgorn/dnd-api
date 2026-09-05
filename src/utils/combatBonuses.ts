@@ -1,5 +1,8 @@
 import { CharacterAttributeApi } from "../domain/types/attribute.types";
-import { CharacterEquipmentApi } from "../domain/types/equipment.types";
+import {
+  CharacterEquipmentApi,
+  EquipmentInstanceApi,
+} from "../domain/types/equipment.types";
 import { ProficiencyApi } from "../domain/types/proficiencies.types";
 import { SystemRulesConfig } from "../domain/types/system.types";
 import { evaluateFormula } from "./formulaEvaluator";
@@ -10,7 +13,7 @@ import {
 } from "./weaponAttackAttributes";
 
 export interface EnrichEquipmentCombatBonusesInput {
-  equipment: CharacterEquipmentApi[];
+  equipment: EquipmentInstanceApi[];
   attributes: CharacterAttributeApi[];
   proficiencies: ProficiencyApi[];
   proficiencyBonus: number;
@@ -24,17 +27,22 @@ export interface EnrichEquipmentCombatBonusesInput {
   >;
 }
 
-function isWeaponProficient(
-  equipment: CharacterEquipmentApi,
+export function isEquipmentProficient(
+  equipment: EquipmentInstanceApi,
   proficiencies: ProficiencyApi[]
 ): boolean {
+  const required = equipment.proficiencies ?? [];
+  if (required.length === 0) {
+    return true;
+  }
+
   return proficiencies.some(proficiency =>
-    equipment.proficiencies?.some(equipmentProficiency => equipmentProficiency.id === proficiency.id)
+    required.some(equipmentProficiency => equipmentProficiency.id === proficiency.id)
   );
 }
 
 function buildWeaponContext(
-  equipment: CharacterEquipmentApi,
+  equipment: EquipmentInstanceApi,
   attributes: CharacterAttributeApi[],
   proficiencies: ProficiencyApi[],
   rules: Pick<SystemRulesConfig, "meleeAttackAttributes" | "rangedAttackAttributes">
@@ -50,7 +58,7 @@ function buildWeaponContext(
   return {
     attributeModifier: stats.attributeModifier,
     attributeValue: stats.attributeValue,
-    isProficient: isWeaponProficient(equipment, proficiencies) ? 1 : 0,
+    isProficient: isEquipmentProficient(equipment, proficiencies) ? 1 : 0,
     isMagic: equipment.isMagic ? 1 : 0,
     isRanged: isRangedWeapon(weapon) ? 1 : 0,
     isTwoHanded: weaponHasTwoHandedProperty(weapon) ? 1 : 0,
@@ -63,23 +71,27 @@ export function enrichEquipmentWithCombatBonuses(
 ): CharacterEquipmentApi[] {
   const { equipment, attributes, proficiencies, proficiencyBonus, level, rules } = input;
 
-  if (!rules.attackBonusFormula && !rules.damageBonusFormula) {
-    return equipment;
-  }
-
   const variables = {
     proficiencyBonus,
     level,
   };
 
+  const hasCombatFormulas = Boolean(rules.attackBonusFormula || rules.damageBonusFormula);
+
   return equipment.map(item => {
-    if (!item.weapon) {
-      return item;
+    const isProficient = isEquipmentProficient(item, proficiencies);
+    const enriched: CharacterEquipmentApi = {
+      ...item,
+      isProficient,
+    };
+
+    if (!hasCombatFormulas || !item.weapon) {
+      return enriched;
     }
 
     const weaponContext = buildWeaponContext(item, attributes, proficiencies, rules);
     if (!weaponContext) {
-      return item;
+      return enriched;
     }
 
     const attackBonus = rules.attackBonusFormula
@@ -91,7 +103,7 @@ export function enrichEquipmentWithCombatBonuses(
       : undefined;
 
     return {
-      ...item,
+      ...enriched,
       ...(attackBonus !== undefined ? { attackBonus } : {}),
       ...(damageBonus !== undefined ? { damageBonus } : {}),
     };

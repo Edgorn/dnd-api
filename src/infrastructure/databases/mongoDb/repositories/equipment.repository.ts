@@ -3,12 +3,15 @@ import ISystemRepository from "../../../../domain/repositories/ISystemRepository
 import IDamageRepository from "../../../../domain/repositories/IDamageRepository";
 import IPropertyRepository from "../../../../domain/repositories/IPropertyRepository";
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
+import ICoinRepository from "../../../../domain/repositories/ICoinRepository";
 import {
   EquipmentApi,
+  EquipmentCost,
+  EquipmentCostApi,
   InputCreateEquipment,
   InputUpdateEquipment,
   CharacterEquipmentMongo,
-  CharacterEquipmentApi,
+  EquipmentInstanceApi,
   EquipmentOptionsMongo,
   EquipmentChoiceApi,
   EquipmentChoiceMongo,
@@ -29,6 +32,7 @@ import EquipmentModel from "../schemas/Equipment";
 import DamageRepository from "./damage.repository";
 import PropertyRepository from "./property.repository";
 import ProficiencyRepository from "./proficiency.repository";
+import CoinRepository from "./coin.repository";
 import { ordenarPorNombre, ordenarPorFavoritoYNombre } from "../../../../utils/formatters";
 
 export default class EquipmentRepository implements IEquipmentRepository {
@@ -36,17 +40,20 @@ export default class EquipmentRepository implements IEquipmentRepository {
   private readonly damageRepository: IDamageRepository;
   private readonly propertyRepository: IPropertyRepository;
   private readonly proficiencyRepository: IProficiencyRepository;
+  private readonly coinRepository: ICoinRepository;
 
   constructor(
     systemRepository?: ISystemRepository,
     damageRepository?: IDamageRepository,
     propertyRepository?: IPropertyRepository,
-    proficiencyRepository?: IProficiencyRepository
+    proficiencyRepository?: IProficiencyRepository,
+    coinRepository?: ICoinRepository
   ) {
     this.systemRepository = systemRepository;
     this.damageRepository = damageRepository ?? new DamageRepository();
     this.propertyRepository = propertyRepository ?? new PropertyRepository();
     this.proficiencyRepository = proficiencyRepository ?? new ProficiencyRepository(systemRepository as any);
+    this.coinRepository = coinRepository ?? new CoinRepository(systemRepository);
   }
 
   async create(data: InputCreateEquipment): Promise<EquipmentApi> {
@@ -63,6 +70,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       containerStats: data.containerStats,
       proficiencies: data.proficiencies,
       weapon: data.weapon,
+      content: data.content,
       deletedAt: null
     });
 
@@ -122,7 +130,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     await EquipmentModel.updateMany({ ruleset, deletedAt }, { $set: { deletedAt: null } });
   }
 
-  async getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<CharacterEquipmentApi[] | undefined> {
+  async getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<EquipmentInstanceApi[] | undefined> {
     if (!equipments) return undefined;
     if (!equipments.length) return [];
 
@@ -210,28 +218,18 @@ export default class EquipmentRepository implements IEquipmentRepository {
       description = equipment.description;
     }
 
-    let costUnit = "";
-    if (equipment.cost?.unit) {
-      if (typeof equipment.cost.unit === "object" && equipment.cost.unit !== null && equipment.cost.unit._id) {
-        costUnit = equipment.cost.unit._id.toString();
-      } else {
-        costUnit = equipment.cost.unit.toString();
-      }
-    }
-
     const idStr = equipment._id.toString();
     const weapon = await this.formatWeapon(equipment.weapon);
     const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(equipment.proficiencies ?? []);
+    const content = (await this.getCharacterEquipmentsByIds(equipment.content ?? [])) ?? [];
+    const cost = await this.formatEquipmentCost(equipment.cost);
 
     return {
       id: idStr,
       ruleset: equipment.ruleset || "",
       name: equipment.name || "",
       description,
-      cost: {
-        quantity: equipment.cost?.quantity ?? 0,
-        unit: costUnit
-      },
+      cost,
       weight: equipment.weight ?? 0,
       category: equipment.category || "",
       subcategory: equipment.subcategory || "",
@@ -240,10 +238,49 @@ export default class EquipmentRepository implements IEquipmentRepository {
       containerStats: equipment.containerStats,
       isMagic: equipment.isMagic ?? false,
       proficiencies,
+      content,
       weapon,
       armor: equipment.armor,
       bonuses: equipment.bonuses,
       deletedAt: equipment.deletedAt ?? null
+    };
+  }
+
+  private async formatEquipmentCost(
+    cost?: EquipmentCost | { quantity?: number; unit?: unknown }
+  ): Promise<EquipmentCostApi> {
+    const quantity = cost?.quantity ?? 0;
+    let unitId = "";
+
+    if (cost?.unit) {
+      if (typeof cost.unit === "object" && cost.unit !== null && (cost.unit as { _id?: unknown })._id) {
+        unitId = String((cost.unit as { _id: unknown })._id);
+      } else {
+        unitId = String(cost.unit);
+      }
+    }
+
+    if (unitId) {
+      const coins = await this.coinRepository.getCoinsByIds([unitId]);
+      const coin = coins[0];
+      if (coin) {
+        return {
+          quantity,
+          ...coin
+        };
+      }
+    }
+
+    return {
+      quantity,
+      id: unitId,
+      ruleset: "",
+      name: "",
+      abbreviation: "",
+      isBase: false,
+      multiplier: 1,
+      weight: 0,
+      color: ""
     };
   }
 
@@ -271,7 +308,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
   private async formatCharacterEquipments(
     characterEquipments: CharacterEquipmentMongo[],
     dbEquipments: any[]
-  ): Promise<CharacterEquipmentApi[]> {
+  ): Promise<EquipmentInstanceApi[]> {
     return Promise.all(
       characterEquipments.map(charEq => this.formatCharacterEquipment(charEq, dbEquipments))
     );
@@ -299,7 +336,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
   private async formatCharacterEquipment(
     charEquipment: CharacterEquipmentMongo,
     dbEquipments: any[]
-  ): Promise<CharacterEquipmentApi> {
+  ): Promise<EquipmentInstanceApi> {
     const quantity = charEquipment.quantity ?? 1;
     const matched = dbEquipments.find(
       e => e._id && e._id.toString() === charEquipment.id
@@ -316,6 +353,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
       const customDesc = charEquipment.description
         ? this.formatCharacterDescription(charEquipment.description)
         : formattedEq.description;
+      const cost = charEquipment.cost
+        ? await this.formatEquipmentCost(charEquipment.cost)
+        : formattedEq.cost;
 
       return {
         ...formattedEq,
@@ -337,7 +377,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
         isBond: charEquipment.isBond ?? false,
         isFavorite: charEquipment.isFavorite ?? false,
         equipped: charEquipment.equipped ?? false,
-        cost: charEquipment.cost ?? formattedEq.cost
+        cost
       };
     }
 
@@ -345,6 +385,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     const weapon = await this.formatWeapon(charEquipment.weapon);
     const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(charEquipment.proficiencies ?? []);
     const content = await this.getCharacterEquipmentsByIds(charEquipment.content ?? []);
+    const cost = await this.formatEquipmentCost(charEquipment.cost);
 
     return {
       id: idStr,
@@ -353,7 +394,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       description: this.formatCharacterDescription(charEquipment.description),
       quantity,
       content: content ?? [],
-      cost: charEquipment.cost ?? { quantity: 0, unit: "" },
+      cost,
       weight: charEquipment.weight ?? 0,
       category: charEquipment.category ?? "",
       subcategory: charEquipment.subcategory ?? "",
@@ -589,7 +630,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     category: string,
     weaponCategory?: string,
     weaponRange?: string
-  ): Promise<CharacterEquipmentApi[]> {
+  ): Promise<EquipmentInstanceApi[]> {
     const query: any = { deletedAt: null };
 
     if (category) query.category = category;

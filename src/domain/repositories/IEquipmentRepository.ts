@@ -3,7 +3,7 @@ import {
   InputCreateEquipment,
   InputUpdateEquipment,
   CharacterEquipmentMongo,
-  CharacterEquipmentApi,
+  EquipmentInstanceApi,
   EquipmentOptionsMongo,
   EquipmentChoiceApi,
   EquipmentChoiceMongo,
@@ -20,7 +20,7 @@ export default interface IEquipmentRepository {
   restore(id: string): Promise<void>;
   softDeleteByRuleset?(ruleset: string, deletedAt: Date): Promise<void>;
   restoreByRuleset?(ruleset: string, deletedAt: Date): Promise<void>;
-  getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<CharacterEquipmentApi[] | undefined>;
+  getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<EquipmentInstanceApi[] | undefined>;
   formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined>;
   formatEquipmentItemChoices(choices: EquipmentChoiceMongo[] | undefined, ruleset?: string): Promise<ResolvedEquipmentChoiceApi[] | undefined>;
   getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]>;

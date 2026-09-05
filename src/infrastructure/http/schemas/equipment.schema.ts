@@ -117,7 +117,8 @@ export const CreateEquipmentSchema = z.object({
   storageTags: z.array(z.string()).nullable().optional(),
   containerStats: ContainerRulesSchema.nullable().optional(),
   proficiencies: z.array(z.string()).optional(),
-  weapon: WeaponSchema.nullable().optional()
+  weapon: WeaponSchema.nullable().optional(),
+  content: z.array(CharacterEquipmentSchema).optional()
 });
 
 export const UpdateEquipmentSchema = z.object({
@@ -132,7 +133,8 @@ export const UpdateEquipmentSchema = z.object({
   storageTags: z.array(z.string()).nullable().optional(),
   containerStats: ContainerRulesSchema.nullable().optional(),
   proficiencies: z.array(z.string()).optional(),
-  weapon: WeaponSchema.nullable().optional()
+  weapon: WeaponSchema.nullable().optional(),
+  content: z.array(CharacterEquipmentSchema).optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

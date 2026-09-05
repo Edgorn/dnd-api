@@ -1242,15 +1242,25 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const level =
       personaje.classes?.map(cl => cl.level).reduce((acc, value) => acc + value, 0) ?? 0;
 
-    const [equipment, apiAttributes, proficiencies, rulesConfig] = await Promise.all([
+    const [equipment, apiAttributes, baseProficiencies, traits, rulesConfig] = await Promise.all([
       this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment ?? []),
       this.attributeService.formatAttributes(
         this.calcularAttributes(personaje),
         personaje.systems ?? []
       ),
       this.proficiencyRepository.getProficienciesByIndices(personaje?.proficiencies ?? []),
+      this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data),
       this.systemRepository.getMergedRulesConfig(personaje.systems ?? []),
     ]);
+
+    const proficiencies = [
+      ...new Map(
+        [
+          ...baseProficiencies,
+          ...traits.flatMap(trait => trait.proficiencies ?? []),
+        ].map(item => [item.id, item])
+      ).values(),
+    ];
 
     return enrichEquipmentWithCombatBonuses({
       equipment: equipment ?? [],
