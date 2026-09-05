@@ -7,9 +7,10 @@ import {
   CharacterEquipmentApi,
   EquipmentOptionsMongo,
   EquipmentChoiceApi,
+  EquipmentChoiceMongo,
+  ResolvedEquipmentChoiceApi,
   EquipmentBasic
 } from "../types/equipment.types";
-import { ChoiceApi, ChoiceMongo } from "../types";
 
 export default class EquipmentService {
   constructor(private readonly equipmentRepository: IEquipmentRepository) { }
@@ -47,9 +48,9 @@ export default class EquipmentService {
   }
 
   formatEquipmentItemChoices(
-    choices: ChoiceMongo[] | undefined,
+    choices: EquipmentChoiceMongo[] | undefined,
     ruleset?: string
-  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+  ): Promise<ResolvedEquipmentChoiceApi[] | undefined> {
     return this.equipmentRepository.formatEquipmentItemChoices(choices, ruleset);
   }
 

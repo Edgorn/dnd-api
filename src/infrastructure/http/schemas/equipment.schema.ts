@@ -140,3 +140,49 @@ export const UpdateEquipmentSchema = z.object({
 export const EquipmentParamsSchema = z.object({
   id: z.string().regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB")
 });
+
+const EquipmentChoiceFilterSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])
+);
+
+const EquipmentChoiceBranchSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("item"),
+    id: z.string().min(1, "El id del equipamiento no puede estar vacío"),
+    quantity: z.number().int().min(1).optional()
+  }),
+  z.object({
+    type: z.literal("choice"),
+    choose: z.number().int().min(1, "Debe elegir al menos 1"),
+    options: z.array(z.string()).optional(),
+    filter: EquipmentChoiceFilterSchema.optional()
+  })
+]);
+
+/** Input schema for class/background equipment_choices (simple options/filter or nested alternatives). */
+export const EquipmentChoiceMongoSchema = z
+  .object({
+    choose: z.number().int().min(1, "Debe elegir al menos 1"),
+    options: z.array(z.string()).optional(),
+    filter: EquipmentChoiceFilterSchema.optional(),
+    alternatives: z.array(EquipmentChoiceBranchSchema).min(1).optional()
+  })
+  .superRefine((data, ctx) => {
+    const hasAlternatives = !!data.alternatives && data.alternatives.length > 0;
+    const hasSimple = !!(data.options?.length || data.filter);
+
+    if (hasAlternatives && hasSimple) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "No se pueden combinar alternatives con options/filter en la misma elección"
+      });
+    }
+
+    if (!hasAlternatives && !hasSimple) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Debe indicar options, filter o alternatives"
+      });
+    }
+  });

@@ -26,7 +26,7 @@ import {
   SubclassesOptionsMongoOption
 } from '../../../../domain/types/characterClass.types';
 import { DoteApi } from '../../../../domain/types/dotes.types';
-import { EquipmentApi, EquipmentOptionsMongo } from '../../../../domain/types/equipment.types';
+import { EquipmentApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from '../../../../domain/types/equipment.types';
 import { AttributeApi } from '../../../../domain/types/attribute.types';
 import mongoose from 'mongoose';
 import CharacterClassModel from '../schemas/CharacterClass';
@@ -440,7 +440,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   private async formatClassEquipmentChoices(
     rawChoices: unknown,
     ruleset: string
-  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+  ): Promise<ResolvedEquipmentChoiceApi[] | undefined> {
     if (!rawChoices || !Array.isArray(rawChoices) || rawChoices.length === 0) {
       return undefined;
     }
@@ -462,7 +462,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     }
 
     return this.equipmentRepository.formatEquipmentItemChoices(
-      rawChoices as ChoiceMongo[],
+      rawChoices as EquipmentChoiceMongo[],
       ruleset
     );
   }

@@ -120,16 +120,35 @@ const router = Router();
  *           description: Cantidad de objetos de equipamiento a seleccionar.
  *         options:
  *           type: array
+ *           description: Si query_type es options/filter/all, lista de Equipment. Si es mixed, lista de ramas (item o choice anidada).
  *           items:
- *             $ref: '#/components/schemas/Equipment'
- *           description: Lista de equipamiento completamente poblado disponible para elegir.
+ *             oneOf:
+ *               - $ref: '#/components/schemas/Equipment'
+ *               - $ref: '#/components/schemas/EquipmentChoiceBranchApi'
  *         query_type:
  *           type: string
- *           enum: [all, options, filter]
- *           description: Tipo de consulta usada originalmente para obtener las opciones.
+ *           enum: [all, options, filter, mixed]
+ *           description: Tipo de consulta. mixed indica alternativas heterogéneas (ítem concreto vs sub-elección).
  *         query_filter:
  *           $ref: '#/components/schemas/EquipmentChoiceFilter'
- *           description: Filtro aplicado si el query_type fue 'filter'. El ruleset del trasfondo se aplica automáticamente en servidor.
+ *           description: Filtro aplicado si el query_type fue 'filter'. El ruleset se aplica automáticamente en servidor.
+ *     EquipmentChoiceBranchApi:
+ *       type: object
+ *       required:
+ *         - type
+ *       properties:
+ *         type:
+ *           type: string
+ *           enum: [item, choice]
+ *           description: item = equipamiento concreto; choice = sub-elección (options o filter).
+ *         value:
+ *           description: Equipment si type=item; ChoiceApi de Equipment si type=choice.
+ *           oneOf:
+ *             - $ref: '#/components/schemas/Equipment'
+ *             - $ref: '#/components/schemas/EquipmentChoiceApi'
+ *         quantity:
+ *           type: number
+ *           description: Cantidad cuando type=item (por defecto 1).
  *     EquipmentChoiceFilter:
  *       type: object
  *       description: Criterios de filtrado dinámico de equipamiento. El ruleset del trasfondo se resuelve en servidor (con ancestros del sistema); no debe enviarse en el body.
@@ -164,10 +183,40 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *           description: Lista explícita de IDs de MongoDB de equipamiento disponibles para esta elección. Mutuamente excluyente con filter.
+ *           description: Lista explícita de IDs de MongoDB. Mutuamente excluyente con filter y alternatives.
  *         filter:
  *           $ref: '#/components/schemas/EquipmentChoiceFilter'
- *           description: Criterios de filtrado dinámico. Mutuamente excluyente con options.
+ *           description: Criterios de filtrado dinámico. Mutuamente excluyente con options y alternatives.
+ *         alternatives:
+ *           type: array
+ *           description: Ramas heterogéneas (ítem vs sub-elección). Mutuamente excluyente con options/filter. Ejemplo Mago, saquito o canalizador arcano.
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentChoiceBranchInput'
+ *     EquipmentChoiceBranchInput:
+ *       type: object
+ *       required:
+ *         - type
+ *       properties:
+ *         type:
+ *           type: string
+ *           enum: [item, choice]
+ *         id:
+ *           type: string
+ *           description: ID del equipamiento cuando type=item.
+ *         quantity:
+ *           type: number
+ *           description: Cantidad cuando type=item.
+ *         choose:
+ *           type: number
+ *           description: Cantidad a elegir cuando type=choice.
+ *         options:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs cuando type=choice (modo options).
+ *         filter:
+ *           $ref: '#/components/schemas/EquipmentChoiceFilter'
+ *           description: Filtro cuando type=choice (modo filter).
  *     BackgroundCharacterEquipment:
  *       allOf:
  *         - $ref: '#/components/schemas/Equipment'

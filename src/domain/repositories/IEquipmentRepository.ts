@@ -6,9 +6,10 @@ import {
   CharacterEquipmentApi,
   EquipmentOptionsMongo,
   EquipmentChoiceApi,
+  EquipmentChoiceMongo,
+  ResolvedEquipmentChoiceApi,
   EquipmentBasic
 } from "../types/equipment.types";
-import { ChoiceApi, ChoiceMongo } from "../types";
 
 export default interface IEquipmentRepository {
   create(data: InputCreateEquipment): Promise<EquipmentApi>;
@@ -21,7 +22,7 @@ export default interface IEquipmentRepository {
   restoreByRuleset?(ruleset: string, deletedAt: Date): Promise<void>;
   getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<CharacterEquipmentApi[] | undefined>;
   formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined>;
-  formatEquipmentItemChoices(choices: ChoiceMongo[] | undefined, ruleset?: string): Promise<ChoiceApi<EquipmentApi>[] | undefined>;
+  formatEquipmentItemChoices(choices: EquipmentChoiceMongo[] | undefined, ruleset?: string): Promise<ResolvedEquipmentChoiceApi[] | undefined>;
   getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]>;
   getWeapons(rulesets: string[]): Promise<EquipmentBasic[]>;
   getArmor(rulesets: string[]): Promise<EquipmentBasic[]>;

@@ -80,7 +80,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/EquipmentChoiceApi'
- *           description: Opciones de equipamiento inicial resueltas (formato de trasfondo).
+ *           description: Opciones de equipamiento inicial resueltas (options, filter o mixed con ramas item/choice).
  *         subclasesData:
  *           type: object
  *           description: Información de las subclases disponibles.

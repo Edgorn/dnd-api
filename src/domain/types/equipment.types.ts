@@ -1,4 +1,5 @@
 import { ObjectId } from "mongoose";
+import { ChoiceApi } from ".";
 import { Property } from "./property.types";
 import { ProficiencyApi } from "./proficiencies.types";
 
@@ -190,11 +191,49 @@ export interface EquipmentOptionsMongo {
   quantity: number;
 }
 
+/** Legacy formatted choice groups (starting_equipment_options path). */
 export interface EquipmentChoiceApi {
   name: string;
   choose: number;
   options: CharacterEquipmentApi[];
 }
+
+export type EquipmentChoiceFilter = Record<string, string | number | (string | number)[]>;
+
+/** Nested branch: concrete item or a nested flat choice (options/filter). */
+export type EquipmentChoiceBranchMongo =
+  | { type: "item"; id: string; quantity?: number }
+  | { type: "choice"; choose: number; options?: string[]; filter?: EquipmentChoiceFilter };
+
+/**
+ * Equipment choice stored on classes/backgrounds.
+ * Simple mode: options XOR filter (backward compatible).
+ * Nested mode: alternatives (item vs nested choice, e.g. pouch vs arcane focus subcategory).
+ */
+export interface EquipmentChoiceMongo {
+  choose: number;
+  options?: string[];
+  filter?: EquipmentChoiceFilter;
+  alternatives?: EquipmentChoiceBranchMongo[];
+}
+
+export type EquipmentChoiceBranchApi =
+  | { type: "item"; value: EquipmentApi; quantity?: number }
+  | { type: "choice"; value: ChoiceApi<EquipmentApi> };
+
+/** Resolved equipment choice for API responses (discriminated by query_type). */
+export type ResolvedEquipmentChoiceApi =
+  | {
+      choose: number;
+      query_type: "options" | "filter" | "all";
+      options: EquipmentApi[];
+      query_filter?: EquipmentChoiceFilter;
+    }
+  | {
+      choose: number;
+      query_type: "mixed";
+      options: EquipmentChoiceBranchApi[];
+    };
 
 export interface EquipmentBasic {
   id: string;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CharacterEquipmentSchema } from "./equipment.schema";
+import { CharacterEquipmentSchema, EquipmentChoiceMongoSchema } from "./equipment.schema";
 
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
@@ -13,7 +13,7 @@ const characterClassFields = {
   saving_throws: z.array(z.string().min(1)).optional(),
   skill_choices: ChoiceMongoSchema.nullable().optional(),
   equipment: z.array(CharacterEquipmentSchema).nullable().optional(),
-  equipment_choices: z.array(ChoiceMongoSchema).nullable().optional()
+  equipment_choices: z.array(EquipmentChoiceMongoSchema).nullable().optional()
 };
 
 export const CreateCharacterClassSchema = z.object({

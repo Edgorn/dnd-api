@@ -17,9 +17,9 @@ import {
   VariantApi,
   VariantMongo
 } from '../../../../domain/types/background.types';
-import { MixedChoicesApi, MixedChoicesMongo, ChoiceApi, ChoiceMongo } from '../../../../domain/types';
+import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
 import { CoinApi } from '../../../../domain/types/coin.types';
-import { EquipmentApi, EquipmentOptionsMongo } from '../../../../domain/types/equipment.types';
+import { EquipmentApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from '../../../../domain/types/equipment.types';
 import { NotFoundError } from '../../../../domain/errors/AppError';
 
 export default class BackgroundRepository implements IBackgroundRepository {
@@ -242,7 +242,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
   private async formatBackgroundEquipmentChoices(
     rawChoices: unknown,
     ruleset: string
-  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+  ): Promise<ResolvedEquipmentChoiceApi[] | undefined> {
     if (!rawChoices || !Array.isArray(rawChoices) || rawChoices.length === 0) {
       return undefined;
     }
@@ -262,7 +262,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
     }
 
     return this.equipmentRepository.formatEquipmentItemChoices(
-      rawChoices as ChoiceMongo[],
+      rawChoices as EquipmentChoiceMongo[],
       ruleset
     );
   }

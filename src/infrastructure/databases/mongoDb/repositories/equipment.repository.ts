@@ -11,6 +11,11 @@ import {
   CharacterEquipmentApi,
   EquipmentOptionsMongo,
   EquipmentChoiceApi,
+  EquipmentChoiceMongo,
+  EquipmentChoiceBranchMongo,
+  EquipmentChoiceBranchApi,
+  ResolvedEquipmentChoiceApi,
+  EquipmentChoiceFilter,
   EquipmentBasic,
   WeaponMongo,
   WeaponApi,
@@ -19,7 +24,6 @@ import {
   WeaponBasic,
   BODY_EQUIP_SLOTS
 } from "../../../../domain/types/equipment.types";
-import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
 import { NotFoundError } from "../../../../domain/errors/AppError";
 import EquipmentModel from "../schemas/Equipment";
 import DamageRepository from "./damage.repository";
@@ -82,7 +86,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
   }
 
   async getById(id: string): Promise<EquipmentApi | null> {
-    const equipment = await EquipmentModel.findOne({ _id: id }).lean();
+    const equipment = await EquipmentModel.findOne({ _id: id } as any).lean();
     if (!equipment) return null;
     return await this.formatEquipment(equipment);
   }
@@ -127,7 +131,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     const dbEquipments = await EquipmentModel.find({
       _id: { $in: objectIds }
-    }).lean();
+    } as any).lean();
 
     const formatted = await this.formatCharacterEquipments(equipments, dbEquipments);
     return ordenarPorFavoritoYNombre(formatted);
@@ -144,9 +148,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
   }
 
   async formatEquipmentItemChoices(
-    choices: ChoiceMongo[] | undefined,
+    choices: EquipmentChoiceMongo[] | undefined,
     ruleset?: string
-  ): Promise<ChoiceApi<EquipmentApi>[] | undefined> {
+  ): Promise<ResolvedEquipmentChoiceApi[] | undefined> {
     if (!choices) return undefined;
     return Promise.all(choices.map(choice => this.formatEquipmentItemChoice(choice, ruleset)));
   }
@@ -444,7 +448,62 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
-  private async formatEquipmentItemChoice(choice: ChoiceMongo, ruleset?: string): Promise<ChoiceApi<EquipmentApi>> {
+  private async formatEquipmentItemChoice(
+    choice: EquipmentChoiceMongo,
+    ruleset?: string
+  ): Promise<ResolvedEquipmentChoiceApi> {
+    if (choice.alternatives && choice.alternatives.length > 0) {
+      const branches = await Promise.all(
+        choice.alternatives.map(branch => this.formatEquipmentChoiceBranch(branch, ruleset))
+      );
+
+      return {
+        choose: choice.choose,
+        query_type: "mixed",
+        options: branches.filter((b): b is EquipmentChoiceBranchApi => b !== null)
+      };
+    }
+
+    return this.formatFlatEquipmentChoice(choice, ruleset);
+  }
+
+  private async formatEquipmentChoiceBranch(
+    branch: EquipmentChoiceBranchMongo,
+    ruleset?: string
+  ): Promise<EquipmentChoiceBranchApi | null> {
+    if (branch.type === "item") {
+      const equipment = await this.getById(branch.id);
+      if (!equipment) return null;
+      return {
+        type: "item",
+        value: equipment,
+        quantity: branch.quantity ?? 1
+      };
+    }
+
+    const nested = await this.formatFlatEquipmentChoice(
+      {
+        choose: branch.choose,
+        options: branch.options,
+        filter: branch.filter
+      },
+      ruleset
+    );
+
+    return {
+      type: "choice",
+      value: nested
+    };
+  }
+
+  private async formatFlatEquipmentChoice(
+    choice: {
+      choose: number;
+      options?: string[];
+      filter?: EquipmentChoiceFilter;
+    },
+    ruleset?: string
+  ): Promise<Extract<ResolvedEquipmentChoiceApi, { query_type: "options" | "filter" | "all" }>> {
     if (choice.options && Array.isArray(choice.options) && choice.options.length > 0) {
       const equipments = await this.getEquipmentsByIds(choice.options);
       return {
@@ -466,7 +525,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     return {
       choose: choice.choose,
-      options: []
+      options: [],
+      query_type: "options"
     };
   }
 
@@ -485,7 +545,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     const equipments = await EquipmentModel.find({
       _id: { $in: objectIds },
       deletedAt: null
-    }).lean();
+    } as any).lean();
 
     const formatted = await Promise.all(equipments.map(e => this.formatEquipment(e)));
     return ordenarPorNombre(formatted);

@@ -62,6 +62,51 @@ describe("CharacterClass Use Cases", () => {
       expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
     });
 
+    it("should create class with nested equipment alternatives (item vs subcategory filter)", async () => {
+      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.create.mockResolvedValue({ ...createdClass, name: "Mago" });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Mago",
+        hit_die: 6,
+        equipment_choices: [
+          {
+            choose: 1,
+            alternatives: [
+              { type: "item" as const, id: "507f1f77bcf86cd799439011", quantity: 1 },
+              {
+                type: "choice" as const,
+                choose: 1,
+                filter: { subcategory: "canalizador arcano" }
+              }
+            ]
+          }
+        ]
+      };
+
+      const result = await useCase.execute(input, "user1");
+
+      expect(result.name).toBe("Mago");
+      expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
+    it("should create class with filter-only equipment choice", async () => {
+      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.create.mockResolvedValue(createdClass);
+
+      const input = {
+        ruleset: "sys1",
+        name: "Guerrero",
+        equipment_choices: [{ choose: 1, filter: { category: "Arma", "weapon.category": "Martial" } }]
+      };
+
+      await useCase.execute(input, "user1");
+      expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
     it("should reject create when user is not the system publisher", async () => {
       const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "other" });
