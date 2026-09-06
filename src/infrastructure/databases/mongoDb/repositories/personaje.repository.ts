@@ -25,8 +25,9 @@ import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { deepMerge } from '../../../../utils/formatters';
 import { TraitApi } from '../../../../domain/types/traits.types';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
-import { CharacterAttributeApi } from '../../../../domain/types/attribute.types';
+import { CharacterAttributeApi, AttributeApi } from '../../../../domain/types/attribute.types';
 import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
+import { buildSpellcastingLevel } from '../../../../utils/characterSpellcasting';
 import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import ICoinRepository from '../../../../domain/repositories/ICoinRepository';
@@ -40,15 +41,7 @@ import {
   DEFAULT_PROFICIENCY_PROGRESSION,
   DEFAULT_XP_PROGRESSION,
 } from '../../../../utils/systemRulesMerge';
-
-const attributesLabels: any = {
-  str: 'Fuerza',
-  dex: 'Destreza',
-  con: 'Constitucion',
-  int: 'Inteligencia',
-  wis: 'Sabiduria',
-  cha: 'Carisma'
-}
+import { SpellcastingLevel } from '../../../../domain/types/characterClass.types';
 
 const nameTraits: any = {
   "totemic-spirit-bear": "Furia"
@@ -1000,7 +993,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const clases = personaje.classes
 
-    const spellcasting = (await this.claseRepository.spellcastingClases?.(
+    const spellcastingSources = (await this.claseRepository.spellcastingClases?.(
       personaje.classes.map(clase => {
         return {
           id: clase.class,
@@ -1009,11 +1002,40 @@ export default class PersonajeRepository implements IPersonajeRepository {
       })
     )) ?? []
 
+    const modifiedAttributes = this.calcularAttributes(personaje)
+    const apiAttributes: CharacterAttributeApi[] = await this.attributeService.formatAttributes(
+      modifiedAttributes,
+      personaje.systems ?? []
+    )
+
+    const systemAttributes = await this.attributeService.getBySystems(personaje.systems ?? [])
+    const attributesByKey = new Map(systemAttributes.map(attr => [attr.key, attr]))
+
+    const spellcasting: SpellcastingLevel[] = spellcastingSources
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .map(source => {
+        const ability = attributesByKey.get(source.abilityKey)
+        if (!ability) return null
+        return buildSpellcastingLevel(
+          source,
+          ability,
+          apiAttributes,
+          personaje.prof_bonus ?? 0
+        )
+      })
+      .filter((item): item is SpellcastingLevel => item !== null)
+
     const spells = { ...personaje.spells }
     const updatedSpells: Record<string, {
       list: SpellApi[],
-      type: string
+      type?: AttributeApi
     }> = {}
+
+    let raceSpellcastingAttr: AttributeApi | undefined
+    if (personaje.raceId && Object.keys(spells).includes("race")) {
+      const race = await this.raceRepository.obtenerPorId(personaje.raceId)
+      raceSpellcastingAttr = race?.spellcasting
+    }
 
     await Promise.all(
       Object.keys(spells).map(async groupSpells => {
@@ -1024,30 +1046,23 @@ export default class PersonajeRepository implements IPersonajeRepository {
         }
 
         const dataList = await this.spellRepository.getSpellsByIndexes(indices)
-        let type = ""
+        let type: AttributeApi | undefined
 
         if (groupSpells === "race") {
-          if (personaje.raceId) {
-            const race = await this.raceRepository.obtenerPorId(personaje.raceId)
-            if (race?.spellcasting) {
-              type = (race.spellcasting as any).key || race.spellcasting
-            }
-          }
+          type = raceSpellcastingAttr
         } else {
-          const classSpellcasting = spellcasting.find(item => item?.class === groupSpells)
+          const classSpellcasting = spellcasting.find(item => item.class === groupSpells)
           if (classSpellcasting?.ability) {
             type = classSpellcasting.ability
           } else {
             const claseData = await this.claseRepository.getById(groupSpells)
-            if (claseData?.spellcasting) {
-              type = claseData.spellcasting
-            }
+            type = claseData?.spellcasting
           }
         }
 
         updatedSpells[groupSpells] = {
           list: dataList,
-          type: attributesLabels[type] ?? ''
+          type
         }
       })
     )
@@ -1056,8 +1071,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ? await this.campaignReader.getById(personaje.campaign)
       : null;
     const dotes = await this.doteRepository.obtenerDotesPorIndices(personaje?.dotes ?? [])
-    const modifiedAttributes = this.calcularAttributes(personaje)
-    const apiAttributes: CharacterAttributeApi[] = await this.attributeService.formatAttributes(modifiedAttributes, personaje.systems ?? [])
 
     const initiativeBonusFormula = await this.systemRepository.getInitiativeBonusFormula(personaje.systems ?? []);
     let initiativeBonus = 0;
@@ -1154,7 +1167,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       money,
       spells: updatedSpells,
       maxCarryingCapacity,
-      spellcasting: spellcasting.filter(item => item !== null),
+      spellcasting,
       invocations,
       forms: forms
     }

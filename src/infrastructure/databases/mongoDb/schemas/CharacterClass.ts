@@ -29,7 +29,7 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
     mixed_spell_choices: {},
     spell_group: {},
     spell_changes: {},
-    spellcasting: {},
+    spellcasting: { type: Schema.Types.Mixed, default: undefined },
     subclasses_options: {},
     subclasses: {},
     double_skills: Number,
@@ -37,7 +37,9 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
     invocations: Number,
     invocations_change: Number,
   }],
-  spellcasting: String
+  spellcasting: { type: Schema.Types.ObjectId, ref: "attributes", default: null },
+  spellSaveDcFormula: { type: String, default: undefined },
+  spellAttackBonusFormula: { type: String, default: undefined }
 }, { collection: 'character_classes', timestamps: true });
 
 const CharacterClassModel = mongoose.model<CharacterClassMongo>("character_classes", characterClassSchema);

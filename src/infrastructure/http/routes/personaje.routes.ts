@@ -117,25 +117,29 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Spell'
- *           description: Lista de conjuros de ese nivel o grupo.
+ *           description: Lista de conjuros de ese grupo (raza o clase).
  *         type:
- *           type: string
- *           description: Tipo de lista de conjuros (ej. prepared, known).
+ *           $ref: '#/components/schemas/Attribute'
+ *           description: Característica de lanzamiento asociada a ese grupo de conjuros.
  *
  *     SpellcastingLevel:
  *       type: object
  *       properties:
  *         class:
  *           type: string
- *           description: ID o nombre de la clase de conjuro.
+ *           description: ID de la clase de personaje.
  *         ability:
- *           type: string
+ *           $ref: '#/components/schemas/Attribute'
  *           description: Característica usada para lanzar conjuros.
- *         spellcasting:
- *           type: object
- *           additionalProperties:
- *             type: number
- *           description: Ranuras de conjuro por nivel (clave = nivel, valor = cantidad).
+ *         slots:
+ *           $ref: '#/components/schemas/ClassSpellSlots'
+ *           description: Ranuras de conjuro y trucos del nivel actual de la clase.
+ *         spellSaveDc:
+ *           type: number
+ *           description: CD de salvación de conjuros evaluada para el personaje.
+ *         spellAttackBonus:
+ *           type: number
+ *           description: Modificador de ataque de conjuros evaluado para el personaje.
  *
  *     Invocacion:
  *       type: object

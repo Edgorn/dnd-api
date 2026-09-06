@@ -1,4 +1,5 @@
 const ALLOWED_ATTRIBUTE_TOKEN = /@attributes\.\w+\.(modifier|value)/g;
+const ALLOWED_SPELLCASTING_TOKEN = /@spellcasting\.(modifier|value)/g;
 const ALLOWED_CLASS_TOKEN = /@class\.\w+/g;
 const ALLOWED_SKILL_TOKEN = /@skills\.(\{skillName\}|[\w-]+)\.totalModifier/g;
 const ALLOWED_WEAPON_TOKEN =
@@ -41,6 +42,7 @@ export function validateSystemFormula(
   let sanitized = formula;
 
   sanitized = sanitized.replace(ALLOWED_ATTRIBUTE_TOKEN, "0");
+  sanitized = sanitized.replace(ALLOWED_SPELLCASTING_TOKEN, "0");
   sanitized = sanitized.replace(ALLOWED_CLASS_TOKEN, "0");
 
   if (options?.allowSkillNamePlaceholder) {

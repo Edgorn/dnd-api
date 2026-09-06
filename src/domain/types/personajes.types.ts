@@ -11,7 +11,7 @@ import { EstadoApi } from "./estados.types"
 import { SpellcastingLevel } from "./characterClass.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { CriaturaApi } from "./criaturas.types"
-import { CharacterAttributeApi } from "./attribute.types"
+import { CharacterAttributeApi, AttributeApi } from "./attribute.types"
 import { Ideal } from "./background.types"
 import { CoinApi } from "./coin.types"
 
@@ -289,7 +289,7 @@ export interface PersonajeApi {
   money: ({
     quantity: number;
   } & CoinApi)[],
-  spells: Record<string, { list: SpellApi[]; type: string; }>,
+  spells: Record<string, { list: SpellApi[]; type?: AttributeApi }>,
   maxCarryingCapacity: number,
   spellcasting?: SpellcastingLevel[],
   invocations?: InvocacionApi[],

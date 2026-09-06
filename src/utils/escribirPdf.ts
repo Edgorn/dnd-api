@@ -590,8 +590,12 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
     if (!checkSpells[spell.level]) {
       checkSpells[spell.level] = 0
     }
- 
-    form.getTextField(spellsList[spell.level][checkSpells[spell.level]]).setText(spell.name + ' (' + personaje?.spells.race.type + ')');
+
+    const raceAbilityLabel = personaje?.spells?.race?.type?.name
+      ?? personaje?.spells?.race?.type?.abbreviation
+      ?? ''
+    const raceSuffix = raceAbilityLabel ? ` (${raceAbilityLabel})` : ''
+    form.getTextField(spellsList[spell.level][checkSpells[spell.level]]).setText(spell.name + raceSuffix);
 
     checkSpells[spell.level]++
   })
@@ -612,11 +616,20 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
       form.getDropdown('SpellClass').addOptions([clas.name]);
       form.getDropdown('SpellClass').select(clas.name);
 
-      form.getDropdown('SpellAbility').addOptions([abilities[spellcastingClas.ability] ?? '']);
-      form.getDropdown('SpellAbility').select(abilities[spellcastingClas.ability] ?? '');
+      const abilityKey = spellcastingClas.ability.key
+      const abilityLabel = abilities[abilityKey]
+        ?? spellcastingClas.ability.name
+        ?? ''
+      form.getDropdown('SpellAbility').addOptions([abilityLabel]);
+      form.getDropdown('SpellAbility').select(abilityLabel);
 
-      form.getTextField('SpellSaveDC').setText((8 + calcularAtaque(personaje, spellcastingClas.ability)) + '');
-      form.getTextField('SAB').setText(formatNumber(calcularAtaque(personaje, spellcastingClas.ability)) + '');
+      const spellAttack = spellcastingClas.spellAttackBonus
+        ?? calcularAtaque(personaje, abilityKey)
+      const spellSaveDc = spellcastingClas.spellSaveDc
+        ?? (8 + spellAttack)
+
+      form.getTextField('SpellSaveDC').setText(spellSaveDc + '');
+      form.getTextField('SAB').setText(formatNumber(spellAttack) + '');
 
       Array.from({ length: 10 }).forEach((_, index) => {
         if (!checkSpells[index]) {
@@ -651,98 +664,10 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
         })
 
         if (index !== 0) {
-          if (clas.class === 'warlock') {
-            if (spellcastingClas?.spellcasting?.spell_level === index) {
-              form.getTextField('SlotsTot' + (index)).setText('' + spellcastingClas?.spellcasting?.spell_slots)
-            } else {
-              form.getTextField('SlotsTot' + (index)).setText('0')
-            }
-          } else {
-            const slots = spellcastingClas?.spellcasting ? spellcastingClas?.spellcasting["slots_level_" + index] : 0
-
-            if (slots) {
-              form.getTextField('SlotsTot' + (index)).setText('' + slots)
-            } else {
-              form.getTextField('SlotsTot' + (index)).setText('0')
-            }
-          }
+          const slots = spellcastingClas.slots?.slots?.[String(index)] ?? 0
+          form.getTextField('SlotsTot' + (index)).setText('' + (slots || 0))
         }
       })
     }
   })
-
-  /*
-    Object.keys(spells).forEach(clas => {
-      if (clas !== 'race') {
-        const claseName = personaje.classes.find(c => c.class === clas)?.name ?? ''
-        const claseSpells = spells[clas]
-        const listSpellsAux = [...claseSpells?.list ?? []]
-  
-        if (claseName && claseSpells?.spellcasting) {
-  
-          personaje.subclasses?.forEach((sub: string) => {
-            listSpellsAux?.push(...spells[clas + '_' + sub]?.list ?? [])
-          }) 
-  
-          form.getDropdown('SpellClass').addOptions([claseName]);
-          form.getDropdown('SpellClass').select(claseName);
-        
-          form.getDropdown('SpellAbility').addOptions([abilities[claseSpells.spellcasting] ?? '']);
-          form.getDropdown('SpellAbility').select(abilities[claseSpells.spellcasting] ?? '');
-          
-          form.getTextField('SpellSaveDC').setText((8 + calcularAtaque(personaje, claseSpells.spellcasting)) + '');
-          form.getTextField('SAB').setText(formatNumber(calcularAtaque(personaje, claseSpells.spellcasting)) + '');
-   
-          Array.from({ length: 10 }).forEach((_, index) => {
-            if (!checkSpells[index]) {
-              checkSpells[index] = 0
-            }
-  
-            const listSpells = listSpellsAux
-              ?.sort((a: any, b: any) => {
-                return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-              })
-              ?.filter((spell: any) => spell.level === index)
-              ?.filter((obj, idx, self) =>
-                idx === self.findIndex((item) => item.index === obj.index)
-              );
-    
-            listSpells?.filter((spell: any) => spell.level === index).forEach((spell: any, index2: number) => {
-              if (!spellsList[index][checkSpells[index]]) {
-                checkSpells[index] = 0
-              }
-              const valor = form.getTextField(spellsList[index][checkSpells[index]]).getText() ?? ''
-      
-              const name = personaje?.name === 'Kohlembart Holimion' ? (nombres[spell.name] ?? spell.name) : spell.name
-  
-              form.getTextField(spellsList[index][checkSpells[index]]).setText(valor ? (valor + ', ' + name) : name);
-              checkSpells[index]++ 
-            })
-          })
-   
-          Array.from({ length: 9 }).forEach((_, index) => {
-            if (clas === 'warlock') {
-              if (index + 1 !== claseSpells.level) {
-                form.getTextField('SlotsTot' + (index + 1)).setText('0')
-              } else {
-                form.getTextField('SlotsTot' + (index + 1)).setText(claseSpells.slots + '')
-              }
-            } else {
-              form.getTextField('SlotsTot' + (index + 1)).setText(claseSpells['slots_level_' + (index + 1)] + '')
-            }
-          }) 
-        /*
-          if (claseSpells.level) {
-            const totalSlots = form.getTextField('SlotsTot' + claseSpells.level);
-            if (totalSlots) {
-              totalSlots.setText(String(claseSpells.slots));
-            } else {
-              console.warn(`No se encontró el campo de formulario: SlotsTot${claseSpells.level}`);
-            }
-          } else {
-            console.error("Error: 'claseSpells.level' es undefined o null");
-          }*//*
-}
-}
-})*/
 }

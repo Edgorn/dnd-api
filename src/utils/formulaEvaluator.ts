@@ -6,6 +6,8 @@ export interface FormulaEvaluationContext {
   variables?: Record<string, number | string>;
   classVariables?: Record<string, number>;
   skills?: SkillPersonajeApi[];
+  /** Attribute used as the character/class spellcasting ability. */
+  spellcastingAttribute?: Pick<CharacterAttributeApi, "modifier" | "value">;
 }
 
 export interface WeaponFormulaContext {
@@ -23,6 +25,17 @@ const ALLOWED_EVALUATED_CHARS = /^[0-9+\-*/().\s?:<>=!&|maxin]+$/;
 function replaceClassTokens(formula: string, classVariables?: Record<string, number>): string {
   return formula.replace(/@class\.(\w+)/g, (_match, prop: string) => {
     const val = classVariables?.[prop];
+    return val !== undefined ? String(val) : "0";
+  });
+}
+
+function replaceSpellcastingTokens(
+  formula: string,
+  spellcastingAttribute?: Pick<CharacterAttributeApi, "modifier" | "value">
+): string {
+  return formula.replace(/@spellcasting\.(modifier|value)/g, (_match, prop: string) => {
+    if (!spellcastingAttribute) return "0";
+    const val = spellcastingAttribute[prop as "modifier" | "value"];
     return val !== undefined ? String(val) : "0";
   });
 }
@@ -104,12 +117,14 @@ export function evaluateFormula(
     classVariables?: Record<string, number>;
     skills?: SkillPersonajeApi[];
     weapon?: WeaponFormulaContext;
+    spellcastingAttribute?: Pick<CharacterAttributeApi, "modifier" | "value">;
   }
 ): number {
   if (!formula) return 0;
 
   let evaluatedFormula = formula;
   evaluatedFormula = replaceAttributeTokens(evaluatedFormula, attributes);
+  evaluatedFormula = replaceSpellcastingTokens(evaluatedFormula, options?.spellcastingAttribute);
   evaluatedFormula = replaceClassTokens(evaluatedFormula, options?.classVariables);
   evaluatedFormula = replaceSkillTokens(evaluatedFormula, options?.skills);
   evaluatedFormula = replaceWeaponTokens(evaluatedFormula, options?.weapon);
@@ -136,6 +151,7 @@ export function evaluatePassiveSkillFormula(
     {
       classVariables: context.classVariables,
       skills: context.skills,
+      spellcastingAttribute: context.spellcastingAttribute,
     }
   );
 }

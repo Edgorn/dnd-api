@@ -12,12 +12,15 @@ import AttributeService from '../../../../domain/services/attribute.service';
 import { ChoiceApi, ChoiceMongo } from '../../../../domain/types';
 import {
   CharacterClassApi,
+  CharacterClassLevelInput,
   CharacterClassLevelMongo,
   CharacterClassMongo,
+  ClassSpellSlots,
   ClaseLevelUp,
   InputCreateCharacterClass,
   InputUpdateCharacterClass,
-  SpellcastingLevel,
+  Spellcasting,
+  SpellcastingLevelSource,
   SubclassApi,
   SubclassMongo,
   SubclassOptionApi,
@@ -82,33 +85,47 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       saving_throws: data.saving_throws ?? [],
       skill_choices: data.skill_choices ?? undefined,
       equipment: data.equipment ?? [],
-      equipment_choices: data.equipment_choices ?? undefined
+      equipment_choices: data.equipment_choices ?? undefined,
+      spellcasting: data.spellcasting ?? null,
+      spellSaveDcFormula: data.spellSaveDcFormula,
+      spellAttackBonusFormula: data.spellAttackBonusFormula,
+      levels: this.mapLevelsForCreate(data.levels)
     });
 
     await newClass.save();
-    return this.formatearClase(newClass);
+    return this.formatearClase(newClass.toObject() as CharacterClassMongo);
   }
 
   async update(data: InputUpdateCharacterClass): Promise<CharacterClassApi> {
-    const { id, ...updateFields } = data;
+    const { id, levels, ...updateFields } = data;
 
     if (updateFields.equipment_choices === null) {
-      updateFields.equipment_choices = [];
+      (updateFields as Record<string, unknown>).equipment_choices = [];
     }
 
     if (updateFields.equipment === null) {
-      updateFields.equipment = [];
+      (updateFields as Record<string, unknown>).equipment = [];
     }
 
     if (updateFields.skill_choices === null) {
-      updateFields.skill_choices = undefined;
+      (updateFields as Record<string, unknown>).skill_choices = undefined;
+    }
+
+    const setFields: Record<string, unknown> = { ...updateFields };
+
+    if (levels !== undefined) {
+      const existing = await CharacterClassModel.findById(id).lean<CharacterClassMongo>();
+      if (!existing) {
+        throw new NotFoundError(`No se encontró la clase con id: ${id}`);
+      }
+      setFields.levels = this.mergeLevels(existing.levels ?? [], levels);
     }
 
     const updatedClass = await CharacterClassModel.findByIdAndUpdate(
       id,
-      { $set: updateFields },
+      { $set: setFields },
       { returnDocument: 'after' }
-    );
+    ).lean<CharacterClassMongo>();
 
     if (!updatedClass) {
       throw new NotFoundError(`No se encontró la clase con id: ${id}`);
@@ -250,7 +267,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     };
   }
 
-  async spellcastingClases(clases: { id: string, level: number }[]): Promise<(SpellcastingLevel | null)[]> {
+  async spellcastingClases(clases: { id: string, level: number }[]): Promise<(SpellcastingLevelSource | null)[]> {
     const validObjectIds = clases
       .map(clase => clase.id)
       .filter(id => mongoose.Types.ObjectId.isValid(id));
@@ -262,19 +279,23 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     return Promise.all(clasesData.map(clase => this.spellcastingClase(clase, clases)));
   }
 
-  private async spellcastingClase(clase: CharacterClassMongo, clasesLevel: { id: string, level: number }[]): Promise<SpellcastingLevel | null> {
+  private async spellcastingClase(clase: CharacterClassMongo, clasesLevel: { id: string, level: number }[]): Promise<SpellcastingLevelSource | null> {
     const level = clasesLevel.find(clas => clas.id === clase._id?.toString())?.level;
 
     if (!level) return null;
 
-    const spellcasting = clase.levels?.find(lev => lev.level === level)?.spellcasting;
+    const rawSpellcasting = clase.levels?.find(lev => lev.level === level)?.spellcasting;
 
-    if (!spellcasting) return null;
+    if (!rawSpellcasting) return null;
+
+    const abilityKey = await this.resolveSpellcastingAbilityKey(clase.spellcasting, clase.ruleset || "");
 
     return {
       class: clase._id?.toString() || '',
-      ability: clase.spellcasting || '',
-      spellcasting
+      abilityKey,
+      slots: this.toClassSpellSlots(rawSpellcasting),
+      spellSaveDcFormula: clase.spellSaveDcFormula,
+      spellAttackBonusFormula: clase.spellAttackBonusFormula
     };
   }
 
@@ -296,7 +317,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spell_choices,
       equipment,
       equipment_choices,
-      saving_throws
+      saving_throws,
+      spellcasting
     ] = await Promise.all([
       this.traitRepository ? this.traitRepository.getTraitsByIndexes(dataLevel?.traits ?? [], dataLevel?.traits_data) : [],
       this.proficiencyRepository ? this.proficiencyRepository.getProficienciesByIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]) : [],
@@ -306,7 +328,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       this.spellRepository ? this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined,
       this.equipmentRepository ? this.equipmentRepository.getCharacterEquipmentsByIds(clase?.equipment) : [],
       this.formatClassEquipmentChoices(clase?.equipment_choices, clase.ruleset || ""),
-      this.formatSavingThrows(clase.saving_throws ?? [], clase.ruleset || "")
+      this.formatSavingThrows(clase.saving_throws ?? [], clase.ruleset || ""),
+      this.formatSpellcastingAttribute(clase.spellcasting, clase.ruleset || "")
     ]);
 
     const subclasesData = await this.formatearSubclaseType(dataLevel?.subclasses_options, dataLevel?.subclasses);
@@ -319,7 +342,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       hit_die: clase.hit_die ?? 8,
       img: clase.img || "",
       prof_bonus: 2,
-      spellcasting: clase.spellcasting,
+      spellcasting,
+      spellSaveDcFormula: clase.spellSaveDcFormula,
+      spellAttackBonusFormula: clase.spellAttackBonusFormula,
+      levels: this.toSlimLevels(clase.levels ?? []),
       proficiencies,
       proficiencies_choices,
       saving_throws,
@@ -429,6 +455,128 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spell_choices,
       language_choices: languagesOptions
     };
+  }
+
+  private mapLevelsForCreate(levels?: CharacterClassLevelInput[]): CharacterClassLevelMongo[] {
+    if (!levels?.length) return [];
+
+    return levels.map(level => ({
+      level: level.level,
+      proficiencies: [],
+      traits: [],
+      traits_data: {},
+      spellcasting: level.spellcasting
+    }));
+  }
+
+  private mergeLevels(
+    existing: CharacterClassLevelMongo[],
+    incoming: CharacterClassLevelInput[]
+  ): CharacterClassLevelMongo[] {
+    const byLevel = new Map<number, CharacterClassLevelMongo>();
+
+    for (const row of existing) {
+      byLevel.set(row.level, { ...row });
+    }
+
+    for (const row of incoming) {
+      const current = byLevel.get(row.level);
+      if (current) {
+        byLevel.set(row.level, {
+          ...current,
+          spellcasting: row.spellcasting
+        });
+      } else {
+        byLevel.set(row.level, {
+          level: row.level,
+          proficiencies: [],
+          traits: [],
+          traits_data: {},
+          spellcasting: row.spellcasting
+        });
+      }
+    }
+
+    return Array.from(byLevel.values()).sort((a, b) => a.level - b.level);
+  }
+
+  private isClassSpellSlots(value: ClassSpellSlots | Spellcasting): value is ClassSpellSlots {
+    if (!value || typeof value !== "object") return false;
+    const keys = Object.keys(value);
+    if (keys.length === 0) return true;
+    return keys.every(key => key === "cantrips" || key === "slots");
+  }
+
+  private toSlimLevels(levels: CharacterClassLevelMongo[]): CharacterClassLevelInput[] {
+    return levels
+      .map(level => {
+        const slim: CharacterClassLevelInput = { level: level.level };
+        if (!level.spellcasting) return slim;
+
+        if (this.isClassSpellSlots(level.spellcasting)) {
+          slim.spellcasting = level.spellcasting;
+        } else {
+          slim.spellcasting = this.legacyBagToClassSpellSlots(level.spellcasting);
+        }
+        return slim;
+      })
+      .sort((a, b) => a.level - b.level);
+  }
+
+  private legacyBagToClassSpellSlots(bag: Spellcasting): ClassSpellSlots {
+    const slots: Record<string, number> = {};
+    let cantrips: number | undefined;
+
+    for (const [key, value] of Object.entries(bag)) {
+      if (value === undefined) continue;
+      if (key === "cantrips") {
+        cantrips = value;
+        continue;
+      }
+      const match = key.match(/^slots_level_(\d+)$/);
+      if (match) {
+        slots[match[1]] = value;
+      }
+    }
+
+    const result: ClassSpellSlots = {};
+    if (cantrips !== undefined) result.cantrips = cantrips;
+    if (Object.keys(slots).length > 0) result.slots = slots;
+    return result;
+  }
+
+  private toClassSpellSlots(raw: ClassSpellSlots | Spellcasting): ClassSpellSlots {
+    if (this.isClassSpellSlots(raw)) {
+      return raw;
+    }
+    return this.legacyBagToClassSpellSlots(raw);
+  }
+
+  private async formatSpellcastingAttribute(
+    spellcasting: CharacterClassMongo["spellcasting"],
+    ruleset: string
+  ): Promise<AttributeApi | undefined> {
+    if (!spellcasting || !this.attributeService) return undefined;
+
+    const raw = spellcasting.toString();
+    if (/^[a-fA-F0-9]{24}$/.test(raw)) {
+      const byId = await this.attributeService.getById(raw);
+      if (byId) return byId;
+    }
+
+    if (!ruleset) return undefined;
+    const attributes = await this.attributeService.getBySystems([ruleset]);
+    return attributes.find(attr => attr.key === raw);
+  }
+
+  private async resolveSpellcastingAbilityKey(
+    spellcasting: CharacterClassMongo["spellcasting"],
+    ruleset: string
+  ): Promise<string> {
+    if (!spellcasting) return "";
+    const attr = await this.formatSpellcastingAttribute(spellcasting, ruleset);
+    if (attr?.key) return attr.key;
+    return spellcasting.toString();
   }
 
   private async formatSavingThrows(keys: string[], ruleset: string): Promise<AttributeApi[]> {

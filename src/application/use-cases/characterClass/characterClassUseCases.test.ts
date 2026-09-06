@@ -62,6 +62,36 @@ describe("CharacterClass Use Cases", () => {
       expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
     });
 
+    it("should create class with spellcasting attribute, formulas and spell slot levels", async () => {
+      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.create.mockResolvedValue({
+        ...createdClass,
+        name: "Mago",
+        spellSaveDcFormula: "8 + @proficiencyBonus + @spellcasting.modifier",
+        spellAttackBonusFormula: "@proficiencyBonus + @spellcasting.modifier",
+        levels: [{ level: 1, spellcasting: { cantrips: 3, slots: { "1": 2 } } }]
+      });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Mago",
+        hit_die: 6,
+        spellcasting: "507f1f77bcf86cd799439011",
+        spellSaveDcFormula: "8 + @proficiencyBonus + @spellcasting.modifier",
+        spellAttackBonusFormula: "@proficiencyBonus + @spellcasting.modifier",
+        levels: [
+          { level: 1, spellcasting: { cantrips: 3, slots: { "1": 2 } } },
+          { level: 2, spellcasting: { cantrips: 3, slots: { "1": 3 } } }
+        ]
+      };
+
+      const result = await useCase.execute(input, "user1");
+
+      expect(result.name).toBe("Mago");
+      expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
     it("should create class with nested equipment alternatives (item vs subcategory filter)", async () => {
       const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
@@ -129,7 +159,10 @@ describe("CharacterClass Use Cases", () => {
         id: "class1",
         hit_die: 12,
         saving_throws: ["dex"],
-        equipment: null
+        equipment: null,
+        spellcasting: "507f1f77bcf86cd799439011",
+        spellSaveDcFormula: "8 + @proficiencyBonus + @spellcasting.modifier",
+        levels: [{ level: 1, spellcasting: { cantrips: 2, slots: { "1": 2 } } }]
       };
 
       const result = await useCase.execute(input, "user1");

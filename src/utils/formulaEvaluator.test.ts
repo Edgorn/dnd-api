@@ -38,6 +38,15 @@ describe("formulaValidation", () => {
     expect(validateSystemFormula("10 + @skills.animal-handling.totalModifier")).toBeUndefined();
   });
 
+  it("accepts spellcasting formulas", () => {
+    expect(
+      validateSystemFormula("8 + @proficiencyBonus + @spellcasting.modifier")
+    ).toBeUndefined();
+    expect(
+      validateSystemFormula("@proficiencyBonus + @spellcasting.value")
+    ).toBeUndefined();
+  });
+
   it("rejects invalid tokens", () => {
     expect(validateSystemFormula("@unknown.token")).toBeDefined();
     expect(validateSystemFormula("10 + @skills.{skillName}.totalModifier")).toBeDefined();
@@ -76,6 +85,26 @@ describe("formulaEvaluator", () => {
       { classVariables: { hitDie: 8 } }
     );
     expect(result).toBe(10);
+  });
+
+  it("evaluates spell save DC and attack formulas with @spellcasting", () => {
+    const spellcasting = { value: 16, modifier: 3 };
+    expect(
+      evaluateFormula(
+        "8 + @proficiencyBonus + @spellcasting.modifier",
+        sampleAttributes,
+        { proficiencyBonus: 2 },
+        { spellcastingAttribute: spellcasting }
+      )
+    ).toBe(13);
+    expect(
+      evaluateFormula(
+        "@proficiencyBonus + @spellcasting.modifier",
+        sampleAttributes,
+        { proficiencyBonus: 2 },
+        { spellcastingAttribute: spellcasting }
+      )
+    ).toBe(5);
   });
 
   it("evaluates hp level-up formula with @class.hitDie as rolled increase", () => {

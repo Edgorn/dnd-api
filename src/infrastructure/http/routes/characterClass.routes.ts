@@ -81,6 +81,26 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/EquipmentChoiceApi'
  *           description: Opciones de equipamiento inicial resueltas (options, filter o mixed con ramas item/choice).
+ *         spellcasting:
+ *           $ref: '#/components/schemas/Attribute'
+ *           description: Característica principal para lanzar conjuros de la clase (atributo hidratado).
+ *         spellSaveDcFormula:
+ *           type: string
+ *           description: >
+ *             Fórmula de CD de salvación de conjuros.
+ *             Tokens permitidos incluyen `@spellcasting.modifier`, `@spellcasting.value`,
+ *             `@proficiencyBonus` y `@attributes.{key}.modifier`.
+ *             Ejemplo: 8 + @proficiencyBonus + @spellcasting.modifier
+ *         spellAttackBonusFormula:
+ *           type: string
+ *           description: >
+ *             Fórmula del modificador de ataque de conjuros.
+ *             Ejemplo: @proficiencyBonus + @spellcasting.modifier
+ *         levels:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterClassLevelInput'
+ *           description: Niveles slim para el editor (solo level y ranuras de conjuro).
  *         subclasesData:
  *           type: object
  *           description: Información de las subclases disponibles.
@@ -89,6 +109,31 @@ const router = Router();
  *           format: date-time
  *           nullable: true
  *           description: Fecha de borrado lógico.
+ *     ClassSpellSlots:
+ *       type: object
+ *       properties:
+ *         cantrips:
+ *           type: integer
+ *           minimum: 0
+ *           description: Número de trucos conocidos a ese nivel.
+ *         slots:
+ *           type: object
+ *           additionalProperties:
+ *             type: integer
+ *             minimum: 0
+ *           description: Ranuras por nivel de conjuro (clave "1".."9", valor = cantidad).
+ *     CharacterClassLevelInput:
+ *       type: object
+ *       required:
+ *         - level
+ *       properties:
+ *         level:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nivel de clase.
+ *         spellcasting:
+ *           $ref: '#/components/schemas/ClassSpellSlots'
+ *           description: Tabla de ranuras / trucos de ese nivel.
  *     InputCreateCharacterClass:
  *       type: object
  *       required:
@@ -137,6 +182,21 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
  *           description: Opciones de equipamiento inicial.
+ *         spellcasting:
+ *           type: string
+ *           nullable: true
+ *           description: ObjectId del atributo usado como característica de lanzamiento de conjuros.
+ *         spellSaveDcFormula:
+ *           type: string
+ *           description: Fórmula de CD de salvación de conjuros (ej. 8 + @proficiencyBonus + @spellcasting.modifier).
+ *         spellAttackBonusFormula:
+ *           type: string
+ *           description: Fórmula del modificador de ataque de conjuros (ej. @proficiencyBonus + @spellcasting.modifier).
+ *         levels:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterClassLevelInput'
+ *           description: Niveles con tabla de ranuras (solo level + spellcasting).
  *     InputUpdateCharacterClass:
  *       type: object
  *       properties:
@@ -182,6 +242,21 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
  *           description: Opciones de equipamiento inicial.
+ *         spellcasting:
+ *           type: string
+ *           nullable: true
+ *           description: ObjectId del atributo usado como característica de lanzamiento de conjuros.
+ *         spellSaveDcFormula:
+ *           type: string
+ *           description: Fórmula de CD de salvación de conjuros (ej. 8 + @proficiencyBonus + @spellcasting.modifier).
+ *         spellAttackBonusFormula:
+ *           type: string
+ *           description: Fórmula del modificador de ataque de conjuros (ej. @proficiencyBonus + @spellcasting.modifier).
+ *         levels:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterClassLevelInput'
+ *           description: Niveles con tabla de ranuras (solo level + spellcasting); se fusionan por level sin borrar traits/subclases.
  */
 
 /**
