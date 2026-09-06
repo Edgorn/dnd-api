@@ -16,10 +16,6 @@ export default class PersonajeService {
     return this.personajeRepository.consultarPorId(idCharacter, user);
   }
 
-  obtenerPdf(idCharacter: string, user: string): Promise<any> {
-    return this.personajeRepository.obtenerPdf(idCharacter, user);
-  }
-
   addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse> {
     return this.personajeRepository.addEquipment(data);
   }

@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+
+export const CharacterIdParamsSchema = z.object({
+  id: z
+    .string()
+    .min(1, "ID de personaje requerido")
+    .regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB"),
+});
+
 export const ToggleFavoriteEquipmentSchema = z.object({
   id: z.string().min(1, "ID de personaje requerido"),
   equip: z.string().min(1, "ID de equipamiento requerido"),

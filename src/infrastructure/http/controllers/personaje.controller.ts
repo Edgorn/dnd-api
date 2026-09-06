@@ -7,7 +7,7 @@ import SubirNivel from "../../../application/use-cases/personaje/subirNivel.use-
 import AddEquipment from "../../../application/use-cases/personaje/addEquipment.use-case";
 import DeleteEquipment from "../../../application/use-cases/personaje/deleteEquipment.use-case";
 import EquipArmor from "../../../application/use-cases/personaje/equipArmor.use-case";
-import CrearPdf from "../../../application/use-cases/personaje/obtenerPdf.use-case";
+import GenerateCharacterPdf from "../../../application/use-cases/personaje/generateCharacterPdf.use-case";
 import UpdateMoney from "../../../application/use-cases/personaje/updateMoney.use-case";
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
@@ -29,7 +29,7 @@ export class PersonajeController {
     private readonly deleteEquipmentUseCase: DeleteEquipment,
     private readonly equipArmor: EquipArmor,
     private readonly updateMoneyUseCase: UpdateMoney,
-    private readonly crearPdf: CrearPdf,
+    private readonly generateCharacterPdf: GenerateCharacterPdf,
     private readonly vincularPacto: VincularPacto,
     private readonly aprenderConjuros: AprenderConjuros,
     private readonly añadirForma: AñadirForma,
@@ -69,17 +69,18 @@ export class PersonajeController {
     }
   };
 
-  generarPdf = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  generatePdf = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
+      const data = await this.generateCharacterPdf.execute(id, req.user!);
+      const filename = `character-${id}.pdf`;
 
-      if (!id) {
-        throw new ValidationError('Se requiere el ID del personaje');
-      }
-
-      const data = await this.crearPdf.execute(id, req.user!)
-      res.status(200).send(Buffer.from(data));
+      res.status(200)
+        .setHeader("Content-Type", "application/pdf")
+        .setHeader("Content-Disposition", `attachment; filename="${filename}"`)
+        .send(Buffer.from(data));
     } catch (e) {
+      console.error("[PersonajeController.generatePdf] Error:", e);
       next(e);
     }
   };

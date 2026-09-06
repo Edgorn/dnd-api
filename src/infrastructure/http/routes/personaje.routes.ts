@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
-import { validateSchema } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema } from "../schemas/personaje.schema";
+import { validateSchema, validateParams } from "../middlewares/validateSchema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -723,7 +723,43 @@ router.post('/character', authMiddleware, personajeController.createCharacter);
  */
 router.get('/character/:id', authMiddleware, personajeController.getCharacter);
 
-router.get('/character/:id/pdf', authMiddleware, personajeController.generarPdf);
+/**
+ * @openapi
+ * /character/{id}/pdf:
+ *   get:
+ *     summary: Generar la hoja de personaje en PDF
+ *     description: Devuelve un archivo PDF con la hoja de personaje rellenada. Solo el dueño del personaje o el master de su campaña pueden generarlo.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     responses:
+ *       200:
+ *         description: PDF de la hoja de personaje generado correctamente.
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: ID de personaje inválido.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para consultar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/character/:id/pdf', authMiddleware, validateParams(CharacterIdParamsSchema), personajeController.generatePdf);
 
 /**
  * @openapi

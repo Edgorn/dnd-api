@@ -50,7 +50,7 @@ import AddEquipment from "../application/use-cases/personaje/addEquipment.use-ca
 import DeleteEquipment from "../application/use-cases/personaje/deleteEquipment.use-case";
 import EquipArmor from "../application/use-cases/personaje/equipArmor.use-case";
 import UpdateMoney from "../application/use-cases/personaje/updateMoney.use-case";
-import ObtenerPdf from "../application/use-cases/personaje/obtenerPdf.use-case";
+import GenerateCharacterPdf from "../application/use-cases/personaje/generateCharacterPdf.use-case";
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
 import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuros.use-case";
@@ -88,6 +88,8 @@ import DoteRepository from "./databases/mongoDb/repositories/dote.repository";
 import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
 import LanguageRepository from "./databases/mongoDb/repositories/language.repository";
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
+import CampaignReaderRepository from "./databases/mongoDb/repositories/campaignReader.repository";
+import CharacterSheetPdfGenerator from "./pdf/CharacterSheetPdfGenerator";
 import TraitRepository from "./databases/mongoDb/repositories/trait.repository";
 import UserRepository from "./databases/mongoDb/repositories/user.repository";
 import RaceRepository from "./databases/mongoDb/repositories/race.repository";
@@ -241,6 +243,8 @@ const criaturaRepository = new CriaturaRepository(
   spellRepository
 )
 
+const campaignReaderRepository = new CampaignReaderRepository();
+
 const personajeRepository = new PersonajeRepository(
   userRepository,
   equipmentRepository,
@@ -256,7 +260,8 @@ const personajeRepository = new PersonajeRepository(
   criaturaRepository,
   attributeService,
   systemRepository,
-  coinRepository
+  coinRepository,
+  campaignReaderRepository
 )
 
 const campañaRepository = new CampañaRepository(
@@ -341,7 +346,12 @@ const addEquipment = new AddEquipment(personajeService);
 const deleteEquipment = new DeleteEquipment(personajeService);
 const equiparArmadura = new EquipArmor(personajeService);
 const updateMoney = new UpdateMoney(personajeService);
-const obtenerPdf = new ObtenerPdf(personajeService);
+const characterSheetPdfGenerator = new CharacterSheetPdfGenerator();
+const generateCharacterPdf = new GenerateCharacterPdf(
+  personajeService,
+  userRepository,
+  characterSheetPdfGenerator
+);
 const vincularPacto = new VincularPacto(personajeService);
 const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
 const aprenderConjuros = new AprenderConjuros(personajeService);
@@ -455,7 +465,7 @@ export const personajeController = new PersonajeController(
   deleteEquipment,
   equiparArmadura,
   updateMoney,
-  obtenerPdf,
+  generateCharacterPdf,
   vincularPacto,
   aprenderConjuros,
   añadirForma,

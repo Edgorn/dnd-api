@@ -1,14 +1,14 @@
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
-import { escribirCompetencias, escribirConjuros, escribirEquipo, escribirOrganizaciones, escribirRasgos, escribirTransfondo } from '../../../../utils/escribirPdf';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
-import { NotFoundError, ConflictError, ValidationError } from '../../../../domain/errors/AppError';
-import Campaña from '../schemas/Campaña';
+import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
 import SkillService from '../../../../domain/services/skill.service';
+import { canAccessCharacter } from '../../../../domain/services/characterAccess';
+import { ICampaignReader } from '../../../../domain/ports/ICampaignReader';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import ICharacterClassRepository from '../../../../domain/repositories/ICharacterClassRepository';
 import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
@@ -25,9 +25,6 @@ import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { deepMerge } from '../../../../utils/formatters';
 import { TraitApi } from '../../../../domain/types/traits.types';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
-import fs from 'fs'
-import path from 'path';
-import { PDFDocument } from 'pdf-lib';
 import { CharacterAttributeApi } from '../../../../domain/types/attribute.types';
 import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
 import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
@@ -73,7 +70,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly criaturaRepository: ICriaturaRepository,
     private readonly attributeService: AttributeService,
     private readonly systemRepository: ISystemRepository,
-    private readonly coinRepository: ICoinRepository
+    private readonly coinRepository: ICoinRepository,
+    private readonly campaignReader: ICampaignReader
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -83,7 +81,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
         .sort({ name: 1 });
 
       const userName = await this.userRepository.getUserName(id);
-      return this.formatearPersonajesBasicos(personajes, userName)
+      return this.formatBasicCharacters(personajes, userName)
     } catch (error) {
       console.error("Error obteniendo personajes:", error);
       throw new Error("No se pudieron obtener los personajes");
@@ -193,7 +191,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const resultado = await personaje.save()
 
     if (resultado) {
-      return await this.formatearPersonajeBasico(resultado)
+      return await this.formatBasicCharacter(resultado)
     } else {
       return null
     }
@@ -202,25 +200,23 @@ export default class PersonajeRepository implements IPersonajeRepository {
   async consultarPorId(idCharacter: string, user: string): Promise<PersonajeApi> {
     const personaje = await Personaje.findById(idCharacter);
 
-    if (personaje?.user === user) {
-      return this.formatearPersonaje(personaje)
-    } else if (personaje?.campaign) {
-      const campaña = await Campaña.findById(personaje?.campaign)
-
-      if (campaña?.master === user) {
-        return this.formatearPersonaje(personaje)
-      } else {
-        throw new Error('No tienes permiso para consultar este personaje');
-      }
-    } else {
-      throw new Error('No tienes permiso para consultar este personaje');
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${idCharacter}`);
     }
-  }
 
-  async obtenerPdf(idCharacter: string, user: string): Promise<any> {
-    const personaje = await this.consultarPorId(idCharacter, user)
+    const campaign = personaje.campaign
+      ? await this.campaignReader.getById(personaje.campaign)
+      : null;
 
-    return this.generarPdf(personaje, user)
+    if (!canAccessCharacter({
+      ownerId: personaje.user,
+      campaignMasterId: campaign?.master,
+      userId: user,
+    })) {
+      throw new AppError('No tienes permiso para consultar este personaje', 403);
+    }
+
+    return this.formatCharacter(personaje);
   }
 
   async addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse> {
@@ -397,8 +393,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const completo = await this.formatearPersonaje(resultado);
-    const basico = await this.formatearPersonajeBasico(resultado);
+    const completo = await this.formatCharacter(resultado);
+    const basico = await this.formatBasicCharacter(resultado);
 
     return { completo, basico };
   }
@@ -513,8 +509,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       return null
     }
 
-    const completo = await this.formatearPersonaje(resultado)
-    const basico = await this.formatearPersonajeBasico(resultado)
+    const completo = await this.formatCharacter(resultado)
+    const basico = await this.formatBasicCharacter(resultado)
 
     return {
       completo,
@@ -725,8 +721,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       return null
     }
 
-    const completo = await this.formatearPersonaje(resultado)
-    const basico = await this.formatearPersonajeBasico(resultado)
+    const completo = await this.formatCharacter(resultado)
+    const basico = await this.formatBasicCharacter(resultado)
 
     return {
       completo,
@@ -739,7 +735,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       const personajes = await Personaje.find().where('_id').in(indices)
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
-      return this.formatearPersonajesBasicos(personajes)
+      return this.formatBasicCharacters(personajes)
     } catch (error) {
       console.error("Error obteniendo personajes:", error);
       throw new Error("No se pudieron obtener los personajes");
@@ -759,7 +755,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     personaje.save()
 
-    return this.formatearPersonajeBasico(personaje)
+    return this.formatBasicCharacter(personaje)
   }
 
   async vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
@@ -787,8 +783,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       return null
     }
 
-    const completo = await this.formatearPersonaje(resultado)
-    const basico = await this.formatearPersonajeBasico(resultado)
+    const completo = await this.formatCharacter(resultado)
+    const basico = await this.formatBasicCharacter(resultado)
 
     return {
       completo,
@@ -824,7 +820,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       return null
     }
 
-    const personajeFormateado = await this.formatearPersonaje(resultado)
+    const personajeFormateado = await this.formatCharacter(resultado)
 
     return personajeFormateado
   }
@@ -853,24 +849,29 @@ export default class PersonajeRepository implements IPersonajeRepository {
       return null
     }
 
-    const personajeFormateado = await this.formatearPersonaje(resultado)
+    const personajeFormateado = await this.formatCharacter(resultado)
 
     return personajeFormateado
   }
 
-  private async formatearPersonajesBasicos(personajes: PersonajeMongo[], userName?: string): Promise<PersonajeBasico[]> {
-    const campaignIds = [...new Set(personajes.map(p => p.campaign).filter(id => id))];
+  private async formatBasicCharacters(personajes: PersonajeMongo[], userName?: string): Promise<PersonajeBasico[]> {
+    const campaignIds = [...new Set(
+      personajes
+        .map((p) => p.campaign)
+        .filter((id): id is string => Boolean(id))
+    )];
 
-    const campaigns = await Campaña.find().where('_id').in(campaignIds)
-    const campaignMap = new Map(campaigns.map(c => [c._id.toString(), c.name]));
+    const campaignMap = await this.campaignReader.getNamesByIds(campaignIds);
 
-    return Promise.all(personajes.map(personaje => {
-      const campaignName = personaje.campaign ? campaignMap.get(personaje.campaign.toString()) : undefined;
-      return this.formatearPersonajeBasico(personaje, userName, campaignName);
+    return Promise.all(personajes.map((personaje) => {
+      const campaignName = personaje.campaign
+        ? campaignMap.get(personaje.campaign.toString())
+        : undefined;
+      return this.formatBasicCharacter(personaje, userName, campaignName);
     }));
   }
 
-  private async formatearPersonajeBasico(personaje: PersonajeMongo, userName?: string, campaignName?: string): Promise<PersonajeBasico> {
+  private async formatBasicCharacter(personaje: PersonajeMongo, userName?: string, campaignName?: string): Promise<PersonajeBasico> {
     const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
     const user = userName ?? await this.userRepository.getUserName(personaje?.user ?? null)
 
@@ -880,8 +881,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     let finalCampaignName = campaignName;
     if (finalCampaignName === undefined) {
-      const campaña = await Campaña.findById(personaje?.campaign)
-      finalCampaignName = campaña?.name ?? '';
+      if (personaje?.campaign) {
+        const campaign = await this.campaignReader.getById(personaje.campaign);
+        finalCampaignName = campaign?.name ?? '';
+      } else {
+        finalCampaignName = '';
+      }
     }
 
     return {
@@ -1003,7 +1008,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  private async formatearPersonaje(personaje: PersonajeMongo): Promise<PersonajeApi> {
+  private async formatCharacter(personaje: PersonajeMongo): Promise<PersonajeApi> {
     const level = personaje.classes.map(cl => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
 
     const traits = await this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data)
@@ -1130,7 +1135,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
       })
     )
 
-    const campaign = await Campaña.findById(personaje?.campaign)
+    const campaignSummary = personaje?.campaign
+      ? await this.campaignReader.getById(personaje.campaign)
+      : null;
     const dotes = await this.doteRepository.obtenerDotesPorIndices(personaje?.dotes ?? [])
     const modifiedAttributes = this.calcularAttributes(personaje)
     const apiAttributes: CharacterAttributeApi[] = await this.attributeService.formatAttributes(modifiedAttributes, personaje.systems ?? [])
@@ -1194,7 +1201,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       size: personaje.size,
       classes: clases,
       subclasses: personaje.subclasses,
-      campaign: personaje?.campaign ? { index: personaje?.campaign, name: campaign?.name } : null,
+      campaign: personaje?.campaign ? { index: personaje?.campaign, name: campaignSummary?.name } : null,
       appearance: personaje?.appearance,
       background: personaje?.background,
       level,
@@ -1311,280 +1318,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       .filter(Boolean) as ({ quantity: number } & CoinApi)[];
   }
 
-  private async generarPdf(personaje: PersonajeApi, idUser: string): Promise<any> {
-    //const pdfPath = path.join(__dirname, '../../../../utils/hoja-nueva.pdf');
-    const pdfPath = path.join(process.cwd(), 'src/utils/hoja-nueva.pdf');
-    const existingPdfBytes = fs.readFileSync(pdfPath);
-
-    const datos: any = {
-      acrobatics: ["acroPROF", "Acrobatics"],
-      athletics: ["athPROF", "Athletics"],
-      arcana: ["arcanaPROF", "Arcana"],
-      deception: ["decepPROF", "Deception"],
-      history: ["histPROF", "History"],
-      performance: ["perfPROF", "Performance"],
-      intimidation: ["intimPROF", "Intimidation"],
-      investigation: ["investPROF", "Investigation"],
-      "sleight-of-hand": ["sohPROF", "SleightofHand"],
-      medicine: ["medPROF", "Medicine"],
-      nature: ["naturePROF", "Nature"],
-      perception: ["perPROF", "Perception"],
-      insight: ["insightPROF", "Insight"],
-      persuasion: ["persPROF", "Persuasion"],
-      religion: ["religPROF", "Religion"],
-      stealth: ["stealthPROF", "Stealth"],
-      survival: ["survPROF", "Survival"],
-      "animal-handling": ["anhanPROF", "AnHan"]
-    }
-
-    // Cargar el documento PDF
-    const originalPdf = await PDFDocument.load(existingPdfBytes);
-
-    try {
-      // Obtener el formulario del PDF
-      const form = originalPdf.getForm();
-      /*
-      const fields = form.getFields();
-      fields.forEach((field: any) => {
-        const fieldName = field.getName(); // Nombre del campo
-        const fieldType = field.constructor.name; // Tipo del campo
-        //if (fieldName.includes('Dice')) {
-          console.log(`Nombre: ${fieldName}, Tipo: ${fieldType}`);
-        //}
-      });*/
-      //console.log('_________________');
-
-      const usuario = await this.userRepository.getUserName(idUser)
-
-      const backgroundTypeName =
-        typeof personaje?.background?.type === 'string'
-          ? personaje?.background?.type
-          : personaje?.background?.type?.name;
-
-      const background = personaje?.background?.type
-        ? `${personaje?.background?.name ?? ''}${backgroundTypeName ? ` (${backgroundTypeName})` : ''}`
-        : (personaje?.background?.name ?? '');
-
-      form.getTextField('CharacterName').setText(personaje?.name);
-      form.getTextField('ClassLevel').setText((personaje?.classes ?? []).map(cl => `${cl.name} ${cl.level}`).join(', '));
-      form.getDropdown('Background').addOptions([background ?? ""]);
-      form.getDropdown('Background').select(background ?? "");
-      form.getTextField('PlayerName').setText(usuario);
-      form.getDropdown('Race').addOptions([personaje?.race ?? ""]);
-      form.getDropdown('Race').select(personaje?.race ?? "");
-      form.getDropdown('Alignment').addOptions([personaje?.background?.alignment ?? ""]);
-      form.getDropdown('Alignment').select(personaje?.background?.alignment ?? "");
-      form.getTextField('ExperiencePoints').setText(personaje?.XP + '/' + personaje?.XPMax);
-
-      form.getTextField('CharacterName 2').setText(personaje?.name);
-      form.getTextField('Age').setText((personaje?.appearance?.age ?? 0) + ' años');
-      form.getTextField('Eyes').setText(personaje?.appearance?.eyes);
-      form.getTextField('Height').setText((personaje?.appearance?.height ?? 0) + ' cm');
-      form.getTextField('Skin').setText(personaje?.appearance?.skin);
-      form.getTextField('Weight').setText((personaje?.appearance?.weight ?? 0) + ' kg');
-      form.getTextField('Hair').setText(personaje?.appearance?.hair);
-
-      const abilities: string[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
-      const getAttrVal = (key: string) => personaje?.attributes?.find(a => a.key === key)?.value ?? 10
-      const getAttrMod = (key: string) => personaje?.attributes?.find(a => a.key === key)?.modifier ?? Math.floor((getAttrVal(key) / 2) - 5)
-
-      const bonus: { [key: string]: number } = {
-        str: getAttrMod('str'),
-        dex: getAttrMod('dex'),
-        con: getAttrMod('con'),
-        int: getAttrMod('int'),
-        wis: getAttrMod('wis'),
-        cha: getAttrMod('cha')
-      }
-
-      abilities.forEach(ability => {
-        form.getTextField(ability.toUpperCase() + 'score').setText(getAttrVal(ability) + '');
-        form.getTextField(ability.toUpperCase() + 'bonus').setText(this.formatNumber(bonus[ability]) + '');
-
-        if (personaje?.saving_throws?.includes(ability)) {
-          form.getCheckBox(ability.toUpperCase() + 'savePROF').check()
-          form.getTextField(ability.toUpperCase() + 'save').setText(this.formatNumber(bonus[ability] + personaje?.prof_bonus) + '');
-        } else {
-          form.getTextField(ability.toUpperCase() + 'save').setText(this.formatNumber(bonus[ability]) + '');
-        }
-      })
-
-      personaje?.skills?.forEach(skill => {
-        if (skill?.value) {
-          form.getCheckBox(datos[skill?.key][0]).check()
-        }
-        form.getTextField(datos[skill?.key][1]).setText(this.formatNumber(skill?.modifier) + '');
-      })
-
-      if (personaje?.equipment?.find(equi => equi.name === 'Escudo' && equi.equipped)) {
-        form.getCheckBox('shieldyes').check();
-      }
-
-      const monkTrait = personaje?.traits?.find(trait => trait.id === 'martial-arts')
-      let golpeCuerpo = 0
-
-      if (monkTrait) {
-        const dado = parseInt(monkTrait.summary.join(' ').split('1d')[1][0])
-        const strVal = personaje?.attributes?.find(a => a.key === 'str')?.value ?? 10
-        const dexVal = personaje?.attributes?.find(a => a.key === 'dex')?.value ?? 10
-        const max = Math.max(strVal, dexVal)
-        const daño = Math.floor((max / 2) - 5)
-
-        form.getTextField('Attack1').setText('Cuerpo a cuerpo');
-        form.getTextField('AtkBonus1').setText('+' + ((personaje?.prof_bonus ?? 0) + daño));
-        form.getTextField('Damage1').setText('1d' + dado + ' +' + daño);
-        golpeCuerpo = 1
-      }
-
-      personaje?.equipment
-        ?.filter(equi => equi?.weapon !== undefined)
-        ?.forEach((equi, index: number) => {
-          if (index + golpeCuerpo < 3) {
-            form.getTextField('Attack' + (index + golpeCuerpo + 1)).setText(equi.name + " " + (equi.isMagic ? " +1" : ""));
-            form.getTextField('AtkBonus' + (index + golpeCuerpo + 1)).setText('+' + this.sumaGolpe(personaje, equi));
-            form.getTextField('Damage' + (index + golpeCuerpo + 1)).setText(
-              equi?.weapon?.damage?.map(damage => {
-                return damage?.dice + ' +' + this.sumaDaño(personaje, equi) + ' ' + damage?.name
-              }).join(", ")
-            );
-          }
-        })
-
-      const moneyArray = Array.isArray(personaje?.money) ? personaje.money : [];
-      const getCoinQty = (abbrs: string[], names: string[]) => {
-        const found = moneyArray.find(m => 
-          (m?.abbreviation && abbrs.includes(m.abbreviation.toLowerCase())) ||
-          (m?.name && names.some(n => m.name.toLowerCase().includes(n)))
-        );
-        return found ? (found.quantity ?? 0) : 0;
-      };
-
-      form.getTextField('Copper').setText(getCoinQty(['pc', 'cp'], ['cobre', 'copper']) + '');
-      form.getTextField('Silver').setText(getCoinQty(['pp', 'sp'], ['plata', 'silver']) + '');
-      form.getTextField('Electrum').setText(getCoinQty(['pe', 'ep'], ['electrum']) + '');
-      form.getTextField('Gold').setText(getCoinQty(['po', 'gp'], ['oro', 'gold']) + '');
-      form.getTextField('Platinum').setText(getCoinQty(['ppt', 'pp'], ['platino', 'platinum']) + '');
-
-      form.getTextField('HPMax').setText(personaje?.HPMax + '');
-      form.getTextField('ProfBonus').setText('+' + personaje?.prof_bonus);
-      form.getTextField('AC').setText(personaje?.CA + '');
-      form.getTextField('Init').setText(this.formatNumber(personaje.initiativeBonus) + '');
-      form.getTextField('Speed').setText(personaje?.speed?.walk + '');
-
-      form.getTextField('HitDiceTotal').setText(personaje.classes?.map(clase => clase.level + 'd' + (clase.hit_die ?? "?"))?.join(' / ') + '');
-
-      const skillPerception = personaje?.skills?.find(skill => skill?.key === 'perception')
-      const passivePerception = skillPerception?.passive;
-
-      if (passivePerception !== undefined) {
-        form.getTextField('PWP').setText(String(passivePerception));
-      } else if (skillPerception) {
-        form.getTextField('PWP').setText(10 + skillPerception.modifier + '');
-      } else {
-        form.getTextField('PWP').setText(10 + bonus.wis + '');
-      }
-
-      escribirRasgos({
-        traits: personaje?.traits ?? [],
-        invocations: personaje?.invocations ?? [],
-        disciplines: [],//personaje?.disciplines,
-        metamagic: [],//personaje?.metamagic,
-        dotes: personaje?.dotes ?? [],
-        pdfDoc: originalPdf
-      })
-
-      escribirCompetencias({
-        pdfDoc: originalPdf,
-        languages: personaje?.languages,
-        proficiencies: personaje?.proficiencies
-      })
-
-      escribirTransfondo({
-        pdfDoc: originalPdf,
-        background: personaje?.background
-      })
-
-      escribirEquipo({
-        pdfDoc: originalPdf,
-        equipment: personaje?.equipment,
-        personaje,
-        form
-      })
-
-      escribirOrganizaciones({
-        pdfDoc: originalPdf,
-        personaje,
-        form
-      })
-
-      escribirConjuros({
-        form: form,
-        personaje
-      })
-
-      // Descargar la imagen usando fetch nativo
-      if (personaje?.img) {
-        const imageResponse = await fetch(personaje?.img);
-        if (!imageResponse.ok) {
-          throw new Error(`Error descargando la imagen: ${imageResponse.statusText}`);
-        }
-        const imageBytes = new Uint8Array(await imageResponse.arrayBuffer()); // Obtener los bytes de la imagen
-        const contentType = String(imageResponse.headers.get('content-type') || '');
-
-        let image;
-
-        if (contentType.includes('png')) {
-          image = await originalPdf.embedPng(imageBytes);
-        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-          image = await originalPdf.embedJpg(imageBytes);
-        } else {
-          throw new Error(`Formato de imagen no soportado: ${contentType}`);
-        }
-
-        // Obtener la posición y tamaño del botón
-        const page = originalPdf.getPage(1); // Página donde está el botón
-
-        page.drawImage(image, {
-          x: 39,
-          y: 490,
-          width: 155,
-          height: 155,
-        });
-      }
-
-      // También puedes desactivar la edición si quieres bloquear el PDF después de llenarlo
-      form.flatten();
-
-    } catch (e) {
-      console.error(e)
-    }
-
-    // Crear un nuevo documento
-    const nuevoPdf = await PDFDocument.create();
-
-    // Copiar las primeras 3 páginas
-    const [pag1, pag2, pag3] = await nuevoPdf.copyPages(originalPdf, [0, 1, 2]);
-
-    nuevoPdf.addPage(pag1);
-    nuevoPdf.addPage(pag2);
-
-    let conjuros = false
-
-    personaje.classes.forEach((clase: any) => {
-      if (clase.class !== 'monk' && clase.class !== 'barbarian') {
-        conjuros = true
-      }
-    })
-
-    if (conjuros) {
-      nuevoPdf.addPage(pag3);
-    }
-
-    const pdfBytes = await nuevoPdf.save();
-
-    return pdfBytes
-  }
-
   private calcularAttributes(personaje: PersonajeMongo): { key: string, value: number }[] {
     const attributes = personaje.attributes ?? []
 
@@ -1601,57 +1334,4 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return attributes
   }
 
-  private sumaDaño(character: PersonajeApi, equip: CharacterEquipmentApi) {
-    if (equip.damageBonus !== undefined) {
-      let suma = equip.damageBonus;
-
-      if (
-        equip?.weapon?.range === 'Distancia'
-        && character?.traits?.map(trait => trait.id)?.includes("fighter-fighting-style-archery")
-      ) {
-        suma += 2;
-      }
-
-      return suma;
-    }
-
-    let suma = equip?.isMagic ? 1 : 0
-
-    const getAttrVal = (key: string) => character.attributes?.find(a => a.key === key)?.value ?? 10
-
-    if (equip?.weapon?.properties.find(prop => prop.name.toLowerCase() === 'finesse' || prop.name.toLowerCase() === 'sutileza')) {
-      const max = Math.max(getAttrVal('str'), getAttrVal('dex'))
-
-      suma += Math.floor((max / 2) - 5)
-    } else if (equip?.weapon?.range === 'Distancia') {
-      suma += Math.floor((getAttrVal('dex') / 2) - 5)
-      if (character?.traits?.map(trait => trait.id)?.includes("fighter-fighting-style-archery")) {
-        suma += 2
-      }
-    } else {
-      suma += Math.floor((getAttrVal('str') / 2) - 5)
-    }
-
-    return suma
-  }
-
-  private sumaGolpe(character: PersonajeApi, equip: CharacterEquipmentApi) {
-    if (equip.attackBonus !== undefined) {
-      return equip.attackBonus;
-    }
-
-    let suma = 0
-
-    suma += this.sumaDaño(character, equip)
-
-    if (character?.proficiencies?.some(arma => equip?.proficiencies?.some(p => p.id === arma?.id))) {
-      suma += character?.prof_bonus ?? 0
-    }
-
-    return suma
-  }
-
-  private formatNumber(num: number) {
-    return (num >= 0 ? "+" : "") + num.toString();
-  }
 }

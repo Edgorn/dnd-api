@@ -5,7 +5,6 @@ export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]>
   crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null>
   consultarPorId(idCharacter: string, user: string): Promise<PersonajeApi>
-  obtenerPdf(idCharacter: string, user: string): Promise<any>
   addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse>
   deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse>
   equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }>
