@@ -44,8 +44,8 @@ import GetCharactersByUser from "../application/use-cases/personaje/getCharacter
 import CrearPersonaje from "../application/use-cases/personaje/crearPersonaje.use-case";
 import ObtenerPersonajePorId from "../application/use-cases/personaje/obtenerPersonajePorId.use-case";
 import UpdateCharacterXp from "../application/use-cases/personaje/updateCharacterXp.use-case";
-import SubirNivelDatos from "../application/use-cases/personaje/subirNivelDatos.use-case";
-import SubirNivel from "../application/use-cases/personaje/subirNivel.use-case";
+import GetLevelUpData from "../application/use-cases/personaje/getLevelUpData.use-case";
+import LevelUp from "../application/use-cases/personaje/levelUp.use-case";
 import AddEquipment from "../application/use-cases/personaje/addEquipment.use-case";
 import DeleteEquipment from "../application/use-cases/personaje/deleteEquipment.use-case";
 import EquipArmor from "../application/use-cases/personaje/equipArmor.use-case";
@@ -340,8 +340,8 @@ const getCharactersByUser = new GetCharactersByUser(personajeService);
 const crearPersonaje = new CrearPersonaje(personajeService, systemRepository);
 const obtenerPersonajePorId = new ObtenerPersonajePorId(personajeService);
 const updateCharacterXp = new UpdateCharacterXp(personajeService)
-const subirNivelDatos = new SubirNivelDatos(personajeService)
-const subirNivel = new SubirNivel(personajeService)
+const getLevelUpData = new GetLevelUpData(personajeService)
+const levelUp = new LevelUp(personajeService)
 const addEquipment = new AddEquipment(personajeService);
 const deleteEquipment = new DeleteEquipment(personajeService);
 const equiparArmadura = new EquipArmor(personajeService);
@@ -459,8 +459,8 @@ export const personajeController = new PersonajeController(
   crearPersonaje,
   obtenerPersonajePorId,
   updateCharacterXp,
-  subirNivelDatos,
-  subirNivel,
+  getLevelUpData,
+  levelUp,
   addEquipment,
   deleteEquipment,
   equiparArmadura,

@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
+import { LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -40,12 +40,12 @@ export default class PersonajeService {
     return this.personajeRepository.updateXp(id, xp, userId);
   }
 
-  subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter | null> {
-    return this.personajeRepository.subirNivelDatos({ id, clase });
+  getLevelUpData(id: string, classId: string, userId: string): Promise<LevelUpData> {
+    return this.personajeRepository.getLevelUpData(id, classId, userId);
   }
 
-  subirNivel(data: TypeSubirNivel): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    return this.personajeRepository.subirNivel(data);
+  levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
+    return this.personajeRepository.levelUp(data);
   }
 
   vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {

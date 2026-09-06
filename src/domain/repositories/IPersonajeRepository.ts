@@ -1,5 +1,5 @@
 import { TypeEntradaPersonajeCampaña } from "../types/campañas.types";
-import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAddEquipment, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, ClaseLevelUpCharacter, TypeSubirNivel, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
+import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAddEquipment, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, LevelUpData, TypeLevelUp, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]>
@@ -11,8 +11,8 @@ export default interface IPersonajeRepository {
   toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse>
   updateMoney(id: string, money: { quantity: number; unit: string }[]): Promise<UpdateCharacterMoneyResponse>
   updateXp(id: string, xp: number, userId: string): Promise<void>
-  subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter | null>
-  subirNivel(data: TypeSubirNivel): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
+  getLevelUpData(id: string, classId: string, userId: string): Promise<LevelUpData>
+  levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }>
   consultarPorIds(idCharacters: string[]): Promise<PersonajeBasico[]>
   entrarCampaña(data: TypeEntradaPersonajeCampaña): Promise<PersonajeBasico | null>
   vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>

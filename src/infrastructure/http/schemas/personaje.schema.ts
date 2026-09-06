@@ -9,8 +9,11 @@ export const CharacterIdParamsSchema = z.object({
     .regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB"),
 });
 
+export const LevelUpDataQuerySchema = z.object({
+  class: z.string().min(1, "ID de clase requerido"),
+});
+
 export const ToggleFavoriteEquipmentSchema = z.object({
-  id: z.string().min(1, "ID de personaje requerido"),
   equip: z.string().min(1, "ID de equipamiento requerido"),
   isMagic: z.boolean(),
   isBond: z.boolean(),
@@ -28,6 +31,14 @@ export const UpdateCharacterMoneySchema = z.object({
 
 export const UpdateCharacterXpSchema = z.object({
   XP: z.number().int().min(0, "La experiencia no puede ser negativa"),
+});
+
+export const LevelUpSchema = z.object({
+  class: z.string().min(1, "ID de clase requerido"),
+  hpIncrease: z
+    .number()
+    .int("El incremento de PG debe ser un entero")
+    .min(1, "El incremento de PG debe ser al menos 1"),
 });
 
 const CharacterEquipmentMutationSchema = z.object({

@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { ClaseLevelUpCharacter, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeSubirNivel, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
+import { LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -496,216 +496,138 @@ export default class PersonajeRepository implements IPersonajeRepository {
     await Personaje.findByIdAndUpdate(id, { $set: { XP: xp } });
   }
 
-  async subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter> {
+  async getLevelUpData(id: string, classId: string, userId: string): Promise<LevelUpData> {
     const personaje = await Personaje.findById(id);
-    const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
-    const dataLevel = await this.claseRepository.dataLevelUp?.(clase, level + 1, personaje?.subclasses ?? [])
-    const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
-    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje?.systems ?? []);
-    const raceLevel = await this.raceRepository.dataLevelUp(personaje?.raceId ?? '', level + 1)
-
-    let raceTraitsData = {}
-
-    if (raceLevel) {
-      raceTraitsData = deepMerge(raceLevel?.traits_data ?? {}, personaje?.traits_data ?? {})
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
+    await this.assertCanAccessCharacter(personaje, userId);
+
+    const level = personaje.classes?.find(clas => clas.class === classId)?.level ?? 0;
+
+    const dataLevel = await this.claseRepository.dataLevelUp?.(classId, level + 1, personaje.subclasses ?? []);
+    const totalLevels = personaje.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
+
+    // const raceLevel = await this.raceRepository.dataLevelUp(personaje.raceId ?? '', level + 1);
+    // let raceTraitsData = {};
+    // if (raceLevel) {
+    //   raceTraitsData = deepMerge(raceLevel?.traits_data ?? {}, personaje.traits_data ?? {});
+    // }
+
     return {
-      clase,
-      hit_die: dataLevel?.hit_die ?? 0,
+      class: classId,
+      hit_die: dataLevel?.hit_die ?? 8,
       prof_bonus: rulesConfig.proficiencyProgression?.[totalLevels]
         ?? DEFAULT_PROFICIENCY_PROGRESSION[totalLevels]
         ?? 0,
-      traits: dataLevel?.traits ?? [],
-      traits_data: deepMerge(dataLevel?.traits_data ?? {}, raceTraitsData),
-      traits_options: dataLevel?.traits_options ?? undefined,
-      subclasesData: dataLevel?.subclasesData ?? null,
-      ability_score: dataLevel?.ability_score ?? false,
-      dotes: dataLevel?.dotes,
-      double_skills: dataLevel?.double_skills,
-      spell_choices: dataLevel?.spell_choices,
-      mixed_spell_choices: dataLevel?.mixed_spell_choices,
-      spells: dataLevel?.spells,
-      spell_changes: dataLevel?.spell_changes,
-      skill_choices: dataLevel?.skill_choices,
-      invocations_choices: dataLevel?.invocations_choices,
-      invocations_change: dataLevel?.invocations_change,
-      /*
-      disciplines_new,
-      disciplines_change,
-      metamagic,
-    */
-    }
+      // traits: dataLevel?.traits ?? [],
+      // traits_data: deepMerge(dataLevel?.traits_data ?? {}, raceTraitsData),
+      // traits_options: dataLevel?.traits_options ?? undefined,
+      // subclasesData: dataLevel?.subclasesData ?? null,
+      // ability_score: dataLevel?.ability_score ?? false,
+      // dotes: dataLevel?.dotes,
+      // double_skills: dataLevel?.double_skills,
+      // spell_choices: dataLevel?.spell_choices,
+      // mixed_spell_choices: dataLevel?.mixed_spell_choices,
+      // spells: dataLevel?.spells,
+      // spell_changes: dataLevel?.spell_changes,
+      // skill_choices: dataLevel?.skill_choices,
+      // invocations_choices: dataLevel?.invocations_choices,
+      // invocations_change: dataLevel?.invocations_change,
+    };
   }
 
-  async subirNivel(data: TypeSubirNivel): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { id, hit, clase, traits, traits_data, prof_bonus, subclase, attributes, dotes, skills, double_skills, spells, proficiencies, invocations, /*,disciplines, metamagic*/ } = data
+  async levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
+    const { id, classId, hpIncrease, userId } = data;
     const personaje = await Personaje.findById(id);
-    //const level = personaje?.classes?.find(clas => clas.class === clase)?.level ?? 0
 
-    //const claseData = await this.claseRepository.getClase(clase)
-    //const dataLevel = claseData.levels.find((l:any)=> l.level === level+1)
-
-    //let dataTraitsSubclases = {}
-    //let actualDisciplines = disciplines ?? []
-
-    //const listSubclases = [ ...personaje?.subclasses ?? [], ...subclases ?? []]
-
-    /*if (dataLevel?.subclasses) {
-      listSubclases?.forEach((subclase: any) => {
-        if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]?.traits_data) {
-          dataTraitsSubclases = {
-            ...dataTraitsSubclases,
-            ...dataLevel?.subclasses[subclase]?.traits_data
-          }
-        }
-  
-        if (dataLevel?.subclasses[subclase]?.disciplines) {
-          actualDisciplines.push(...dataLevel?.subclasses[subclase]?.disciplines ?? [])
-        }
-      })
-    }*/
-
-    //let traitsData = { ...personaje?.traits_data, traits_data /*...dataLevel?.traits_data, ...dataTraitsSubclases*/ }
-    /*
-        traits_data?.forEach((traitData: any) => {
-          traitsData = { ...traitsData, ...traitData }
-        })*/
-    /*
-        if (dataLevel?.traits?.includes('primal-champion')) {
-          abilities.str += 4
-          abilities.con += 4
-        }
-    *//*
-        const traitsSubclase = dataLevel?.subclasses
-          ? [...subclases ?? [], ...personaje?.subclasses ?? []].map((subclase: any) => {
-              return dataLevel?.subclasses[subclase]?.traits
-            }).flat().filter(item => item !== undefined)
-          : []
-    
-        if (trait) {
-          traitsSubclase.push(trait)
-        }
-    */
-
-    //let plusSpeed = 0
-    /*
-        if (!armadura) {
-          if (traits.includes('barbarian-unarmored-defense')) {
-            CA += Math.floor((personaje?.abilities.con/2) - 5) + Math.floor((personaje?.abilities.dex/2) - 5)
-          } else if (traits.includes('monk-unarmored-defense')) {
-            CA += Math.floor((abilities.wis/2) - 5) + Math.floor((abilities.dex/2) - 5)
-          } else if (traits.includes('draconid-resistance')) {
-            CA += 3 + Math.floor((abilities.dex/2) - 5)
-          }
-    
-          if (traits.includes('fast-movement')) {
-            plusSpeed += 10
-          }
-          
-          if (traits.includes('unarmored-movement')) {
-            plusSpeed += traitsData['unarmored-movement'].FEET ?? 0
-          }
-        }
-    */
-    const spellsData = { ...personaje?.spells }
-
-    if (spells.length > 0) {
-      spellsData[clase] = spells
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const conVal = personaje?.attributes?.find(a => a.key === 'con')?.value ?? 10
-    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje?.systems ?? []);
-    const apiAttributesForHp = await this.attributeService.formatAttributes(
-      personaje?.attributes ?? [],
-      personaje?.systems ?? []
-    );
-    const classHitDie = personaje?.classes?.find(clas => clas.class === clase)?.hit_die ?? hit;
+    await this.assertCanAccessCharacter(personaje, userId);
 
-    let HP: number;
-    if (rulesConfig.hpLevelUpFormula) {
-      HP = Math.floor(evaluateFormula(
+    const characterClass = personaje.classes?.find((clas) => clas.class === classId);
+    if (!characterClass) {
+      throw new ValidationError(`El personaje no tiene la clase con id: ${classId}`);
+    }
+
+    const hitDie = characterClass.hit_die ?? 8;
+    if (hpIncrease > hitDie) {
+      throw new ValidationError(
+        `El incremento de PG (${hpIncrease}) no puede superar el dado de golpe de la clase (${hitDie})`
+      );
+    }
+
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
+
+    if (!rulesConfig.hpLevelUpFormula) {
+      throw new ValidationError(
+        "El sistema del personaje no define hpLevelUpFormula; no se puede calcular el incremento de PG"
+      );
+    }
+
+    const totalLevels = personaje.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
+    if (rulesConfig.maxLevel !== undefined && totalLevels >= rulesConfig.maxLevel) {
+      throw new ValidationError(
+        `El personaje ya ha alcanzado el nivel máximo del sistema (${rulesConfig.maxLevel})`
+      );
+    }
+
+    const apiAttributesForHp = await this.attributeService.formatAttributes(
+      personaje.attributes ?? [],
+      personaje.systems ?? []
+    );
+
+    const HP = Math.floor(
+      evaluateFormula(
         rulesConfig.hpLevelUpFormula,
         apiAttributesForHp,
-        undefined,
-        { classVariables: { hitDie: hit ?? classHitDie } }
-      ));
-    } else {
-      HP = hit + Math.floor(((conVal) / 2) - 5);
-    }
+        { hpIncrease },
+        { classVariables: { hitDie: hpIncrease } }
+      )
+    );
 
-    if (traits.includes('dwarven-toughness')) {
-      HP += 1
-    }
-
-    const totalLevels = personaje?.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
-
-    const traitsSinRepetidos = [...new Set([...personaje?.traits ?? [], ...traits ?? []])];
-
-    const subclaseArray = subclase ? [subclase] : []
+    const newTotalLevels = totalLevels + 1;
+    const newProfBonus =
+      rulesConfig.proficiencyProgression?.[newTotalLevels - 1]
+      ?? DEFAULT_PROFICIENCY_PROGRESSION[newTotalLevels - 1]
+      ?? personaje.prof_bonus
+      ?? 0;
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
         $set: {
           XP: 0,
-          prof_bonus: Math.max(
-            rulesConfig.proficiencyProgression?.[totalLevels]
-              ?? DEFAULT_PROFICIENCY_PROGRESSION[totalLevels]
-              ?? prof_bonus
-              ?? 0,
-            personaje?.prof_bonus ?? 0
-          ),
-          traits: traitsSinRepetidos,
-          traits_data: { ...personaje?.traits_data, ...traits_data },
-          subclasses: [...personaje?.subclasses ?? [], ...subclaseArray ?? []],
-          attributes: attributes ?? personaje?.attributes,
-          dotes: [
-            ...personaje?.dotes ?? [], ...dotes ?? []
-          ],
-          skills: [
-            ...personaje?.skills ?? [],
-            ...skills ?? []
-          ],
-          double_skills: [
-            ...personaje?.double_skills ?? [],
-            ...double_skills ?? []
-          ],
-          proficiencies: [
-            ...personaje?.proficiencies ?? [],
-            ...proficiencies ?? []
-          ],
-          spells: spellsData,
-          invocations,
-          //disciplines: actualDisciplines,
-          //metamagic: [...personaje?.metamagic ?? [], ...metamagic ?? []],
-          //
-          //plusSpeed,
+          prof_bonus: Math.max(newProfBonus, personaje.prof_bonus ?? 0),
         },
         $inc: {
-          'classes.$[elem].level': 1,
+          "classes.$[elem].level": 1,
           HPMax: HP,
-          HPActual: HP
-        }
+          HPActual: HP,
+        },
       },
       {
-        arrayFilters: [{ 'elem.class': clase }],
-        returnDocument: 'after'
+        arrayFilters: [{ "elem.class": classId }],
+        returnDocument: "after",
       }
     );
 
     if (!resultado) {
-      return null
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const completo = await this.formatCharacter(resultado)
-    const basico = await this.formatBasicCharacter(resultado)
+    const completo = await this.formatCharacter(resultado);
+    const basico = await this.formatBasicCharacter(resultado);
 
     return {
       completo,
-      basico
-    }
+      basico,
+    };
   }
 
   async consultarPorIds(indices: string[]): Promise<PersonajeBasico[]> {

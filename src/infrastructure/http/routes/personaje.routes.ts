@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
-import { validateSchema, validateParams } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema } from "../schemas/personaje.schema";
+import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema, LevelUpDataQuerySchema, LevelUpSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -971,13 +971,21 @@ router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema
 
 /**
  * @openapi
- * /character/toggleFavoriteEquipment:
- *   post:
+ * /character/{id}/equipment/favorite:
+ *   patch:
  *     summary: Marcar o desmarcar un equipamiento como favorito
+ *     description: Actualiza el estado de favorito de un ítem del inventario del personaje.
  *     tags:
  *       - Personajes
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
  *     requestBody:
  *       required: true
  *       content:
@@ -985,15 +993,11 @@ router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema
  *           schema:
  *             type: object
  *             required:
- *               - id
  *               - equip
  *               - isMagic
  *               - isBond
  *               - isFavorite
  *             properties:
- *               id:
- *                 type: string
- *                 description: ID de MongoDB del personaje.
  *               equip:
  *                 type: string
  *                 description: ID de MongoDB del equipamiento base.
@@ -1035,6 +1039,8 @@ router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema
  *                 isFavorite:
  *                   type: boolean
  *                   description: Nuevo estado de favorito del equipamiento.
+ *       400:
+ *         description: Datos de entrada inválidos.
  *       401:
  *         description: No autorizado.
  *       404:
@@ -1042,7 +1048,7 @@ router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema
  *       500:
  *         description: Error del servidor.
  */
-router.post('/character/toggleFavoriteEquipment', authMiddleware, validateSchema(ToggleFavoriteEquipmentSchema), personajeController.toggleFavoriteEquipmentHandler);
+router.patch('/character/:id/equipment/favorite', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(ToggleFavoriteEquipmentSchema), personajeController.toggleFavoriteEquipmentHandler);
 
 /**
  * @openapi
@@ -1166,9 +1172,133 @@ router.put('/character/:id/money', authMiddleware, validateSchema(UpdateCharacte
  *         description: Error del servidor.
  */
 router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(UpdateCharacterXpSchema), personajeController.updateXp);
+
+/**
+ * @openapi
+ * /character/{id}/level-up-data:
+ *   get:
+ *     summary: Obtener datos para subir de nivel
+ *     description: Devuelve la información mínima necesaria para subir de nivel en una clase concreta del personaje (dado de golpe y bono de competencia).
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: query
+ *         name: class
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la clase en la que se quiere subir de nivel.
+ *     responses:
+ *       200:
+ *         description: Datos de subida de nivel obtenidos exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - class
+ *                 - hit_die
+ *                 - prof_bonus
+ *               properties:
+ *                 class:
+ *                   type: string
+ *                   description: ID de la clase.
+ *                 hit_die:
+ *                   type: number
+ *                   description: Dado de golpe de la clase.
+ *                 prof_bonus:
+ *                   type: number
+ *                   description: Bono de competencia correspondiente al nivel total tras la subida.
+ *       400:
+ *         description: Datos de entrada inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para consultar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/character/:id/level-up-data', authMiddleware, validateParams(CharacterIdParamsSchema), validateQuery(LevelUpDataQuerySchema), personajeController.getLevelUpData);
+
+/**
+ * @openapi
+ * /character/{id}/level-up:
+ *   post:
+ *     summary: Subir de nivel a un personaje
+ *     description: |
+ *       Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia
+ *       según el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema
+ *       del personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado
+ *       de la tirada o media del dado); el servidor aplica la fórmula del sistema con los
+ *       atributos del personaje. Reinicia la XP a 0. No aplica rasgos, ASI, dotes ni conjuros.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - class
+ *               - hpIncrease
+ *             properties:
+ *               class:
+ *                 type: string
+ *                 description: ID de MongoDB de la clase en la que se sube de nivel.
+ *               hpIncrease:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: |
+ *                   Incremento base de PG (tirada o media del dado de golpe). Se inyecta en
+ *                   la fórmula del sistema como `@class.hitDie` y `@hpIncrease`.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado tras la subida de nivel.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - completo
+ *                 - basico
+ *               properties:
+ *                 completo:
+ *                   $ref: '#/components/schemas/PersonajeApi'
+ *                 basico:
+ *                   $ref: '#/components/schemas/PersonajeBasico'
+ *       400:
+ *         description: Datos inválidos, fórmula ausente, dado excedido o nivel máximo alcanzado.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/level-up', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(LevelUpSchema), personajeController.levelUp);
 router.post('/character/vincularPacto', authMiddleware, personajeController.vincularArmaPacto);
-router.post('/character/levelUpData', authMiddleware, personajeController.levelUpData);
-router.post('/character/levelUp', authMiddleware, personajeController.levelUp);
 router.post('/character/learnSpells', authMiddleware, personajeController.aprenderListaConjuros);
 router.post('/character/:id/addForm', authMiddleware, personajeController.addForm);
 

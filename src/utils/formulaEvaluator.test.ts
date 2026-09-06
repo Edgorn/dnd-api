@@ -78,6 +78,25 @@ describe("formulaEvaluator", () => {
     expect(result).toBe(10);
   });
 
+  it("evaluates hp level-up formula with @class.hitDie as rolled increase", () => {
+    const result = evaluateFormula(
+      "@class.hitDie + @attributes.con.modifier",
+      sampleAttributes,
+      { hpIncrease: 5 },
+      { classVariables: { hitDie: 5 } }
+    );
+    expect(result).toBe(7);
+  });
+
+  it("evaluates hp level-up formula with @hpIncrease flat variable", () => {
+    const result = evaluateFormula(
+      "@hpIncrease + @attributes.con.modifier",
+      sampleAttributes,
+      { hpIncrease: 6 }
+    );
+    expect(result).toBe(8);
+  });
+
   it("evaluates base AC formula", () => {
     const result = evaluateFormula("10 + @attributes.dex.modifier", sampleAttributes);
     expect(result).toBe(12);

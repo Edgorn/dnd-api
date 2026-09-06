@@ -135,11 +135,16 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       return null;
     }
 
+    const hitDie = clase.hit_die ?? 8;
     const dataLevel = clase.levels?.find(data => data.level === level);
     const dataLevelOld = clase.levels?.find(data => data.level === level - 1);
 
     if (!dataLevel) {
-      return null;
+      return {
+        hit_die: hitDie,
+        traits: [],
+        traits_data: {},
+      };
     }
 
     const traitsId: string[] = [];
@@ -215,7 +220,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     ].sort((a, b) => a.name.localeCompare(b.name));
 
     return {
-      hit_die: clase.hit_die || 8,
+      hit_die: hitDie,
       traits: [
         ...traits ?? [],
         ...subclaseData.filter((item): item is SubclassApi => item !== null && item !== undefined).flatMap(item => item.traits) ?? []

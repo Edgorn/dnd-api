@@ -8,7 +8,7 @@ import { CharacterEquipmentApi } from "./equipment.types"
 import { DoteApi } from "./dotes.types"
 import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
-import { ClaseLevelUp, SpellcastingLevel } from "./characterClass.types"
+import { SpellcastingLevel } from "./characterClass.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { CriaturaApi } from "./criaturas.types"
 import { CharacterAttributeApi } from "./attribute.types"
@@ -81,18 +81,11 @@ export interface TypeCrearPersonaje {
   prof_bonus: number
 }
 
-export interface TypeSubirNivel {
-  id: string,
-  data: {
-    hit: number,
-    clase: string,
-    traits: string[],
-    traits_data: TraitDataMongo,
-    prof_bonus: number,
-    subclaseId: string,
-    subclase: string,
-    attributes: { key: string, value: number }[]
-  }
+export interface TypeLevelUp {
+  id: string;
+  classId: string;
+  hpIncrease: number;
+  userId: string;
 }
 
 export interface TypeAddEquipment {
@@ -306,24 +299,22 @@ export interface PersonajeApi {
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
 export type Abilities = Record<AbilityKey, number>;
 
-export interface ClaseLevelUpCharacter extends ClaseLevelUp {
-  clase: string,
-  prof_bonus: number
-}
-
-export interface TypeSubirNivel {
-  id: string,
-  hit: number,
-  clase: string,
-  traits: string[],
-  traits_data: TraitDataMongo,
-  prof_bonus: number,
-  subclase?: string,
-  attributes: { key: string, value: number }[] | null,
-  dotes: string[],
-  skills: string[],
-  double_skills: string[],
-  proficiencies: string[],
-  spells: string[],
-  invocations: string[],
+export interface LevelUpData {
+  class: string;
+  hit_die: number;
+  prof_bonus: number;
+  // traits?: TraitApi[];
+  // traits_data?: TraitDataMongo;
+  // traits_options?: { name: string; options: TraitApi[] };
+  // ability_score?: boolean;
+  // dotes?: ChoiceApi<DoteApi>;
+  // subclasesData?: SubclassesOptionsApi | null;
+  // double_skills?: number;
+  // spells?: SpellApi[];
+  // spell_choices?: ChoiceApi<SpellApi>[];
+  // mixed_spell_choices?: ChoiceApi<SpellApi>[][];
+  // spell_changes?: ChoiceApi<SpellApi>[][];
+  // skill_choices?: ChoiceApi<SkillApi>;
+  // invocations_choices?: ChoiceApi<InvocacionApi>;
+  // invocations_change?: ChoiceApi<InvocacionApi>;
 }
