@@ -36,8 +36,8 @@ export default class PersonajeService {
     return this.personajeRepository.updateMoney(id, money);
   }
 
-  cambiarXp({ id, XP }: { id: string, XP: number }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    return this.personajeRepository.cambiarXp({ id, XP });
+  updateXp(id: string, xp: number, userId: string): Promise<void> {
+    return this.personajeRepository.updateXp(id, xp, userId);
   }
 
   subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter | null> {

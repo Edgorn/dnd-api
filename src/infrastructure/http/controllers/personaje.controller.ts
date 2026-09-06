@@ -1,7 +1,7 @@
 import CrearPersonaje from "../../../application/use-cases/personaje/crearPersonaje.use-case";
 import GetCharactersByUser from "../../../application/use-cases/personaje/getCharactersByUser.use-case";
 import ConsultarPersonaje from "../../../application/use-cases/personaje/obtenerPersonajePorId.use-case";
-import ModificarXp from "../../../application/use-cases/personaje/modificarXp.use-case";
+import UpdateCharacterXp from "../../../application/use-cases/personaje/updateCharacterXp.use-case";
 import SubirNivelDatos from "../../../application/use-cases/personaje/subirNivelDatos.use-case";
 import SubirNivel from "../../../application/use-cases/personaje/subirNivel.use-case";
 import AddEquipment from "../../../application/use-cases/personaje/addEquipment.use-case";
@@ -22,7 +22,7 @@ export class PersonajeController {
     private readonly getCharactersByUser: GetCharactersByUser,
     private readonly crearPersonaje: CrearPersonaje,
     private readonly consultarPersonaje: ConsultarPersonaje,
-    private readonly modificarXp: ModificarXp,
+    private readonly updateCharacterXp: UpdateCharacterXp,
     private readonly subirNivelDatos: SubirNivelDatos,
     private readonly subirNivel: SubirNivel,
     private readonly addEquipmentUseCase: AddEquipment,
@@ -167,11 +167,19 @@ export class PersonajeController {
     }
   };
 
-  changeXp = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  updateXp = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.modificarXp.execute(req.body)
-      res.status(200).json(data);
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const { XP } = req.body;
+      await this.updateCharacterXp.execute(id, XP, req.user!);
+      res.status(200).json({ success: true });
     } catch (e) {
+      console.error("[PersonajeController.updateXp] Error:", e);
       next(e);
     }
   };

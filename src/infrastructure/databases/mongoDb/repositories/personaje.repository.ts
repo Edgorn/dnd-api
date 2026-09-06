@@ -204,17 +204,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       throw new NotFoundError(`No se encontró el personaje con id: ${idCharacter}`);
     }
 
-    const campaign = personaje.campaign
-      ? await this.campaignReader.getById(personaje.campaign)
-      : null;
-
-    if (!canAccessCharacter({
-      ownerId: personaje.user,
-      campaignMasterId: campaign?.master,
-      userId: user,
-    })) {
-      throw new AppError('No tienes permiso para consultar este personaje', 403);
-    }
+    await this.assertCanAccessCharacter(personaje, user);
 
     return this.formatCharacter(personaje);
   }
@@ -494,28 +484,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return { money: formattedMoney };
   }
 
-  async cambiarXp({ id, XP }: { id: string, XP: number }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          XP
-        }
-      },
-      { returnDocument: 'after' }
-    );
+  async updateXp(id: string, xp: number, userId: string): Promise<void> {
+    const personaje = await Personaje.findById(id);
 
-    if (!resultado) {
-      return null
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const completo = await this.formatCharacter(resultado)
-    const basico = await this.formatBasicCharacter(resultado)
+    await this.assertCanAccessCharacter(personaje, userId);
 
-    return {
-      completo,
-      basico
-    }
+    await Personaje.findByIdAndUpdate(id, { $set: { XP: xp } });
   }
 
   async subirNivelDatos({ id, clase }: { id: string, clase: string }): Promise<ClaseLevelUpCharacter> {
@@ -852,6 +830,23 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personajeFormateado = await this.formatCharacter(resultado)
 
     return personajeFormateado
+  }
+
+  private async assertCanAccessCharacter(
+    personaje: PersonajeMongo,
+    userId: string
+  ): Promise<void> {
+    const campaign = personaje.campaign
+      ? await this.campaignReader.getById(personaje.campaign)
+      : null;
+
+    if (!canAccessCharacter({
+      ownerId: personaje.user,
+      campaignMasterId: campaign?.master,
+      userId,
+    })) {
+      throw new AppError('No tienes permiso para consultar este personaje', 403);
+    }
   }
 
   private async formatBasicCharacters(personajes: PersonajeMongo[], userName?: string): Promise<PersonajeBasico[]> {

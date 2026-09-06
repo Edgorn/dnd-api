@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -1110,8 +1110,63 @@ router.post('/character/toggleFavoriteEquipment', authMiddleware, validateSchema
  *         description: Error del servidor.
  */
 router.put('/character/:id/money', authMiddleware, validateSchema(UpdateCharacterMoneySchema), personajeController.updateMoney);
+
+/**
+ * @openapi
+ * /character/{id}/xp:
+ *   patch:
+ *     summary: Actualizar la experiencia de un personaje
+ *     description: Establece la experiencia (XP) del personaje. Solo el dueño o el master de su campaña pueden modificarla. No sube de nivel automáticamente.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - XP
+ *             properties:
+ *               XP:
+ *                 type: integer
+ *                 minimum: 0
+ *                 description: Nueva cantidad de experiencia del personaje.
+ *     responses:
+ *       200:
+ *         description: Experiencia actualizada con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - success
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Datos de entrada inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(UpdateCharacterXpSchema), personajeController.updateXp);
 router.post('/character/vincularPacto', authMiddleware, personajeController.vincularArmaPacto);
-router.post('/character/changeXp', authMiddleware, personajeController.changeXp);
 router.post('/character/levelUpData', authMiddleware, personajeController.levelUpData);
 router.post('/character/levelUp', authMiddleware, personajeController.levelUp);
 router.post('/character/learnSpells', authMiddleware, personajeController.aprenderListaConjuros);

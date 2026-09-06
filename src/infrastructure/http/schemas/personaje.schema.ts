@@ -26,6 +26,10 @@ export const UpdateCharacterMoneySchema = z.object({
   ),
 });
 
+export const UpdateCharacterXpSchema = z.object({
+  XP: z.number().int().min(0, "La experiencia no puede ser negativa"),
+});
+
 const CharacterEquipmentMutationSchema = z.object({
   equip: z.string().min(1, "ID de equipamiento requerido"),
   quantity: z.number().int().min(1, "La cantidad debe ser un entero mayor o igual a 1"),

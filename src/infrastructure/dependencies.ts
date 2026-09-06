@@ -43,7 +43,7 @@ import { EquipmentController } from "./http/controllers/equipment.controller";
 import GetCharactersByUser from "../application/use-cases/personaje/getCharactersByUser.use-case";
 import CrearPersonaje from "../application/use-cases/personaje/crearPersonaje.use-case";
 import ObtenerPersonajePorId from "../application/use-cases/personaje/obtenerPersonajePorId.use-case";
-import ModificarXp from "../application/use-cases/personaje/modificarXp.use-case";
+import UpdateCharacterXp from "../application/use-cases/personaje/updateCharacterXp.use-case";
 import SubirNivelDatos from "../application/use-cases/personaje/subirNivelDatos.use-case";
 import SubirNivel from "../application/use-cases/personaje/subirNivel.use-case";
 import AddEquipment from "../application/use-cases/personaje/addEquipment.use-case";
@@ -339,7 +339,7 @@ const getEquipmentsArmor = new GetEquipmentsArmor(equipmentService);
 const getCharactersByUser = new GetCharactersByUser(personajeService);
 const crearPersonaje = new CrearPersonaje(personajeService, systemRepository);
 const obtenerPersonajePorId = new ObtenerPersonajePorId(personajeService);
-const modificarXp = new ModificarXp(personajeService)
+const updateCharacterXp = new UpdateCharacterXp(personajeService)
 const subirNivelDatos = new SubirNivelDatos(personajeService)
 const subirNivel = new SubirNivel(personajeService)
 const addEquipment = new AddEquipment(personajeService);
@@ -458,7 +458,7 @@ export const personajeController = new PersonajeController(
   getCharactersByUser,
   crearPersonaje,
   obtenerPersonajePorId,
-  modificarXp,
+  updateCharacterXp,
   subirNivelDatos,
   subirNivel,
   addEquipment,

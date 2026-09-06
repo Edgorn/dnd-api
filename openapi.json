@@ -7050,6 +7050,87 @@
         }
       }
     },
+    "/character/{id}/xp": {
+      "patch": {
+        "summary": "Actualizar la experiencia de un personaje",
+        "description": "Establece la experiencia (XP) del personaje. Solo el dueño o el master de su campaña pueden modificarla. No sube de nivel automáticamente.",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "XP"
+                ],
+                "properties": {
+                  "XP": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Nueva cantidad de experiencia del personaje."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Experiencia actualizada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
     "/magic-schools": {
       "get": {
         "summary": "Obtener escuelas de magia filtradas por sistemas",
