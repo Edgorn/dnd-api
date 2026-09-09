@@ -1,13 +1,19 @@
 import { describe, it, expect } from "vitest";
 import {
   buildCantripSpellChoice,
+  buildKnownSpellChoice,
   buildSpellcastingLevel,
+  buildSynthesizedKnownSpellChoice,
+  castableSpellLevels,
   DEFAULT_SPELL_ATTACK_BONUS_FORMULA,
   DEFAULT_SPELL_SAVE_DC_FORMULA,
   excludeKnownSpellOptions,
   hasCantripSpellChoice,
+  hasKnownSpellChoice,
   remainingCantripPicks,
   resolveClassSpellSlotsForLevel,
+  resolveSpellSlotsTableForLevel,
+  spellsLearnedAtLevel,
   validateLevelUpSpellPicks,
 } from "./characterSpellcasting";
 import { AttributeApi, CharacterAttributeApi } from "../domain/types/attribute.types";
@@ -100,6 +106,17 @@ describe("resolveClassSpellSlotsForLevel", () => {
   });
 });
 
+describe("resolveSpellSlotsTableForLevel", () => {
+  it("inherits slots from a previous level when the current row omits them", () => {
+    const levels = [
+      { level: 1, spellcasting: { spellsLearned: 4, slots: { "1": 2 } } },
+      { level: 2, spellcasting: { spellsLearned: 1 } },
+    ];
+
+    expect(resolveSpellSlotsTableForLevel(levels, 2)).toEqual({ "1": 2 });
+  });
+});
+
 describe("remainingCantripPicks", () => {
   it("returns the remaining picks when there is a gap", () => {
     expect(remainingCantripPicks(4, 3)).toBe(1);
@@ -139,6 +156,120 @@ describe("buildCantripSpellChoice", () => {
       choose: 2,
       filter: { level: 0, classes: "class-1" },
     });
+  });
+});
+
+describe("castableSpellLevels", () => {
+  it("returns sorted spell levels with a positive slot count", () => {
+    expect(castableSpellLevels({ "2": 2, "1": 4, "3": 0, "0": 1 })).toEqual([1, 2]);
+  });
+
+  it("returns an empty list when there are no slots", () => {
+    expect(castableSpellLevels(undefined)).toEqual([]);
+    expect(castableSpellLevels({})).toEqual([]);
+  });
+});
+
+describe("spellsLearnedAtLevel", () => {
+  const levels = [
+    { level: 1, spellcasting: { spellsLearned: 4, slots: { "1": 2 } } },
+    { level: 2, spellcasting: { slots: { "1": 3 } } },
+    { level: 3, spellcasting: { spellsLearned: 1, slots: { "1": 4, "2": 2 } } },
+  ];
+
+  it("reads spellsLearned only from the exact level row", () => {
+    expect(spellsLearnedAtLevel(levels, 1)).toBe(4);
+    expect(spellsLearnedAtLevel(levels, 2)).toBe(0);
+    expect(spellsLearnedAtLevel(levels, 3)).toBe(1);
+  });
+
+  it("does not inherit spellsLearned from a previous level", () => {
+    expect(spellsLearnedAtLevel([
+      { level: 1, spellcasting: { spellsLearned: 4, slots: { "1": 2 } } },
+      { level: 2 },
+    ], 2)).toBe(0);
+  });
+});
+
+describe("hasKnownSpellChoice", () => {
+  it("detects a persisted class-list filter for leveled spells", () => {
+    expect(hasKnownSpellChoice(
+      [{ choose: 1, filter: { level: [1, 2], classes: "c1" } }],
+      "c1"
+    )).toBe(true);
+    expect(hasKnownSpellChoice(
+      [{ choose: 1, query_filter: { level: 1, classes: "c1" } }],
+      "c1"
+    )).toBe(true);
+    expect(hasKnownSpellChoice(
+      [{ choose: 1, level: 1, class: "c1" }],
+      "c1"
+    )).toBe(true);
+  });
+
+  it("returns false for cantrips or a different class", () => {
+    expect(hasKnownSpellChoice(
+      [{ choose: 2, filter: { level: 0, classes: "c1" } }],
+      "c1"
+    )).toBe(false);
+    expect(hasKnownSpellChoice(
+      [{ choose: 1, filter: { level: [1, 2], classes: "other" } }],
+      "c1"
+    )).toBe(false);
+    expect(hasKnownSpellChoice(undefined, "c1")).toBe(false);
+  });
+});
+
+describe("buildKnownSpellChoice", () => {
+  it("builds a filter choice for class spells of the given levels", () => {
+    expect(buildKnownSpellChoice("class-1", 2, [1, 2])).toEqual({
+      choose: 2,
+      filter: { level: [1, 2], classes: "class-1" },
+    });
+  });
+});
+
+describe("buildSynthesizedKnownSpellChoice", () => {
+  it("synthesizes a choice from spellsLearned and inherited slots", () => {
+    const levels = [
+      { level: 1, spellcasting: { spellsLearned: 4, slots: { "1": 2 } } },
+      { level: 2, spellcasting: { spellsLearned: 1 } },
+    ];
+
+    expect(buildSynthesizedKnownSpellChoice("c1", levels, 2)).toEqual({
+      choose: 1,
+      filter: { level: [1], classes: "c1" },
+    });
+  });
+
+  it("does not synthesize when the exact level has no spellsLearned", () => {
+    const levels = [
+      { level: 1, spellcasting: { spellsLearned: 4, slots: { "1": 2 } } },
+      { level: 2, spellcasting: { slots: { "1": 3 } } },
+    ];
+
+    expect(buildSynthesizedKnownSpellChoice("c1", levels, 2)).toBeUndefined();
+  });
+
+  it("does not synthesize when there are no castable slots", () => {
+    const levels = [
+      { level: 1, spellcasting: { spellsLearned: 2, cantrips: 2 } },
+    ];
+
+    expect(buildSynthesizedKnownSpellChoice("c1", levels, 1)).toBeUndefined();
+  });
+
+  it("does not synthesize when a class-list choice is already persisted", () => {
+    const levels = [
+      { level: 1, spellcasting: { spellsLearned: 4, slots: { "1": 2 } } },
+    ];
+
+    expect(buildSynthesizedKnownSpellChoice(
+      "c1",
+      levels,
+      1,
+      [{ choose: 4, filter: { level: [1], classes: "c1" } }]
+    )).toBeUndefined();
   });
 });
 

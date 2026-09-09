@@ -28,6 +28,7 @@ import { CharacterAttributeApi, AttributeApi } from '../../../../domain/types/at
 import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
 import {
   buildCantripSpellChoice,
+  buildSynthesizedKnownSpellChoice,
   buildSpellcastingLevel,
   excludeKnownSpellOptions,
   hasCantripSpellChoice,
@@ -798,8 +799,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
       knownSpellIds,
       dataLevel?.spell_choices
     );
-    const spell_choices = cantripChoices?.length
-      ? [...cantripChoices, ...(dataLevel?.spell_choices ?? [])]
+    const knownSpellChoices = await this.buildKnownSpellChoices(
+      classId,
+      clase?.levels ?? [],
+      nextLevel,
+      knownSpellIds,
+      dataLevel?.spell_choices
+    );
+    const synthesized = [...(cantripChoices ?? []), ...(knownSpellChoices ?? [])];
+    const spell_choices = synthesized.length
+      ? [...synthesized, ...(dataLevel?.spell_choices ?? [])]
       : dataLevel?.spell_choices;
 
     return {
@@ -835,6 +844,27 @@ export default class PersonajeRepository implements IPersonajeRepository {
       .filter((id): id is string => Boolean(id));
 
     return excludeKnownSpellOptions(formatted, knownCantripIds);
+  }
+
+  private async buildKnownSpellChoices(
+    classId: string,
+    levels: { level: number; spellcasting?: { cantrips?: number; spellsLearned?: number; slots?: Record<string, number> } }[],
+    targetLevel: number,
+    knownSpellIds: string[],
+    persistedChoices?: ChoiceApi<SpellApi>[]
+  ): Promise<ChoiceApi<SpellApi>[] | undefined> {
+    const synthesized = buildSynthesizedKnownSpellChoice(
+      classId,
+      levels,
+      targetLevel,
+      persistedChoices
+    );
+    if (!synthesized) return undefined;
+
+    const formatted = await this.spellRepository.formatSpellChoices([synthesized]);
+    if (!formatted?.length) return undefined;
+
+    return excludeKnownSpellOptions(formatted, knownSpellIds);
   }
 
   private async assertCanLearnClassCantrips(

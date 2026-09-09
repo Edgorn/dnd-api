@@ -19,6 +19,7 @@ const classFormulaSchema = (fieldLabel: string) =>
 
 const ClassSpellSlotsSchema = z.object({
   cantrips: z.number().int().min(0).optional(),
+  spellsLearned: z.number().int().min(0).optional(),
   slots: z.record(z.string(), z.number().int().min(0)).optional()
 }).optional();
 

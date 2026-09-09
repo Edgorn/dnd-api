@@ -3772,7 +3772,7 @@
             "items": {
               "type": "object"
             },
-            "description": "Opciones de conjuros a elegir. Si la clase tiene tope de trucos (cantrips) y no hay una choice persistida de nivel 0, se añade una elección sintetizada."
+            "description": "Opciones de conjuros a elegir. Si la clase tiene tope de trucos (cantrips) y no hay una choice persistida de nivel 0, se añade una elección sintetizada. Si el nivel 1 tiene `spellsLearned` y ranuras, se añade una elección de conjuros de la clase de los niveles que puede lanzar."
           },
           "traits": {
             "type": "array",
@@ -3816,7 +3816,7 @@
             "items": {
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
-            "description": "Niveles slim para el editor (level, ranuras de conjuro y elecciones de conjuros)."
+            "description": "Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos y elecciones de conjuros)."
           },
           "subclasesData": {
             "type": "object",
@@ -3837,6 +3837,11 @@
             "type": "integer",
             "minimum": 0,
             "description": "Número de trucos conocidos a ese nivel."
+          },
+          "spellsLearned": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Número de conjuros de nivel 1+ que se aprenden al ganar ese nivel de clase (no se hereda de niveles anteriores). Si hay ranuras, se sintetiza una elección de conjuros de la clase y de los niveles que puede lanzar.\n"
           },
           "slots": {
             "type": "object",
@@ -3861,7 +3866,7 @@
           },
           "spellcasting": {
             "$ref": "#/components/schemas/ClassSpellSlots",
-            "description": "Tabla de ranuras / trucos de ese nivel."
+            "description": "Tabla de ranuras, trucos y conjuros aprendidos de ese nivel."
           },
           "spell_choices": {
             "type": "array",
@@ -7250,7 +7255,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia y elecciones de conjuros).\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, más las elecciones persistidas de niveles 1–9.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia y elecciones de conjuros).\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\n",
         "tags": [
           "Personajes"
         ],
@@ -7306,7 +7311,7 @@
                     },
                     "spell_choices": {
                       "type": "array",
-                      "description": "Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips y choices persistidas).",
+                      "description": "Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips, conjuros conocidos desde spellsLearned y choices persistidas).",
                       "items": {
                         "$ref": "#/components/schemas/SpellChoiceApi"
                       }

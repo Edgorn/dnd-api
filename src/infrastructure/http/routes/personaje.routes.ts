@@ -1186,7 +1186,9 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       Devuelve la información necesaria para subir de nivel en una clase concreta del personaje
  *       (dado de golpe, bono de competencia y elecciones de conjuros).
  *       `spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`
- *       de la clase y los trucos que el personaje ya conoce, más las elecciones persistidas de niveles 1–9.
+ *       de la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos
+ *       sintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con
+ *       ranuras), más las elecciones persistidas de niveles 1–9.
  *     tags:
  *       - Personajes
  *     security:
@@ -1227,7 +1229,7 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   description: Bono de competencia correspondiente al nivel total tras la subida.
  *                 spell_choices:
  *                   type: array
- *                   description: Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips y choices persistidas).
+ *                   description: Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips, conjuros conocidos desde spellsLearned y choices persistidas).
  *                   items:
  *                     $ref: '#/components/schemas/SpellChoiceApi'
  *       400:

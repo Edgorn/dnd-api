@@ -13,6 +13,11 @@ import { ObjectId } from "mongoose"
 /** Spell slots table for a class level (create/update input and slim API). */
 export interface ClassSpellSlots {
   cantrips?: number;
+  /**
+   * Number of leveled spells (1+) learned when gaining this class level.
+   * Not inherited from previous levels.
+   */
+  spellsLearned?: number;
   /** Spell slot counts keyed by spell level ("1".."9"). */
   slots?: Record<string, number>;
 }

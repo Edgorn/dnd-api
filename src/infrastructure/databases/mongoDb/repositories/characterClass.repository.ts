@@ -35,6 +35,7 @@ import CharacterClassModel from '../schemas/CharacterClass';
 import { NotFoundError } from '../../../../domain/errors/AppError';
 import {
   buildCantripSpellChoice,
+  buildSynthesizedKnownSpellChoice,
   hasCantripSpellChoice,
   remainingCantripPicks,
   resolveClassSpellSlotsForLevel,
@@ -335,16 +336,32 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const classId = clase._id ? clase._id.toString() : "";
     const cantripCap = resolveClassSpellSlotsForLevel(clase.levels ?? [], 1)?.cantrips;
     const cantripPicks = remainingCantripPicks(cantripCap, 0);
-    let resolvedSpellChoices = spell_choices;
+    const synthesizedChoices: ChoiceMongo[] = [];
+
     if (
       cantripPicks > 0
       && classId
       && this.spellRepository
       && !hasCantripSpellChoice(dataLevel?.spell_choices)
     ) {
-      const synthesized = await this.spellRepository.formatSpellChoices([
-        buildCantripSpellChoice(classId, cantripPicks),
-      ]);
+      synthesizedChoices.push(buildCantripSpellChoice(classId, cantripPicks));
+    }
+
+    const knownSpellChoice = this.spellRepository
+      ? buildSynthesizedKnownSpellChoice(
+        classId,
+        clase.levels ?? [],
+        1,
+        dataLevel?.spell_choices
+      )
+      : undefined;
+    if (knownSpellChoice) {
+      synthesizedChoices.push(knownSpellChoice);
+    }
+
+    let resolvedSpellChoices = spell_choices;
+    if (synthesizedChoices.length && this.spellRepository) {
+      const synthesized = await this.spellRepository.formatSpellChoices(synthesizedChoices);
       if (synthesized?.length) {
         resolvedSpellChoices = [...synthesized, ...(spell_choices ?? [])];
       }

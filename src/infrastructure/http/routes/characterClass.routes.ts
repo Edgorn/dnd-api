@@ -62,7 +62,7 @@ const router = Router();
  *           type: array
  *           items:
  *             type: object
- *           description: Opciones de conjuros a elegir. Si la clase tiene tope de trucos (cantrips) y no hay una choice persistida de nivel 0, se añade una elección sintetizada.
+ *           description: Opciones de conjuros a elegir. Si la clase tiene tope de trucos (cantrips) y no hay una choice persistida de nivel 0, se añade una elección sintetizada. Si el nivel 1 tiene `spellsLearned` y ranuras, se añade una elección de conjuros de la clase de los niveles que puede lanzar.
  *         traits:
  *           type: array
  *           items:
@@ -100,7 +100,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles slim para el editor (level, ranuras de conjuro y elecciones de conjuros).
+ *           description: Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos y elecciones de conjuros).
  *         subclasesData:
  *           type: object
  *           description: Información de las subclases disponibles.
@@ -116,6 +116,13 @@ const router = Router();
  *           type: integer
  *           minimum: 0
  *           description: Número de trucos conocidos a ese nivel.
+ *         spellsLearned:
+ *           type: integer
+ *           minimum: 0
+ *           description: >
+ *             Número de conjuros de nivel 1+ que se aprenden al ganar ese nivel de clase
+ *             (no se hereda de niveles anteriores). Si hay ranuras, se sintetiza una
+ *             elección de conjuros de la clase y de los niveles que puede lanzar.
  *         slots:
  *           type: object
  *           additionalProperties:
@@ -133,7 +140,7 @@ const router = Router();
  *           description: Nivel de clase.
  *         spellcasting:
  *           $ref: '#/components/schemas/ClassSpellSlots'
- *           description: Tabla de ranuras / trucos de ese nivel.
+ *           description: Tabla de ranuras, trucos y conjuros aprendidos de ese nivel.
  *         spell_choices:
  *           type: array
  *           items:
