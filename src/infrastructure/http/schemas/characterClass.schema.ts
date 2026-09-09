@@ -24,7 +24,8 @@ const ClassSpellSlotsSchema = z.object({
 
 const CharacterClassLevelInputSchema = z.object({
   level: z.number().int().min(1, "El nivel debe ser al menos 1"),
-  spellcasting: ClassSpellSlotsSchema
+  spellcasting: ClassSpellSlotsSchema,
+  spell_choices: z.array(ChoiceMongoSchema).optional()
 });
 
 const uniqueLevelsRefinement = (

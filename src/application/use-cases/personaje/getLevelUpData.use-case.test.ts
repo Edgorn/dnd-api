@@ -15,7 +15,12 @@ describe("GetLevelUpData", () => {
 
   it("should delegate to personajeService.getLevelUpData", async () => {
     const useCase = new GetLevelUpData(personajeServiceMock as any);
-    const expected = { class: "class1", hit_die: 8, prof_bonus: 2 };
+    const expected = {
+      class: "class1",
+      hit_die: 8,
+      prof_bonus: 2,
+      spell_choices: [{ choose: 1, options: [], query_type: "filter", query_filter: { level: 0 } }],
+    };
     personajeServiceMock.getLevelUpData.mockResolvedValue(expected);
 
     const result = await useCase.execute("char1", "class1", "user1");

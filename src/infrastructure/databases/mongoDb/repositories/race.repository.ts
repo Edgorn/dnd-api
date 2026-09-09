@@ -6,6 +6,7 @@ import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import AttributeService from '../../../../domain/services/attribute.service';
 import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubracesApi, UpdateRace, VarianteApi, VarianteMongo } from '../../../../domain/types/race.types';
+import { AttributeApi } from '../../../../domain/types/attribute.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import RaceModel from '../schemas/Race';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
@@ -178,7 +179,7 @@ export default class RaceRepository implements IRaceRepository {
       this.spellRepository.formatSpellChoices(raza?.spell_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
       this.languageRepository.formatLanguageChoices(raza.language_choices, ruleset),
-      raza.spellcasting ? this.attributeService.getById(raza.spellcasting.toString()) : Promise.resolve(undefined)
+      this.formatRaceSpellcasting(raza)
     ])
 
     return {
@@ -253,5 +254,46 @@ export default class RaceRepository implements IRaceRepository {
 
     const dataLevel = raza?.levels?.find(lev => lev.level === level);
     return dataLevel;
+  }
+
+  async getSpellcastingAttribute(raceId: string): Promise<AttributeApi | undefined> {
+    const raza = await RaceModel.findOne({ _id: raceId as any, deletedAt: null })
+      .select("_id spellcasting parentId ruleset")
+      .lean<Pick<RaceMongo, "_id" | "spellcasting" | "parentId" | "ruleset">>();
+
+    if (!raza) return undefined;
+    return this.formatRaceSpellcasting(raza);
+  }
+
+  private async formatRaceSpellcasting(
+    raza: Pick<RaceMongo, "_id" | "spellcasting" | "parentId" | "ruleset">
+  ): Promise<AttributeApi | undefined> {
+    const source = await this.resolveInheritedSpellcastingSource(raza);
+    if (!source) return undefined;
+    return this.attributeService.formatSpellcastingAttribute(source.spellcasting, source.ruleset);
+  }
+
+  private async resolveInheritedSpellcastingSource(
+    raza: Pick<RaceMongo, "_id" | "spellcasting" | "parentId" | "ruleset">,
+    visited = new Set<string>()
+  ): Promise<{ spellcasting: RaceMongo["spellcasting"]; ruleset: string } | undefined> {
+    const id = raza._id?.toString();
+    if (id) {
+      if (visited.has(id)) return undefined;
+      visited.add(id);
+    }
+
+    if (raza.spellcasting) {
+      return { spellcasting: raza.spellcasting, ruleset: raza.ruleset };
+    }
+
+    if (!raza.parentId) return undefined;
+
+    const parent = await RaceModel.findOne({ _id: raza.parentId as any, deletedAt: null })
+      .select("_id spellcasting parentId ruleset")
+      .lean<Pick<RaceMongo, "_id" | "spellcasting" | "parentId" | "ruleset">>();
+
+    if (!parent) return undefined;
+    return this.resolveInheritedSpellcastingSource(parent, visited);
   }
 }

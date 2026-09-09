@@ -23,6 +23,7 @@ describe("LevelUp", () => {
       classId: "class1",
       hpIncrease: 5,
       userId: "user1",
+      spells: [["507f1f77bcf86cd799439011"]],
     };
     const result = await useCase.execute(input);
 

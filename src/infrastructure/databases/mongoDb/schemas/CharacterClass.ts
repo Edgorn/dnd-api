@@ -26,7 +26,6 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
     traits_data: {},
     traits_options: {},
     spell_choices: [],
-    mixed_spell_choices: {},
     spell_group: {},
     spell_changes: {},
     spellcasting: { type: Schema.Types.Mixed, default: undefined },

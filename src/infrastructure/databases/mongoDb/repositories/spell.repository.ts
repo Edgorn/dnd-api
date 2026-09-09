@@ -107,17 +107,22 @@ export default class SpellRepository implements ISpellRepository {
     }
 
     if (choice.filter) {
-      const getFilterVal = (val: any) => val !== undefined ? (Array.isArray(val) ? val[0] : val) : undefined;
-      const rawLevel = getFilterVal(choice.filter.level);
-      const rawClass = getFilterVal(choice.filter.classes ?? choice.filter.class);
+      const query: Record<string, unknown> = { deletedAt: null };
 
-      const levelFilter = rawLevel !== undefined ? Number(rawLevel) : undefined;
-      const classFilter = rawClass !== undefined ? String(rawClass) : undefined;
-      const spells = await this.getSpellsByLevelAndClass(levelFilter!, [], classFilter);
+      for (const [key, value] of Object.entries(choice.filter)) {
+        const mongoKey = key === "class" ? "classes" : key;
+        query[mongoKey] = Array.isArray(value) ? { $in: value } : value;
+      }
+
+      const spells = await SpellSchema.find(query)
+        .populate(["school", "damage.base.type", "damage.scaling.steps.components.type"])
+        .collation({ locale: "es", strength: 1 })
+        .sort({ name: 1 });
+
       return {
         choose: choice.choose,
-        options: spells,
-        query_type: 'filter',
+        options: this.formatSpells(spells),
+        query_type: "filter",
         query_filter: choice.filter
       };
     }

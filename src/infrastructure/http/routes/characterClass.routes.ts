@@ -62,7 +62,7 @@ const router = Router();
  *           type: array
  *           items:
  *             type: object
- *           description: Opciones de conjuros a elegir.
+ *           description: Opciones de conjuros a elegir. Si la clase tiene tope de trucos (cantrips) y no hay una choice persistida de nivel 0, se añade una elección sintetizada.
  *         traits:
  *           type: array
  *           items:
@@ -100,7 +100,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles slim para el editor (solo level y ranuras de conjuro).
+ *           description: Niveles slim para el editor (level, ranuras de conjuro y elecciones de conjuros).
  *         subclasesData:
  *           type: object
  *           description: Información de las subclases disponibles.
@@ -134,6 +134,13 @@ const router = Router();
  *         spellcasting:
  *           $ref: '#/components/schemas/ClassSpellSlots'
  *           description: Tabla de ranuras / trucos de ese nivel.
+ *         spell_choices:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ChoiceMongo'
+ *           description: >
+ *             Elecciones de conjuros de ese nivel (lista de IDs o filtro).
+ *             El filtro admite valores únicos o arrays (por ejemplo level: [1, 2, 3, 4]).
  *     InputCreateCharacterClass:
  *       type: object
  *       required:
@@ -196,7 +203,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles con tabla de ranuras (solo level + spellcasting).
+ *           description: Niveles con tabla de ranuras y elecciones de conjuros (level, spellcasting, spell_choices).
  *     InputUpdateCharacterClass:
  *       type: object
  *       properties:
@@ -256,7 +263,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles con tabla de ranuras (solo level + spellcasting); se fusionan por level sin borrar traits/subclases.
+ *           description: Niveles con tabla de ranuras y elecciones de conjuros; se fusionan por level sin borrar traits/subclases.
  */
 
 /**

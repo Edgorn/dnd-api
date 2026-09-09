@@ -84,8 +84,14 @@ export default class SkillService {
   async formatSkillChoices(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<SkillApi> | undefined> {
     if (!opciones) return undefined;
 
-    if (opciones.options && opciones.options.length > 0) {
-      const skills = await this.skillRepository.getSkillsByIndices(opciones.options);
+    const options = opciones.options as string[] | string | undefined;
+
+    // Soporte legacy para base de datos (cuando options era un string)
+    if (typeof options === 'string') {
+      const isAll = options === 'all' || options === 'cualquiera';
+      const skills = isAll
+        ? await this.getAll()
+        : await this.skillRepository.getSkillsByIndices([options]);
 
       return {
         choose: opciones.choose,
@@ -93,8 +99,8 @@ export default class SkillService {
       };
     }
 
-    if (typeof opciones.options === 'string' && opciones.options === 'all') {
-      const skills = await this.getAll();
+    if (Array.isArray(options) && options.length > 0) {
+      const skills = await this.skillRepository.getSkillsByIndices(options);
 
       return {
         choose: opciones.choose,
@@ -122,7 +128,7 @@ export default class SkillService {
       };
     }
 
-    if ((!opciones.options || opciones.options.length === 0) && !opciones.filter) {
+    if ((!options || options.length === 0) && !opciones.filter) {
       const skills = await this.getAll();
       return {
         choose: opciones.choose,
@@ -130,7 +136,7 @@ export default class SkillService {
       };
     }
 
-    console.warn("Opciones de skills no reconocidas:", opciones.options);
+    console.warn("Opciones de skills no reconocidas:", options);
     return undefined;
   }
 }

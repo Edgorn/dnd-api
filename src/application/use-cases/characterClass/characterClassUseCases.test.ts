@@ -81,7 +81,11 @@ describe("CharacterClass Use Cases", () => {
         spellSaveDcFormula: "8 + @proficiencyBonus + @spellcasting.modifier",
         spellAttackBonusFormula: "@proficiencyBonus + @spellcasting.modifier",
         levels: [
-          { level: 1, spellcasting: { cantrips: 3, slots: { "1": 2 } } },
+          {
+            level: 1,
+            spellcasting: { cantrips: 3, slots: { "1": 2 } },
+            spell_choices: [{ choose: 1, filter: { level: [1, 2, 3, 4] } }]
+          },
           { level: 2, spellcasting: { cantrips: 3, slots: { "1": 3 } } }
         ]
       };
@@ -162,7 +166,11 @@ describe("CharacterClass Use Cases", () => {
         equipment: null,
         spellcasting: "507f1f77bcf86cd799439011",
         spellSaveDcFormula: "8 + @proficiencyBonus + @spellcasting.modifier",
-        levels: [{ level: 1, spellcasting: { cantrips: 2, slots: { "1": 2 } } }]
+        levels: [{
+          level: 1,
+          spellcasting: { cantrips: 2, slots: { "1": 2 } },
+          spell_choices: [{ choose: 2, filter: { level: [1, 2], classes: "Mago" } }]
+        }]
       };
 
       const result = await useCase.execute(input, "user1");

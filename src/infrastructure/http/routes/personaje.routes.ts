@@ -1182,7 +1182,11 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  * /character/{id}/level-up-data:
  *   get:
  *     summary: Obtener datos para subir de nivel
- *     description: Devuelve la información mínima necesaria para subir de nivel en una clase concreta del personaje (dado de golpe y bono de competencia).
+ *     description: |
+ *       Devuelve la información necesaria para subir de nivel en una clase concreta del personaje
+ *       (dado de golpe, bono de competencia y elecciones de conjuros).
+ *       `spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`
+ *       de la clase y los trucos que el personaje ya conoce, más las elecciones persistidas de niveles 1–9.
  *     tags:
  *       - Personajes
  *     security:
@@ -1221,6 +1225,11 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                 prof_bonus:
  *                   type: number
  *                   description: Bono de competencia correspondiente al nivel total tras la subida.
+ *                 spell_choices:
+ *                   type: array
+ *                   description: Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips y choices persistidas).
+ *                   items:
+ *                     $ref: '#/components/schemas/SpellChoiceApi'
  *       400:
  *         description: Datos de entrada inválidos.
  *       401:
@@ -1244,7 +1253,10 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       según el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema
  *       del personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado
  *       de la tirada o media del dado); el servidor aplica la fórmula del sistema con los
- *       atributos del personaje. Reinicia la XP a 0. No aplica rasgos, ASI, dotes ni conjuros.
+ *       atributos del personaje. Reinicia la XP a 0.
+ *       Si `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir
+ *       `spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se
+ *       guardan en `spells[classId]`. No aplica rasgos, ASI ni dotes.
  *     tags:
  *       - Personajes
  *     security:
@@ -1275,6 +1287,17 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                 description: |
  *                   Incremento base de PG (tirada o media del dado de golpe). Se inyecta en
  *                   la fórmula del sistema como `@class.hitDie` y `@hpIncrease`.
+ *               spells:
+ *                 type: array
+ *                 description: |
+ *                   Elecciones de conjuros alineadas con `spell_choices` del GET level-up-data.
+ *                   `spells[i]` son los IDs elegidos para `spell_choices[i]` (misma longitud que `choose`).
+ *                   Obligatorio si hay elecciones; omitir o enviar vacío si no las hay.
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                     description: ObjectId de MongoDB del conjuro.
  *     responses:
  *       200:
  *         description: Personaje actualizado tras la subida de nivel.
@@ -1291,7 +1314,7 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                 basico:
  *                   $ref: '#/components/schemas/PersonajeBasico'
  *       400:
- *         description: Datos inválidos, fórmula ausente, dado excedido o nivel máximo alcanzado.
+ *         description: Datos inválidos, elecciones de conjuros incorrectas, fórmula ausente, dado excedido o nivel máximo alcanzado.
  *       401:
  *         description: No autorizado.
  *       403:

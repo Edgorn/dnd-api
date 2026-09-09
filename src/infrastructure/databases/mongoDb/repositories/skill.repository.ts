@@ -77,7 +77,7 @@ export default class SkillRepository implements ISkillRepository {
   }
 
   async getSkillsByIndices(indices: string[]): Promise<SkillApi[]> {
-    if (!indices || !indices.length) return [];
+    if (!Array.isArray(indices) || !indices.length) return [];
     const validMongoIds = indices.filter(item => Types.ObjectId.isValid(item));
     const stringIndexes = indices.filter(item => !Types.ObjectId.isValid(item));
 

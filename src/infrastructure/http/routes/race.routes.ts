@@ -115,7 +115,7 @@ const router = Router();
  *           description: Lista de opciones de elección de conjuros resueltas para la raza.
  *         spellcasting:
  *           $ref: '#/components/schemas/AttributeApi'
- *           description: Característica principal para lanzar conjuros de la raza (Objeto completo de la característica).
+ *           description: Característica principal para lanzar conjuros de la raza. En una subraza se hereda de la raza padre si el hijo no la define.
  *         parentId:
  *           type: string
  *           description: ID de la raza padre si esta raza es una subraza (Opcional).

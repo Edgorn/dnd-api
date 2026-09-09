@@ -26,6 +26,25 @@ export default class AttributeService {
     return this.attributeRepository.getById(id);
   }
 
+  async formatSpellcastingAttribute(
+    spellcasting: { toString(): string } | string | null | undefined,
+    ruleset: string
+  ): Promise<AttributeApi | undefined> {
+    if (!spellcasting) return undefined;
+
+    const raw = spellcasting.toString();
+    if (!raw) return undefined;
+
+    if (/^[a-fA-F0-9]{24}$/.test(raw)) {
+      const byId = await this.getById(raw);
+      if (byId) return byId;
+    }
+
+    if (!ruleset) return undefined;
+    const attributes = await this.getBySystems([ruleset]);
+    return attributes.find(attr => attr.key === raw);
+  }
+
   softDelete(id: string): Promise<void> {
     return this.attributeRepository.softDelete(id);
   }

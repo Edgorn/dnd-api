@@ -3,7 +3,7 @@ import { TraitApi, TraitDataMongo } from "./traits.types"
 import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
-import { Damage, Speed } from "."
+import { ChoiceApi, Damage, Speed } from "."
 import { CharacterEquipmentApi } from "./equipment.types"
 import { DoteApi } from "./dotes.types"
 import { SpellApi } from "./spell.types"
@@ -86,6 +86,7 @@ export interface TypeLevelUp {
   classId: string;
   hpIncrease: number;
   userId: string;
+  spells?: string[][];
 }
 
 export interface TypeAddEquipment {
@@ -311,8 +312,7 @@ export interface LevelUpData {
   // subclasesData?: SubclassesOptionsApi | null;
   // double_skills?: number;
   // spells?: SpellApi[];
-  // spell_choices?: ChoiceApi<SpellApi>[];
-  // mixed_spell_choices?: ChoiceApi<SpellApi>[][];
+  spell_choices?: ChoiceApi<SpellApi>[];
   // spell_changes?: ChoiceApi<SpellApi>[][];
   // skill_choices?: ChoiceApi<SkillApi>;
   // invocations_choices?: ChoiceApi<InvocacionApi>;

@@ -21,6 +21,7 @@ export interface ClassSpellSlots {
 export interface CharacterClassLevelInput {
   level: number;
   spellcasting?: ClassSpellSlots;
+  spell_choices?: ChoiceMongo[];
 }
 
 export interface InputCreateCharacterClass {
@@ -34,7 +35,6 @@ export interface InputCreateCharacterClass {
   skill_choices?: ChoiceMongo | null;
   equipment?: CharacterEquipmentMongo[] | null;
   equipment_choices?: EquipmentChoiceMongo[] | null;
-  /** Attribute ObjectId used as the class spellcasting ability. */
   spellcasting?: string | null;
   spellSaveDcFormula?: string;
   spellAttackBonusFormula?: string;
@@ -75,7 +75,6 @@ export interface CharacterClassMongo {
   equipment: CharacterEquipmentMongo[];
   equipment_choices?: EquipmentChoiceMongo[];
   levels: CharacterClassLevelMongo[];
-  /** Attribute ObjectId (or legacy attribute key string). */
   spellcasting?: ObjectId | string | null;
   spellSaveDcFormula?: string;
   spellAttackBonusFormula?: string;
@@ -90,11 +89,7 @@ export interface CharacterClassLevelMongo {
     options: string[];
   };
   traits_data: TraitDataMongo;
-  spell_choices?: ChoiceSpell[];
-  mixed_spell_choices?: {
-    number: number;
-    options: ChoiceSpell[];
-  };
+  spell_choices?: (ChoiceMongo | ChoiceSpell)[];
   spell_changes?: {
     number: number;
     options: ChoiceSpell[];
@@ -106,17 +101,11 @@ export interface CharacterClassLevelMongo {
   subclasses_options?: SubclassesOptionsMongo;
   subclasses?: SubclassesMongo;
   ability_score?: boolean;
-  /** New ClassSpellSlots shape or legacy flat bag (slots_level_N, etc.). */
-  spellcasting?: ClassSpellSlots | Spellcasting;
+  spellcasting?: ClassSpellSlots;
   double_skills?: number;
   skill_choices?: ChoiceMongo;
   invocations?: number;
   invocations_change?: number;
-}
-
-/** Legacy flat spell-slot bag (slots_level_1, spell_slots, …). */
-export interface Spellcasting {
-  [key: string]: number | undefined;
 }
 
 /** Raw spellcasting data from class repo before character attribute/formula evaluation. */
@@ -161,10 +150,6 @@ export interface SubclassMongo {
     name: string;
     options: string[];
   };
-  mixed_spell_choices?: {
-    number: number;
-    options: ChoiceSpell[];
-  };
   skill_choices?: ChoiceMongo;
   double_skill_choices?: ChoiceMongo;
   proficiencies?: string[];
@@ -191,11 +176,9 @@ export interface CharacterClassApi {
   equipment?: EquipmentInstanceApi[];
   equipment_choices?: ResolvedEquipmentChoiceApi[];
   prof_bonus: number;
-  /** Hydrated spellcasting ability attribute. */
   spellcasting?: AttributeApi;
   spellSaveDcFormula?: string;
   spellAttackBonusFormula?: string;
-  /** Slim levels for editor round-trip (level + spell slots only). */
   levels?: CharacterClassLevelInput[];
   subclasesData?: SubclassesOptionsApi;
   deletedAt?: Date | null;
@@ -219,7 +202,6 @@ export interface SubclassApi {
     name: string;
     options: TraitApi[];
   };
-  mixed_spell_choices?: ChoiceApi<SpellApi>[][];
   skill_choices?: ChoiceApi<SkillApi>;
   double_skill_choices?: ChoiceApi<SkillApi>;
   language_choices?: ChoiceApi<LanguageApi>;
@@ -242,7 +224,6 @@ export interface ClaseLevelUp {
   double_skills?: number;
   spells?: SpellApi[];
   spell_choices?: ChoiceApi<SpellApi>[];
-  mixed_spell_choices?: ChoiceApi<SpellApi>[][];
   spell_changes?: ChoiceApi<SpellApi>[][];
   skill_choices?: ChoiceApi<SkillApi>;
   invocations_choices?: ChoiceApi<InvocacionApi>;

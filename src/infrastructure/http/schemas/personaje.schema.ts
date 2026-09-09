@@ -39,6 +39,13 @@ export const LevelUpSchema = z.object({
     .number()
     .int("El incremento de PG debe ser un entero")
     .min(1, "El incremento de PG debe ser al menos 1"),
+  spells: z
+    .array(
+      z.array(
+        z.string().regex(objectIdRegex, "Cada conjuro debe ser un ObjectId válido de MongoDB")
+      )
+    )
+    .optional(),
 });
 
 const CharacterEquipmentMutationSchema = z.object({

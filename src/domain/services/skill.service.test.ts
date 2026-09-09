@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import SkillService from "./skill.service";
 import ISkillRepository from "../repositories/ISkillRepository";
 import { SkillApi } from "../types/skill.types";
 import { CharacterAttributeApi } from "../types/attribute.types";
+import { ChoiceMongo } from "../types";
 
 describe("SkillService", () => {
   const mockSkills: SkillApi[] = [
@@ -149,5 +150,77 @@ describe("SkillService", () => {
 
     expect(stealth?.value).toBe(0.5);
     expect(stealth?.modifier).toBe(3); // 2 (dex) + 0.5 * 2 = 3
+  });
+
+  describe("formatSkillChoices", () => {
+    beforeEach(() => {
+      vi.mocked(mockRepository.getAll).mockClear();
+      vi.mocked(mockRepository.getSkillsByIndices).mockClear();
+      vi.mocked(mockRepository.getAll).mockResolvedValue(mockSkills);
+      vi.mocked(mockRepository.getSkillsByIndices).mockResolvedValue([mockSkills[0], mockSkills[1]]);
+    });
+
+    it("should return all skills when options is the legacy string 'all'", async () => {
+      const result = await service.formatSkillChoices({
+        choose: 2,
+        options: "all" as unknown as string[]
+      });
+
+      expect(mockRepository.getAll).toHaveBeenCalled();
+      expect(mockRepository.getSkillsByIndices).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        choose: 2,
+        options: mockSkills
+      });
+    });
+
+    it("should return all skills when options is the legacy string 'cualquiera'", async () => {
+      const result = await service.formatSkillChoices({
+        choose: 1,
+        options: "cualquiera" as unknown as string[]
+      });
+
+      expect(mockRepository.getAll).toHaveBeenCalled();
+      expect(mockRepository.getSkillsByIndices).not.toHaveBeenCalled();
+      expect(result?.options).toEqual(mockSkills);
+    });
+
+    it("should resolve a single legacy string option by index", async () => {
+      vi.mocked(mockRepository.getSkillsByIndices).mockResolvedValue([mockSkills[0]]);
+
+      const result = await service.formatSkillChoices({
+        choose: 1,
+        options: "athletics" as unknown as string[]
+      });
+
+      expect(mockRepository.getSkillsByIndices).toHaveBeenCalledWith(["athletics"]);
+      expect(mockRepository.getAll).not.toHaveBeenCalled();
+      expect(result?.options).toEqual([mockSkills[0]]);
+    });
+
+    it("should resolve an array of skill ids via getSkillsByIndices", async () => {
+      const result = await service.formatSkillChoices({
+        choose: 2,
+        options: ["skill-id-athletics", "skill-id-stealth"]
+      });
+
+      expect(mockRepository.getSkillsByIndices).toHaveBeenCalledWith(["skill-id-athletics", "skill-id-stealth"]);
+      expect(result).toEqual({
+        choose: 2,
+        options: [mockSkills[0], mockSkills[1]]
+      });
+    });
+
+    it("should filter skills when options is absent and filter is present", async () => {
+      const result = await service.formatSkillChoices({
+        choose: 1,
+        filter: { key: "athletics" }
+      } as ChoiceMongo);
+
+      expect(mockRepository.getAll).toHaveBeenCalled();
+      expect(mockRepository.getSkillsByIndices).not.toHaveBeenCalled();
+      expect(result?.options).toHaveLength(1);
+      expect(result?.options[0].key).toBe("athletics");
+    });
   });
 });
