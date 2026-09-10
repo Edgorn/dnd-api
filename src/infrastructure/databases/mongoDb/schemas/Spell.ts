@@ -54,7 +54,7 @@ const spellSchema: Schema = new Schema<SpellMongo>({
     }
   },
   description: [String],
-  ritual: Boolean,
+  ritual: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null }
 }, { collection: 'spells', timestamps: true });
 

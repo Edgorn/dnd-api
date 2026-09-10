@@ -5,6 +5,11 @@ import { Damage } from "./damage.types";
 export type SpellSchoolApi = Pick<MagicSchoolApi, 'id' | 'description' | 'name' | 'color'>;
 export type SpellDamageTypeApi = Pick<Damage, 'id' | 'description' | 'name' | 'color'>;
 
+export interface SpellClassApi {
+  id: string;
+  name: string;
+}
+
 export interface DamageComponentMongo {
   diceCount: number;
   diceType: string;
@@ -113,7 +118,7 @@ export interface SpellMongo {
   name: string;
   type?: string;
   level: number;
-  classes: string[];
+  classes: any[];
   typeName?: string;
   school?: any;
   castingTime?: CastingTime;
@@ -132,7 +137,7 @@ export interface SpellApi {
   name: string;
   type?: string;
   level: number;
-  classes: string[];
+  classes: SpellClassApi[];
   typeName?: string;
   school?: SpellSchoolApi;
   castingTime?: CastingTime;
@@ -157,6 +162,7 @@ export interface InputCreateSpell {
   components?: SpellComponents;
   duration?: SpellDuration;
   damage?: InputSpellDamage;
+  ritual: boolean;
 }
 
 export interface InputUpdateSpell {
@@ -172,6 +178,7 @@ export interface InputUpdateSpell {
   components?: SpellComponents;
   duration?: SpellDuration;
   damage?: InputSpellDamage;
+  ritual?: boolean;
 }
 
 export interface ChoiceSpell {

@@ -614,9 +614,19 @@
           "classes": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID de la clase."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nombre de la clase."
+                }
+              }
             },
-            "description": "Array de IDs de las clases que pueden aprender el conjuro."
+            "description": "Clases que pueden aprender el conjuro."
           },
           "typeName": {
             "type": "string"
@@ -836,7 +846,8 @@
           "ruleset",
           "name",
           "level",
-          "description"
+          "description",
+          "ritual"
         ],
         "properties": {
           "ruleset": {
@@ -1011,6 +1022,10 @@
                 }
               }
             }
+          },
+          "ritual": {
+            "type": "boolean",
+            "description": "Indica si el conjuro puede lanzarse como ritual."
           }
         }
       },
@@ -1189,6 +1204,10 @@
                 }
               }
             }
+          },
+          "ritual": {
+            "type": "boolean",
+            "description": "Indica si el conjuro puede lanzarse como ritual."
           }
         }
       },

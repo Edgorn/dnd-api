@@ -1171,7 +1171,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const spellcasting: SpellcastingLevel[] = spellcastingSources
       .filter((item): item is NonNullable<typeof item> => item !== null)
       .map(source => {
-        console.log(source)
         const ability = attributesByKey.get(source.abilityKey)
         if (!ability) return null
         return buildSpellcastingLevel(

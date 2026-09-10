@@ -215,7 +215,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const invocations_choices = this.invocacionRepository ? await this.invocacionRepository.obtenerOpciones(dataLevel.invocations ?? 0) : undefined;
     const invocations_change = this.invocacionRepository ? await this.invocacionRepository.obtenerOpciones(dataLevel.invocations_change ?? 0) : undefined;
 
-    const spells = this.spellRepository ? await this.spellRepository.getSpellsByLevelAndClass(dataLevel?.spell_group?.level ?? 0, [], dataLevel?.spell_group?.class ?? '') : [];
+    const spells = dataLevel?.spell_group?.class && this.spellRepository
+      ? await this.spellRepository.getSpellsByLevelAndClass(
+          dataLevel.spell_group.level ?? 0,
+          [],
+          dataLevel.spell_group.class
+        )
+      : [];
 
     let traits_options = undefined;
 
@@ -321,7 +327,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       this.proficiencyRepository ? this.proficiencyRepository.getProficienciesByIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]) : [],
       this.proficiencyRepository ? this.proficiencyRepository.formatProficiencyChoices(clase?.proficiencies_choices ?? []) : [],
       this.skillService ? this.skillService.formatSkillChoices(clase.skill_choices) : undefined,
-      this.spellRepository ? this.spellRepository.getSpellsByLevelAndClass(dataLevel?.spell_group?.level ?? 0, [], dataLevel?.spell_group?.class ?? '') : [],
+      dataLevel?.spell_group?.class && this.spellRepository
+        ? this.spellRepository.getSpellsByLevelAndClass(
+            dataLevel.spell_group.level ?? 0,
+            [],
+            dataLevel.spell_group.class
+          )
+        : [],
       this.spellRepository ? this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined,
       this.equipmentRepository ? this.equipmentRepository.getCharacterEquipmentsByIds(clase?.equipment) : [],
       this.formatClassEquipmentChoices(clase?.equipment_choices, clase.ruleset || ""),

@@ -36,7 +36,7 @@ describe("Spell Use Cases", () => {
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       spellServiceMock.create.mockResolvedValue({ id: "spell1", name: "Fireball" });
 
-      const input = { ruleset: "sys1", name: "Fireball", level: 3, description: ["Boom"], classes: ["wizard"] };
+      const input = { ruleset: "sys1", name: "Fireball", level: 3, description: ["Boom"], classes: ["wizard"], ritual: false };
       const result = await useCase.execute(input, "user1");
 
       expect(result).toEqual({ id: "spell1", name: "Fireball" });
@@ -47,7 +47,7 @@ describe("Spell Use Cases", () => {
       const useCase = new CreateSpell(spellServiceMock, systemServiceMock);
       systemServiceMock.getById.mockResolvedValue(null);
 
-      const input = { ruleset: "sys1", name: "Fireball", level: 3, description: ["Boom"], classes: [] };
+      const input = { ruleset: "sys1", name: "Fireball", level: 3, description: ["Boom"], classes: [], ritual: false };
       await expect(useCase.execute(input, "user1")).rejects.toThrow(AppError);
     });
 
@@ -55,7 +55,7 @@ describe("Spell Use Cases", () => {
       const useCase = new CreateSpell(spellServiceMock, systemServiceMock);
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "otherUser" });
 
-      const input = { ruleset: "sys1", name: "Fireball", level: 3, description: ["Boom"], classes: [] };
+      const input = { ruleset: "sys1", name: "Fireball", level: 3, description: ["Boom"], classes: [], ritual: false };
       await expect(useCase.execute(input, "user1")).rejects.toThrow("No tienes permisos");
     });
   });

@@ -2,10 +2,12 @@ import { Types } from "mongoose";
 import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi } from "../../../../domain/types/spell.types";
+import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi, SpellClassApi } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import SpellSchema from "../schemas/Spell";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
+
+const SPELL_POPULATE_PATHS = ['school', 'classes', 'damage.base.type', 'damage.scaling.steps.components.type'] as const;
 
 export default class SpellRepository implements ISpellRepository {
   constructor(
@@ -25,11 +27,12 @@ export default class SpellRepository implements ISpellRepository {
         range: data.range,
         components: data.components,
         duration: data.duration,
-        damage: data.damage
+        damage: data.damage,
+        ritual: data.ritual
       });
 
       await newSpell.save();
-      await newSpell.populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type']);
+      await newSpell.populate([...SPELL_POPULATE_PATHS]);
       return this.formatSpell(newSpell);
     } catch (error: any) {
       if (error?.code === 11000) {
@@ -47,7 +50,7 @@ export default class SpellRepository implements ISpellRepository {
         id,
         { $set: updateFields },
         { returnDocument: 'after' }
-      ).populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type']);
+      ).populate([...SPELL_POPULATE_PATHS]);
 
       if (!updatedSpell) {
         throw new NotFoundError(`No spell found with id: ${id}`);
@@ -65,7 +68,7 @@ export default class SpellRepository implements ISpellRepository {
   async getBySystems(rulesets: string[]): Promise<SpellApi[]> {
     const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
     const spells = await SpellSchema.find({ ruleset: { $in: expandedRulesets }, deletedAt: null })
-      .populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type'])
+      .populate([...SPELL_POPULATE_PATHS])
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
     return this.formatSpells(spells);
@@ -77,7 +80,7 @@ export default class SpellRepository implements ISpellRepository {
       return null;
     }
     const spell = await SpellSchema.findOne({ _id: id as any, deletedAt: null })
-      .populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type'])
+      .populate([...SPELL_POPULATE_PATHS])
       .lean<SpellMongo>();
     if (!spell) return null;
     return this.formatSpell(spell);
@@ -96,6 +99,16 @@ export default class SpellRepository implements ISpellRepository {
     return Promise.all(choices.map(choice => this.formatSpellChoice(choice)));
   }
 
+  private hasClassFilterValue(value: unknown): boolean {
+    if (Array.isArray(value)) {
+      return value.some((item) => this.hasClassFilterValue(item));
+    }
+    if (typeof value === "string") {
+      return value.length > 0;
+    }
+    return value !== null && value !== undefined;
+  }
+
   private async formatSpellChoice(choice: ChoiceMongo | ChoiceSpell | any): Promise<ChoiceApi<SpellApi>> {
     if (choice.options && Array.isArray(choice.options) && choice.options.length > 0) {
       const spells = await this.getSpellsByIndexes(choice.options);
@@ -111,11 +124,19 @@ export default class SpellRepository implements ISpellRepository {
 
       for (const [key, value] of Object.entries(choice.filter)) {
         const mongoKey = key === "class" ? "classes" : key;
+        if (mongoKey === "classes" && !this.hasClassFilterValue(value)) {
+          return {
+            choose: choice.choose,
+            options: [],
+            query_type: "filter",
+            query_filter: choice.filter
+          };
+        }
         query[mongoKey] = Array.isArray(value) ? { $in: value } : value;
       }
 
       const spells = await SpellSchema.find(query)
-        .populate(["school", "damage.base.type", "damage.scaling.steps.components.type"])
+        .populate([...SPELL_POPULATE_PATHS])
         .collation({ locale: "es", strength: 1 })
         .sort({ name: 1 });
 
@@ -158,7 +179,7 @@ export default class SpellRepository implements ISpellRepository {
 
     if (validMongoIds.length === 0) return [];
 
-    const spells = await SpellSchema.find({ _id: { $in: validMongoIds as any }, deletedAt: null }).populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type']);
+    const spells = await SpellSchema.find({ _id: { $in: validMongoIds as any }, deletedAt: null }).populate([...SPELL_POPULATE_PATHS]);
     return ordenarPorNombre(this.formatSpells(spells));
   }
 
@@ -171,10 +192,15 @@ export default class SpellRepository implements ISpellRepository {
     }
 
     if (level !== undefined) query.level = level;
-    if (className !== undefined) query.classes = className;
+    if (className !== undefined) {
+      if (!className) {
+        return [];
+      }
+      query.classes = className;
+    }
 
     const spells = await SpellSchema.find(query)
-      .populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type'])
+      .populate([...SPELL_POPULATE_PATHS])
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
 
@@ -190,7 +216,7 @@ export default class SpellRepository implements ISpellRepository {
     }
 
     const spells = await SpellSchema.find(query)
-      .populate(['school', 'damage.base.type', 'damage.scaling.steps.components.type'])
+      .populate([...SPELL_POPULATE_PATHS])
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
 
@@ -259,13 +285,22 @@ export default class SpellRepository implements ISpellRepository {
       };
     }
 
+    const classesFormatted: SpellClassApi[] = Array.isArray(spell.classes)
+      ? spell.classes.flatMap((c: any) => {
+          if (!c || typeof c !== "object") return [];
+          const classId = c._id ? c._id.toString() : c.id;
+          if (!classId || typeof c.name !== "string") return [];
+          return [{ id: classId, name: c.name }];
+        })
+      : [];
+
     return {
       id: spell._id ? spell._id.toString() : undefined,
       ruleset: spell.ruleset,
       name: spell.name,
       type: spell.type,
       level: spell.level,
-      classes: Array.isArray(spell.classes) ? spell.classes.map((c: any) => typeof c === 'object' && c._id ? c._id.toString() : c.toString()) : [],
+      classes: classesFormatted,
       typeName: spell.typeName,
       school: schoolFormatted,
       castingTime: spell.castingTime ? {
@@ -297,7 +332,7 @@ export default class SpellRepository implements ISpellRepository {
       } : undefined,
       damage: damageFormatted,
       description: spell.description || [],
-      ritual: spell.ritual,
+      ritual: spell.ritual ?? false,
       deletedAt: spell.deletedAt
     };
   }

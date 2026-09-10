@@ -69,7 +69,8 @@ export const CreateSpellSchema = z.object({
   range: SpellRangeSchema.optional(),
   components: SpellComponentsSchema.optional(),
   duration: SpellDurationSchema.optional(),
-  damage: SpellDamageSchema.optional()
+  damage: SpellDamageSchema.optional(),
+  ritual: z.boolean()
 });
 
 export const UpdateSpellSchema = z.object({
@@ -83,7 +84,8 @@ export const UpdateSpellSchema = z.object({
   range: SpellRangeSchema.optional(),
   components: SpellComponentsSchema.optional(),
   duration: SpellDurationSchema.optional(),
-  damage: SpellDamageSchema.optional()
+  damage: SpellDamageSchema.optional(),
+  ritual: z.boolean().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

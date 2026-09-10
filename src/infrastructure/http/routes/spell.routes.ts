@@ -29,8 +29,15 @@ const router = Router();
  *         classes:
  *           type: array
  *           items:
- *             type: string
- *           description: Array de IDs de las clases que pueden aprender el conjuro.
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: ID de la clase.
+ *               name:
+ *                 type: string
+ *                 description: Nombre de la clase.
+ *           description: Clases que pueden aprender el conjuro.
  *         typeName:
  *           type: string
  *         school:
@@ -173,6 +180,7 @@ const router = Router();
  *         - name
  *         - level
  *         - description
+ *         - ritual
  *       properties:
  *         ruleset:
  *           type: string
@@ -284,6 +292,9 @@ const router = Router();
  *                             type:
  *                               type: string
  *                               description: ID del tipo de daño.
+ *         ritual:
+ *           type: boolean
+ *           description: Indica si el conjuro puede lanzarse como ritual.
  *     InputUpdateSpell:
  *       type: object
  *       properties:
@@ -397,6 +408,9 @@ const router = Router();
  *                             type:
  *                               type: string
  *                               description: ID del tipo de daño.
+ *         ritual:
+ *           type: boolean
+ *           description: Indica si el conjuro puede lanzarse como ritual.
  */
 
 /**
