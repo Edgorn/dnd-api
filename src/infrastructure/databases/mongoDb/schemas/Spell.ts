@@ -4,6 +4,7 @@ import { SpellMongo } from "../../../../domain/types/spell.types";
 const damageComponentSchemaDef = {
   diceCount: Number,
   diceType: String,
+  bonus: { type: Number, default: 0 },
   type: { type: Schema.Types.ObjectId, ref: 'damages' }
 };
 

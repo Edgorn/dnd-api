@@ -36,6 +36,7 @@ export const SpellDurationSchema = z.object({
 export const DamageComponentSchema = z.object({
   diceCount: z.number().min(1, "El número de dados debe ser al menos 1"),
   diceType: z.string().min(2, "El tipo de dado no puede estar vacío (ej: d6)"),
+  bonus: z.number().int().default(0),
   type: z.string().min(1, "El ID del tipo de daño no puede estar vacío")
 });
 

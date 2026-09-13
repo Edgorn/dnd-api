@@ -117,6 +117,9 @@ const router = Router();
  *                     type: number
  *                   diceType:
  *                     type: string
+ *                   bonus:
+ *                     type: number
+ *                     description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                   type:
  *                     type: object
  *                     properties:
@@ -153,6 +156,9 @@ const router = Router();
  *                               type: number
  *                             diceType:
  *                               type: string
+ *                             bonus:
+ *                               type: number
+ *                               description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                             type:
  *                               type: object
  *                               properties:
@@ -261,6 +267,9 @@ const router = Router();
  *                     type: number
  *                   diceType:
  *                     type: string
+ *                   bonus:
+ *                     type: number
+ *                     description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                   type:
  *                     type: string
  *                     description: ID del tipo de daño.
@@ -289,6 +298,9 @@ const router = Router();
  *                               type: number
  *                             diceType:
  *                               type: string
+ *                             bonus:
+ *                               type: number
+ *                               description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                             type:
  *                               type: string
  *                               description: ID del tipo de daño.
@@ -377,6 +389,9 @@ const router = Router();
  *                     type: number
  *                   diceType:
  *                     type: string
+ *                   bonus:
+ *                     type: number
+ *                     description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                   type:
  *                     type: string
  *                     description: ID del tipo de daño.
@@ -405,6 +420,9 @@ const router = Router();
  *                               type: number
  *                             diceType:
  *                               type: string
+ *                             bonus:
+ *                               type: number
+ *                               description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                             type:
  *                               type: string
  *                               description: ID del tipo de daño.

@@ -13,12 +13,14 @@ export interface SpellClassApi {
 export interface DamageComponentMongo {
   diceCount: number;
   diceType: string;
+  bonus?: number;
   type: any;
 }
 
 export interface DamageComponentApi {
   diceCount: number;
   diceType: string;
+  bonus: number;
   type: SpellDamageTypeApi;
 }
 
@@ -71,6 +73,7 @@ export interface SpellDamageApi {
 export interface InputDamageComponent {
   diceCount: number;
   diceType: string;
+  bonus?: number;
   type: string;
 }
 

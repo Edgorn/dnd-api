@@ -259,6 +259,7 @@ export default class SpellRepository implements ISpellRepository {
       return {
         diceCount: c.diceCount,
         diceType: c.diceType,
+        bonus: c.bonus ?? 0,
         type: typeObj
       };
     };

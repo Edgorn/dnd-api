@@ -743,6 +743,10 @@
                     "diceType": {
                       "type": "string"
                     },
+                    "bonus": {
+                      "type": "number",
+                      "description": "Sumando fijo del componente, p. ej. el +1 de 1d4 + 1."
+                    },
                     "type": {
                       "type": "object",
                       "properties": {
@@ -798,6 +802,10 @@
                               },
                               "diceType": {
                                 "type": "string"
+                              },
+                              "bonus": {
+                                "type": "number",
+                                "description": "Sumando fijo del componente, p. ej. el +1 de 1d4 + 1."
                               },
                               "type": {
                                 "type": "object",
@@ -966,6 +974,10 @@
                     "diceType": {
                       "type": "string"
                     },
+                    "bonus": {
+                      "type": "number",
+                      "description": "Sumando fijo del componente, p. ej. el +1 de 1d4 + 1."
+                    },
                     "type": {
                       "type": "string",
                       "description": "ID del tipo de daño."
@@ -1008,6 +1020,10 @@
                               },
                               "diceType": {
                                 "type": "string"
+                              },
+                              "bonus": {
+                                "type": "number",
+                                "description": "Sumando fijo del componente, p. ej. el +1 de 1d4 + 1."
                               },
                               "type": {
                                 "type": "string",
@@ -1148,6 +1164,10 @@
                     "diceType": {
                       "type": "string"
                     },
+                    "bonus": {
+                      "type": "number",
+                      "description": "Sumando fijo del componente, p. ej. el +1 de 1d4 + 1."
+                    },
                     "type": {
                       "type": "string",
                       "description": "ID del tipo de daño."
@@ -1190,6 +1210,10 @@
                               },
                               "diceType": {
                                 "type": "string"
+                              },
+                              "bonus": {
+                                "type": "number",
+                                "description": "Sumando fijo del componente, p. ej. el +1 de 1d4 + 1."
                               },
                               "type": {
                                 "type": "string",
