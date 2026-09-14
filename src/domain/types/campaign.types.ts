@@ -1,6 +1,7 @@
 import { ObjectId } from "mongoose"
 import { UserApi } from "./user.types"
 import { PersonajeBasico } from "./personajes.types"
+import { SystemBasic } from "./system.types"
 
 export interface CampaignMongo {
   _id: ObjectId,
@@ -28,7 +29,7 @@ export interface CampaignBasic {
   players: number,
   status: string,
   master: string,
-  system: string,
+  system: SystemBasic,
   initialLevel: number,
   maxPlayers: number,
   language: string
@@ -44,7 +45,7 @@ export interface CampaignApi {
   characters: PersonajeBasico[],
   master: string,
   status: string,
-  system: string,
+  system: SystemBasic,
   initialLevel: number,
   maxPlayers: number,
   language: string,

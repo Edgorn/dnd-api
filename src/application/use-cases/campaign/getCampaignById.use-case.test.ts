@@ -33,7 +33,11 @@ const campaignApi: CampaignApi = {
   characters: [],
   master: "Alice",
   status: campaign.status,
-  system: campaign.system,
+  system: {
+    id: campaign.system,
+    name: "D&D 5e",
+    description: "Fifth Edition",
+  },
   initialLevel: campaign.initialLevel,
   maxPlayers: campaign.maxPlayers,
   language: campaign.language,

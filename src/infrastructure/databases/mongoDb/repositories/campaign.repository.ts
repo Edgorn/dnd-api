@@ -3,11 +3,14 @@ import Campaign from '../schemas/Campaign';
 import { CampaignApi, CampaignBasic, CampaignMongo, CreateCampaignInput, CampaignJoinInput, AddCharacterToCampaignInput, UpdateCampaignLocationsInput } from '../../../../domain/types/campaign.types';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
+import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
+import { System, SystemBasic } from '../../../../domain/types/system.types';
 
 export default class CampaignRepository implements ICampaignRepository {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly personajeRepository: IPersonajeRepository
+    private readonly personajeRepository: IPersonajeRepository,
+    private readonly systemRepository: ISystemRepository
   ) { }
 
   async getByUser(id: string): Promise<CampaignBasic[]> {
@@ -32,8 +35,17 @@ export default class CampaignRepository implements ICampaignRepository {
     const masters = await this.userRepository.getUsers(masterIds);
     const masterNames = new Map(masters.map(master => [master.id, master.name]));
 
+    const systemIds = [...new Set(campaigns.map(campaign => campaign.system).filter(Boolean))];
+    const systems = await this.systemRepository.getByIds(systemIds);
+    const systemMap = this.toSystemMap(systems);
+
     return campaigns.map(campaign =>
-      this.toCampaignBasic(campaign, id, masterNames.get(campaign.master) ?? campaign.master)
+      this.toCampaignBasic(
+        campaign,
+        id,
+        masterNames.get(campaign.master) ?? campaign.master,
+        this.toSystemBasic(systemMap.get(campaign.system), campaign.system)
+      )
     );
   }
 
@@ -54,9 +66,12 @@ export default class CampaignRepository implements ICampaignRepository {
     })
 
     const result = await campaign.save()
-    const userMaster = await this.userRepository.getUserById(data.master)
+    const [userMaster, system] = await Promise.all([
+      this.userRepository.getUserById(data.master),
+      this.getSystemBasic(data.system)
+    ]);
 
-    return this.toCampaignBasic(result, data.master, userMaster?.name ?? data.master)
+    return this.toCampaignBasic(result, data.master, userMaster?.name ?? data.master, system)
   }
 
   async findActiveById(id: string): Promise<CampaignMongo | null> {
@@ -85,64 +100,59 @@ export default class CampaignRepository implements ICampaignRepository {
       return null;
     }
 
-    const userMaster = await this.userRepository.getUserById(result.master);
+    const [userMaster, system] = await Promise.all([
+      this.userRepository.getUserById(result.master),
+      this.getSystemBasic(result.system)
+    ]);
 
-    return this.toCampaignBasic(result, userId, userMaster?.name ?? result.master);
+    return this.toCampaignBasic(result, userId, userMaster?.name ?? result.master, system);
   }
 
   async denyJoinRequest(data: CampaignJoinInput): Promise<{ userId: string, campaignId: string } | null> {
-    const { masterId, campaignId, userId } = data
+    const { campaignId, userId } = data;
 
-    const campaign = await Campaign.findById(campaignId);
+    const result = await Campaign.findOneAndUpdate(
+      {
+        _id: campaignId as any,
+        $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }]
+      },
+      { $pull: { players_requesting: userId } },
+      { returnDocument: "after" }
+    );
 
-    if (!campaign) {
-      throw new Error('Campaña no encontrada');
+    if (!result) {
+      return null;
     }
-
-    if (campaign?.master !== masterId) {
-      throw new Error('No tienes permisos para aceptar a alguien');
-    }
-
-    if (!campaign.players_requesting.includes(userId)) {
-      throw new Error('El usuario no ha solicitado entrar en la campaña');
-    }
-
-    campaign.players_requesting = campaign.players_requesting.filter(player => player !== userId)
-
-    await campaign.save()
 
     return {
       userId,
       campaignId
-    }
+    };
   }
 
   async acceptJoinRequest(data: CampaignJoinInput): Promise<{ userId: string, campaignId: string } | null> {
-    const { masterId, campaignId, userId } = data
+    const { campaignId, userId } = data;
 
-    const campaign = await Campaign.findById(campaignId);
+    const result = await Campaign.findOneAndUpdate(
+      {
+        _id: campaignId as any,
+        $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }]
+      },
+      {
+        $pull: { players_requesting: userId },
+        $addToSet: { players: userId }
+      },
+      { returnDocument: "after" }
+    );
 
-    if (!campaign) {
-      throw new Error('Campaña no encontrada');
+    if (!result) {
+      return null;
     }
-
-    if (campaign?.master !== masterId) {
-      throw new Error('No tienes permisos para aceptar a alguien');
-    }
-
-    if (!campaign.players_requesting.includes(userId)) {
-      throw new Error('El usuario no ha solicitado entrar en la campaña');
-    }
-
-    campaign.players_requesting = campaign.players_requesting.filter(player => player !== userId)
-    campaign.players.push(userId)
-
-    await campaign.save()
 
     return {
       userId,
       campaignId
-    }
+    };
   }
 
   async addCharacter(data: AddCharacterToCampaignInput): Promise<{ characterId: string } | null> {
@@ -177,7 +187,37 @@ export default class CampaignRepository implements ICampaignRepository {
     return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
   }
 
-  private toCampaignBasic(campaign: CampaignMongo, idUser: string, masterName: string): CampaignBasic {
+  private toSystemMap(systems: System[]): Map<string, System> {
+    const systemMap = new Map<string, System>();
+
+    for (const system of systems) {
+      systemMap.set(system._id.toString(), system);
+      if (system.name) {
+        systemMap.set(system.name, system);
+      }
+    }
+
+    return systemMap;
+  }
+
+  private toSystemBasic(system: System | undefined, fallbackId: string): SystemBasic {
+    if (!system) {
+      return { id: fallbackId, name: fallbackId, description: "" };
+    }
+
+    return {
+      id: system._id.toString(),
+      name: system.name,
+      description: system.description ?? ""
+    };
+  }
+
+  private async getSystemBasic(systemId: string): Promise<SystemBasic> {
+    const systems = await this.systemRepository.getByIds([systemId]);
+    return this.toSystemBasic(this.toSystemMap(systems).get(systemId), systemId);
+  }
+
+  private toCampaignBasic(campaign: CampaignMongo, idUser: string, masterName: string, system: SystemBasic): CampaignBasic {
     const players = this.toStringArray(campaign.players);
 
     return {
@@ -188,7 +228,7 @@ export default class CampaignRepository implements ICampaignRepository {
       players: players.length,
       status: campaign.status,
       master: masterName,
-      system: campaign.system,
+      system,
       initialLevel: campaign.initialLevel,
       maxPlayers: campaign.maxPlayers,
       language: campaign.language
@@ -197,11 +237,13 @@ export default class CampaignRepository implements ICampaignRepository {
 
   private async toCampaignApi(campaign: CampaignMongo, idUser: string): Promise<CampaignApi> {
     const isMaster = idUser === campaign.master
-    const master = await this.userRepository.getUserById(campaign.master)
-
-    const players_requesting = isMaster ? await this.userRepository.getUsers(campaign?.players_requesting ?? []) : []
-    const players = await this.userRepository.getUsers(campaign?.players ?? [])
-    const characters = await this.personajeRepository.getByIds(campaign?.characters ?? [])
+    const [master, players_requesting, players, characters, system] = await Promise.all([
+      this.userRepository.getUserById(campaign.master),
+      isMaster ? this.userRepository.getUsers(campaign?.players_requesting ?? []) : Promise.resolve([]),
+      this.userRepository.getUsers(campaign?.players ?? []),
+      this.personajeRepository.getByIds(campaign?.characters ?? []),
+      this.getSystemBasic(campaign.system)
+    ]);
 
     return {
       id: campaign._id.toString(),
@@ -213,7 +255,7 @@ export default class CampaignRepository implements ICampaignRepository {
       characters,
       master: master?.name ?? campaign.master,
       status: campaign.status,
-      system: campaign.system,
+      system,
       initialLevel: campaign.initialLevel,
       maxPlayers: campaign.maxPlayers,
       language: campaign.language,

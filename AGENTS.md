@@ -89,6 +89,7 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
    - El contenido de este archivo debe redactarse estrictamente en **Español**.
    - En caso de ya existir el archivo, se debe añadir la información del nuevo desarrollo al final. Si el nuevo desarrollo tiene relación directa con lo que ya estaba escrito en el archivo, se puede modificar o ampliar el texto existente para añadir más detalles.
    - Este archivo debe estar excluido en el archivo `.gitignore` (como `/COMMIT_MESSAGE.md`).
+   - **Obligatorio para agentes:** el archivo está ignorado por Git, así que `Glob`, búsquedas y `git status` **no lo listan**. Antes de escribir, hay que **leer** `COMMIT_MESSAGE.md` en la raíz (aunque las búsquedas digan que no existe). Si la lectura tiene contenido, **nunca** sustituir el archivo entero: añadir al final o ampliar el texto relacionado. Solo crear de cero si la lectura confirma que no existe o está vacío.
 
 10. **Repositorios y Caché:**
    - **Bajo ningún concepto** se deben utilizar cachés en memoria (ej. `Map`, `Record`, arrays locales) dentro de los repositorios para almacenar entidades o evitar consultas a la base de datos.

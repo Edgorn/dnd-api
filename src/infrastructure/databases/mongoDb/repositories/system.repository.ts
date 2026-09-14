@@ -196,6 +196,11 @@ export default class SystemRepository implements ISystemRepository {
     return SistemasModel.findOne({ _id: id, deletedAt: null } as any).lean();
   }
 
+  async getByIds(ids: string[]): Promise<System[]> {
+    const systemsDocs = await this.findSystemsDocs(ids);
+    return systemsDocs.map((doc) => (typeof doc.toObject === "function" ? doc.toObject() : doc) as System);
+  }
+
   async getByIdWithDeleted(id: string): Promise<System | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return null;

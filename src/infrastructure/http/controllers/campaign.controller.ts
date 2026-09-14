@@ -40,9 +40,26 @@ export class CampaignController {
 
   createCampaign = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.createCampaignUseCase.execute({ ...req.body, master: req.user! });
-      res.status(201).json(data);
+      const userId = req.user;
+
+      if (!userId) {
+        throw new ValidationError("User ID is required");
+      }
+
+      const { name, description, system, initialLevel, maxPlayers, language } = req.body;
+      const data = await this.createCampaignUseCase.execute({
+        name,
+        description,
+        system,
+        initialLevel,
+        maxPlayers,
+        language,
+        master: userId
+      });
+
+      return res.status(201).json(data);
     } catch (e) {
+      console.error("[CampaignController.createCampaign] Error:", e);
       next(e);
     }
   };
@@ -83,38 +100,34 @@ export class CampaignController {
 
   denyJoinRequest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      const masterId = req.user;
       const { id, userId } = req.params;
 
-      if (!id) {
-        throw new ValidationError('Se requiere el ID de la campaña');
+      if (!masterId) {
+        throw new ValidationError("User ID is required");
       }
 
-      if (!userId) {
-        throw new ValidationError('Se requiere el ID del usuario');
-      }
-
-      const data = await this.denyJoin.execute({ masterId: req.user!, campaignId: id, userId })
-      res.status(200).json(data);
+      const data = await this.denyJoin.execute({ masterId, campaignId: id, userId });
+      return res.status(200).json(data);
     } catch (e) {
+      console.error("[CampaignController.denyJoinRequest] Error:", e);
       next(e);
     }
   };
 
   acceptJoinRequest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      const masterId = req.user;
       const { id, userId } = req.params;
 
-      if (!id) {
-        throw new ValidationError('Se requiere el ID de la campaña');
+      if (!masterId) {
+        throw new ValidationError("User ID is required");
       }
 
-      if (!userId) {
-        throw new ValidationError('Se requiere el ID del usuario');
-      }
-
-      const data = await this.acceptJoin.execute({ masterId: req.user!, campaignId: id, userId })
-      res.status(200).json(data);
+      const data = await this.acceptJoin.execute({ masterId, campaignId: id, userId });
+      return res.status(200).json(data);
     } catch (e) {
+      console.error("[CampaignController.acceptJoinRequest] Error:", e);
       next(e);
     }
   };

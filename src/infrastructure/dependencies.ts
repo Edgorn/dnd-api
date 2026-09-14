@@ -267,7 +267,8 @@ const personajeRepository = new PersonajeRepository(
 
 const campaignRepository = new CampaignRepository(
   userRepository,
-  personajeRepository
+  personajeRepository,
+  systemRepository
 )
 
 const campaignService = new CampaignService(campaignRepository)

@@ -14,7 +14,11 @@ describe("GetCampaignsByUser UseCase", () => {
         players: 3,
         status: "Activa",
         master: "Alice",
-        system: "dnd5e",
+        system: {
+          id: "dnd5e",
+          name: "D&D 5e",
+          description: "Fifth Edition",
+        },
         initialLevel: 1,
         maxPlayers: 5,
         language: "es",

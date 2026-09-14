@@ -31,7 +31,11 @@ const campaignBasic: CampaignBasic = {
   players: 1,
   status: baseCampaign.status,
   master: "Alice",
-  system: baseCampaign.system,
+  system: {
+    id: baseCampaign.system,
+    name: "D&D 5e",
+    description: "Fifth Edition",
+  },
   initialLevel: baseCampaign.initialLevel,
   maxPlayers: baseCampaign.maxPlayers,
   language: baseCampaign.language,

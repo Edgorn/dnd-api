@@ -91,6 +91,8 @@ export interface SystemApi {
   coins: CoinApi[];
 }
 
+export type SystemBasic = Pick<SystemApi, "id" | "name" | "description">;
+
 export interface TypeCrearSystem {
   name: string;
   description: string;
