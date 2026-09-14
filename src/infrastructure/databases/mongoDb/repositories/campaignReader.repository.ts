@@ -1,5 +1,5 @@
 import { CampaignSummary, ICampaignReader } from "../../../../domain/ports/ICampaignReader";
-import Campaña from "../schemas/Campaña";
+import Campaign from "../schemas/Campaign";
 
 export default class CampaignReaderRepository implements ICampaignReader {
   async getById(id: string): Promise<CampaignSummary | null> {
@@ -7,7 +7,7 @@ export default class CampaignReaderRepository implements ICampaignReader {
       return null;
     }
 
-    const campaign = await Campaña.findById(id).lean();
+    const campaign = await Campaign.findById(id).lean();
     if (!campaign) {
       return null;
     }
@@ -27,7 +27,7 @@ export default class CampaignReaderRepository implements ICampaignReader {
       return namesById;
     }
 
-    const campaigns = await Campaña.find()
+    const campaigns = await Campaign.find()
       .where("_id")
       .in(uniqueIds)
       .select({ name: 1 })

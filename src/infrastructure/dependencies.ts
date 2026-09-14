@@ -1,8 +1,8 @@
-import CrearCampaña from "../application/use-cases/campaña/crearCampaña.use-case";
-import GetCampaignsByUser from "../application/use-cases/campaña/getCampaignsByUser.use-case";
-import SolicitarEntradaACampaña from "../application/use-cases/campaña/solicitarEntradaACampaña.use-case";
-import ObtenerCampañaPorId from "../application/use-cases/campaña/obtenerCampañaPorId.use-case";
-import AceptarEntradaACampaña from "../application/use-cases/campaña/aceptarEntradaACampaña.use-case";
+import CreateCampaign from "../application/use-cases/campaign/createCampaign.use-case";
+import GetCampaignsByUser from "../application/use-cases/campaign/getCampaignsByUser.use-case";
+import RequestJoinCampaign from "../application/use-cases/campaign/requestJoinCampaign.use-case";
+import GetCampaignById from "../application/use-cases/campaign/getCampaignById.use-case";
+import AcceptJoinCampaign from "../application/use-cases/campaign/acceptJoinCampaign.use-case";
 import CreateCoin from "../application/use-cases/coins/createCoin.use-case";
 import UpdateCoin from "../application/use-cases/coins/updateCoin.use-case";
 import GetCoins from "../application/use-cases/coins/getCoins.use-case";
@@ -11,8 +11,8 @@ import DeleteCoin from "../application/use-cases/coins/deleteCoin.use-case";
 import RestoreCoin from "../application/use-cases/coins/restoreCoin.use-case";
 import CoinRepository from "./databases/mongoDb/repositories/coin.repository";
 import { CoinController } from "./http/controllers/coin.controller";
-import DenegarEntradaACampaña from "../application/use-cases/campaña/denegarEntradaACampaña.use-case";
-import AñadirPersonajeACampaña from "../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
+import DenyJoinCampaign from "../application/use-cases/campaign/denyJoinCampaign.use-case";
+import AddCharacterToCampaign from "../application/use-cases/campaign/addCharacterToCampaign.use-case";
 import LoginUseCase from "../application/use-cases/user/login.use-case";
 import ValidateTokenUseCase from "../application/use-cases/user/validateToken.use-case";
 import { createAuthMiddleware } from "./http/middlewares/auth.middleware";
@@ -54,7 +54,7 @@ import GenerateCharacterPdf from "../application/use-cases/personaje/generateCha
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
 import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuros.use-case";
-import ModificarLocalizacionesCampaña from "../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
+import UpdateCampaignLocations from "../application/use-cases/campaign/updateCampaignLocations.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 import CreateSystem from "../application/use-cases/system/createSystem.use-case";
 import GetSystemsByUser from "../application/use-cases/system/getSystemsByUser.use-case";
@@ -71,7 +71,7 @@ import RestoreProficiency from "../application/use-cases/proficiency/restoreProf
 import GetProficienciesBySystems from "../application/use-cases/proficiency/getProficienciesBySystems.use-case";
 import { ProficiencyController } from "./http/controllers/proficiency.controller";
 
-import CampañaService from "../domain/services/campaña.service";
+import CampaignService from "../domain/services/campaign.service";
 import UserService from "../domain/services/user.service";
 import RaceService from "../domain/services/race.service";
 import BackgroundService from "../domain/services/background.service";
@@ -80,7 +80,7 @@ import PersonajeService from "../domain/services/personaje.service";
 import SpellService from "../domain/services/spell.service";
 import SystemService from "../domain/services/system.service";
 
-import CampañaRepository from "./databases/mongoDb/repositories/campaña.repository";
+import CampaignRepository from "./databases/mongoDb/repositories/campaign.repository";
 import CharacterClassRepository from "./databases/mongoDb/repositories/characterClass.repository";
 import ProficiencyRepository from "./databases/mongoDb/repositories/proficiency.repository";
 import SpellRepository from "./databases/mongoDb/repositories/spell.repository";
@@ -122,7 +122,7 @@ import RefreshTokenUseCase from "../application/use-cases/user/refreshToken.use-
 import LogoutUseCase from "../application/use-cases/user/logout.use-case";
 import { createAuthorizeSystemMiddleware } from "./http/middlewares/authorizeSystem.middleware";
 
-import { CampañaController } from "./http/controllers/campaña.controller";
+import { CampaignController } from "./http/controllers/campaign.controller";
 import { UserController } from "./http/controllers/user.controller";
 import { RaceController } from "./http/controllers/race.controller";
 import { BackgroundController } from "./http/controllers/background.controller";
@@ -264,12 +264,12 @@ const personajeRepository = new PersonajeRepository(
   campaignReaderRepository
 )
 
-const campañaRepository = new CampañaRepository(
+const campaignRepository = new CampaignRepository(
   userRepository,
   personajeRepository
 )
 
-const campañaService = new CampañaService(campañaRepository)
+const campaignService = new CampaignService(campaignRepository)
 const passwordHasher = new BcryptPasswordHasher()
 const tokenService = new JwtTokenService(process.env.JWT_SECRET ?? '')
 const userCache = new InMemoryUserCache()
@@ -300,14 +300,14 @@ const getSystemApi = new GetSystemApi(
   coinRepository
 )
 
-const crearCampaña = new CrearCampaña(campañaService)
-const getCampaignsByUser = new GetCampaignsByUser(campañaService)
-const obtenerCampañaPorId = new ObtenerCampañaPorId(campañaService)
-const solicitarEntradaACampaña = new SolicitarEntradaACampaña(campañaService)
-const aceptarEntradaACampaña = new AceptarEntradaACampaña(campañaService)
-const denegarEntradaACampaña = new DenegarEntradaACampaña(campañaService)
-const añadirPersonajeACampaña = new AñadirPersonajeACampaña(campañaService)
-const modificarLocalizacionesCampaña = new ModificarLocalizacionesCampaña(campañaService)
+const createCampaign = new CreateCampaign(campaignService)
+const getCampaignsByUser = new GetCampaignsByUser(campaignService)
+const getCampaignById = new GetCampaignById(campaignService)
+const requestJoinCampaign = new RequestJoinCampaign(campaignService)
+const acceptJoinCampaign = new AcceptJoinCampaign(campaignService)
+const denyJoinCampaign = new DenyJoinCampaign(campaignService)
+const addCharacterToCampaign = new AddCharacterToCampaign(campaignService)
+const updateCampaignLocations = new UpdateCampaignLocations(campaignService)
 
 const getAllRaces = new GetAllRacesUseCase(raceService);
 const createRace = new CreateRaceUseCase(raceService);
@@ -412,15 +412,15 @@ const restoreRace = new RestoreRace(raceService, systemService);
 
 export const raceController = new RaceController(getAllRaces, createRace, updateRace, softDeleteRace, restoreRace);
 
-export const campañaController = new CampañaController(
-  crearCampaña,
+export const campaignController = new CampaignController(
+  createCampaign,
   getCampaignsByUser,
-  obtenerCampañaPorId,
-  solicitarEntradaACampaña,
-  aceptarEntradaACampaña,
-  denegarEntradaACampaña,
-  añadirPersonajeACampaña,
-  modificarLocalizacionesCampaña
+  getCampaignById,
+  requestJoinCampaign,
+  acceptJoinCampaign,
+  denyJoinCampaign,
+  addCharacterToCampaign,
+  updateCampaignLocations
 )
 
 export const userController = new UserController(loginUseCase, refreshTokenUseCase, logoutUseCase)

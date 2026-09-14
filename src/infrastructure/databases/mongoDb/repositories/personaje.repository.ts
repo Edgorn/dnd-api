@@ -18,7 +18,7 @@ import ILanguageRepository from "../../../../domain/repositories/ILanguageReposi
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
-import { TypeEntradaPersonajeCampaña } from '../../../../domain/types/campañas.types';
+import { AddCharacterToCampaignInput } from '../../../../domain/types/campaign.types';
 import { CharacterEquipmentApi } from '../../../../domain/types/equipment.types';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
@@ -632,7 +632,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     };
   }
 
-  async consultarPorIds(indices: string[]): Promise<PersonajeBasico[]> {
+  async getByIds(indices: string[]): Promise<PersonajeBasico[]> {
     try {
       const personajes = await Personaje.find().where('_id').in(indices)
         .collation({ locale: 'es', strength: 1 })
@@ -644,7 +644,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  async entrarCampaña(data: TypeEntradaPersonajeCampaña): Promise<PersonajeBasico | null> {
+  async entrarCampaña(data: AddCharacterToCampaignInput): Promise<PersonajeBasico | null> {
     const { userId, campaignId, characterId } = data
 
     const personaje = await Personaje.findById(characterId);

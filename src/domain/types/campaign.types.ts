@@ -2,7 +2,7 @@ import { ObjectId } from "mongoose"
 import { UserApi } from "./user.types"
 import { PersonajeBasico } from "./personajes.types"
 
-export interface CampañaMongo {
+export interface CampaignMongo {
   _id: ObjectId,
   name: string,
   description: string,
@@ -16,10 +16,11 @@ export interface CampañaMongo {
   maxPlayers: number,
   language: string,
   locations: string[],
-  initialMapId: string
+  initialMapId: string,
+  deletedAt?: Date | null
 }
 
-export interface CampañaBasica {
+export interface CampaignBasic {
   id: string,
   name: string,
   isMember: boolean,
@@ -33,7 +34,7 @@ export interface CampañaBasica {
   language: string
 }
 
-export interface CampañaApi {
+export interface CampaignApi {
   id: string,
   name: string,
   description: string,
@@ -51,7 +52,7 @@ export interface CampañaApi {
   initialMapId: string
 }
 
-export interface TypeCrearCampaña {
+export interface CreateCampaignInput {
   name: string,
   description: string,
   master: string,
@@ -61,20 +62,19 @@ export interface TypeCrearCampaña {
   language: string
 }
 
-export interface TypeEntradaCampaña {
+export interface CampaignJoinInput {
   masterId: string,
   campaignId: string,
   userId: string
 }
 
-export interface TypeEntradaPersonajeCampaña {
+export interface AddCharacterToCampaignInput {
   userId: string,
   campaignId: string,
   characterId: string
 }
 
-
-export interface TypeModificarLocalizaciones {
+export interface UpdateCampaignLocationsInput {
   campaignId: string;
   userId: string;
   locations: string[];

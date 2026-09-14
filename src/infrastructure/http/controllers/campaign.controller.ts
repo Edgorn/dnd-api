@@ -1,39 +1,46 @@
-import CrearCampaña from "../../../application/use-cases/campaña/crearCampaña.use-case";
-import GetCampaignsByUser from "../../../application/use-cases/campaña/getCampaignsByUser.use-case";
-import ObtenerCampañaPorId from "../../../application/use-cases/campaña/obtenerCampañaPorId.use-case";
-import SolicitarEntradaACampaña from "../../../application/use-cases/campaña/solicitarEntradaACampaña.use-case";
-import AceptarEntradaACampaña from "../../../application/use-cases/campaña/aceptarEntradaACampaña.use-case";
-import DenegarEntradaACampaña from "../../../application/use-cases/campaña/denegarEntradaACampaña.use-case";
-import AñadirPersonajeACampaña from "../../../application/use-cases/campaña/añadirPersonajeACampaña.use-case";
+import CreateCampaign from "../../../application/use-cases/campaign/createCampaign.use-case";
+import GetCampaignsByUser from "../../../application/use-cases/campaign/getCampaignsByUser.use-case";
+import GetCampaignById from "../../../application/use-cases/campaign/getCampaignById.use-case";
+import RequestJoinCampaign from "../../../application/use-cases/campaign/requestJoinCampaign.use-case";
+import AcceptJoinCampaign from "../../../application/use-cases/campaign/acceptJoinCampaign.use-case";
+import DenyJoinCampaign from "../../../application/use-cases/campaign/denyJoinCampaign.use-case";
+import AddCharacterToCampaign from "../../../application/use-cases/campaign/addCharacterToCampaign.use-case";
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
-import ModificarLocalizacionesCampaña from "../../../application/use-cases/campaña/modificarLocalizacionesCampaña.use-case";
+import UpdateCampaignLocations from "../../../application/use-cases/campaign/updateCampaignLocations.use-case";
 import { ValidationError } from "../../../domain/errors/AppError";
 
-export class CampañaController {
+export class CampaignController {
   constructor(
-    private readonly crearCampaña: CrearCampaña,
+    private readonly createCampaignUseCase: CreateCampaign,
     private readonly getCampaignsByUser: GetCampaignsByUser,
-    private readonly obtenerCampañaPorId: ObtenerCampañaPorId,
-    private readonly solicitarEntrada: SolicitarEntradaACampaña,
-    private readonly aceptarEntrada: AceptarEntradaACampaña,
-    private readonly denegarEntrada: DenegarEntradaACampaña,
-    private readonly añadirPersonaje: AñadirPersonajeACampaña,
-    private readonly modificarLocalizaciones: ModificarLocalizacionesCampaña
+    private readonly getCampaignById: GetCampaignById,
+    private readonly requestJoin: RequestJoinCampaign,
+    private readonly acceptJoin: AcceptJoinCampaign,
+    private readonly denyJoin: DenyJoinCampaign,
+    private readonly addCharacter: AddCharacterToCampaign,
+    private readonly updateLocations: UpdateCampaignLocations
   ) { }
 
   getCampaigns = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.getCampaignsByUser.execute(req.user!)
-      res.status(200).json(data);
+      const userId = req.user;
+
+      if (!userId) {
+        throw new ValidationError("User ID is required");
+      }
+
+      const data = await this.getCampaignsByUser.execute(userId)
+      return res.status(200).json(data);
     } catch (e) {
+      console.error("[CampaignController.getCampaigns] Error:", e);
       next(e);
     }
   };
 
   createCampaign = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.crearCampaña.execute({ ...req.body, master: req.user! });
+      const data = await this.createCampaignUseCase.execute({ ...req.body, master: req.user! });
       res.status(201).json(data);
     } catch (e) {
       next(e);
@@ -42,30 +49,34 @@ export class CampañaController {
 
   getCampaign = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user;
       const { id } = req.params;
 
-      if (!id) {
-        throw new ValidationError('Se requiere el ID de la campaña');
+      if (!userId) {
+        throw new ValidationError("User ID is required");
       }
 
-      const data = await this.obtenerCampañaPorId.execute(req.user!, id)
-      res.status(200).json(data);
+      const data = await this.getCampaignById.execute(userId, id);
+      return res.status(200).json(data);
     } catch (e) {
+      console.error("[CampaignController.getCampaign] Error:", e);
       next(e);
     }
   };
 
   requestJoinCampaign = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user;
       const { id } = req.params;
 
-      if (!id) {
-        throw new ValidationError('Se requiere el ID de la campaña');
+      if (!userId) {
+        throw new ValidationError("User ID is required");
       }
 
-      const data = await this.solicitarEntrada.execute(req.user!, id)
-      res.status(200).json(data);
+      const data = await this.requestJoin.execute(userId, id);
+      return res.status(201).json(data);
     } catch (e) {
+      console.error("[CampaignController.requestJoinCampaign] Error:", e);
       next(e);
     }
   };
@@ -82,7 +93,7 @@ export class CampañaController {
         throw new ValidationError('Se requiere el ID del usuario');
       }
 
-      const data = await this.denegarEntrada.execute({ masterId: req.user!, campaignId: id, userId })
+      const data = await this.denyJoin.execute({ masterId: req.user!, campaignId: id, userId })
       res.status(200).json(data);
     } catch (e) {
       next(e);
@@ -101,7 +112,7 @@ export class CampañaController {
         throw new ValidationError('Se requiere el ID del usuario');
       }
 
-      const data = await this.aceptarEntrada.execute({ masterId: req.user!, campaignId: id, userId })
+      const data = await this.acceptJoin.execute({ masterId: req.user!, campaignId: id, userId })
       res.status(200).json(data);
     } catch (e) {
       next(e);
@@ -121,7 +132,7 @@ export class CampañaController {
         throw new ValidationError('Se requiere el ID del personaje');
       }
 
-      const data = await this.añadirPersonaje.execute({ userId: req.user!, campaignId: id, characterId })
+      const data = await this.addCharacter.execute({ userId: req.user!, campaignId: id, characterId })
       res.status(200).json(data);
     } catch (e) {
       next(e);
@@ -138,7 +149,7 @@ export class CampañaController {
         throw new ValidationError("Datos de localizaciones inválidos");
       }
 
-      const updatedCampaign = await this.modificarLocalizaciones.execute({
+      const updatedCampaign = await this.updateLocations.execute({
         campaignId: id,
         userId,
         locations,
