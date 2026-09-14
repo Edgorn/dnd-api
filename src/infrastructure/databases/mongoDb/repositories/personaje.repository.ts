@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
+import { LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -30,11 +30,14 @@ import {
   buildCantripSpellChoice,
   buildSynthesizedKnownSpellChoice,
   buildSpellcastingLevel,
+  castableSpellLevels,
   excludeKnownSpellOptions,
+  getPreparedSpellIds,
   hasCantripSpellChoice,
   remainingCantripPicks,
   resolveClassSpellSlotsForLevel,
   validateLevelUpSpellPicks,
+  validatePreparedSpellPicks,
 } from '../../../../utils/characterSpellcasting';
 import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
@@ -731,6 +734,87 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return personajeFormateado
   }
 
+  async prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi> {
+    const { id, classId, spells, userId } = data
+    const personaje = await Personaje.findById(id)
+
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+    }
+
+    await this.assertCanAccessCharacter(personaje, userId)
+
+    const classEntry = personaje.classes?.find(clas => clas.class === classId)
+    if (!classEntry) {
+      throw new ValidationError("El personaje no tiene esa clase")
+    }
+
+    const sources = await this.claseRepository.getSpellcastingSources([
+      { id: classId, level: classEntry.level }
+    ])
+    const source = sources.find(item => item?.class === classId) ?? sources[0] ?? null
+    if (!source?.spellsPreparedFormula?.trim() || !source.preparedFrom) {
+      throw new ValidationError("Esta clase no prepara conjuros")
+    }
+
+    const modifiedAttributes = this.calcularAttributes(personaje)
+    const apiAttributes = await this.attributeService.formatAttributes(
+      modifiedAttributes,
+      personaje.systems ?? []
+    )
+    const systemAttributes = await this.attributeService.getBySystems(personaje.systems ?? [])
+    const ability = systemAttributes.find(attr => attr.key === source.abilityKey)
+    if (!ability) {
+      throw new ValidationError("No se encontró la característica de lanzamiento de conjuros de esta clase")
+    }
+
+    const spellcastingLevel = buildSpellcastingLevel(
+      source,
+      ability,
+      apiAttributes,
+      personaje.prof_bonus ?? 0
+    )
+    const loadedSpells = spells.length ? await this.spellRepository.getSpellsByIndexes(spells) : []
+    const validation = validatePreparedSpellPicks({
+      spellIds: spells,
+      cap: spellcastingLevel.spellsPrepared ?? 0,
+      preparedFrom: source.preparedFrom,
+      knownIds: this.getClassSpellIds(personaje, classId),
+      classId,
+      spells: loadedSpells
+        .filter((spell): spell is SpellApi & { id: string } => Boolean(spell.id))
+        .map(spell => ({
+          id: spell.id,
+          level: spell.level,
+          classIds: (spell.classes ?? []).map(clas => clas.id)
+        })),
+      castableLevels: castableSpellLevels(spellcastingLevel.slots?.slots)
+    })
+
+    if (validation.error) {
+      throw new ValidationError(validation.error)
+    }
+
+    const preparedSpells = {
+      ...(personaje.preparedSpells && typeof personaje.preparedSpells === "object"
+        ? personaje.preparedSpells
+        : {})
+    }
+    preparedSpells[classId] = [...spells]
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { preparedSpells } },
+      { returnDocument: "after" }
+    )
+
+    if (!resultado) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+    }
+
+    return this.formatCharacter(resultado)
+  }
+
   async añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null> {
     const { id, form } = data
     const personaje = await Personaje.findById(id);
@@ -1150,7 +1234,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const clases = personaje.classes
 
-    const spellcastingSources = (await this.claseRepository.spellcastingClases?.(
+    const spellcastingSources = (await this.claseRepository.getSpellcastingSources?.(
       personaje.classes.map(clase => {
         return {
           id: clase.class,
@@ -1182,14 +1266,23 @@ export default class PersonajeRepository implements IPersonajeRepository {
       })
       .filter((item): item is SpellcastingLevel => item !== null)
 
-    const spells = { ...personaje.spells }
+    const spells = personaje.spells && typeof personaje.spells === "object" ? { ...personaje.spells } : {}
+    const preparedSpellsMap = personaje.preparedSpells && typeof personaje.preparedSpells === "object"
+      ? personaje.preparedSpells
+      : {}
     const updatedSpells: Record<string, {
       list: SpellApi[],
+      prepared?: SpellApi[],
       type?: AttributeApi
     }> = {}
 
+    const spellGroupKeys = new Set([
+      ...Object.keys(spells),
+      ...Object.keys(preparedSpellsMap).filter(key => key !== "race")
+    ])
+
     let raceSpellcastingAttr: AttributeApi | undefined
-    if (personaje.raceId && Object.keys(spells).includes("race")) {
+    if (personaje.raceId && spellGroupKeys.has("race")) {
       const raceAttr = await this.raceRepository.getSpellcastingAttribute(personaje.raceId)
       raceSpellcastingAttr = raceAttr
         ? (attributesByKey.get(raceAttr.key) ?? raceAttr)
@@ -1197,14 +1290,19 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     await Promise.all(
-      Object.keys(spells).map(async groupSpells => {
-        const indices = [...spells[groupSpells]]
+      [...spellGroupKeys].map(async groupSpells => {
+        const knownIds = Array.isArray(spells[groupSpells]) ? [...spells[groupSpells]] : []
+        const hasPreparedKey = groupSpells !== "race" && Array.isArray(preparedSpellsMap[groupSpells])
+        const preparedIds = groupSpells === "race" ? [] : getPreparedSpellIds(preparedSpellsMap, groupSpells)
 
-        if (!Array.isArray(indices) || indices.length === 0) {
+        if (knownIds.length === 0 && preparedIds.length === 0 && !hasPreparedKey) {
           return
         }
 
-        const dataList = await this.spellRepository.getSpellsByIndexes(indices)
+        const [dataList, preparedList] = await Promise.all([
+          knownIds.length ? this.spellRepository.getSpellsByIndexes(knownIds) : Promise.resolve([]),
+          preparedIds.length ? this.spellRepository.getSpellsByIndexes(preparedIds) : Promise.resolve([])
+        ])
         let type: AttributeApi | undefined
 
         if (groupSpells === "race") {
@@ -1221,6 +1319,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
         updatedSpells[groupSpells] = {
           list: dataList,
+          ...(hasPreparedKey ? { prepared: preparedList } : {}),
           type
         }
       })

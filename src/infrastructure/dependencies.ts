@@ -54,6 +54,7 @@ import GenerateCharacterPdf from "../application/use-cases/personaje/generateCha
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
 import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuros.use-case";
+import PrepareSpells from "../application/use-cases/personaje/prepareSpells.use-case";
 import UpdateCampaignLocations from "../application/use-cases/campaign/updateCampaignLocations.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 import CreateSystem from "../application/use-cases/system/createSystem.use-case";
@@ -355,6 +356,7 @@ const generateCharacterPdf = new GenerateCharacterPdf(
 const vincularPacto = new VincularPacto(personajeService);
 const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
 const aprenderConjuros = new AprenderConjuros(personajeService);
+const prepareSpells = new PrepareSpells(personajeService);
 const añadirForma = new AñadirForma(personajeService);
 const createSystem = new CreateSystem(systemService, getSystemApi);
 const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, getSystemApi);
@@ -469,7 +471,8 @@ export const personajeController = new PersonajeController(
   vincularPacto,
   aprenderConjuros,
   añadirForma,
-  toggleFavoriteEquipment
+  toggleFavoriteEquipment,
+  prepareSpells
 )
 
 export const spellController = new SpellController(

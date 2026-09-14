@@ -48,6 +48,13 @@ export const LevelUpSchema = z.object({
     .optional(),
 });
 
+export const PrepareSpellsSchema = z.object({
+  class: z.string().regex(objectIdRegex, "El ID de clase debe ser un ObjectId válido de MongoDB"),
+  spells: z.array(
+    z.string().regex(objectIdRegex, "Cada conjuro debe ser un ObjectId válido de MongoDB")
+  ),
+});
+
 const CharacterEquipmentMutationSchema = z.object({
   equip: z.string().min(1, "ID de equipamiento requerido"),
   quantity: z.number().int().min(1, "La cantidad debe ser un entero mayor o igual a 1"),

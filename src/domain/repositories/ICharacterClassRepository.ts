@@ -7,6 +7,6 @@ export default interface ICharacterClassRepository {
   update(data: InputUpdateCharacterClass): Promise<CharacterClassApi>;
   softDelete(id: string): Promise<void>;
   restore(id: string): Promise<void>;
-  dataLevelUp(idClase: string, level: number, subclasses: string[]): Promise<ClaseLevelUp | null>;
-  spellcastingClases(clases: { id: string; level: number }[]): Promise<(SpellcastingLevelSource | null)[]>;
+  dataLevelUp(classId: string, level: number, subclasses: string[]): Promise<ClaseLevelUp | null>;
+  getSpellcastingSources(classes: { id: string; level: number }[]): Promise<(SpellcastingLevelSource | null)[]>;
 }

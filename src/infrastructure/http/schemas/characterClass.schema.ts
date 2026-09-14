@@ -29,6 +29,8 @@ const CharacterClassLevelInputSchema = z.object({
   spell_choices: z.array(ChoiceMongoSchema).optional()
 });
 
+const PreparedFromSchema = z.enum(["known", "classList"]);
+
 const uniqueLevelsRefinement = (
   levels: Array<{ level: number }> | undefined,
   ctx: z.RefinementCtx
@@ -48,6 +50,21 @@ const uniqueLevelsRefinement = (
   }
 };
 
+const spellPreparationPairRefinement = (
+  data: { spellsPreparedFormula?: string; preparedFrom?: "known" | "classList" },
+  ctx: z.RefinementCtx
+) => {
+  const hasFormula = data.spellsPreparedFormula !== undefined;
+  const hasFrom = data.preparedFrom !== undefined;
+  if (hasFormula === hasFrom) return;
+
+  ctx.addIssue({
+    code: "custom",
+    message: "spellsPreparedFormula y preparedFrom deben indicarse juntos",
+    path: hasFormula ? ["preparedFrom"] : ["spellsPreparedFormula"]
+  });
+};
+
 const characterClassFields = {
   hit_die: z.number().int().min(1).optional(),
   proficiencies: z.array(z.string()).optional(),
@@ -58,6 +75,8 @@ const characterClassFields = {
   spellcasting: z.string().min(1).nullable().optional(),
   spellSaveDcFormula: classFormulaSchema("spellSaveDcFormula"),
   spellAttackBonusFormula: classFormulaSchema("spellAttackBonusFormula"),
+  spellsPreparedFormula: classFormulaSchema("spellsPreparedFormula"),
+  preparedFrom: PreparedFromSchema.optional(),
   levels: z.array(CharacterClassLevelInputSchema).optional()
 };
 
@@ -67,7 +86,10 @@ export const CreateCharacterClassSchema = z.object({
   description: z.union([z.string(), z.array(z.string())]).optional(),
   img: z.string().optional(),
   ...characterClassFields
-}).superRefine((data, ctx) => uniqueLevelsRefinement(data.levels, ctx));
+}).superRefine((data, ctx) => {
+  uniqueLevelsRefinement(data.levels, ctx);
+  spellPreparationPairRefinement(data, ctx);
+});
 
 export const UpdateCharacterClassSchema = z.object({
   ruleset: z.string().optional(),
@@ -75,7 +97,10 @@ export const UpdateCharacterClassSchema = z.object({
   description: z.union([z.string(), z.array(z.string())]).optional(),
   img: z.string().optional(),
   ...characterClassFields
-}).superRefine((data, ctx) => uniqueLevelsRefinement(data.levels, ctx))
+}).superRefine((data, ctx) => {
+  uniqueLevelsRefinement(data.levels, ctx);
+  spellPreparationPairRefinement(data, ctx);
+})
   .refine(data => Object.keys(data).length > 0, {
     message: "Debe proporcionar al menos un campo para actualizar"
   });

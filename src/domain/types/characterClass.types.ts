@@ -10,6 +10,8 @@ import { TraitApi, TraitDataMongo } from "./traits.types"
 import { AttributeApi } from "./attribute.types"
 import { ObjectId } from "mongoose"
 
+export type SpellPreparedFrom = "known" | "classList";
+
 /** Spell slots table for a class level (create/update input and slim API). */
 export interface ClassSpellSlots {
   cantrips?: number;
@@ -43,6 +45,8 @@ export interface InputCreateCharacterClass {
   spellcasting?: string | null;
   spellSaveDcFormula?: string;
   spellAttackBonusFormula?: string;
+  spellsPreparedFormula?: string;
+  preparedFrom?: SpellPreparedFrom;
   levels?: CharacterClassLevelInput[];
 }
 
@@ -62,6 +66,8 @@ export interface InputUpdateCharacterClass {
   spellcasting?: string | null;
   spellSaveDcFormula?: string;
   spellAttackBonusFormula?: string;
+  spellsPreparedFormula?: string;
+  preparedFrom?: SpellPreparedFrom;
   levels?: CharacterClassLevelInput[];
 }
 
@@ -83,6 +89,8 @@ export interface CharacterClassMongo {
   spellcasting?: ObjectId | string | null;
   spellSaveDcFormula?: string;
   spellAttackBonusFormula?: string;
+  spellsPreparedFormula?: string;
+  preparedFrom?: SpellPreparedFrom;
 }
 
 export interface CharacterClassLevelMongo {
@@ -117,9 +125,12 @@ export interface CharacterClassLevelMongo {
 export interface SpellcastingLevelSource {
   class: string;
   abilityKey: string;
+  classLevel?: number;
   slots?: ClassSpellSlots;
   spellSaveDcFormula?: string;
   spellAttackBonusFormula?: string;
+  spellsPreparedFormula?: string;
+  preparedFrom?: SpellPreparedFrom;
 }
 
 /** Spellcasting entry on PersonajeApi after hydration and formula evaluation. */
@@ -129,6 +140,8 @@ export interface SpellcastingLevel {
   slots?: ClassSpellSlots;
   spellSaveDc?: number;
   spellAttackBonus?: number;
+  spellsPrepared?: number;
+  preparedFrom?: SpellPreparedFrom;
 }
 
 
@@ -184,6 +197,8 @@ export interface CharacterClassApi {
   spellcasting?: AttributeApi;
   spellSaveDcFormula?: string;
   spellAttackBonusFormula?: string;
+  spellsPreparedFormula?: string;
+  preparedFrom?: SpellPreparedFrom;
   levels?: CharacterClassLevelInput[];
   subclasesData?: SubclassesOptionsApi;
   deletedAt?: Date | null;

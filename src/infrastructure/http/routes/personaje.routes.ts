@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema, LevelUpDataQuerySchema, LevelUpSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -117,7 +117,12 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Spell'
- *           description: Lista de conjuros de ese grupo (raza o clase).
+ *           description: Lista de conjuros conocidos de ese grupo (raza o clase).
+ *         prepared:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Spell'
+ *           description: Conjuros preparados de esa clase (no aplica a raza).
  *         type:
  *           $ref: '#/components/schemas/Attribute'
  *           description: Característica de lanzamiento asociada a ese grupo de conjuros.
@@ -140,6 +145,13 @@ const router = Router();
  *         spellAttackBonus:
  *           type: number
  *           description: Modificador de ataque de conjuros evaluado para el personaje.
+ *         spellsPrepared:
+ *           type: number
+ *           description: Número máximo de conjuros que la clase puede preparar (fórmula evaluada).
+ *         preparedFrom:
+ *           type: string
+ *           enum: [known, classList]
+ *           description: Origen de los conjuros preparables.
  *
  *     Invocacion:
  *       type: object
@@ -1327,6 +1339,67 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *         description: Error del servidor.
  */
 router.post('/character/:id/level-up', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(LevelUpSchema), personajeController.levelUp);
+
+/**
+ * @openapi
+ * /character/{id}/prepared-spells:
+ *   put:
+ *     summary: Preparar conjuros de una clase
+ *     description: |
+ *       Sustituye la lista de conjuros preparados de la clase indicada.
+ *       La clase debe definir `spellsPreparedFormula` y `preparedFrom`.
+ *       No se pueden preparar trucos. El número de conjuros no puede superar el tope evaluado
+ *       (`nivel de clase + modificador`, u otra fórmula). Si `preparedFrom` es `known`, cada
+ *       conjuro debe estar entre los conocidos de esa clase; si es `classList`, debe pertenecer
+ *       a la lista de conjuros de la clase. Solo se admiten niveles para los que la clase tenga ranuras.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - class
+ *               - spells
+ *             properties:
+ *               class:
+ *                 type: string
+ *                 description: ID de MongoDB de la clase cuyos conjuros se preparan.
+ *               spells:
+ *                 type: array
+ *                 description: IDs de los conjuros preparados (puede estar vacío).
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado con los conjuros preparados.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Datos inválidos, la clase no prepara conjuros o la selección supera el tope.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.put('/character/:id/prepared-spells', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(PrepareSpellsSchema), personajeController.prepareSpells);
 router.post('/character/vincularPacto', authMiddleware, personajeController.vincularArmaPacto);
 router.post('/character/learnSpells', authMiddleware, personajeController.aprenderListaConjuros);
 router.post('/character/:id/addForm', authMiddleware, personajeController.addForm);

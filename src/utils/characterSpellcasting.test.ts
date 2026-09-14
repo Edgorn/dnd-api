@@ -15,6 +15,7 @@ import {
   resolveSpellSlotsTableForLevel,
   spellsLearnedAtLevel,
   validateLevelUpSpellPicks,
+  validatePreparedSpellPicks,
 } from "./characterSpellcasting";
 import { AttributeApi, CharacterAttributeApi } from "../domain/types/attribute.types";
 import { SpellcastingLevelSource } from "../domain/types/characterClass.types";
@@ -62,6 +63,51 @@ describe("buildSpellcastingLevel", () => {
 
     expect(result.spellSaveDc).toBe(13);
     expect(result.spellAttackBonus).toBe(3);
+  });
+
+  it("evaluates spellsPrepared with class level and spellcasting modifier", () => {
+    const source: SpellcastingLevelSource = {
+      class: "wizard-id",
+      abilityKey: "int",
+      classLevel: 5,
+      slots: { cantrips: 4, slots: { "1": 4, "2": 3, "3": 2 } },
+      spellsPreparedFormula: "@class.level + @spellcasting.modifier",
+      preparedFrom: "known",
+    };
+
+    const result = buildSpellcastingLevel(source, intAbility, characterAttributes, 3);
+
+    expect(result.spellsPrepared).toBe(8);
+    expect(result.preparedFrom).toBe("known");
+  });
+
+  it("clamps a negative prepared formula result to 0", () => {
+    const source: SpellcastingLevelSource = {
+      class: "wizard-id",
+      abilityKey: "int",
+      classLevel: 1,
+      slots: { slots: { "1": 2 } },
+      spellsPreparedFormula: "@class.level + @spellcasting.modifier - 10",
+      preparedFrom: "classList",
+    };
+
+    const result = buildSpellcastingLevel(source, intAbility, characterAttributes, 2);
+
+    expect(result.spellsPrepared).toBe(0);
+  });
+
+  it("omits spellsPrepared when the class has no preparation formula", () => {
+    const source: SpellcastingLevelSource = {
+      class: "sorcerer-id",
+      abilityKey: "int",
+      classLevel: 3,
+      slots: { cantrips: 4, slots: { "1": 4 } },
+    };
+
+    const result = buildSpellcastingLevel(source, intAbility, characterAttributes, 2);
+
+    expect(result.spellsPrepared).toBeUndefined();
+    expect(result.preparedFrom).toBeUndefined();
   });
 
   it("exposes the default formula constants used as fallback", () => {
@@ -340,3 +386,114 @@ describe("validateLevelUpSpellPicks", () => {
     ).toHaveProperty("error");
   });
 });
+
+const wizardId = "wizard-id";
+const preparedSpells = [
+  { id: "spell-1", level: 1, classIds: [wizardId] },
+  { id: "spell-2", level: 2, classIds: [wizardId] },
+  { id: "cantrip-1", level: 0, classIds: [wizardId] },
+  { id: "other-1", level: 1, classIds: ["cleric-id"] },
+];
+
+describe("validatePreparedSpellPicks", () => {
+  it("accepts a subset of known leveled spells within the cap", () => {
+    const result = validatePreparedSpellPicks({
+      spellIds: ["spell-1", "spell-2"],
+      cap: 5,
+      preparedFrom: "known",
+      knownIds: ["cantrip-1", "spell-1", "spell-2"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1, 2],
+    });
+    expect(result).toEqual({});
+  });
+
+  it("accepts an empty prepared list", () => {
+    const result = validatePreparedSpellPicks({
+      spellIds: [],
+      cap: 5,
+      preparedFrom: "known",
+      knownIds: ["spell-1"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+    });
+    expect(result).toEqual({});
+  });
+
+  it("rejects preparing more spells than the cap", () => {
+    const result = validatePreparedSpellPicks({
+      spellIds: ["spell-1", "spell-2"],
+      cap: 1,
+      preparedFrom: "known",
+      knownIds: ["spell-1", "spell-2"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1, 2],
+    });
+    expect(result.error).toMatch(/más de 1/);
+  });
+
+  it("rejects cantrips and duplicates", () => {
+    expect(validatePreparedSpellPicks({
+      spellIds: ["cantrip-1"],
+      cap: 5,
+      preparedFrom: "known",
+      knownIds: ["cantrip-1"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+    }).error).toMatch(/trucos/);
+
+    expect(validatePreparedSpellPicks({
+      spellIds: ["spell-1", "spell-1"],
+      cap: 5,
+      preparedFrom: "known",
+      knownIds: ["spell-1"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+    }).error).toMatch(/duplicado/);
+  });
+
+  it("rejects known-source spells that are not in the known list", () => {
+    const result = validatePreparedSpellPicks({
+      spellIds: ["spell-1"],
+      cap: 5,
+      preparedFrom: "known",
+      knownIds: ["spell-2"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+    });
+    expect(result.error).toMatch(/conocidos/);
+  });
+
+  it("rejects classList spells that do not belong to the class", () => {
+    const result = validatePreparedSpellPicks({
+      spellIds: ["other-1"],
+      cap: 5,
+      preparedFrom: "classList",
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+    });
+    expect(result.error).toMatch(/lista de esta clase/);
+  });
+
+  it("rejects spells above the available slot levels", () => {
+    const result = validatePreparedSpellPicks({
+      spellIds: ["spell-2"],
+      cap: 5,
+      preparedFrom: "known",
+      knownIds: ["spell-2"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+    });
+    expect(result.error).toMatch(/ranuras/);
+  });
+});
+

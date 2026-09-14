@@ -96,6 +96,20 @@ const router = Router();
  *           description: >
  *             Fórmula del modificador de ataque de conjuros.
  *             Ejemplo: @proficiencyBonus + @spellcasting.modifier
+ *         spellsPreparedFormula:
+ *           type: string
+ *           description: >
+ *             Fórmula del número de conjuros que la clase puede preparar.
+ *             Debe enviarse junto con `preparedFrom`.
+ *             Tokens permitidos incluyen `@class.level`, `@spellcasting.modifier` y `@proficiencyBonus`.
+ *             Ejemplo: @class.level + @spellcasting.modifier
+ *         preparedFrom:
+ *           type: string
+ *           enum: [known, classList]
+ *           description: >
+ *             Origen de los conjuros preparables. `known` (p. ej. mago) exige que estén
+ *             en los conjuros conocidos de esa clase; `classList` (p. ej. clérigo) permite
+ *             elegir de la lista de conjuros de la clase.
  *         levels:
  *           type: array
  *           items:
@@ -206,6 +220,13 @@ const router = Router();
  *         spellAttackBonusFormula:
  *           type: string
  *           description: Fórmula del modificador de ataque de conjuros (ej. @proficiencyBonus + @spellcasting.modifier).
+ *         spellsPreparedFormula:
+ *           type: string
+ *           description: Fórmula de conjuros preparables (ej. @class.level + @spellcasting.modifier). Debe ir con preparedFrom.
+ *         preparedFrom:
+ *           type: string
+ *           enum: [known, classList]
+ *           description: Origen de los conjuros preparables (`known` o `classList`).
  *         levels:
  *           type: array
  *           items:
@@ -266,6 +287,13 @@ const router = Router();
  *         spellAttackBonusFormula:
  *           type: string
  *           description: Fórmula del modificador de ataque de conjuros (ej. @proficiencyBonus + @spellcasting.modifier).
+ *         spellsPreparedFormula:
+ *           type: string
+ *           description: Fórmula de conjuros preparables (ej. @class.level + @spellcasting.modifier). Debe ir con preparedFrom.
+ *         preparedFrom:
+ *           type: string
+ *           enum: [known, classList]
+ *           description: Origen de los conjuros preparables (`known` o `classList`).
  *         levels:
  *           type: array
  *           items:

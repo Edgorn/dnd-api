@@ -61,4 +61,35 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("accepts spellsPreparedFormula together with preparedFrom", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      spellsPreparedFormula: "@class.level + @spellcasting.modifier",
+      preparedFrom: "known"
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects spellsPreparedFormula without preparedFrom", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      spellsPreparedFormula: "@class.level + @spellcasting.modifier"
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects preparedFrom without spellsPreparedFormula", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Clerigo",
+      preparedFrom: "classList"
+    });
+
+    expect(result.success).toBe(false);
+  });
 });

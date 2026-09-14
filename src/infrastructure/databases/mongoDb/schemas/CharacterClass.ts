@@ -38,7 +38,9 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
   }],
   spellcasting: { type: Schema.Types.ObjectId, ref: "attributes", default: null },
   spellSaveDcFormula: { type: String, default: undefined },
-  spellAttackBonusFormula: { type: String, default: undefined }
+  spellAttackBonusFormula: { type: String, default: undefined },
+  spellsPreparedFormula: { type: String, default: undefined },
+  preparedFrom: { type: String, enum: ["known", "classList"], default: undefined }
 }, { collection: 'character_classes', timestamps: true });
 
 const CharacterClassModel = mongoose.model<CharacterClassMongo>("character_classes", characterClassSchema);

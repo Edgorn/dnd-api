@@ -81,6 +81,13 @@ export interface TypeCrearPersonaje {
   prof_bonus: number
 }
 
+export interface TypePrepareSpells {
+  id: string;
+  classId: string;
+  spells: string[];
+  userId: string;
+}
+
 export interface TypeLevelUp {
   id: string;
   classId: string;
@@ -224,7 +231,8 @@ export interface PersonajeMongo {
   HPActual: number,
   XP: 0,
   invocations: string[],
-  forms: string[]
+  forms: string[],
+  preparedSpells?: Record<string, string[]>
 }
 
 export interface PersonajeApi {
@@ -290,7 +298,7 @@ export interface PersonajeApi {
   money: ({
     quantity: number;
   } & CoinApi)[],
-  spells: Record<string, { list: SpellApi[]; type?: AttributeApi }>,
+  spells: Record<string, { list: SpellApi[]; prepared?: SpellApi[]; type?: AttributeApi }>,
   maxCarryingCapacity: number,
   spellcasting?: SpellcastingLevel[],
   invocations?: InvocacionApi[],

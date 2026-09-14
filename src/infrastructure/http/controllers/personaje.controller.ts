@@ -15,6 +15,7 @@ import VincularPacto from "../../../application/use-cases/personaje/vincularPact
 import AprenderConjuros from "../../../application/use-cases/personaje/aprenderConjuros.use-case";
 import AñadirForma from "../../../application/use-cases/personaje/añadirForma.use-case";
 import ToggleFavoriteEquipment from "../../../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
+import PrepareSpells from "../../../application/use-cases/personaje/prepareSpells.use-case";
 import { ValidationError } from "../../../domain/errors/AppError";
 
 export class PersonajeController {
@@ -33,7 +34,8 @@ export class PersonajeController {
     private readonly vincularPacto: VincularPacto,
     private readonly aprenderConjuros: AprenderConjuros,
     private readonly añadirForma: AñadirForma,
-    private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment
+    private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment,
+    private readonly prepareSpellsUseCase: PrepareSpells
   ) { }
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -236,6 +238,28 @@ export class PersonajeController {
       const data = await this.aprenderConjuros.execute(req.body)
       res.status(200).json(data);
     } catch (e) {
+      next(e);
+    }
+  };
+
+  prepareSpells = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const { class: classId, spells } = req.body;
+      const data = await this.prepareSpellsUseCase.execute({
+        id,
+        classId,
+        spells,
+        userId: req.user!,
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.prepareSpells] Error:", e);
       next(e);
     }
   };

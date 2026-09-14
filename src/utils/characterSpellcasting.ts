@@ -4,6 +4,7 @@ import {
   ClassSpellSlots,
   SpellcastingLevel,
   SpellcastingLevelSource,
+  SpellPreparedFrom,
 } from "../domain/types/characterClass.types";
 import { evaluateFormula } from "./formulaEvaluator";
 
@@ -218,6 +219,66 @@ export function validateLevelUpSpellPicks(
   return { spellIds: flattened };
 }
 
+export function getPreparedSpellIds(
+  preparedSpells: Record<string, string[]> | undefined,
+  classId: string
+): string[] {
+  const ids = preparedSpells?.[classId];
+  return Array.isArray(ids) ? ids : [];
+}
+
+export interface PreparedSpellPickInput {
+  id: string;
+  level: number;
+  classIds: string[];
+}
+
+export function validatePreparedSpellPicks(params: {
+  spellIds: string[];
+  cap: number;
+  preparedFrom: SpellPreparedFrom;
+  knownIds: string[];
+  classId: string;
+  spells: PreparedSpellPickInput[];
+  castableLevels: number[];
+}): { error?: string } {
+  const { spellIds, cap, preparedFrom, knownIds, classId, spells, castableLevels } = params;
+  const seen = new Set<string>();
+  const known = new Set(knownIds);
+  const castable = new Set(castableLevels);
+  const byId = new Map(spells.map(spell => [spell.id, spell]));
+
+  if (spellIds.length > cap) {
+    return { error: `No se pueden preparar más de ${cap} conjuros de esta clase` };
+  }
+
+  for (const id of spellIds) {
+    if (seen.has(id)) {
+      return { error: `El conjuro ${id} está duplicado` };
+    }
+    seen.add(id);
+
+    const spell = byId.get(id);
+    if (!spell) {
+      return { error: `El conjuro ${id} no existe o no está disponible` };
+    }
+    if (spell.level === 0) {
+      return { error: `Los trucos no se preparan (conjuro ${id})` };
+    }
+    if (!castable.has(spell.level)) {
+      return { error: `El conjuro ${id} es de un nivel para el que esta clase no tiene ranuras` };
+    }
+    if (preparedFrom === "known" && !known.has(id)) {
+      return { error: `El conjuro ${id} no está entre los conjuros conocidos de esta clase` };
+    }
+    if (preparedFrom === "classList" && !spell.classIds.includes(classId)) {
+      return { error: `El conjuro ${id} no pertenece a la lista de esta clase` };
+    }
+  }
+
+  return {};
+}
+
 /**
  * Builds a hydrated SpellcastingLevel for a character from class source data.
  */
@@ -234,20 +295,29 @@ export function buildSpellcastingLevel(
   };
 
   const variables = { proficiencyBonus };
+  const classVariables = { level: source.classLevel ?? 0 };
+  const formulaOptions = { spellcastingAttribute, classVariables };
   const saveFormula = source.spellSaveDcFormula?.trim()
     || DEFAULT_SPELL_SAVE_DC_FORMULA;
   const attackFormula = source.spellAttackBonusFormula?.trim()
     || DEFAULT_SPELL_ATTACK_BONUS_FORMULA;
 
+  const preparedFormula = source.spellsPreparedFormula?.trim();
+  const spellsPrepared = preparedFormula
+    ? Math.max(0, Math.floor(evaluateFormula(
+      preparedFormula,
+      characterAttributes,
+      variables,
+      formulaOptions
+    )))
+    : undefined;
+
   return {
     class: source.class,
     ability,
     slots: source.slots,
-    spellSaveDc: evaluateFormula(saveFormula, characterAttributes, variables, {
-      spellcastingAttribute,
-    }),
-    spellAttackBonus: evaluateFormula(attackFormula, characterAttributes, variables, {
-      spellcastingAttribute,
-    }),
+    spellSaveDc: evaluateFormula(saveFormula, characterAttributes, variables, formulaOptions),
+    spellAttackBonus: evaluateFormula(attackFormula, characterAttributes, variables, formulaOptions),
+    ...(spellsPrepared !== undefined ? { spellsPrepared, preparedFrom: source.preparedFrom } : {}),
   };
 }

@@ -50,7 +50,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     private readonly traitRepository?: ITraitRepository,
     private readonly spellRepository?: ISpellRepository,
     private readonly doteRepository?: IDoteRepository,
-    private readonly invocacionRepository?: IInvocacionRepository,
+    private readonly invocationRepository?: IInvocacionRepository,
     private readonly languageRepository?: ILanguageRepository,
     private readonly attributeService?: AttributeService
   ) { }
@@ -67,7 +67,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
         .sort({ name: 1 })
         .lean<CharacterClassMongo[]>();
 
-      return this.formatearClases(classes);
+      return this.formatClasses(classes);
     } catch (error) {
       console.error("Error obteniendo clases:", error);
       throw new Error("No se pudieron obtener las clases");
@@ -77,7 +77,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   async getById(id: string): Promise<CharacterClassApi | null> {
     const doc = await CharacterClassModel.findById(id).lean<CharacterClassMongo>();
     if (!doc) return null;
-    return this.formatearClase(doc);
+    return this.formatClass(doc);
   }
 
   async create(data: InputCreateCharacterClass): Promise<CharacterClassApi> {
@@ -95,11 +95,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellcasting: data.spellcasting ?? null,
       spellSaveDcFormula: data.spellSaveDcFormula,
       spellAttackBonusFormula: data.spellAttackBonusFormula,
+      spellsPreparedFormula: data.spellsPreparedFormula,
+      preparedFrom: data.preparedFrom,
       levels: this.mapLevelsForCreate(data.levels)
     });
 
     await newClass.save();
-    return this.formatearClase(newClass.toObject() as CharacterClassMongo);
+    return this.formatClass(newClass.toObject() as CharacterClassMongo);
   }
 
   async update(data: InputUpdateCharacterClass): Promise<CharacterClassApi> {
@@ -137,7 +139,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       throw new NotFoundError(`No se encontró la clase con id: ${id}`);
     }
 
-    return this.formatearClase(updatedClass);
+    return this.formatClass(updatedClass);
   }
 
   async softDelete(id: string): Promise<void> {
@@ -148,19 +150,19 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     await CharacterClassModel.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
 
-  async dataLevelUp(idClase: string, level: number, subclasses: string[]): Promise<ClaseLevelUp | null> {
-    if (!mongoose.Types.ObjectId.isValid(idClase)) {
+  async dataLevelUp(classId: string, level: number, subclasses: string[]): Promise<ClaseLevelUp | null> {
+    if (!mongoose.Types.ObjectId.isValid(classId)) {
       return null;
     }
-    const clase = await CharacterClassModel.findById(idClase);
+    const characterClass = await CharacterClassModel.findById(classId);
 
-    if (!clase) {
+    if (!characterClass) {
       return null;
     }
 
-    const hitDie = clase.hit_die ?? 8;
-    const dataLevel = clase.levels?.find(data => data.level === level);
-    const dataLevelOld = clase.levels?.find(data => data.level === level - 1);
+    const hitDie = characterClass.hit_die ?? 8;
+    const dataLevel = characterClass.levels?.find(data => data.level === level);
+    const dataLevelOld = characterClass.levels?.find(data => data.level === level - 1);
 
     if (!dataLevel) {
       return {
@@ -176,34 +178,34 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       const data = dataLevel.traits_data[t];
       const dataOld = dataLevelOld?.traits_data ? dataLevelOld?.traits_data[t] : null;
 
-      if (this.valoresNumericosDistintos(data, dataOld)) {
+      if (this.numericValuesDiffer(data, dataOld)) {
         traitsId.push(t);
       }
     });
 
     traitsId.push(...(dataLevel?.traits ?? []));
 
-    const traitsSinRepetidos = [...new Set(traitsId)];
+    const uniqueTraitIds = [...new Set(traitsId)];
     const traits = this.traitRepository
-      ? await this.traitRepository.getTraitsByIndexes(traitsSinRepetidos, dataLevel?.traits_data)
+      ? await this.traitRepository.getTraitsByIndexes(uniqueTraitIds, dataLevel?.traits_data)
       : [];
 
-    const subclasesData = await this.formatearSubclaseType(dataLevel.subclasses_options, dataLevel.subclasses);
+    const subclassesData = await this.formatSubclassType(dataLevel.subclasses_options, dataLevel.subclasses);
 
-    const subclaseData = await Promise.all(
-      subclasses.map(subclase => {
-        if (dataLevel?.subclasses && dataLevel?.subclasses[subclase]) {
-          return this.formatearSubclase(dataLevel.subclasses[subclase]);
+    const subclassData = await Promise.all(
+      subclasses.map(subclass => {
+        if (dataLevel?.subclasses && dataLevel?.subclasses[subclass]) {
+          return this.formatSubclass(dataLevel.subclasses[subclass]);
         } else {
           return null;
         }
       })
     );
 
-    let dotes: ChoiceApi<DoteApi> | undefined = undefined;
+    let feats: ChoiceApi<DoteApi> | undefined = undefined;
 
     if (dataLevel.ability_score && this.doteRepository) {
-      dotes = await this.doteRepository.formatearOpcionesDeDote(1);
+      feats = await this.doteRepository.formatearOpcionesDeDote(1);
     }
 
     const spell_choices = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined;
@@ -212,8 +214,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const spell_changes = Array.from({ length: dataLevel?.spell_changes?.number ?? 0 }, () => spell_changes_aux?.map(opt => ({ ...opt })) ?? []);
 
     const skill_choices = this.skillService ? await this.skillService.formatSkillChoices(dataLevel.skill_choices) : undefined;
-    const invocations_choices = this.invocacionRepository ? await this.invocacionRepository.obtenerOpciones(dataLevel.invocations ?? 0) : undefined;
-    const invocations_change = this.invocacionRepository ? await this.invocacionRepository.obtenerOpciones(dataLevel.invocations_change ?? 0) : undefined;
+    const invocations_choices = this.invocationRepository ? await this.invocationRepository.obtenerOpciones(dataLevel.invocations ?? 0) : undefined;
+    const invocations_change = this.invocationRepository ? await this.invocationRepository.obtenerOpciones(dataLevel.invocations_change ?? 0) : undefined;
 
     const spells = dataLevel?.spell_group?.class && this.spellRepository
       ? await this.spellRepository.getSpellsByLevelAndClass(
@@ -233,7 +235,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       };
     }
 
-    const validSubclaseSpells = subclaseData
+    const validSubclassSpells = subclassData
       .filter((item): item is SubclassApi => !!item?.spells)
       .flatMap(item => item.spells ?? []);
 
@@ -241,7 +243,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       ...new Map(
         [
           ...spells,
-          ...validSubclaseSpells
+          ...validSubclassSpells
         ].map(spell => [spell.id ?? spell.name, spell])
       ).values()
     ].sort((a, b) => a.name.localeCompare(b.name));
@@ -250,16 +252,16 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       hit_die: hitDie,
       traits: [
         ...traits ?? [],
-        ...subclaseData.filter((item): item is SubclassApi => item !== null && item !== undefined).flatMap(item => item.traits) ?? []
+        ...subclassData.filter((item): item is SubclassApi => item !== null && item !== undefined).flatMap(item => item.traits) ?? []
       ],
       traits_data: dataLevel.traits_data,
       traits_options:
         traits_options
-        ?? subclaseData.find(item => item !== null && item !== undefined)?.traits_options
+        ?? subclassData.find(item => item !== null && item !== undefined)?.traits_options
         ?? undefined,
-      subclasesData,
+      subclasesData: subclassesData,
       ability_score: dataLevel.ability_score,
-      dotes,
+      dotes: feats,
       double_skills: dataLevel.double_skills,
       spell_choices,
       spells: [...uniqueSpells ?? []],
@@ -270,46 +272,49 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     };
   }
 
-  async spellcastingClases(clases: { id: string, level: number }[]): Promise<(SpellcastingLevelSource | null)[]> {
-    const validObjectIds = clases
-      .map(clase => clase.id)
+  async getSpellcastingSources(classes: { id: string, level: number }[]): Promise<(SpellcastingLevelSource | null)[]> {
+    const validObjectIds = classes
+      .map(characterClass => characterClass.id)
       .filter(id => mongoose.Types.ObjectId.isValid(id));
 
     if (validObjectIds.length === 0) return [];
 
-    const clasesData = await CharacterClassModel.find({ _id: { $in: validObjectIds } }).lean<CharacterClassMongo[]>();
+    const classDocs = await CharacterClassModel.find({ _id: { $in: validObjectIds } }).lean<CharacterClassMongo[]>();
 
-    return Promise.all(clasesData.map(clase => this.spellcastingClase(clase, clases)));
+    return Promise.all(classDocs.map(classDoc => this.getSpellcastingSource(classDoc, classes)));
   }
 
-  private async spellcastingClase(clase: CharacterClassMongo, clasesLevel: { id: string, level: number }[]): Promise<SpellcastingLevelSource | null> {
-    const level = clasesLevel.find(clas => clas.id === clase._id?.toString())?.level;
+  private async getSpellcastingSource(characterClass: CharacterClassMongo, classLevels: { id: string, level: number }[]): Promise<SpellcastingLevelSource | null> {
+    const level = classLevels.find(classLevel => classLevel.id === characterClass._id?.toString())?.level;
 
     if (!level) return null;
 
-    const rawSpellcasting = resolveClassSpellSlotsForLevel(clase.levels ?? [], level);
+    const rawSpellcasting = resolveClassSpellSlotsForLevel(characterClass.levels ?? [], level);
 
     if (!rawSpellcasting) return null;
 
-    const abilityKey = await this.resolveSpellcastingAbilityKey(clase.spellcasting, clase.ruleset || "");
+    const abilityKey = await this.resolveSpellcastingAbilityKey(characterClass.spellcasting, characterClass.ruleset || "");
 
     return {
-      class: clase._id?.toString() || '',
+      class: characterClass._id?.toString() || '',
       abilityKey,
+      classLevel: level,
       slots: rawSpellcasting,
-      spellSaveDcFormula: clase.spellSaveDcFormula,
-      spellAttackBonusFormula: clase.spellAttackBonusFormula
+      spellSaveDcFormula: characterClass.spellSaveDcFormula,
+      spellAttackBonusFormula: characterClass.spellAttackBonusFormula,
+      spellsPreparedFormula: characterClass.spellsPreparedFormula,
+      preparedFrom: characterClass.preparedFrom
     };
   }
 
-  private formatearClases(clases: CharacterClassMongo[]): Promise<CharacterClassApi[]> {
+  private formatClasses(classes: CharacterClassMongo[]): Promise<CharacterClassApi[]> {
     return Promise.all(
-      clases.map(clase => this.formatearClase(clase))
+      classes.map(characterClass => this.formatClass(characterClass))
     );
   }
 
-  private async formatearClase(clase: CharacterClassMongo): Promise<CharacterClassApi> {
-    const dataLevel = clase?.levels?.find(level => level.level === 1);
+  private async formatClass(characterClass: CharacterClassMongo): Promise<CharacterClassApi> {
+    const dataLevel = characterClass?.levels?.find(level => level.level === 1);
 
     const [
       traits,
@@ -324,9 +329,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellcasting
     ] = await Promise.all([
       this.traitRepository ? this.traitRepository.getTraitsByIndexes(dataLevel?.traits ?? [], dataLevel?.traits_data) : [],
-      this.proficiencyRepository ? this.proficiencyRepository.getProficienciesByIndices([...clase.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]) : [],
-      this.proficiencyRepository ? this.proficiencyRepository.formatProficiencyChoices(clase?.proficiencies_choices ?? []) : [],
-      this.skillService ? this.skillService.formatSkillChoices(clase.skill_choices) : undefined,
+      this.proficiencyRepository ? this.proficiencyRepository.getProficienciesByIndices([...characterClass.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]) : [],
+      this.proficiencyRepository ? this.proficiencyRepository.formatProficiencyChoices(characterClass?.proficiencies_choices ?? []) : [],
+      this.skillService ? this.skillService.formatSkillChoices(characterClass.skill_choices) : undefined,
       dataLevel?.spell_group?.class && this.spellRepository
         ? this.spellRepository.getSpellsByLevelAndClass(
             dataLevel.spell_group.level ?? 0,
@@ -335,18 +340,18 @@ export default class CharacterClassRepository implements ICharacterClassReposito
           )
         : [],
       this.spellRepository ? this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined,
-      this.equipmentRepository ? this.equipmentRepository.getCharacterEquipmentsByIds(clase?.equipment) : [],
-      this.formatClassEquipmentChoices(clase?.equipment_choices, clase.ruleset || ""),
-      this.formatSavingThrows(clase.saving_throws ?? [], clase.ruleset || ""),
+      this.equipmentRepository ? this.equipmentRepository.getCharacterEquipmentsByIds(characterClass?.equipment) : [],
+      this.formatClassEquipmentChoices(characterClass?.equipment_choices, characterClass.ruleset || ""),
+      this.formatSavingThrows(characterClass.saving_throws ?? [], characterClass.ruleset || ""),
       this.attributeService
-        ? this.attributeService.formatSpellcastingAttribute(clase.spellcasting, clase.ruleset || "")
+        ? this.attributeService.formatSpellcastingAttribute(characterClass.spellcasting, characterClass.ruleset || "")
         : Promise.resolve(undefined)
     ]);
 
-    const subclasesData = await this.formatearSubclaseType(dataLevel?.subclasses_options, dataLevel?.subclasses);
+    const subclassesData = await this.formatSubclassType(dataLevel?.subclasses_options, dataLevel?.subclasses);
 
-    const classId = clase._id ? clase._id.toString() : "";
-    const cantripCap = resolveClassSpellSlotsForLevel(clase.levels ?? [], 1)?.cantrips;
+    const classId = characterClass._id ? characterClass._id.toString() : "";
+    const cantripCap = resolveClassSpellSlotsForLevel(characterClass.levels ?? [], 1)?.cantrips;
     const cantripPicks = remainingCantripPicks(cantripCap, 0);
     const synthesizedChoices: ChoiceMongo[] = [];
 
@@ -362,7 +367,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const knownSpellChoice = this.spellRepository
       ? buildSynthesizedKnownSpellChoice(
         classId,
-        clase.levels ?? [],
+        characterClass.levels ?? [],
         1,
         dataLevel?.spell_choices
       )
@@ -381,16 +386,18 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     return {
       id: classId,
-      ruleset: clase.ruleset || "",
-      name: clase.name,
-      description: clase?.description ?? [],
-      hit_die: clase.hit_die ?? 8,
-      img: clase.img || "",
+      ruleset: characterClass.ruleset || "",
+      name: characterClass.name,
+      description: characterClass?.description ?? [],
+      hit_die: characterClass.hit_die ?? 8,
+      img: characterClass.img || "",
       prof_bonus: 2,
       spellcasting,
-      spellSaveDcFormula: clase.spellSaveDcFormula,
-      spellAttackBonusFormula: clase.spellAttackBonusFormula,
-      levels: this.toSlimLevels(clase.levels ?? []),
+      spellSaveDcFormula: characterClass.spellSaveDcFormula,
+      spellAttackBonusFormula: characterClass.spellAttackBonusFormula,
+      spellsPreparedFormula: characterClass.spellsPreparedFormula,
+      preparedFrom: characterClass.preparedFrom,
+      levels: this.toSlimLevels(characterClass.levels ?? []),
       proficiencies,
       proficiencies_choices,
       saving_throws,
@@ -401,12 +408,12 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       equipment_choices,
       traits,
       traits_data: dataLevel?.traits_data ?? {},
-      subclasesData: subclasesData ?? undefined,
-      deletedAt: clase.deletedAt
+      subclasesData: subclassesData ?? undefined,
+      deletedAt: characterClass.deletedAt
     };
   }
 
-  private valoresNumericosDistintos(obj1: { [key: string]: string }, obj2: { [key: string]: string } | null): boolean {
+  private numericValuesDiffer(obj1: { [key: string]: string }, obj2: { [key: string]: string } | null): boolean {
     for (const key in obj1) {
       if (!obj2) {
         return true;
@@ -417,13 +424,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     return false;
   }
 
-  private async formatearSubclaseType(subclase_type: SubclassesOptionsMongo | undefined, subclases: SubclassesMongo | undefined) {
-    if (subclase_type && subclases) {
-      const options = await this.formatearSubclases(subclase_type?.options, subclases);
+  private async formatSubclassType(subclassType: SubclassesOptionsMongo | undefined, subclasses: SubclassesMongo | undefined) {
+    if (subclassType && subclasses) {
+      const options = await this.formatSubclasses(subclassType?.options, subclasses);
 
       return {
-        name: subclase_type.name,
-        desc: subclase_type.desc,
+        name: subclassType.name,
+        desc: subclassType.desc,
         options: options.filter(option => option.id !== "fanatic")
       };
     } else {
@@ -431,60 +438,60 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     }
   }
 
-  private async formatearSubclases(subclases_options: SubclassesOptionsMongoOption[], subclases: SubclassesMongo) {
-    const formateadas = await Promise.all(subclases_options.map(subclase_option => this.formatearSubclaseOption(subclase_option, subclases)));
+  private async formatSubclasses(subclassOptions: SubclassesOptionsMongoOption[], subclasses: SubclassesMongo) {
+    const formatted = await Promise.all(subclassOptions.map(subclassOption => this.formatSubclassOption(subclassOption, subclasses)));
 
-    formateadas.sort((a, b) => {
+    formatted.sort((a, b) => {
       return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
 
-    return formateadas;
+    return formatted;
   }
 
-  private async formatearSubclaseOption(subclase_option: SubclassesOptionsMongoOption, subclases: SubclassesMongo): Promise<SubclassOptionApi> {
-    const subclaseData = subclases[subclase_option?.id];
-    const subclase = await this.formatearSubclase(subclaseData);
+  private async formatSubclassOption(subclassOption: SubclassesOptionsMongoOption, subclasses: SubclassesMongo): Promise<SubclassOptionApi> {
+    const subclassData = subclasses[subclassOption?.id];
+    const subclass = await this.formatSubclass(subclassData);
 
     return {
-      id: subclase_option?.id,
-      name: subclase_option?.name,
-      img: subclase_option?.img,
-      traits: subclase.traits,
-      traits_options: subclase?.traits_options,
-      skill_choices: subclase?.skill_choices,
-      double_skill_choices: subclase?.double_skill_choices,
-      proficiencies: subclase?.proficiencies,
-      spells: subclase?.spells,
-      spell_choices: subclase?.spell_choices,
-      language_choices: subclase?.language_choices
+      id: subclassOption?.id,
+      name: subclassOption?.name,
+      img: subclassOption?.img,
+      traits: subclass.traits,
+      traits_options: subclass?.traits_options,
+      skill_choices: subclass?.skill_choices,
+      double_skill_choices: subclass?.double_skill_choices,
+      proficiencies: subclass?.proficiencies,
+      spells: subclass?.spells,
+      spell_choices: subclass?.spell_choices,
+      language_choices: subclass?.language_choices
     };
   }
 
-  private async formatearSubclase(subclase: SubclassMongo): Promise<SubclassApi> {
-    const traitsId = subclase?.traits ?? [];
+  private async formatSubclass(subclass: SubclassMongo): Promise<SubclassApi> {
+    const traitsId = subclass?.traits ?? [];
 
-    Object.keys(subclase?.traits_data ?? {})?.forEach(t => {
+    Object.keys(subclass?.traits_data ?? {})?.forEach(t => {
       traitsId.push(t);
     });
 
-    const traits = this.traitRepository ? await this.traitRepository.getTraitsByIndexes(traitsId, subclase?.traits_data ?? {}) : [];
+    const traits = this.traitRepository ? await this.traitRepository.getTraitsByIndexes(traitsId, subclass?.traits_data ?? {}) : [];
 
     let traits_options = undefined;
 
-    if (subclase?.traits_options && this.traitRepository) {
-      const traitsAux = await this.traitRepository.getTraitsByIndexes(subclase?.traits_options?.options ?? []);
+    if (subclass?.traits_options && this.traitRepository) {
+      const traitsAux = await this.traitRepository.getTraitsByIndexes(subclass?.traits_options?.options ?? []);
       traits_options = {
-        ...subclase.traits_options,
+        ...subclass.traits_options,
         options: traitsAux
       };
     }
 
-    const skill_choices = this.skillService ? await this.skillService.formatSkillChoices(subclase.skill_choices) : undefined;
-    const proficiencies = this.proficiencyRepository ? await this.proficiencyRepository.getProficienciesByIndices(subclase?.proficiencies ?? []) : [];
-    const spells = this.spellRepository ? await this.spellRepository.getSpellsByIndexes(subclase?.spells ?? []) : [];
-    const languagesOptions = this.languageRepository ? await this.languageRepository.formatLanguageChoices(subclase?.language_choices) : undefined;
-    const double_skill_choices = this.skillService ? await this.skillService.formatSkillChoices(subclase?.double_skill_choices) : undefined;
-    const spell_choices = this.spellRepository ? await this.spellRepository.formatSpellChoices(subclase?.spell_choices) : undefined;
+    const skill_choices = this.skillService ? await this.skillService.formatSkillChoices(subclass.skill_choices) : undefined;
+    const proficiencies = this.proficiencyRepository ? await this.proficiencyRepository.getProficienciesByIndices(subclass?.proficiencies ?? []) : [];
+    const spells = this.spellRepository ? await this.spellRepository.getSpellsByIndexes(subclass?.spells ?? []) : [];
+    const languagesOptions = this.languageRepository ? await this.languageRepository.formatLanguageChoices(subclass?.language_choices) : undefined;
+    const double_skill_choices = this.skillService ? await this.skillService.formatSkillChoices(subclass?.double_skill_choices) : undefined;
+    const spell_choices = this.spellRepository ? await this.spellRepository.formatSpellChoices(subclass?.spell_choices) : undefined;
 
     return {
       traits,

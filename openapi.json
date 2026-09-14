@@ -1978,7 +1978,14 @@
             "items": {
               "$ref": "#/components/schemas/Spell"
             },
-            "description": "Lista de conjuros de ese grupo (raza o clase)."
+            "description": "Lista de conjuros conocidos de ese grupo (raza o clase)."
+          },
+          "prepared": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Spell"
+            },
+            "description": "Conjuros preparados de esa clase (no aplica a raza)."
           },
           "type": {
             "$ref": "#/components/schemas/Attribute",
@@ -2008,6 +2015,18 @@
           "spellAttackBonus": {
             "type": "number",
             "description": "Modificador de ataque de conjuros evaluado para el personaje."
+          },
+          "spellsPrepared": {
+            "type": "number",
+            "description": "Número máximo de conjuros que la clase puede preparar (fórmula evaluada)."
+          },
+          "preparedFrom": {
+            "type": "string",
+            "enum": [
+              "known",
+              "classList"
+            ],
+            "description": "Origen de los conjuros preparables."
           }
         }
       },
@@ -3854,6 +3873,18 @@
             "type": "string",
             "description": "Fórmula del modificador de ataque de conjuros. Ejemplo: @proficiencyBonus + @spellcasting.modifier\n"
           },
+          "spellsPreparedFormula": {
+            "type": "string",
+            "description": "Fórmula del número de conjuros que la clase puede preparar. Debe enviarse junto con `preparedFrom`. Tokens permitidos incluyen `@class.level`, `@spellcasting.modifier` y `@proficiencyBonus`. Ejemplo: @class.level + @spellcasting.modifier\n"
+          },
+          "preparedFrom": {
+            "type": "string",
+            "enum": [
+              "known",
+              "classList"
+            ],
+            "description": "Origen de los conjuros preparables. `known` (p. ej. mago) exige que estén en los conjuros conocidos de esa clase; `classList` (p. ej. clérigo) permite elegir de la lista de conjuros de la clase.\n"
+          },
           "levels": {
             "type": "array",
             "items": {
@@ -4002,6 +4033,18 @@
             "type": "string",
             "description": "Fórmula del modificador de ataque de conjuros (ej. @proficiencyBonus + @spellcasting.modifier)."
           },
+          "spellsPreparedFormula": {
+            "type": "string",
+            "description": "Fórmula de conjuros preparables (ej. @class.level + @spellcasting.modifier). Debe ir con preparedFrom."
+          },
+          "preparedFrom": {
+            "type": "string",
+            "enum": [
+              "known",
+              "classList"
+            ],
+            "description": "Origen de los conjuros preparables (`known` o `classList`)."
+          },
           "levels": {
             "type": "array",
             "items": {
@@ -4088,6 +4131,18 @@
           "spellAttackBonusFormula": {
             "type": "string",
             "description": "Fórmula del modificador de ataque de conjuros (ej. @proficiencyBonus + @spellcasting.modifier)."
+          },
+          "spellsPreparedFormula": {
+            "type": "string",
+            "description": "Fórmula de conjuros preparables (ej. @class.level + @spellcasting.modifier). Debe ir con preparedFrom."
+          },
+          "preparedFrom": {
+            "type": "string",
+            "enum": [
+              "known",
+              "classList"
+            ],
+            "description": "Origen de los conjuros preparables (`known` o `classList`)."
           },
           "levels": {
             "type": "array",
@@ -7605,6 +7660,85 @@
           },
           "400": {
             "description": "Datos inválidos, elecciones de conjuros incorrectas, fórmula ausente, dado excedido o nivel máximo alcanzado."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/prepared-spells": {
+      "put": {
+        "summary": "Preparar conjuros de una clase",
+        "description": "Sustituye la lista de conjuros preparados de la clase indicada.\nLa clase debe definir `spellsPreparedFormula` y `preparedFrom`.\nNo se pueden preparar trucos. El número de conjuros no puede superar el tope evaluado\n(`nivel de clase + modificador`, u otra fórmula). Si `preparedFrom` es `known`, cada\nconjuro debe estar entre los conocidos de esa clase; si es `classList`, debe pertenecer\na la lista de conjuros de la clase. Solo se admiten niveles para los que la clase tenga ranuras.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "class",
+                  "spells"
+                ],
+                "properties": {
+                  "class": {
+                    "type": "string",
+                    "description": "ID de MongoDB de la clase cuyos conjuros se preparan."
+                  },
+                  "spells": {
+                    "type": "array",
+                    "description": "IDs de los conjuros preparados (puede estar vacío).",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado con los conjuros preparados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos, la clase no prepara conjuros o la selección supera el tope."
           },
           "401": {
             "description": "No autorizado."

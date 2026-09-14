@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
+import { LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -54,6 +54,10 @@ export default class PersonajeService {
 
   aprenderConjuros(data: { id: string, spells: string[], type: string }): Promise<PersonajeApi | null> {
     return this.personajeRepository.aprenderConjuros(data);
+  }
+
+  prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi> {
+    return this.personajeRepository.prepareSpells(data);
   }
 
   añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null> {
