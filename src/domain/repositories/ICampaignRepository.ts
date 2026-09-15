@@ -1,4 +1,4 @@
-import { CampaignApi, CampaignBasic, CampaignMongo, CreateCampaignInput, CampaignJoinInput, AddCharacterToCampaignInput, UpdateCampaignLocationsInput } from "../types/campaign.types";
+import { CampaignApi, CampaignBasic, CampaignMongo, CreateCampaignInput, CampaignJoinInput } from "../types/campaign.types";
 
 export default interface ICampaignRepository {
   getByUser(id: string): Promise<CampaignBasic[]>
@@ -8,6 +8,5 @@ export default interface ICampaignRepository {
   registerJoinRequest(userId: string, campaignId: string): Promise<CampaignBasic | null>
   denyJoinRequest(data: CampaignJoinInput): Promise<{ userId: string, campaignId: string } | null>
   acceptJoinRequest(data: CampaignJoinInput): Promise<{ userId: string, campaignId: string } | null>
-  addCharacter(data: AddCharacterToCampaignInput): Promise<{ characterId: string } | null>
-  updateLocations(data: UpdateCampaignLocationsInput): Promise<boolean>
+  addCharacter(campaignId: string, characterId: string): Promise<{ characterId: string } | null>
 }

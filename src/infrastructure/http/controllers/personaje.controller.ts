@@ -16,6 +16,7 @@ import LearnSpells from "../../../application/use-cases/personaje/learnSpells.us
 import AñadirForma from "../../../application/use-cases/personaje/añadirForma.use-case";
 import ToggleFavoriteEquipment from "../../../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import PrepareSpells from "../../../application/use-cases/personaje/prepareSpells.use-case";
+import BindSpellPrivileges from "../../../application/use-cases/personaje/bindSpellPrivileges.use-case";
 import { ValidationError } from "../../../domain/errors/AppError";
 
 export class PersonajeController {
@@ -35,7 +36,8 @@ export class PersonajeController {
     private readonly learnSpellsUseCase: LearnSpells,
     private readonly añadirForma: AñadirForma,
     private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment,
-    private readonly prepareSpellsUseCase: PrepareSpells
+    private readonly prepareSpellsUseCase: PrepareSpells,
+    private readonly bindSpellPrivilegesUseCase: BindSpellPrivileges
   ) { }
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -273,6 +275,32 @@ export class PersonajeController {
       res.status(200).json(data);
     } catch (e) {
       console.error("[PersonajeController.prepareSpells] Error:", e);
+      next(e);
+    }
+  };
+
+  bindSpellPrivileges = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, traitId } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      if (!traitId) {
+        throw new ValidationError("Se requiere el ID del rasgo");
+      }
+
+      const { class: classId, selections } = req.body;
+      const data = await this.bindSpellPrivilegesUseCase.execute({
+        id,
+        traitId,
+        classId,
+        selections,
+        userId: req.user!,
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.bindSpellPrivileges] Error:", e);
       next(e);
     }
   };

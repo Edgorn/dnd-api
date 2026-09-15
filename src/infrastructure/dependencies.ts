@@ -55,7 +55,7 @@ import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-
 import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import LearnSpells from "../application/use-cases/personaje/learnSpells.use-case";
 import PrepareSpells from "../application/use-cases/personaje/prepareSpells.use-case";
-import UpdateCampaignLocations from "../application/use-cases/campaign/updateCampaignLocations.use-case";
+import BindSpellPrivileges from "../application/use-cases/personaje/bindSpellPrivileges.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 import CreateSystem from "../application/use-cases/system/createSystem.use-case";
 import GetSystemsByUser from "../application/use-cases/system/getSystemsByUser.use-case";
@@ -308,8 +308,7 @@ const getCampaignById = new GetCampaignById(campaignService)
 const requestJoinCampaign = new RequestJoinCampaign(campaignService)
 const acceptJoinCampaign = new AcceptJoinCampaign(campaignService)
 const denyJoinCampaign = new DenyJoinCampaign(campaignService)
-const addCharacterToCampaign = new AddCharacterToCampaign(campaignService)
-const updateCampaignLocations = new UpdateCampaignLocations(campaignService)
+const addCharacterToCampaign = new AddCharacterToCampaign(campaignService, personajeService)
 
 const getAllRaces = new GetAllRacesUseCase(raceService);
 const createRace = new CreateRaceUseCase(raceService);
@@ -358,6 +357,7 @@ const vincularPacto = new VincularPacto(personajeService);
 const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
 const learnSpells = new LearnSpells(personajeService);
 const prepareSpells = new PrepareSpells(personajeService);
+const bindSpellPrivileges = new BindSpellPrivileges(personajeService);
 const añadirForma = new AñadirForma(personajeService);
 const createSystem = new CreateSystem(systemService, getSystemApi);
 const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, getSystemApi);
@@ -422,8 +422,7 @@ export const campaignController = new CampaignController(
   requestJoinCampaign,
   acceptJoinCampaign,
   denyJoinCampaign,
-  addCharacterToCampaign,
-  updateCampaignLocations
+  addCharacterToCampaign
 )
 
 export const userController = new UserController(loginUseCase, refreshTokenUseCase, logoutUseCase)
@@ -473,7 +472,8 @@ export const personajeController = new PersonajeController(
   learnSpells,
   añadirForma,
   toggleFavoriteEquipment,
-  prepareSpells
+  prepareSpells,
+  bindSpellPrivileges
 )
 
 export const spellController = new SpellController(

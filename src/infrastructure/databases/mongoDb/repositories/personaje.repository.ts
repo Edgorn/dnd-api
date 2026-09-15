@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
+import { CharacterCampaignLink, LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi } from '../../../../domain/types/personajes.types';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -18,11 +18,10 @@ import ILanguageRepository from "../../../../domain/repositories/ILanguageReposi
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
-import { AddCharacterToCampaignInput } from '../../../../domain/types/campaign.types';
 import { CharacterEquipmentApi } from '../../../../domain/types/equipment.types';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
-import { TraitApi } from '../../../../domain/types/traits.types';
+import { TraitApi, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
 import { CharacterAttributeApi, AttributeApi } from '../../../../domain/types/attribute.types';
 import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
@@ -39,6 +38,14 @@ import {
   validateKnownSpellPicks,
   validateLevelUpSpellPicks,
   validatePreparedSpellPicks,
+  validateSpellPrivilegePicks,
+  canReplaceSpellPrivileges,
+  characterHasTrait,
+  findSpellPrivilegeInstance,
+  getCharacterSpellPrivileges,
+  privilegeSpellIdsExcludedFromCap,
+  alwaysPreparedSpellIds,
+  mergePreparedWithPrivileges,
 } from '../../../../utils/characterSpellcasting';
 import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
@@ -648,20 +655,36 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  async entrarCampaña(data: AddCharacterToCampaignInput): Promise<PersonajeBasico | null> {
-    const { userId, campaignId, characterId } = data
+  async getCampaignLink(characterId: string): Promise<CharacterCampaignLink | null> {
+    const personaje = await Personaje.findById(characterId).lean<PersonajeMongo | null>();
 
-    const personaje = await Personaje.findById(characterId);
-
-    if (personaje?.user !== userId) {
-      throw new Error('El personaje no existe o no pertenece al usuario');
+    if (!personaje) {
+      return null;
     }
 
-    personaje.campaign = campaignId
+    const campaign = typeof personaje.campaign === "string" && personaje.campaign.length > 0
+      ? personaje.campaign
+      : null;
 
-    personaje.save()
+    return {
+      id: personaje._id.toString(),
+      userId: personaje.user,
+      campaign
+    };
+  }
 
-    return this.formatBasicCharacter(personaje)
+  async assignToCampaign(characterId: string, campaignId: string): Promise<PersonajeBasico | null> {
+    const resultado = await Personaje.findByIdAndUpdate(
+      characterId,
+      { $set: { campaign: campaignId } },
+      { returnDocument: "after" }
+    );
+
+    if (!resultado) {
+      return null;
+    }
+
+    return this.formatBasicCharacter(resultado);
   }
 
   async vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
@@ -805,9 +828,19 @@ export default class PersonajeRepository implements IPersonajeRepository {
       apiAttributes,
       personaje.prof_bonus ?? 0
     )
-    const loadedSpells = spells.length ? await this.spellRepository.getSpellsByIndexes(spells) : []
+    const privilegeInstances = getCharacterSpellPrivileges(personaje.spellPrivileges)
+    const privilegeTraitIds = [...new Set(
+      privilegeInstances.filter(item => item.classId === classId).map(item => item.traitId)
+    )]
+    const privilegeTraits = privilegeTraitIds.length
+      ? await this.traitRepository.getTraitsByIndexes(privilegeTraitIds)
+      : []
+    const rulesByTraitId = this.buildPrivilegeRulesMap(privilegeTraits, privilegeInstances)
+    const excludedFromCap = privilegeSpellIdsExcludedFromCap(privilegeInstances, rulesByTraitId, classId)
+    const persistIds = spells.filter(id => !excludedFromCap.has(id))
+    const loadedSpells = persistIds.length ? await this.spellRepository.getSpellsByIndexes(persistIds) : []
     const validation = validatePreparedSpellPicks({
-      spellIds: spells,
+      spellIds: persistIds,
       cap: spellcastingLevel.spellsPrepared ?? 0,
       preparedFrom: source.preparedFrom,
       knownIds: this.getClassSpellIds(personaje, classId),
@@ -819,7 +852,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
           level: spell.level,
           classIds: (spell.classes ?? []).map(clas => clas.id)
         })),
-      castableLevels: castableSpellLevels(spellcastingLevel.slots?.slots)
+      castableLevels: castableSpellLevels(spellcastingLevel.slots?.slots),
+      excludeFromCap: excludedFromCap
     })
 
     if (validation.error) {
@@ -831,11 +865,87 @@ export default class PersonajeRepository implements IPersonajeRepository {
         ? personaje.preparedSpells
         : {})
     }
-    preparedSpells[classId] = [...spells]
+    preparedSpells[classId] = [...persistIds]
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       { $set: { preparedSpells } },
+      { returnDocument: "after" }
+    )
+
+    if (!resultado) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+    }
+
+    return this.formatCharacter(resultado)
+  }
+
+  async bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<PersonajeApi> {
+    const { id, traitId, classId, selections, userId } = data
+    const personaje = await Personaje.findById(id)
+
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+    }
+
+    await this.assertCanAccessCharacter(personaje, userId)
+
+    const loadedTraits = await this.traitRepository.getTraitsByIndexes([traitId])
+    const trait = loadedTraits[0]
+    if (!trait) {
+      throw new NotFoundError("Rasgo no encontrado")
+    }
+
+    const rules = trait.spellPrivileges ?? []
+    const instances = getCharacterSpellPrivileges(personaje.spellPrivileges)
+    const existing = findSpellPrivilegeInstance(instances, traitId, classId, [trait.id])
+    const replaceCheck = canReplaceSpellPrivileges({
+      hasExistingInstance: Boolean(existing),
+      rules
+    })
+    if (replaceCheck.error) {
+      throw new ValidationError(replaceCheck.error)
+    }
+
+    const selectionIds = selections.flat()
+    const loadedSpells = selectionIds.length
+      ? await this.spellRepository.getSpellsByIndexes(selectionIds)
+      : []
+    const classEntry = personaje.classes?.find(clas => clas.class === classId)
+    const validation = validateSpellPrivilegePicks({
+      hasClass: Boolean(classEntry),
+      hasTrait: characterHasTrait(personaje.traits ?? [], [traitId, trait.id]),
+      rules,
+      selections,
+      knownIds: this.getClassSpellIds(personaje, classId),
+      classId,
+      spells: loadedSpells
+        .filter((spell): spell is SpellApi & { id: string } => Boolean(spell.id))
+        .map(spell => ({
+          id: spell.id,
+          level: spell.level,
+          classIds: (spell.classes ?? []).map(clas => clas.id)
+        }))
+    })
+    if (validation.error) {
+      throw new ValidationError(validation.error)
+    }
+
+    const nextInstance: CharacterSpellPrivilegeMongo = {
+      traitId,
+      classId,
+      selections: selections.map(group => [...group])
+    }
+    const nextPrivileges = [
+      ...instances.filter(item =>
+        !(item.classId === classId && (item.traitId === traitId || item.traitId === trait.id))
+      ),
+      nextInstance
+    ]
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { spellPrivileges: nextPrivileges } },
       { returnDocument: "after" }
     )
 
@@ -878,6 +988,29 @@ export default class PersonajeRepository implements IPersonajeRepository {
   private getClassSpellIds(personaje: PersonajeMongo, classId: string): string[] {
     const ids = personaje.spells?.[classId];
     return Array.isArray(ids) ? ids : [];
+  }
+
+  private buildPrivilegeRulesMap(
+    traits: TraitApi[],
+    instances: CharacterSpellPrivilegeMongo[]
+  ): Map<string, SpellPrivilegeRule[]> {
+    const map = new Map<string, SpellPrivilegeRule[]>()
+    const traitsById = new Map(traits.map(trait => [trait.id, trait]))
+
+    for (const trait of traits) {
+      if (trait.spellPrivileges?.length) {
+        map.set(trait.id, trait.spellPrivileges)
+      }
+    }
+
+    for (const instance of instances) {
+      const trait = traitsById.get(instance.traitId)
+      if (trait?.spellPrivileges?.length) {
+        map.set(instance.traitId, trait.spellPrivileges)
+      }
+    }
+
+    return map
   }
 
   private mergeClassSpellIds(
@@ -1307,9 +1440,23 @@ export default class PersonajeRepository implements IPersonajeRepository {
       type?: AttributeApi
     }> = {}
 
+    const privilegeInstances = getCharacterSpellPrivileges(personaje.spellPrivileges)
+    const loadedTraitIds = new Set(traits.map(trait => trait.id))
+    const missingPrivilegeTraitIds = [...new Set(
+      privilegeInstances
+        .map(item => item.traitId)
+        .filter(traitId => !loadedTraitIds.has(traitId) && !(personaje.traits ?? []).includes(traitId))
+    )]
+    const extraPrivilegeTraits = missingPrivilegeTraitIds.length
+      ? await this.traitRepository.getTraitsByIndexes(missingPrivilegeTraitIds)
+      : []
+    const privilegeTraits = [...traits, ...extraPrivilegeTraits]
+    const rulesByTraitId = this.buildPrivilegeRulesMap(privilegeTraits, privilegeInstances)
+
     const spellGroupKeys = new Set([
       ...Object.keys(spells),
-      ...Object.keys(preparedSpellsMap).filter(key => key !== "race")
+      ...Object.keys(preparedSpellsMap).filter(key => key !== "race"),
+      ...privilegeInstances.map(item => item.classId)
     ])
 
     let raceSpellcastingAttr: AttributeApi | undefined
@@ -1323,8 +1470,17 @@ export default class PersonajeRepository implements IPersonajeRepository {
     await Promise.all(
       [...spellGroupKeys].map(async groupSpells => {
         const knownIds = Array.isArray(spells[groupSpells]) ? [...spells[groupSpells]] : []
-        const hasPreparedKey = groupSpells !== "race" && Array.isArray(preparedSpellsMap[groupSpells])
-        const preparedIds = groupSpells === "race" ? [] : getPreparedSpellIds(preparedSpellsMap, groupSpells)
+        const alwaysIds = groupSpells === "race"
+          ? []
+          : alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells)
+        const preparedIds = groupSpells === "race"
+          ? []
+          : mergePreparedWithPrivileges(
+            getPreparedSpellIds(preparedSpellsMap, groupSpells),
+            alwaysIds
+          )
+        const hasPreparedKey = groupSpells !== "race"
+          && (Array.isArray(preparedSpellsMap[groupSpells]) || alwaysIds.length > 0)
 
         if (knownIds.length === 0 && preparedIds.length === 0 && !hasPreparedKey) {
           return
@@ -1412,6 +1568,34 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
     const money = await this.normalizeAndFormatMoney(personaje);
 
+    const privilegeSpellIds = [...new Set(privilegeInstances.flatMap(item => item.selections.flat()))]
+    const privilegeSpells = privilegeSpellIds.length
+      ? await this.spellRepository.getSpellsByIndexes(privilegeSpellIds)
+      : []
+    const privilegeSpellById = new Map(
+      privilegeSpells
+        .filter((spell): spell is SpellApi & { id: string } => Boolean(spell.id))
+        .map(spell => [spell.id, spell])
+    )
+    const hydratedPrivileges: CharacterSpellPrivilegeApi[] = privilegeInstances.map(instance => {
+      const rules = rulesByTraitId.get(instance.traitId)
+        ?? privilegeTraits.find(trait => trait.id === instance.traitId)?.spellPrivileges
+        ?? []
+      return {
+        traitId: instance.traitId,
+        classId: instance.classId,
+        rules,
+        selections: (instance.selections ?? []).map(group => {
+          const hydrated: SpellApi[] = []
+          for (const spellId of group) {
+            const spell = privilegeSpellById.get(spellId)
+            if (spell) hydrated.push(spell)
+          }
+          return hydrated
+        })
+      }
+    })
+
     return {
       id: personaje._id.toString(),
       img: personaje.img,
@@ -1458,7 +1642,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       maxCarryingCapacity,
       spellcasting,
       invocations,
-      forms: forms
+      forms: forms,
+      spellPrivileges: hydratedPrivileges
     }
   }
 

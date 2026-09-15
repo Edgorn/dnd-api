@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { TraitApi, TraitDataMongo } from "./traits.types"
+import { SpellPrivilegeRule, TraitApi, TraitDataMongo } from "./traits.types"
 import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
@@ -95,6 +95,27 @@ export interface TypeLearnSpells {
   userId: string;
 }
 
+export interface TypeBindSpellPrivileges {
+  id: string;
+  traitId: string;
+  classId: string;
+  selections: string[][];
+  userId: string;
+}
+
+export interface CharacterSpellPrivilegeMongo {
+  traitId: string;
+  classId: string;
+  selections: string[][];
+}
+
+export interface CharacterSpellPrivilegeApi {
+  traitId: string;
+  classId: string;
+  rules: SpellPrivilegeRule[];
+  selections: SpellApi[][];
+}
+
 export interface TypeLevelUp {
   id: string;
   classId: string;
@@ -151,6 +172,12 @@ export type PersonajeMoneyItem = { quantity: number } & CoinApi;
 
 export interface UpdateCharacterMoneyResponse {
   money: PersonajeMoneyItem[];
+}
+
+export interface CharacterCampaignLink {
+  id: string
+  userId: string
+  campaign: string | null
 }
 
 export interface PersonajeBasico {
@@ -239,7 +266,8 @@ export interface PersonajeMongo {
   XP: 0,
   invocations: string[],
   forms: string[],
-  preparedSpells?: Record<string, string[]>
+  preparedSpells?: Record<string, string[]>,
+  spellPrivileges?: CharacterSpellPrivilegeMongo[]
 }
 
 export interface PersonajeApi {
@@ -309,7 +337,8 @@ export interface PersonajeApi {
   maxCarryingCapacity: number,
   spellcasting?: SpellcastingLevel[],
   invocations?: InvocacionApi[],
-  forms?: CriaturaApi[]
+  forms?: CriaturaApi[],
+  spellPrivileges?: CharacterSpellPrivilegeApi[]
 }
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";

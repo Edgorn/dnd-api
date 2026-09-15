@@ -28,8 +28,6 @@ const baseCampaign: CampaignMongo = {
   initialLevel: 1,
   maxPlayers: 5,
   language: "es",
-  locations: [],
-  initialMapId: "",
   deletedAt: null,
 };
 

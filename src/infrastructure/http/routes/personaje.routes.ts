@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -122,7 +122,9 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Spell'
- *           description: Conjuros preparados de esa clase (no aplica a raza).
+ *           description: >
+ *             Conjuros preparados de esa clase (no aplica a raza). Incluye los elegidos
+ *             por el jugador y los que un rasgo marca como siempre preparados.
  *         type:
  *           $ref: '#/components/schemas/Attribute'
  *           description: Característica de lanzamiento asociada a ese grupo de conjuros.
@@ -157,6 +159,28 @@ const router = Router();
  *           description: >
  *             Repositorio de conjuros copiable de esta clase (p. ej. libro de conjuros).
  *             Si está presente, el personaje puede copiar o aprender conjuros fuera de la subida de nivel.
+ *
+ *     CharacterSpellPrivilegeApi:
+ *       type: object
+ *       properties:
+ *         traitId:
+ *           type: string
+ *           description: ID o índice del rasgo que otorga el privilegio.
+ *         classId:
+ *           type: string
+ *           description: ID de MongoDB de la clase a la que se vincula el privilegio.
+ *         rules:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellPrivilegeRule'
+ *           description: Reglas del rasgo aplicadas a esta instancia.
+ *         selections:
+ *           type: array
+ *           items:
+ *             type: array
+ *             items:
+ *               $ref: '#/components/schemas/Spell'
+ *           description: Conjuros vinculados, un grupo por cada regla del rasgo.
  *
  *     Invocacion:
  *       type: object
@@ -528,7 +552,11 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CriaturaForm'
- *
+ *         spellPrivileges:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterSpellPrivilegeApi'
+ *           description: Conjuros vinculados a rasgos con privilegio de conjuro.
  *     InputCrearPersonaje:
  *       type: object
  *       required:
@@ -1354,9 +1382,11 @@ router.post('/character/:id/level-up', authMiddleware, validateParams(CharacterI
  *       Sustituye la lista de conjuros preparados de la clase indicada.
  *       La clase debe definir `spellsPreparedFormula` y `preparedFrom`.
  *       No se pueden preparar trucos. El número de conjuros no puede superar el tope evaluado
- *       (`nivel de clase + modificador`, u otra fórmula). Si `preparedFrom` es `known`, cada
- *       conjuro debe estar entre los conocidos de esa clase; si es `classList`, debe pertenecer
- *       a la lista de conjuros de la clase. Solo se admiten niveles para los que la clase tenga ranuras.
+ *       (`nivel de clase + modificador`, u otra fórmula). Los conjuros de un rasgo con
+ *       `countsTowardPreparedCap: false` no cuentan para el tope y, si se envían, se ignoran
+ *       al persistir. Si `preparedFrom` es `known`, cada conjuro debe estar entre los
+ *       conocidos de esa clase; si es `classList`, debe pertenecer a la lista de conjuros
+ *       de la clase. Solo se admiten niveles para los que la clase tenga ranuras.
  *     tags:
  *       - Personajes
  *     security:
@@ -1405,6 +1435,76 @@ router.post('/character/:id/level-up', authMiddleware, validateParams(CharacterI
  *         description: Error del servidor.
  */
 router.put('/character/:id/prepared-spells', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(PrepareSpellsSchema), personajeController.prepareSpells);
+
+/**
+ * @openapi
+ * /character/{id}/spell-privileges/{traitId}:
+ *   put:
+ *     summary: Vincular conjuros a un rasgo con privilegio de conjuro
+ *     description: |
+ *       Sustituye la elección de conjuros vinculada a un rasgo del personaje (p. ej. Maestría
+ *       sobre Conjuros o Conjuros característicos).
+ *       El rasgo debe definir `spellPrivileges`. Cada grupo de `selections` corresponde a una
+ *       regla y debe tener exactamente `choose` conjuros del nivel indicado, de la lista de la
+ *       clase. Si `source` es `known`, deben estar entre los conocidos de esa clase.
+ *       El primer vínculo siempre está permitido. Un vínculo posterior solo se admite si todas
+ *       las reglas tienen `replace` (p. ej. 8 horas de estudio); si `replace` es nulo, se rechaza.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: traitId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID o índice del rasgo.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - class
+ *               - selections
+ *             properties:
+ *               class:
+ *                 type: string
+ *                 description: ID de MongoDB de la clase a la que se vincula el rasgo.
+ *               selections:
+ *                 type: array
+ *                 description: Un grupo de IDs de conjuro por cada regla de `spellPrivileges`.
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado con los privilegios de conjuro.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Datos inválidos, el rasgo no otorga privilegios o no se pueden sustituir.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o rasgo no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateParams(BindSpellPrivilegesParamsSchema), validateSchema(BindSpellPrivilegesSchema), personajeController.bindSpellPrivileges);
 
 /**
  * @openapi

@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -48,6 +48,18 @@ export default class PersonajeService {
     return this.personajeRepository.levelUp(data);
   }
 
+  getByIds(idCharacters: string[]): Promise<PersonajeBasico[]> {
+    return this.personajeRepository.getByIds(idCharacters);
+  }
+
+  getCampaignLink(characterId: string): Promise<CharacterCampaignLink | null> {
+    return this.personajeRepository.getCampaignLink(characterId);
+  }
+
+  assignToCampaign(characterId: string, campaignId: string): Promise<PersonajeBasico | null> {
+    return this.personajeRepository.assignToCampaign(characterId, campaignId);
+  }
+
   vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
     return this.personajeRepository.vincularPacto(data);
   }
@@ -58,6 +70,10 @@ export default class PersonajeService {
 
   prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi> {
     return this.personajeRepository.prepareSpells(data);
+  }
+
+  bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<PersonajeApi> {
+    return this.personajeRepository.bindSpellPrivileges(data);
   }
 
   añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null> {

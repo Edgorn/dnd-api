@@ -1,5 +1,5 @@
 import ICampaignRepository from "../repositories/ICampaignRepository";
-import { CampaignApi, CampaignBasic, CampaignMongo, CreateCampaignInput, CampaignJoinInput, AddCharacterToCampaignInput, UpdateCampaignLocationsInput } from "../types/campaign.types";
+import { CampaignApi, CampaignBasic, CampaignMongo, CreateCampaignInput, CampaignJoinInput } from "../types/campaign.types";
 
 export default class CampaignService {
   constructor(private readonly campaignRepository: ICampaignRepository) { }
@@ -32,11 +32,7 @@ export default class CampaignService {
     return this.campaignRepository.acceptJoinRequest(data);
   }
 
-  addCharacter(data: AddCharacterToCampaignInput): Promise<{ characterId: string } | null> {
-    return this.campaignRepository.addCharacter(data);
-  }
-
-  async updateLocations(data: UpdateCampaignLocationsInput): Promise<boolean> {
-    return this.campaignRepository.updateLocations(data);
+  addCharacter(campaignId: string, characterId: string): Promise<{ characterId: string } | null> {
+    return this.campaignRepository.addCharacter(campaignId, characterId);
   }
 }

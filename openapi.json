@@ -132,6 +132,128 @@
               "type": "string"
             },
             "description": "Lista de IDs de habilidades (skills) que otorga el rasgo."
+          },
+          "spellPrivileges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpellPrivilegeRule"
+            },
+            "description": "Reglas de privilegio de conjuro que otorga el rasgo (elección del personaje, preparados automáticos, lanzamiento sin ranura y sustitución).\n"
+          }
+        }
+      },
+      "SpellPrivilegeRule": {
+        "type": "object",
+        "required": [
+          "choose",
+          "source",
+          "filter",
+          "alwaysPrepared",
+          "countsTowardPreparedCap",
+          "freeCast",
+          "replace"
+        ],
+        "properties": {
+          "choose": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número de conjuros que el personaje debe vincular a esta regla."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "known",
+              "classList"
+            ],
+            "description": "Origen de los conjuros elegibles. `known` exige que estén en los conocidos de la clase (p. ej. libro de conjuros); `classList` usa la lista de la clase.\n"
+          },
+          "filter": {
+            "type": "object",
+            "required": [
+              "level"
+            ],
+            "properties": {
+              "level": {
+                "description": "Nivel de conjuro exigido (número o lista de niveles).",
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "alwaysPrepared": {
+            "type": "boolean",
+            "description": "Si es true, los conjuros vinculados se consideran siempre preparados."
+          },
+          "countsTowardPreparedCap": {
+            "type": "boolean",
+            "description": "Si es false, no cuentan para el tope de conjuros preparables."
+          },
+          "freeCast": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "slotLevel": {
+                "type": "string",
+                "enum": [
+                  "spellLevel"
+                ],
+                "description": "El lanzamiento sin ranura usa el nivel del propio conjuro."
+              },
+              "uses": {
+                "description": "Usos sin ranura (`unlimited` o un entero positivo).",
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "unlimited"
+                    ]
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                ]
+              },
+              "recharge": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "shortRest",
+                  "longRest",
+                  "shortOrLongRest"
+                ],
+                "description": "Recarga de los usos sin ranura. Nulo si es a voluntad."
+              }
+            }
+          },
+          "replace": {
+            "nullable": true,
+            "type": "object",
+            "description": "Si está presente, se pueden sustituir los conjuros vinculados.",
+            "properties": {
+              "hours": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Horas de estudio que el cliente debe exigir antes de sustituir."
+              },
+              "sameLevel": {
+                "type": "boolean",
+                "description": "Si el sustituto debe ser del mismo nivel."
+              }
+            }
           }
         }
       },
@@ -177,6 +299,13 @@
               "type": "string"
             },
             "description": "Lista de IDs de habilidades (skills) que otorga el rasgo."
+          },
+          "spellPrivileges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpellPrivilegeRule"
+            },
+            "description": "Reglas de privilegio de conjuro que otorga el rasgo."
           }
         }
       },
@@ -218,6 +347,13 @@
               "type": "string"
             },
             "description": "Lista de IDs de habilidades (skills) que otorga el rasgo."
+          },
+          "spellPrivileges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpellPrivilegeRule"
+            },
+            "description": "Reglas de privilegio de conjuro que otorga el rasgo."
           }
         }
       },
@@ -1985,7 +2121,7 @@
             "items": {
               "$ref": "#/components/schemas/Spell"
             },
-            "description": "Conjuros preparados de esa clase (no aplica a raza)."
+            "description": "Conjuros preparados de esa clase (no aplica a raza). Incluye los elegidos por el jugador y los que un rasgo marca como siempre preparados.\n"
           },
           "type": {
             "$ref": "#/components/schemas/Attribute",
@@ -2031,6 +2167,36 @@
           "spellRepository": {
             "$ref": "#/components/schemas/SpellRepositoryConfig",
             "description": "Repositorio de conjuros copiable de esta clase (p. ej. libro de conjuros). Si está presente, el personaje puede copiar o aprender conjuros fuera de la subida de nivel.\n"
+          }
+        }
+      },
+      "CharacterSpellPrivilegeApi": {
+        "type": "object",
+        "properties": {
+          "traitId": {
+            "type": "string",
+            "description": "ID o índice del rasgo que otorga el privilegio."
+          },
+          "classId": {
+            "type": "string",
+            "description": "ID de MongoDB de la clase a la que se vincula el privilegio."
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpellPrivilegeRule"
+            },
+            "description": "Reglas del rasgo aplicadas a esta instancia."
+          },
+          "selections": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Spell"
+              }
+            },
+            "description": "Conjuros vinculados, un grupo por cada regla del rasgo."
           }
         }
       },
@@ -2571,6 +2737,13 @@
             "items": {
               "$ref": "#/components/schemas/CriaturaForm"
             }
+          },
+          "spellPrivileges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterSpellPrivilegeApi"
+            },
+            "description": "Conjuros vinculados a rasgos con privilegio de conjuro."
           }
         }
       },
@@ -4380,17 +4553,6 @@
           "language": {
             "type": "string",
             "description": "Idioma de la campaña."
-          },
-          "locations": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Identificadores de las localizaciones."
-          },
-          "initialMapId": {
-            "type": "string",
-            "description": "Identificador del mapa inicial."
           }
         }
       },
@@ -7833,7 +7995,7 @@
     "/character/{id}/prepared-spells": {
       "put": {
         "summary": "Preparar conjuros de una clase",
-        "description": "Sustituye la lista de conjuros preparados de la clase indicada.\nLa clase debe definir `spellsPreparedFormula` y `preparedFrom`.\nNo se pueden preparar trucos. El número de conjuros no puede superar el tope evaluado\n(`nivel de clase + modificador`, u otra fórmula). Si `preparedFrom` es `known`, cada\nconjuro debe estar entre los conocidos de esa clase; si es `classList`, debe pertenecer\na la lista de conjuros de la clase. Solo se admiten niveles para los que la clase tenga ranuras.\n",
+        "description": "Sustituye la lista de conjuros preparados de la clase indicada.\nLa clase debe definir `spellsPreparedFormula` y `preparedFrom`.\nNo se pueden preparar trucos. El número de conjuros no puede superar el tope evaluado\n(`nivel de clase + modificador`, u otra fórmula). Los conjuros de un rasgo con\n`countsTowardPreparedCap: false` no cuentan para el tope y, si se envían, se ignoran\nal persistir. Si `preparedFrom` es `known`, cada conjuro debe estar entre los\nconocidos de esa clase; si es `classList`, debe pertenecer a la lista de conjuros\nde la clase. Solo se admiten niveles para los que la clase tenga ranuras.\n",
         "tags": [
           "Personajes"
         ],
@@ -7902,6 +8064,97 @@
           },
           "404": {
             "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/spell-privileges/{traitId}": {
+      "put": {
+        "summary": "Vincular conjuros a un rasgo con privilegio de conjuro",
+        "description": "Sustituye la elección de conjuros vinculada a un rasgo del personaje (p. ej. Maestría\nsobre Conjuros o Conjuros característicos).\nEl rasgo debe definir `spellPrivileges`. Cada grupo de `selections` corresponde a una\nregla y debe tener exactamente `choose` conjuros del nivel indicado, de la lista de la\nclase. Si `source` es `known`, deben estar entre los conocidos de esa clase.\nEl primer vínculo siempre está permitido. Un vínculo posterior solo se admite si todas\nlas reglas tienen `replace` (p. ej. 8 horas de estudio); si `replace` es nulo, se rechaza.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "traitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o índice del rasgo."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "class",
+                  "selections"
+                ],
+                "properties": {
+                  "class": {
+                    "type": "string",
+                    "description": "ID de MongoDB de la clase a la que se vincula el rasgo."
+                  },
+                  "selections": {
+                    "type": "array",
+                    "description": "Un grupo de IDs de conjuro por cada regla de `spellPrivileges`.",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado con los privilegios de conjuro.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos, el rasgo no otorga privilegios o no se pueden sustituir."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o rasgo no encontrado."
           },
           "500": {
             "description": "Error del servidor."
@@ -9939,6 +10192,86 @@
           },
           "409": {
             "description": "Conflicto (el usuario ya es jugador o la campaña está llena)."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/campaign/{id}/add-character": {
+      "post": {
+        "summary": "Vincular un personaje a una campaña",
+        "description": "Añade un personaje del usuario autenticado a la campaña. El usuario debe ser el master o un jugador aceptado. El personaje no puede estar ya vinculado a esta u otra campaña.",
+        "tags": [
+          "Campañas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la campaña."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "characterId"
+                ],
+                "properties": {
+                  "characterId": {
+                    "type": "string",
+                    "description": "ID de MongoDB del personaje a vincular."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje vinculado a la campaña.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "characterId": {
+                      "type": "string",
+                      "description": "ID del personaje vinculado."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID de campaña o de personaje inválido."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "El usuario no pertenece a la campaña o el personaje no es suyo."
+          },
+          "404": {
+            "description": "Campaña o personaje no encontrado."
+          },
+          "409": {
+            "description": "El personaje ya pertenece a esta u otra campaña."
           },
           "500": {
             "description": "Error del servidor."

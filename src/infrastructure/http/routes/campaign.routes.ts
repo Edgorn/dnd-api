@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { campaignController, authMiddleware } from "../../dependencies";
 import { validateParams, validateSchema } from "../middlewares/validateSchema";
-import { CampaignIdParamsSchema, CampaignJoinParamsSchema, CreateCampaignSchema } from "../schemas/campaign.schema";
+import { CampaignIdParamsSchema, CampaignJoinParamsSchema, CreateCampaignSchema, AddCharacterToCampaignBodySchema } from "../schemas/campaign.schema";
 
 const router = Router();
 
@@ -112,14 +112,6 @@ const router = Router();
  *         language:
  *           type: string
  *           description: Idioma de la campaña.
- *         locations:
- *           type: array
- *           items:
- *             type: string
- *           description: Identificadores de las localizaciones.
- *         initialMapId:
- *           type: string
- *           description: Identificador del mapa inicial.
  *     InputCreateCampaign:
  *       type: object
  *       required:
@@ -380,7 +372,66 @@ router.delete('/campaign/:id/request-join/:userId', authMiddleware, validatePara
  *         description: Error del servidor.
  */
 router.post('/campaign/:id/request-join/:userId/accept', authMiddleware, validateParams(CampaignJoinParamsSchema), campaignController.acceptJoinRequest);
-router.post('/campaign/:id/add-character', authMiddleware, campaignController.addCharacterToCampaign);
-router.patch('/campaign/:id/locations', authMiddleware, campaignController.updateCampaignLocations);
+
+/**
+ * @openapi
+ * /campaign/{id}/add-character:
+ *   post:
+ *     summary: Vincular un personaje a una campaña
+ *     description: Añade un personaje del usuario autenticado a la campaña. El usuario debe ser el master o un jugador aceptado. El personaje no puede estar ya vinculado a esta u otra campaña.
+ *     tags:
+ *       - Campañas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la campaña.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - characterId
+ *             properties:
+ *               characterId:
+ *                 type: string
+ *                 description: ID de MongoDB del personaje a vincular.
+ *     responses:
+ *       200:
+ *         description: Personaje vinculado a la campaña.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 characterId:
+ *                   type: string
+ *                   description: ID del personaje vinculado.
+ *       400:
+ *         description: ID de campaña o de personaje inválido.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: El usuario no pertenece a la campaña o el personaje no es suyo.
+ *       404:
+ *         description: Campaña o personaje no encontrado.
+ *       409:
+ *         description: El personaje ya pertenece a esta u otra campaña.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post(
+  '/campaign/:id/add-character',
+  authMiddleware,
+  validateParams(CampaignIdParamsSchema),
+  validateSchema(AddCharacterToCampaignBodySchema),
+  campaignController.addCharacterToCampaign
+);
 
 export default router;

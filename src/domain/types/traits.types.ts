@@ -4,6 +4,34 @@ import { ProficiencyApi } from "./proficiencies.types"
 import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 
+export type SpellPrivilegeSource = "known" | "classList";
+export type SpellPrivilegeRecharge = "shortRest" | "longRest" | "shortOrLongRest";
+
+export interface SpellPrivilegeFilter {
+  level: number | number[];
+}
+
+export interface SpellPrivilegeFreeCast {
+  slotLevel: "spellLevel";
+  uses: number | "unlimited";
+  recharge: SpellPrivilegeRecharge | null;
+}
+
+export interface SpellPrivilegeReplace {
+  hours: number;
+  sameLevel: boolean;
+}
+
+export interface SpellPrivilegeRule {
+  choose: number;
+  source: SpellPrivilegeSource;
+  filter: SpellPrivilegeFilter;
+  alwaysPrepared: boolean;
+  countsTowardPreparedCap: boolean;
+  freeCast: SpellPrivilegeFreeCast | null;
+  replace: SpellPrivilegeReplace | null;
+}
+
 export interface TraitMongo {
   _id: ObjectId,
   index: string,
@@ -24,6 +52,7 @@ export interface TraitMongo {
   bonuses?: {
     armor_class: number
   },
+  spellPrivileges?: SpellPrivilegeRule[],
   deletedAt?: Date | null
 }
 
@@ -56,7 +85,8 @@ export interface TraitApi {
   discard?: string[],
   bonuses?: {
     armor_class: number
-  }
+  },
+  spellPrivileges?: SpellPrivilegeRule[]
 }
 
 export interface TraitsOptionsApi {
@@ -71,7 +101,8 @@ export interface CreateTrait {
   ruleset: string,
   incompatible_traits: string[],
   proficiencies?: string[],
-  skills?: string[]
+  skills?: string[],
+  spellPrivileges?: SpellPrivilegeRule[]
 }
 
 export interface UpdateTrait {
@@ -82,5 +113,6 @@ export interface UpdateTrait {
   ruleset?: string,
   incompatible_traits?: string[],
   proficiencies?: string[],
-  skills?: string[]
+  skills?: string[],
+  spellPrivileges?: SpellPrivilegeRule[]
 }

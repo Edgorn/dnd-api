@@ -216,7 +216,10 @@ export default class TraitRepository implements ITraitRepository {
         skills,
         spells,
         speed: trait?.speed ?? undefined,
-        bonuses: trait?.bonuses ?? undefined
+        bonuses: trait?.bonuses ?? undefined,
+        ...(Array.isArray(trait.spellPrivileges) && trait.spellPrivileges.length
+          ? { spellPrivileges: trait.spellPrivileges }
+          : {})
       };
     });
   }

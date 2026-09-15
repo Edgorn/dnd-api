@@ -6,6 +6,8 @@ import {
   SpellcastingLevelSource,
   SpellPreparedFrom,
 } from "../domain/types/characterClass.types";
+import { SpellPrivilegeRule } from "../domain/types/traits.types";
+import { CharacterSpellPrivilegeMongo } from "../domain/types/personajes.types";
 import { evaluateFormula } from "./formulaEvaluator";
 
 export const DEFAULT_SPELL_SAVE_DC_FORMULA =
@@ -241,14 +243,17 @@ export function validatePreparedSpellPicks(params: {
   classId: string;
   spells: PreparedSpellPickInput[];
   castableLevels: number[];
+  excludeFromCap?: Iterable<string>;
 }): { error?: string } {
-  const { spellIds, cap, preparedFrom, knownIds, classId, spells, castableLevels } = params;
+  const { spellIds, cap, preparedFrom, knownIds, classId, spells, castableLevels, excludeFromCap } = params;
   const seen = new Set<string>();
   const known = new Set(knownIds);
   const castable = new Set(castableLevels);
   const byId = new Map(spells.map(spell => [spell.id, spell]));
+  const excluded = new Set(excludeFromCap ?? []);
+  const counting = spellIds.filter(id => !excluded.has(id));
 
-  if (spellIds.length > cap) {
+  if (counting.length > cap) {
     return { error: `No se pueden preparar más de ${cap} conjuros de esta clase` };
   }
 
@@ -277,6 +282,184 @@ export function validatePreparedSpellPicks(params: {
   }
 
   return {};
+}
+
+export function spellLevelMatchesFilter(level: number, filterLevel: number | number[]): boolean {
+  if (typeof filterLevel === "number") return level === filterLevel;
+  return Array.isArray(filterLevel) && filterLevel.includes(level);
+}
+
+export function characterHasTrait(
+  characterTraitIds: Iterable<string>,
+  traitKeys: Iterable<string>
+): boolean {
+  const owned = new Set(characterTraitIds);
+  for (const key of traitKeys) {
+    if (key && owned.has(key)) return true;
+  }
+  return false;
+}
+
+export function findSpellPrivilegeInstance(
+  instances: CharacterSpellPrivilegeMongo[] | undefined,
+  traitId: string,
+  classId: string,
+  extraTraitKeys: string[] = []
+): CharacterSpellPrivilegeMongo | undefined {
+  if (!instances?.length) return undefined;
+  const keys = new Set([traitId, ...extraTraitKeys].filter(Boolean));
+  return instances.find(item => item.classId === classId && keys.has(item.traitId));
+}
+
+export function canReplaceSpellPrivileges(params: {
+  hasExistingInstance: boolean;
+  rules: SpellPrivilegeRule[];
+}): { error?: string } {
+  const { hasExistingInstance, rules } = params;
+  if (!hasExistingInstance) return {};
+  if (rules.length > 0 && rules.every(rule => rule.replace)) return {};
+  return { error: "No se pueden cambiar los conjuros vinculados a este rasgo" };
+}
+
+export interface SpellPrivilegePickInput {
+  id: string;
+  level: number;
+  classIds: string[];
+}
+
+export function validateSpellPrivilegePicks(params: {
+  hasClass: boolean;
+  hasTrait: boolean;
+  rules: SpellPrivilegeRule[];
+  selections: string[][];
+  knownIds: string[];
+  classId: string;
+  spells: SpellPrivilegePickInput[];
+}): { error?: string } {
+  const { hasClass, hasTrait, rules, selections, knownIds, classId, spells } = params;
+
+  if (!hasClass) {
+    return { error: "El personaje no tiene esa clase" };
+  }
+  if (!hasTrait) {
+    return { error: "El personaje no tiene ese rasgo" };
+  }
+  if (!rules.length) {
+    return { error: "Este rasgo no otorga privilegios de conjuro" };
+  }
+  if (selections.length !== rules.length) {
+    return { error: "Debe enviar una selección por cada regla de privilegio del rasgo" };
+  }
+
+  const known = new Set(knownIds);
+  const byId = new Map(spells.map(spell => [spell.id, spell]));
+  const across = new Set<string>();
+
+  for (let i = 0; i < rules.length; i++) {
+    const rule = rules[i];
+    const group = selections[i] ?? [];
+    if (group.length !== rule.choose) {
+      return { error: `La regla ${i + 1} requiere ${rule.choose} conjuro(s)` };
+    }
+
+    const inGroup = new Set<string>();
+    for (const id of group) {
+      if (inGroup.has(id) || across.has(id)) {
+        return { error: `El conjuro ${id} está duplicado` };
+      }
+      inGroup.add(id);
+      across.add(id);
+
+      const spell = byId.get(id);
+      if (!spell) {
+        return { error: `El conjuro ${id} no existe o no está disponible` };
+      }
+      if (!spellLevelMatchesFilter(spell.level, rule.filter.level)) {
+        return { error: `El conjuro ${id} no coincide con el nivel de la regla ${i + 1}` };
+      }
+      if (!spell.classIds.includes(classId)) {
+        return { error: `El conjuro ${id} no pertenece a la lista de esta clase` };
+      }
+      if (rule.source === "known" && !known.has(id)) {
+        return { error: `El conjuro ${id} no está entre los conjuros conocidos de esta clase` };
+      }
+    }
+  }
+
+  return {};
+}
+
+export function privilegeSpellIdsExcludedFromCap(
+  instances: CharacterSpellPrivilegeMongo[] | undefined,
+  rulesByTraitId: Map<string, SpellPrivilegeRule[]>,
+  classId?: string
+): Set<string> {
+  const excluded = new Set<string>();
+  if (!instances?.length) return excluded;
+
+  for (const instance of instances) {
+    if (classId && instance.classId !== classId) continue;
+    const rules = rulesByTraitId.get(instance.traitId) ?? [];
+    for (let i = 0; i < rules.length; i++) {
+      if (rules[i].countsTowardPreparedCap) continue;
+      for (const id of instance.selections[i] ?? []) {
+        if (id) excluded.add(id);
+      }
+    }
+  }
+
+  return excluded;
+}
+
+export function alwaysPreparedSpellIds(
+  instances: CharacterSpellPrivilegeMongo[] | undefined,
+  rulesByTraitId: Map<string, SpellPrivilegeRule[]>,
+  classId: string
+): string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  if (!instances?.length) return ids;
+
+  for (const instance of instances) {
+    if (instance.classId !== classId) continue;
+    const rules = rulesByTraitId.get(instance.traitId) ?? [];
+    for (let i = 0; i < rules.length; i++) {
+      if (!rules[i].alwaysPrepared) continue;
+      for (const id of instance.selections[i] ?? []) {
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        ids.push(id);
+      }
+    }
+  }
+
+  return ids;
+}
+
+export function mergePreparedWithPrivileges(
+  preparedIds: string[],
+  alwaysPreparedIds: string[]
+): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const id of [...preparedIds, ...alwaysPreparedIds]) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    merged.push(id);
+  }
+  return merged;
+}
+
+export function getCharacterSpellPrivileges(
+  raw: CharacterSpellPrivilegeMongo[] | undefined
+): CharacterSpellPrivilegeMongo[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(item =>
+    Boolean(item)
+    && typeof item.traitId === "string"
+    && typeof item.classId === "string"
+    && Array.isArray(item.selections)
+  );
 }
 
 export interface KnownSpellPickInput {

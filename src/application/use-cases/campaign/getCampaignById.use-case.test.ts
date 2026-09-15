@@ -18,8 +18,6 @@ const campaign: CampaignMongo = {
   initialLevel: 1,
   maxPlayers: 5,
   language: "es",
-  locations: [],
-  initialMapId: "",
   deletedAt: null,
 };
 
@@ -41,8 +39,6 @@ const campaignApi: CampaignApi = {
   initialLevel: campaign.initialLevel,
   maxPlayers: campaign.maxPlayers,
   language: campaign.language,
-  locations: [],
-  initialMapId: "",
 };
 
 describe("GetCampaignById UseCase", () => {

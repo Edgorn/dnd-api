@@ -17,7 +17,14 @@ import {
   validateKnownSpellPicks,
   validateLevelUpSpellPicks,
   validatePreparedSpellPicks,
+  validateSpellPrivilegePicks,
+  canReplaceSpellPrivileges,
+  privilegeSpellIdsExcludedFromCap,
+  alwaysPreparedSpellIds,
+  mergePreparedWithPrivileges,
+  characterHasTrait,
 } from "./characterSpellcasting";
+import { SpellPrivilegeRule } from "../domain/types/traits.types";
 import { AttributeApi, CharacterAttributeApi } from "../domain/types/attribute.types";
 import { SpellcastingLevelSource } from "../domain/types/characterClass.types";
 
@@ -464,6 +471,20 @@ describe("validatePreparedSpellPicks", () => {
     expect(result.error).toMatch(/más de 1/);
   });
 
+  it("does not count excluded privilege spells toward the cap", () => {
+    const result = validatePreparedSpellPicks({
+      spellIds: ["spell-1", "spell-2"],
+      cap: 1,
+      preparedFrom: "known",
+      knownIds: ["spell-1", "spell-2"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1, 2],
+      excludeFromCap: ["spell-2"],
+    });
+    expect(result).toEqual({});
+  });
+
   it("rejects cantrips and duplicates", () => {
     expect(validatePreparedSpellPicks({
       spellIds: ["cantrip-1"],
@@ -633,6 +654,179 @@ describe("validateKnownSpellPicks", () => {
       ownedCantripCount: 0,
     });
     expect(result.error).toMatch(/ranuras/);
+  });
+});
+
+const masteryRules: SpellPrivilegeRule[] = [
+  {
+    choose: 1,
+    source: "known",
+    filter: { level: 1 },
+    alwaysPrepared: false,
+    countsTowardPreparedCap: true,
+    freeCast: { slotLevel: "spellLevel", uses: "unlimited", recharge: null },
+    replace: { hours: 8, sameLevel: true },
+  },
+  {
+    choose: 1,
+    source: "known",
+    filter: { level: 2 },
+    alwaysPrepared: false,
+    countsTowardPreparedCap: true,
+    freeCast: { slotLevel: "spellLevel", uses: "unlimited", recharge: null },
+    replace: { hours: 8, sameLevel: true },
+  },
+];
+
+const signatureRules: SpellPrivilegeRule[] = [
+  {
+    choose: 2,
+    source: "known",
+    filter: { level: 3 },
+    alwaysPrepared: true,
+    countsTowardPreparedCap: false,
+    freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "shortOrLongRest" },
+    replace: null,
+  },
+];
+
+const privilegeSpells = [
+  { id: "spell-1", level: 1, classIds: [wizardId] },
+  { id: "spell-2", level: 2, classIds: [wizardId] },
+  { id: "spell-3a", level: 3, classIds: [wizardId] },
+  { id: "spell-3b", level: 3, classIds: [wizardId] },
+  { id: "other-1", level: 1, classIds: ["cleric-id"] },
+];
+
+describe("validateSpellPrivilegePicks", () => {
+  it("accepts mastery picks from the spellbook at the required levels", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: masteryRules,
+      selections: [["spell-1"], ["spell-2"]],
+      knownIds: ["spell-1", "spell-2"],
+      classId: wizardId,
+      spells: privilegeSpells,
+    });
+    expect(result).toEqual({});
+  });
+
+  it("rejects a pick that is not in the spellbook", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: masteryRules,
+      selections: [["spell-1"], ["spell-2"]],
+      knownIds: ["spell-1"],
+      classId: wizardId,
+      spells: privilegeSpells,
+    });
+    expect(result.error).toMatch(/conocidos/);
+  });
+
+  it("rejects a pick of the wrong level", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: masteryRules,
+      selections: [["spell-2"], ["spell-1"]],
+      knownIds: ["spell-1", "spell-2"],
+      classId: wizardId,
+      spells: privilegeSpells,
+    });
+    expect(result.error).toMatch(/nivel/);
+  });
+
+  it("rejects a spell from another class list", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: masteryRules,
+      selections: [["other-1"], ["spell-2"]],
+      knownIds: ["other-1", "spell-2"],
+      classId: wizardId,
+      spells: privilegeSpells,
+    });
+    expect(result.error).toMatch(/lista de esta clase/);
+  });
+
+  it("rejects when the character lacks the class or trait", () => {
+    expect(validateSpellPrivilegePicks({
+      hasClass: false,
+      hasTrait: true,
+      rules: masteryRules,
+      selections: [["spell-1"], ["spell-2"]],
+      knownIds: ["spell-1", "spell-2"],
+      classId: wizardId,
+      spells: privilegeSpells,
+    }).error).toMatch(/no tiene esa clase/);
+
+    expect(validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: false,
+      rules: masteryRules,
+      selections: [["spell-1"], ["spell-2"]],
+      knownIds: ["spell-1", "spell-2"],
+      classId: wizardId,
+      spells: privilegeSpells,
+    }).error).toMatch(/no tiene ese rasgo/);
+  });
+});
+
+describe("canReplaceSpellPrivileges", () => {
+  it("allows the first bind", () => {
+    expect(canReplaceSpellPrivileges({
+      hasExistingInstance: false,
+      rules: signatureRules,
+    })).toEqual({});
+  });
+
+  it("allows replacing mastery spells", () => {
+    expect(canReplaceSpellPrivileges({
+      hasExistingInstance: true,
+      rules: masteryRules,
+    })).toEqual({});
+  });
+
+  it("blocks replacing signature spells", () => {
+    expect(canReplaceSpellPrivileges({
+      hasExistingInstance: true,
+      rules: signatureRules,
+    }).error).toMatch(/cambiar/);
+  });
+});
+
+describe("privilege prepared helpers", () => {
+  const instances = [
+    { traitId: "mastery", classId: wizardId, selections: [["spell-1"], ["spell-2"]] },
+    { traitId: "signature", classId: wizardId, selections: [["spell-3a", "spell-3b"]] },
+  ];
+  const rulesByTraitId = new Map<string, SpellPrivilegeRule[]>([
+    ["mastery", masteryRules],
+    ["signature", signatureRules],
+  ]);
+
+  it("excludes always-prepared signature spells from the cap", () => {
+    const excluded = privilegeSpellIdsExcludedFromCap(instances, rulesByTraitId, wizardId);
+    expect([...excluded].sort()).toEqual(["spell-3a", "spell-3b"]);
+  });
+
+  it("lists always-prepared spell ids for a class", () => {
+    expect(alwaysPreparedSpellIds(instances, rulesByTraitId, wizardId).sort()).toEqual(
+      ["spell-3a", "spell-3b"]
+    );
+  });
+
+  it("merges player prepared with always-prepared without duplicates", () => {
+    expect(mergePreparedWithPrivileges(["spell-1", "spell-3a"], ["spell-3a", "spell-3b"])).toEqual(
+      ["spell-1", "spell-3a", "spell-3b"]
+    );
+  });
+
+  it("matches owned traits by any known key", () => {
+    expect(characterHasTrait(["spell-mastery"], ["abc", "spell-mastery"])).toBe(true);
+    expect(characterHasTrait(["other"], ["spell-mastery"])).toBe(false);
   });
 });
 

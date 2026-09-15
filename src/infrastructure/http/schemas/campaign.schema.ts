@@ -28,6 +28,13 @@ export const CreateCampaignSchema = z
   })
   .strip();
 
+export const AddCharacterToCampaignBodySchema = z
+  .object({
+    characterId: objectIdSchema("ID de personaje requerido"),
+  })
+  .strip();
+
 export type CampaignIdParams = z.infer<typeof CampaignIdParamsSchema>;
 export type CampaignJoinParams = z.infer<typeof CampaignJoinParamsSchema>;
 export type CreateCampaignBody = z.infer<typeof CreateCampaignSchema>;
+export type AddCharacterToCampaignBody = z.infer<typeof AddCharacterToCampaignBodySchema>;

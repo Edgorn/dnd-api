@@ -44,6 +44,88 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de IDs de habilidades (skills) que otorga el rasgo.
+ *         spellPrivileges:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellPrivilegeRule'
+ *           description: >
+ *             Reglas de privilegio de conjuro que otorga el rasgo (elección del personaje,
+ *             preparados automáticos, lanzamiento sin ranura y sustitución).
+ *     SpellPrivilegeRule:
+ *       type: object
+ *       required:
+ *         - choose
+ *         - source
+ *         - filter
+ *         - alwaysPrepared
+ *         - countsTowardPreparedCap
+ *         - freeCast
+ *         - replace
+ *       properties:
+ *         choose:
+ *           type: integer
+ *           minimum: 1
+ *           description: Número de conjuros que el personaje debe vincular a esta regla.
+ *         source:
+ *           type: string
+ *           enum: [known, classList]
+ *           description: >
+ *             Origen de los conjuros elegibles. `known` exige que estén en los conocidos
+ *             de la clase (p. ej. libro de conjuros); `classList` usa la lista de la clase.
+ *         filter:
+ *           type: object
+ *           required:
+ *             - level
+ *           properties:
+ *             level:
+ *               description: Nivel de conjuro exigido (número o lista de niveles).
+ *               oneOf:
+ *                 - type: integer
+ *                   minimum: 0
+ *                   maximum: 9
+ *                 - type: array
+ *                   items:
+ *                     type: integer
+ *                     minimum: 0
+ *                     maximum: 9
+ *         alwaysPrepared:
+ *           type: boolean
+ *           description: Si es true, los conjuros vinculados se consideran siempre preparados.
+ *         countsTowardPreparedCap:
+ *           type: boolean
+ *           description: Si es false, no cuentan para el tope de conjuros preparables.
+ *         freeCast:
+ *           nullable: true
+ *           type: object
+ *           properties:
+ *             slotLevel:
+ *               type: string
+ *               enum: [spellLevel]
+ *               description: El lanzamiento sin ranura usa el nivel del propio conjuro.
+ *             uses:
+ *               description: Usos sin ranura (`unlimited` o un entero positivo).
+ *               oneOf:
+ *                 - type: string
+ *                   enum: [unlimited]
+ *                 - type: integer
+ *                   minimum: 1
+ *             recharge:
+ *               nullable: true
+ *               type: string
+ *               enum: [shortRest, longRest, shortOrLongRest]
+ *               description: Recarga de los usos sin ranura. Nulo si es a voluntad.
+ *         replace:
+ *           nullable: true
+ *           type: object
+ *           description: Si está presente, se pueden sustituir los conjuros vinculados.
+ *           properties:
+ *             hours:
+ *               type: number
+ *               minimum: 0
+ *               description: Horas de estudio que el cliente debe exigir antes de sustituir.
+ *             sameLevel:
+ *               type: boolean
+ *               description: Si el sustituto debe ser del mismo nivel.
  *     InputCreateTrait:
  *       type: object
  *       required:
@@ -76,6 +158,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de IDs de habilidades (skills) que otorga el rasgo.
+ *         spellPrivileges:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellPrivilegeRule'
+ *           description: Reglas de privilegio de conjuro que otorga el rasgo.
  *     InputUpdateTrait:
  *       type: object
  *       properties:
@@ -105,6 +192,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de IDs de habilidades (skills) que otorga el rasgo.
+ *         spellPrivileges:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellPrivilegeRule'
+ *           description: Reglas de privilegio de conjuro que otorga el rasgo.
  */
 
 /**

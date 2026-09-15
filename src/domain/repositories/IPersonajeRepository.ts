@@ -1,5 +1,4 @@
-import { AddCharacterToCampaignInput } from "../types/campaign.types";
-import { TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAddEquipment, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAddEquipment, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]>
@@ -14,9 +13,11 @@ export default interface IPersonajeRepository {
   getLevelUpData(id: string, classId: string, userId: string): Promise<LevelUpData>
   levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }>
   getByIds(idCharacters: string[]): Promise<PersonajeBasico[]>
-  entrarCampaña(data: AddCharacterToCampaignInput): Promise<PersonajeBasico | null>
+  getCampaignLink(characterId: string): Promise<CharacterCampaignLink | null>
+  assignToCampaign(characterId: string, campaignId: string): Promise<PersonajeBasico | null>
   vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
   learnSpells(data: TypeLearnSpells): Promise<PersonajeApi>
   prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi>
+  bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<PersonajeApi>
   añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null>
 }

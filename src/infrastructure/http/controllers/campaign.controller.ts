@@ -7,7 +7,6 @@ import DenyJoinCampaign from "../../../application/use-cases/campaign/denyJoinCa
 import AddCharacterToCampaign from "../../../application/use-cases/campaign/addCharacterToCampaign.use-case";
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
-import UpdateCampaignLocations from "../../../application/use-cases/campaign/updateCampaignLocations.use-case";
 import { ValidationError } from "../../../domain/errors/AppError";
 
 export class CampaignController {
@@ -18,8 +17,7 @@ export class CampaignController {
     private readonly requestJoin: RequestJoinCampaign,
     private readonly acceptJoin: AcceptJoinCampaign,
     private readonly denyJoin: DenyJoinCampaign,
-    private readonly addCharacter: AddCharacterToCampaign,
-    private readonly updateLocations: UpdateCampaignLocations
+    private readonly addCharacter: AddCharacterToCampaign
   ) { }
 
   getCampaigns = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -134,43 +132,18 @@ export class CampaignController {
 
   addCharacterToCampaign = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      const userId = req.user;
       const { id } = req.params;
       const { characterId } = req.body;
 
-      if (!id) {
-        throw new ValidationError('Se requiere el ID de la campaña');
+      if (!userId) {
+        throw new ValidationError("User ID is required");
       }
 
-      if (!characterId) {
-        throw new ValidationError('Se requiere el ID del personaje');
-      }
-
-      const data = await this.addCharacter.execute({ userId: req.user!, campaignId: id, characterId })
-      res.status(200).json(data);
+      const data = await this.addCharacter.execute({ userId, campaignId: id, characterId });
+      return res.status(200).json(data);
     } catch (e) {
-      next(e);
-    }
-  };
-
-  updateCampaignLocations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
-      const { locations, initialMapId } = req.body;
-      const userId = req.user!;
-
-      if (!Array.isArray(locations) || !initialMapId) {
-        throw new ValidationError("Datos de localizaciones inválidos");
-      }
-
-      const updatedCampaign = await this.updateLocations.execute({
-        campaignId: id,
-        userId,
-        locations,
-        initialMapId
-      });
-
-      return res.status(200).json(updatedCampaign);
-    } catch (e) {
+      console.error("[CampaignController.addCharacterToCampaign] Error:", e);
       next(e);
     }
   };

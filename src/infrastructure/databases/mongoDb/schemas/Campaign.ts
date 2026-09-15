@@ -13,8 +13,6 @@ const campaignSchema: Schema = new Schema<CampaignMongo>({
   initialLevel: Number,
   maxPlayers: Number,
   language: String,
-  locations: [String],
-  initialMapId: String,
   deletedAt: { type: Date, default: null }
 }, { collection: 'campaigns' });
 

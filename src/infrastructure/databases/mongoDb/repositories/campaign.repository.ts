@@ -1,6 +1,6 @@
 import ICampaignRepository from '../../../../domain/repositories/ICampaignRepository';
 import Campaign from '../schemas/Campaign';
-import { CampaignApi, CampaignBasic, CampaignMongo, CreateCampaignInput, CampaignJoinInput, AddCharacterToCampaignInput, UpdateCampaignLocationsInput } from '../../../../domain/types/campaign.types';
+import { CampaignApi, CampaignBasic, CampaignMongo, CreateCampaignInput, CampaignJoinInput } from '../../../../domain/types/campaign.types';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
@@ -61,8 +61,7 @@ export default class CampaignRepository implements ICampaignRepository {
       system: data.system,
       initialLevel: data.initialLevel,
       maxPlayers: data.maxPlayers,
-      language: data.language,
-      locations: []
+      language: data.language
     })
 
     const result = await campaign.save()
@@ -155,32 +154,23 @@ export default class CampaignRepository implements ICampaignRepository {
     };
   }
 
-  async addCharacter(data: AddCharacterToCampaignInput): Promise<{ characterId: string } | null> {
-    const { userId, campaignId, characterId } = data
+  async addCharacter(campaignId: string, characterId: string): Promise<{ characterId: string } | null> {
+    const result = await Campaign.findOneAndUpdate(
+      {
+        _id: campaignId as any,
+        $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }]
+      },
+      { $addToSet: { characters: characterId } },
+      { returnDocument: "after" }
+    );
 
-    const campaign = await Campaign.findById(campaignId);
-
-    if (!campaign) {
-      throw new Error('Campaña no encontrada');
+    if (!result) {
+      return null;
     }
-
-    if (!campaign.players.includes(userId) && campaign.master !== userId) {
-      throw new Error('El usuario no pertenece a la campaña');
-    }
-
-    const character = await this.personajeRepository.entrarCampaña(data)
-
-    if (!character) {
-      throw new Error('Personaje no encontrado');
-    }
-
-    campaign.characters.push(characterId)
-
-    await campaign.save()
 
     return {
       characterId
-    }
+    };
   }
 
   private toStringArray(value: unknown): string[] {
@@ -258,36 +248,7 @@ export default class CampaignRepository implements ICampaignRepository {
       system,
       initialLevel: campaign.initialLevel,
       maxPlayers: campaign.maxPlayers,
-      language: campaign.language,
-      locations: campaign.locations,
-      initialMapId: campaign.initialMapId
+      language: campaign.language
     }
-  }
-
-  async updateLocations(data: UpdateCampaignLocationsInput): Promise<boolean> {
-    const { campaignId, locations, initialMapId, userId } = data;
-
-    const campaign = await Campaign.findById(campaignId);
-
-    if (!campaign) {
-      throw new Error('Campaña no encontrada');
-    }
-
-    if (campaign?.master !== userId) {
-      throw new Error('No tienes permisos para modificar las localizaciones');
-    }
-
-    const result = await Campaign.findByIdAndUpdate(
-      campaignId,
-      {
-        $set: {
-          locations: locations,
-          initialMapId: initialMapId
-        }
-      },
-      { returnDocument: 'after' }
-    );
-
-    return !!result;
   }
 }

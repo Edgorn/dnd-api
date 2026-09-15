@@ -16,8 +16,6 @@ export interface CampaignMongo {
   initialLevel: number,
   maxPlayers: number,
   language: string,
-  locations: string[],
-  initialMapId: string,
   deletedAt?: Date | null
 }
 
@@ -48,9 +46,7 @@ export interface CampaignApi {
   system: SystemBasic,
   initialLevel: number,
   maxPlayers: number,
-  language: string,
-  locations: string[],
-  initialMapId: string
+  language: string
 }
 
 export interface CreateCampaignInput {
@@ -73,11 +69,4 @@ export interface AddCharacterToCampaignInput {
   userId: string,
   campaignId: string,
   characterId: string
-}
-
-export interface UpdateCampaignLocationsInput {
-  campaignId: string;
-  userId: string;
-  locations: string[];
-  initialMapId: string;
 }

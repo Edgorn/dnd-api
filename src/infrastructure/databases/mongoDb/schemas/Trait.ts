@@ -20,6 +20,7 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   bonuses: {
     armor_class: Number
   },
+  spellPrivileges: { type: Schema.Types.Mixed, default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: 'traits' });
 
