@@ -110,11 +110,17 @@ const router = Router();
  *             Origen de los conjuros preparables. `known` (p. ej. mago) exige que estén
  *             en los conjuros conocidos de esa clase; `classList` (p. ej. clérigo) permite
  *             elegir de la lista de conjuros de la clase.
+ *         spellRepository:
+ *           $ref: '#/components/schemas/SpellRepositoryConfig'
+ *           description: >
+ *             Configuración del repositorio de conjuros copiable (p. ej. libro de conjuros).
+ *             Si está presente, el cliente puede mostrar la acción de copiar o aprender
+ *             conjuros fuera de la subida de nivel.
  *         levels:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos y elecciones de conjuros).
+ *           description: Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros y traits).
  *         subclasesData:
  *           type: object
  *           description: Información de las subclases disponibles.
@@ -162,6 +168,53 @@ const router = Router();
  *           description: >
  *             Elecciones de conjuros de ese nivel (lista de IDs o filtro).
  *             El filtro admite valores únicos o arrays (por ejemplo level: [1, 2, 3, 4]).
+ *         traits:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: >
+ *             IDs de MongoDB de los rasgos otorgados en este nivel de clase.
+ *             Si se omite en una actualización, se conservan los traits existentes de ese nivel.
+ *     SpellCopyCost:
+ *       type: object
+ *       required:
+ *         - hoursPerSpellLevel
+ *         - costPerSpellLevel
+ *       properties:
+ *         hoursPerSpellLevel:
+ *           type: number
+ *           minimum: 0
+ *           description: Horas de trabajo por cada nivel del conjuro.
+ *         costPerSpellLevel:
+ *           $ref: '#/components/schemas/EquipmentCost'
+ *           description: Coste en monedas por cada nivel del conjuro (cantidad y moneda).
+ *     SpellRepositoryConfig:
+ *       type: object
+ *       required:
+ *         - name
+ *         - includesCantrips
+ *         - copy
+ *         - duplicate
+ *         - recoverPreparedOnLoss
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre del repositorio (p. ej. Libro de conjuros).
+ *         equipmentId:
+ *           type: string
+ *           description: ObjectId del ítem de catálogo que representa el objeto físico (opcional).
+ *         includesCantrips:
+ *           type: boolean
+ *           description: Indica si los trucos se guardan en el repositorio. En el mago es false.
+ *         copy:
+ *           $ref: '#/components/schemas/SpellCopyCost'
+ *           description: Coste de copiar un conjuro hallado (pergamino u otro libro).
+ *         duplicate:
+ *           $ref: '#/components/schemas/SpellCopyCost'
+ *           description: Coste de copiar un conjuro desde el propio repositorio (copia de seguridad).
+ *         recoverPreparedOnLoss:
+ *           type: boolean
+ *           description: Si se pierde el repositorio, se pueden transcribir los conjuros preparados actuales.
  *     InputCreateCharacterClass:
  *       type: object
  *       required:
@@ -227,11 +280,16 @@ const router = Router();
  *           type: string
  *           enum: [known, classList]
  *           description: Origen de los conjuros preparables (`known` o `classList`).
+ *         spellRepository:
+ *           allOf:
+ *             - $ref: '#/components/schemas/SpellRepositoryConfig'
+ *           nullable: true
+ *           description: Configuración del repositorio de conjuros copiable. Opcional al crear.
  *         levels:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles con tabla de ranuras y elecciones de conjuros (level, spellcasting, spell_choices).
+ *           description: Niveles con tabla de ranuras, elecciones de conjuros y traits (level, spellcasting, spell_choices, traits).
  *     InputUpdateCharacterClass:
  *       type: object
  *       properties:
@@ -294,11 +352,18 @@ const router = Router();
  *           type: string
  *           enum: [known, classList]
  *           description: Origen de los conjuros preparables (`known` o `classList`).
+ *         spellRepository:
+ *           allOf:
+ *             - $ref: '#/components/schemas/SpellRepositoryConfig'
+ *           nullable: true
+ *           description: Configuración del repositorio de conjuros. Enviar null para eliminarla.
  *         levels:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles con tabla de ranuras y elecciones de conjuros; se fusionan por level sin borrar traits/subclases.
+ *           description: >
+ *             Niveles con tabla de ranuras, elecciones de conjuros y traits;
+ *             se fusionan por level. Los traits de un nivel solo se sustituyen si el campo viene definido.
  */
 
 /**

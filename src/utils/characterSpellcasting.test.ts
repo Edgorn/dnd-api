@@ -14,6 +14,7 @@ import {
   resolveClassSpellSlotsForLevel,
   resolveSpellSlotsTableForLevel,
   spellsLearnedAtLevel,
+  validateKnownSpellPicks,
   validateLevelUpSpellPicks,
   validatePreparedSpellPicks,
 } from "./characterSpellcasting";
@@ -108,6 +109,34 @@ describe("buildSpellcastingLevel", () => {
 
     expect(result.spellsPrepared).toBeUndefined();
     expect(result.preparedFrom).toBeUndefined();
+    expect(result.spellRepository).toBeUndefined();
+  });
+
+  it("passes through spellRepository from the class source", () => {
+    const spellRepository = {
+      name: "Libro de conjuros",
+      includesCantrips: false,
+      copy: {
+        hoursPerSpellLevel: 2,
+        costPerSpellLevel: { quantity: 50, unit: "507f1f77bcf86cd799439011" }
+      },
+      duplicate: {
+        hoursPerSpellLevel: 1,
+        costPerSpellLevel: { quantity: 10, unit: "507f1f77bcf86cd799439011" }
+      },
+      recoverPreparedOnLoss: true
+    };
+    const source: SpellcastingLevelSource = {
+      class: "wizard-id",
+      abilityKey: "int",
+      classLevel: 1,
+      slots: { cantrips: 3, slots: { "1": 2 } },
+      spellRepository
+    };
+
+    const result = buildSpellcastingLevel(source, intAbility, characterAttributes, 2);
+
+    expect(result.spellRepository).toEqual(spellRepository);
   });
 
   it("exposes the default formula constants used as fallback", () => {
@@ -492,6 +521,116 @@ describe("validatePreparedSpellPicks", () => {
       classId: wizardId,
       spells: preparedSpells,
       castableLevels: [1],
+    });
+    expect(result.error).toMatch(/ranuras/);
+  });
+});
+
+describe("validateKnownSpellPicks", () => {
+  it("accepts new class-list spells within cantrip cap and slot levels", () => {
+    const result = validateKnownSpellPicks({
+      spellIds: ["spell-1", "cantrip-1"],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1, 2],
+      cantripCap: 3,
+      ownedCantripCount: 0,
+    });
+    expect(result).toEqual({});
+  });
+
+  it("rejects an empty spell list", () => {
+    const result = validateKnownSpellPicks({
+      spellIds: [],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      cantripCap: 3,
+      ownedCantripCount: 0,
+    });
+    expect(result.error).toMatch(/al menos un conjuro/);
+  });
+
+  it("rejects duplicates in the request and already known spells", () => {
+    expect(validateKnownSpellPicks({
+      spellIds: ["spell-1", "spell-1"],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      cantripCap: 3,
+      ownedCantripCount: 0,
+    }).error).toMatch(/duplicado/);
+
+    expect(validateKnownSpellPicks({
+      spellIds: ["spell-1"],
+      knownIds: ["spell-1"],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      cantripCap: 3,
+      ownedCantripCount: 0,
+    }).error).toMatch(/ya es conocido/);
+  });
+
+  it("rejects missing spells and spells from another class", () => {
+    expect(validateKnownSpellPicks({
+      spellIds: ["missing-1"],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      cantripCap: 3,
+      ownedCantripCount: 0,
+    }).error).toMatch(/no existe/);
+
+    expect(validateKnownSpellPicks({
+      spellIds: ["other-1"],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      cantripCap: 3,
+      ownedCantripCount: 0,
+    }).error).toMatch(/lista de esta clase/);
+  });
+
+  it("rejects cantrips when the class has no cantrip cap", () => {
+    const result = validateKnownSpellPicks({
+      spellIds: ["cantrip-1"],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      ownedCantripCount: 0,
+    });
+    expect(result.error).toMatch(/no conoce trucos/);
+  });
+
+  it("rejects more cantrips than the current-level cap", () => {
+    const result = validateKnownSpellPicks({
+      spellIds: ["cantrip-1"],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      cantripCap: 2,
+      ownedCantripCount: 2,
+    });
+    expect(result.error).toMatch(/más de 2 trucos/);
+  });
+
+  it("rejects leveled spells without matching slots", () => {
+    const result = validateKnownSpellPicks({
+      spellIds: ["spell-2"],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      cantripCap: 3,
+      ownedCantripCount: 0,
     });
     expect(result.error).toMatch(/ranuras/);
   });

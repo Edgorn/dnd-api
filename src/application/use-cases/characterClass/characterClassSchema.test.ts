@@ -1,5 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { CreateCharacterClassSchema } from "../../../infrastructure/http/schemas/characterClass.schema";
+import { CreateCharacterClassSchema, UpdateCharacterClassSchema } from "../../../infrastructure/http/schemas/characterClass.schema";
+
+const coinId = "507f1f77bcf86cd799439011";
+const traitId = "507f1f77bcf86cd799439012";
+
+const wizardSpellRepository = {
+  name: "Libro de conjuros",
+  equipmentId: coinId,
+  includesCantrips: false,
+  copy: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: 50, unit: coinId } },
+  duplicate: { hoursPerSpellLevel: 1, costPerSpellLevel: { quantity: 10, unit: coinId } },
+  recoverPreparedOnLoss: true
+};
 
 describe("CreateCharacterClassSchema levels.spell_choices", () => {
   it("accepts spell_choices with a multi-level filter", () => {
@@ -91,5 +103,55 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("accepts a spell repository config and level traits", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      spellRepository: wizardSpellRepository,
+      levels: [
+        {
+          level: 1,
+          spellcasting: { cantrips: 3, spellsLearned: 6, slots: { "1": 2 } },
+          traits: [traitId]
+        }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a spell repository with a negative copy cost", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      spellRepository: {
+        ...wizardSpellRepository,
+        copy: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: -1, unit: coinId } }
+      }
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects level traits that are not ObjectIds", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      levels: [{ level: 1, traits: ["tu-libro-de-conjuros"] }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateCharacterClassSchema spellRepository", () => {
+  it("accepts null to clear the spell repository", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      spellRepository: null
+    });
+
+    expect(result.success).toBe(true);
   });
 });

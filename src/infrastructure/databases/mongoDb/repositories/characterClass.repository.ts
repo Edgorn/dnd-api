@@ -97,6 +97,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellAttackBonusFormula: data.spellAttackBonusFormula,
       spellsPreparedFormula: data.spellsPreparedFormula,
       preparedFrom: data.preparedFrom,
+      spellRepository: data.spellRepository ?? undefined,
       levels: this.mapLevelsForCreate(data.levels)
     });
 
@@ -117,6 +118,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     if (updateFields.skill_choices === null) {
       (updateFields as Record<string, unknown>).skill_choices = undefined;
+    }
+
+    if (updateFields.spellRepository === null) {
+      (updateFields as Record<string, unknown>).spellRepository = null;
     }
 
     const setFields: Record<string, unknown> = { ...updateFields };
@@ -303,7 +308,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellSaveDcFormula: characterClass.spellSaveDcFormula,
       spellAttackBonusFormula: characterClass.spellAttackBonusFormula,
       spellsPreparedFormula: characterClass.spellsPreparedFormula,
-      preparedFrom: characterClass.preparedFrom
+      preparedFrom: characterClass.preparedFrom,
+      ...(characterClass.spellRepository ? { spellRepository: characterClass.spellRepository } : {})
     };
   }
 
@@ -397,6 +403,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellAttackBonusFormula: characterClass.spellAttackBonusFormula,
       spellsPreparedFormula: characterClass.spellsPreparedFormula,
       preparedFrom: characterClass.preparedFrom,
+      ...(characterClass.spellRepository ? { spellRepository: characterClass.spellRepository } : {}),
       levels: this.toSlimLevels(characterClass.levels ?? []),
       proficiencies,
       proficiencies_choices,
@@ -511,7 +518,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     return levels.map(level => ({
       level: level.level,
       proficiencies: [],
-      traits: [],
+      traits: level.traits ?? [],
       traits_data: {},
       spellcasting: level.spellcasting,
       ...(level.spell_choices !== undefined ? { spell_choices: level.spell_choices } : {})
@@ -534,13 +541,14 @@ export default class CharacterClassRepository implements ICharacterClassReposito
         byLevel.set(row.level, {
           ...current,
           spellcasting: row.spellcasting,
-          ...(row.spell_choices !== undefined ? { spell_choices: row.spell_choices } : {})
+          ...(row.spell_choices !== undefined ? { spell_choices: row.spell_choices } : {}),
+          ...(row.traits !== undefined ? { traits: row.traits } : {})
         });
       } else {
         byLevel.set(row.level, {
           level: row.level,
           proficiencies: [],
-          traits: [],
+          traits: row.traits ?? [],
           traits_data: {},
           spellcasting: row.spellcasting,
           ...(row.spell_choices !== undefined ? { spell_choices: row.spell_choices } : {})
@@ -562,6 +570,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
         if (level.spell_choices !== undefined) {
           slim.spell_choices = level.spell_choices.map(choice => this.toSlimSpellChoice(choice));
+        }
+
+        if (level.traits?.length) {
+          slim.traits = [...level.traits];
         }
 
         return slim;

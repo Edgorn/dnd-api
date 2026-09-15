@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
+import { LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from '../../../../domain/types/personajes.types';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -36,6 +36,7 @@ import {
   hasCantripSpellChoice,
   remainingCantripPicks,
   resolveClassSpellSlotsForLevel,
+  validateKnownSpellPicks,
   validateLevelUpSpellPicks,
   validatePreparedSpellPicks,
 } from '../../../../utils/characterSpellcasting';
@@ -697,41 +698,71 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  async aprenderConjuros(data: { id: string, spells: string[], type: string }): Promise<PersonajeApi | null> {
-    const { id, spells, type } = data
-    const personaje = await Personaje.findById(id);
+  async learnSpells(data: TypeLearnSpells): Promise<PersonajeApi> {
+    const { id, classId, spells, userId } = data
+    const personaje = await Personaje.findById(id)
 
     if (!personaje) {
-      return null
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
     }
 
-    if (type !== "race") {
-      await this.assertCanLearnClassCantrips(personaje, type, spells);
+    await this.assertCanAccessCharacter(personaje, userId)
+
+    const classEntry = personaje.classes?.find(clas => clas.class === classId)
+    if (!classEntry) {
+      throw new ValidationError("El personaje no tiene esa clase")
     }
 
-    if (personaje.spells[type]) {
-      personaje.spells[type].push(...spells)
-    } else {
-      personaje.spells[type] = [...spells]
+    const sources = await this.claseRepository.getSpellcastingSources([
+      { id: classId, level: classEntry.level }
+    ])
+    const source = sources.find(item => item?.class === classId) ?? sources[0] ?? null
+    if (!source) {
+      throw new ValidationError("Esta clase no puede aprender conjuros a este nivel")
+    }
+
+    const knownIds = this.getClassSpellIds(personaje, classId)
+    const [loadedSpells, existingSpells] = await Promise.all([
+      this.spellRepository.getSpellsByIndexes(spells),
+      knownIds.length ? this.spellRepository.getSpellsByIndexes(knownIds) : Promise.resolve([]),
+    ])
+
+    const validation = validateKnownSpellPicks({
+      spellIds: spells,
+      knownIds,
+      classId,
+      spells: loadedSpells
+        .filter((spell): spell is SpellApi & { id: string } => Boolean(spell.id))
+        .map(spell => ({
+          id: spell.id,
+          level: spell.level,
+          classIds: (spell.classes ?? []).map(clas => clas.id)
+        })),
+      castableLevels: castableSpellLevels(source.slots?.slots),
+      cantripCap: source.slots?.cantrips,
+      ownedCantripCount: existingSpells.filter(spell => spell.level === 0).length,
+    })
+
+    if (validation.error) {
+      throw new ValidationError(validation.error)
+    }
+
+    const spellsUpdate = this.mergeClassSpellIds(personaje, classId, spells)
+    if (!spellsUpdate) {
+      throw new ValidationError("Debe indicar al menos un conjuro")
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          spells: personaje.spells
-        }
-      },
-      { returnDocument: 'after' }
-    );
+      { $set: { spells: spellsUpdate } },
+      { returnDocument: "after" }
+    )
 
     if (!resultado) {
-      return null
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
     }
 
-    const personajeFormateado = await this.formatCharacter(resultado)
-
-    return personajeFormateado
+    return this.formatCharacter(resultado)
   }
 
   async prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi> {

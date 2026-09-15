@@ -279,6 +279,75 @@ export function validatePreparedSpellPicks(params: {
   return {};
 }
 
+export interface KnownSpellPickInput {
+  id: string;
+  level: number;
+  classIds: string[];
+}
+
+export function validateKnownSpellPicks(params: {
+  spellIds: string[];
+  knownIds: string[];
+  classId: string;
+  spells: KnownSpellPickInput[];
+  castableLevels: number[];
+  cantripCap?: number;
+  ownedCantripCount: number;
+}): { error?: string } {
+  const {
+    spellIds,
+    knownIds,
+    classId,
+    spells,
+    castableLevels,
+    cantripCap,
+    ownedCantripCount,
+  } = params;
+
+  if (spellIds.length === 0) {
+    return { error: "Debe indicar al menos un conjuro" };
+  }
+
+  const seen = new Set<string>();
+  const known = new Set(knownIds);
+  const castable = new Set(castableLevels);
+  const byId = new Map(spells.map(spell => [spell.id, spell]));
+  let newCantrips = 0;
+
+  for (const id of spellIds) {
+    if (seen.has(id)) {
+      return { error: `El conjuro ${id} está duplicado` };
+    }
+    seen.add(id);
+
+    if (known.has(id)) {
+      return { error: `El conjuro ${id} ya es conocido` };
+    }
+
+    const spell = byId.get(id);
+    if (!spell) {
+      return { error: `El conjuro ${id} no existe o no está disponible` };
+    }
+    if (!spell.classIds.includes(classId)) {
+      return { error: `El conjuro ${id} no pertenece a la lista de esta clase` };
+    }
+    if (spell.level === 0) {
+      if (cantripCap === undefined || cantripCap <= 0) {
+        return { error: "Esta clase no conoce trucos" };
+      }
+      newCantrips += 1;
+    } else if (!castable.has(spell.level)) {
+      return { error: `El conjuro ${id} es de un nivel para el que esta clase no tiene ranuras` };
+    }
+  }
+
+  if (newCantrips > remainingCantripPicks(cantripCap, ownedCantripCount)) {
+    return { error: `No se pueden conocer más de ${cantripCap} trucos de esta clase` };
+  }
+
+  return {};
+}
+
 /**
  * Builds a hydrated SpellcastingLevel for a character from class source data.
  */
@@ -319,5 +388,6 @@ export function buildSpellcastingLevel(
     spellSaveDc: evaluateFormula(saveFormula, characterAttributes, variables, formulaOptions),
     spellAttackBonus: evaluateFormula(attackFormula, characterAttributes, variables, formulaOptions),
     ...(spellsPrepared !== undefined ? { spellsPrepared, preparedFrom: source.preparedFrom } : {}),
+    ...(source.spellRepository ? { spellRepository: source.spellRepository } : {}),
   };
 }

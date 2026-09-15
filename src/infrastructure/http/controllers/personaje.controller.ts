@@ -12,7 +12,7 @@ import UpdateMoney from "../../../application/use-cases/personaje/updateMoney.us
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import VincularPacto from "../../../application/use-cases/personaje/vincularPacto.use-case";
-import AprenderConjuros from "../../../application/use-cases/personaje/aprenderConjuros.use-case";
+import LearnSpells from "../../../application/use-cases/personaje/learnSpells.use-case";
 import AñadirForma from "../../../application/use-cases/personaje/añadirForma.use-case";
 import ToggleFavoriteEquipment from "../../../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import PrepareSpells from "../../../application/use-cases/personaje/prepareSpells.use-case";
@@ -32,7 +32,7 @@ export class PersonajeController {
     private readonly updateMoneyUseCase: UpdateMoney,
     private readonly generateCharacterPdf: GenerateCharacterPdf,
     private readonly vincularPacto: VincularPacto,
-    private readonly aprenderConjuros: AprenderConjuros,
+    private readonly learnSpellsUseCase: LearnSpells,
     private readonly añadirForma: AñadirForma,
     private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment,
     private readonly prepareSpellsUseCase: PrepareSpells
@@ -233,11 +233,24 @@ export class PersonajeController {
     }
   };
 
-  aprenderListaConjuros = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  learnSpells = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.aprenderConjuros.execute(req.body)
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const { class: classId, spells } = req.body;
+      const data = await this.learnSpellsUseCase.execute({
+        id,
+        classId,
+        spells,
+        userId: req.user!,
+      });
       res.status(200).json(data);
     } catch (e) {
+      console.error("[PersonajeController.learnSpells] Error:", e);
       next(e);
     }
   };

@@ -88,6 +88,13 @@ export interface TypePrepareSpells {
   userId: string;
 }
 
+export interface TypeLearnSpells {
+  id: string;
+  classId: string;
+  spells: string[];
+  userId: string;
+}
+
 export interface TypeLevelUp {
   id: string;
   classId: string;

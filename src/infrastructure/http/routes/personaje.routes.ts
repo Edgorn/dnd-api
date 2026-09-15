@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -152,6 +152,11 @@ const router = Router();
  *           type: string
  *           enum: [known, classList]
  *           description: Origen de los conjuros preparables.
+ *         spellRepository:
+ *           $ref: '#/components/schemas/SpellRepositoryConfig'
+ *           description: >
+ *             Repositorio de conjuros copiable de esta clase (p. ej. libro de conjuros).
+ *             Si está presente, el personaje puede copiar o aprender conjuros fuera de la subida de nivel.
  *
  *     Invocacion:
  *       type: object
@@ -1400,8 +1405,68 @@ router.post('/character/:id/level-up', authMiddleware, validateParams(CharacterI
  *         description: Error del servidor.
  */
 router.put('/character/:id/prepared-spells', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(PrepareSpellsSchema), personajeController.prepareSpells);
+
+/**
+ * @openapi
+ * /character/{id}/known-spells:
+ *   post:
+ *     summary: Aprender conjuros de una clase
+ *     description: |
+ *       Añade conjuros a la lista de conocidos de la clase indicada (no sustituye los ya conocidos).
+ *       Cada conjuro debe existir, pertenecer a la lista de la clase y no estar ya conocido.
+ *       Los trucos no pueden superar el tope `cantrips` del nivel actual. Los conjuros de nivel 1+
+ *       solo se admiten si la clase tiene ranuras de ese nivel. No aplica el cupo `spellsLearned`
+ *       (eso ocurre al subir de nivel) ni descuenta oro de `spellRepository`.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - class
+ *               - spells
+ *             properties:
+ *               class:
+ *                 type: string
+ *                 description: ID de MongoDB de la clase cuyos conjuros se aprenden.
+ *               spells:
+ *                 type: array
+ *                 minItems: 1
+ *                 description: IDs de los conjuros a aprender.
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado con los conjuros conocidos añadidos.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Datos inválidos, duplicados, tope de trucos o el conjuro no pertenece a la clase.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/known-spells', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(LearnSpellsSchema), personajeController.learnSpells);
 router.post('/character/vincularPacto', authMiddleware, personajeController.vincularArmaPacto);
-router.post('/character/learnSpells', authMiddleware, personajeController.aprenderListaConjuros);
 router.post('/character/:id/addForm', authMiddleware, personajeController.addForm);
 
 export default router;

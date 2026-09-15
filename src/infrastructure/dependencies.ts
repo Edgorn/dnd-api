@@ -53,7 +53,7 @@ import UpdateMoney from "../application/use-cases/personaje/updateMoney.use-case
 import GenerateCharacterPdf from "../application/use-cases/personaje/generateCharacterPdf.use-case";
 import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
 import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
-import AprenderConjuros from "../application/use-cases/personaje/aprenderConjuros.use-case";
+import LearnSpells from "../application/use-cases/personaje/learnSpells.use-case";
 import PrepareSpells from "../application/use-cases/personaje/prepareSpells.use-case";
 import UpdateCampaignLocations from "../application/use-cases/campaign/updateCampaignLocations.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
@@ -356,7 +356,7 @@ const generateCharacterPdf = new GenerateCharacterPdf(
 );
 const vincularPacto = new VincularPacto(personajeService);
 const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
-const aprenderConjuros = new AprenderConjuros(personajeService);
+const learnSpells = new LearnSpells(personajeService);
 const prepareSpells = new PrepareSpells(personajeService);
 const añadirForma = new AñadirForma(personajeService);
 const createSystem = new CreateSystem(systemService, getSystemApi);
@@ -470,7 +470,7 @@ export const personajeController = new PersonajeController(
   updateMoney,
   generateCharacterPdf,
   vincularPacto,
-  aprenderConjuros,
+  learnSpells,
   añadirForma,
   toggleFavoriteEquipment,
   prepareSpells

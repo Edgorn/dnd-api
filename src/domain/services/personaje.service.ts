@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
+import { LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -52,8 +52,8 @@ export default class PersonajeService {
     return this.personajeRepository.vincularPacto(data);
   }
 
-  aprenderConjuros(data: { id: string, spells: string[], type: string }): Promise<PersonajeApi | null> {
-    return this.personajeRepository.aprenderConjuros(data);
+  learnSpells(data: TypeLearnSpells): Promise<PersonajeApi> {
+    return this.personajeRepository.learnSpells(data);
   }
 
   prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi> {

@@ -2,7 +2,7 @@ import { ChoiceApi, ChoiceMongo } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceSpell, SpellApi } from "./spell.types"
 import { DoteApi } from "./dotes.types"
-import { EquipmentInstanceApi, CharacterEquipmentMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from "./equipment.types"
+import { EquipmentInstanceApi, CharacterEquipmentMongo, EquipmentChoiceMongo, EquipmentCost, ResolvedEquipmentChoiceApi } from "./equipment.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi } from "./language.types"
 import { InvocacionApi } from "./invocaciones.types"
@@ -11,6 +11,26 @@ import { AttributeApi } from "./attribute.types"
 import { ObjectId } from "mongoose"
 
 export type SpellPreparedFrom = "known" | "classList";
+
+/** Cost to copy or duplicate one spell level into a class spell repository. */
+export interface SpellCopyCost {
+  hoursPerSpellLevel: number;
+  costPerSpellLevel: EquipmentCost;
+}
+
+/**
+ * Optional class config for a copyable spell repository (e.g. wizard spellbook).
+ * Presence of this object is the frontend indicator that the class can copy spells
+ * outside of level-up.
+ */
+export interface SpellRepositoryConfig {
+  name: string;
+  equipmentId?: string;
+  includesCantrips: boolean;
+  copy: SpellCopyCost;
+  duplicate: SpellCopyCost;
+  recoverPreparedOnLoss: boolean;
+}
 
 /** Spell slots table for a class level (create/update input and slim API). */
 export interface ClassSpellSlots {
@@ -29,6 +49,8 @@ export interface CharacterClassLevelInput {
   level: number;
   spellcasting?: ClassSpellSlots;
   spell_choices?: ChoiceMongo[];
+  /** Trait ObjectIds granted at this class level. Omitted on update leaves existing traits. */
+  traits?: string[];
 }
 
 export interface InputCreateCharacterClass {
@@ -47,6 +69,7 @@ export interface InputCreateCharacterClass {
   spellAttackBonusFormula?: string;
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
+  spellRepository?: SpellRepositoryConfig | null;
   levels?: CharacterClassLevelInput[];
 }
 
@@ -68,6 +91,7 @@ export interface InputUpdateCharacterClass {
   spellAttackBonusFormula?: string;
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
+  spellRepository?: SpellRepositoryConfig | null;
   levels?: CharacterClassLevelInput[];
 }
 
@@ -91,6 +115,7 @@ export interface CharacterClassMongo {
   spellAttackBonusFormula?: string;
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
+  spellRepository?: SpellRepositoryConfig | null;
 }
 
 export interface CharacterClassLevelMongo {
@@ -131,6 +156,7 @@ export interface SpellcastingLevelSource {
   spellAttackBonusFormula?: string;
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
+  spellRepository?: SpellRepositoryConfig;
 }
 
 /** Spellcasting entry on PersonajeApi after hydration and formula evaluation. */
@@ -142,6 +168,7 @@ export interface SpellcastingLevel {
   spellAttackBonus?: number;
   spellsPrepared?: number;
   preparedFrom?: SpellPreparedFrom;
+  spellRepository?: SpellRepositoryConfig;
 }
 
 
@@ -199,6 +226,7 @@ export interface CharacterClassApi {
   spellAttackBonusFormula?: string;
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
+  spellRepository?: SpellRepositoryConfig;
   levels?: CharacterClassLevelInput[];
   subclasesData?: SubclassesOptionsApi;
   deletedAt?: Date | null;

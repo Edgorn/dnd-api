@@ -1,6 +1,8 @@
 import { z } from "zod";
-import { CharacterEquipmentSchema, EquipmentChoiceMongoSchema } from "./equipment.schema";
+import { CharacterEquipmentSchema, CostSchema, EquipmentChoiceMongoSchema } from "./equipment.schema";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
+
+const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
@@ -26,7 +28,24 @@ const ClassSpellSlotsSchema = z.object({
 const CharacterClassLevelInputSchema = z.object({
   level: z.number().int().min(1, "El nivel debe ser al menos 1"),
   spellcasting: ClassSpellSlotsSchema,
-  spell_choices: z.array(ChoiceMongoSchema).optional()
+  spell_choices: z.array(ChoiceMongoSchema).optional(),
+  traits: z.array(
+    z.string().regex(objectIdRegex, "Cada trait debe ser un ObjectId válido de MongoDB")
+  ).optional()
+});
+
+const SpellCopyCostSchema = z.object({
+  hoursPerSpellLevel: z.number().min(0, "Las horas por nivel de conjuro no pueden ser negativas"),
+  costPerSpellLevel: CostSchema
+});
+
+const SpellRepositoryConfigSchema = z.object({
+  name: z.string().min(1, "El nombre del repositorio de conjuros no puede estar vacío"),
+  equipmentId: z.string().regex(objectIdRegex, "equipmentId debe ser un ObjectId válido de MongoDB").optional(),
+  includesCantrips: z.boolean(),
+  copy: SpellCopyCostSchema,
+  duplicate: SpellCopyCostSchema,
+  recoverPreparedOnLoss: z.boolean()
 });
 
 const PreparedFromSchema = z.enum(["known", "classList"]);
@@ -77,6 +96,7 @@ const characterClassFields = {
   spellAttackBonusFormula: classFormulaSchema("spellAttackBonusFormula"),
   spellsPreparedFormula: classFormulaSchema("spellsPreparedFormula"),
   preparedFrom: PreparedFromSchema.optional(),
+  spellRepository: SpellRepositoryConfigSchema.nullable().optional(),
   levels: z.array(CharacterClassLevelInputSchema).optional()
 };
 
