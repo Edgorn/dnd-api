@@ -426,7 +426,7 @@ router.post('/campaign/:id/request-join/:userId/accept', authMiddleware, validat
  *       500:
  *         description: Error del servidor.
  */
-router.post(
+router.post( 
   '/campaign/:id/add-character',
   authMiddleware,
   validateParams(CampaignIdParamsSchema),
