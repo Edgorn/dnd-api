@@ -51,11 +51,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-
-// Conexión a la Base de Datos
-connectDB();
-
 // Rutas
 app.use(userRoutes)
 app.use(backgroundRoutes);
@@ -88,7 +83,8 @@ app.get('/api-docs.json', (req, res) => {
   res.send(swaggerSpec);
 });
 
-export const startServer = (port: number | string): void => {
+export const startServer = async (port: number | string): Promise<void> => {
+  await connectDB();
   app.listen(port, () => {
     console.log(`🛡️  Servidor de D&D corriendo en http://localhost:${port}`);
   });
