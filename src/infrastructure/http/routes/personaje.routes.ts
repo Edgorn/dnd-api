@@ -1229,7 +1229,9 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *     summary: Obtener datos para subir de nivel
  *     description: |
  *       Devuelve la información necesaria para subir de nivel en una clase concreta del personaje
- *       (dado de golpe, bono de competencia y elecciones de conjuros).
+ *       (dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel y elecciones de conjuros).
+ *       `traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen
+ *       elecciones (`traits_options`).
  *       `spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`
  *       de la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos
  *       sintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con
@@ -1272,6 +1274,14 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                 prof_bonus:
  *                   type: number
  *                   description: Bono de competencia correspondiente al nivel total tras la subida.
+ *                 traits:
+ *                   type: array
+ *                   description: Rasgos automáticos que otorga el nuevo nivel de clase (incluye subclase).
+ *                   items:
+ *                     $ref: '#/components/schemas/Trait'
+ *                 traits_data:
+ *                   type: object
+ *                   description: Datos dinámicos de rasgos del nuevo nivel (usos, valores numéricos, etc.).
  *                 spell_choices:
  *                   type: array
  *                   description: Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips, conjuros conocidos desde spellsLearned y choices persistidas).
@@ -1303,7 +1313,8 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       atributos del personaje. Reinicia la XP a 0.
  *       Si `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir
  *       `spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se
- *       guardan en `spells[classId]`. No aplica rasgos, ASI ni dotes.
+ *       guardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y
+ *       `traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`), ASI ni dotes.
  *     tags:
  *       - Personajes
  *     security:

@@ -21,7 +21,8 @@ import { EstadoApi } from '../../../../domain/types/estados.types';
 import { CharacterEquipmentApi } from '../../../../domain/types/equipment.types';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
-import { TraitApi, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
+import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
+import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
 import { CharacterAttributeApi, AttributeApi } from '../../../../domain/types/attribute.types';
 import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
@@ -522,7 +523,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const nextLevel = level + 1;
     const totalLevels = personaje.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
-    const { hit_die, spell_choices } = await this.resolveLevelUpSpellChoices(
+    const { hit_die, spell_choices, traits, traits_data } = await this.resolveLevelUpClassData(
       personaje,
       classId,
       nextLevel
@@ -535,6 +536,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
         ?? DEFAULT_PROFICIENCY_PROGRESSION[totalLevels]
         ?? 0,
       spell_choices,
+      traits,
+      traits_data,
     };
   }
 
@@ -577,7 +580,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const nextLevel = (characterClass.level ?? 0) + 1;
     const knownSpellIds = this.getClassSpellIds(personaje, classId);
-    const { spell_choices } = await this.resolveLevelUpSpellChoices(personaje, classId, nextLevel);
+    const { spell_choices, traits: levelTraits, traits_data: levelTraitsData } =
+      await this.resolveLevelUpClassData(personaje, classId, nextLevel);
     const pickResult = validateLevelUpSpellPicks(spell_choices, spells, knownSpellIds);
     if ("error" in pickResult) {
       throw new ValidationError(pickResult.error);
@@ -609,6 +613,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ?? 0;
 
     const spellsUpdate = this.mergeClassSpellIds(personaje, classId, pickResult.spellIds);
+    const { traits: nextTraits, traits_data: nextTraitsData } = mergeLevelUpTraits(
+      personaje.traits ?? [],
+      personaje.traits_data,
+      levelTraits,
+      levelTraitsData
+    );
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
@@ -616,6 +626,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
         $set: {
           XP: 0,
           prof_bonus: Math.max(newProfBonus, personaje.prof_bonus ?? 0),
+          traits: nextTraits,
+          traits_data: nextTraitsData,
           ...(spellsUpdate ? { spells: spellsUpdate } : {}),
         },
         $inc: {
@@ -1028,11 +1040,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return current;
   }
 
-  private async resolveLevelUpSpellChoices(
+  private async resolveLevelUpClassData(
     personaje: PersonajeMongo,
     classId: string,
     nextLevel: number
-  ): Promise<{ hit_die: number; spell_choices?: ChoiceApi<SpellApi>[] }> {
+  ): Promise<{
+    hit_die: number;
+    spell_choices?: ChoiceApi<SpellApi>[];
+    traits: TraitApi[];
+    traits_data: TraitDataMongo;
+  }> {
     const dataLevel = await this.claseRepository.dataLevelUp?.(
       classId,
       nextLevel,
@@ -1062,6 +1079,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return {
       hit_die: dataLevel?.hit_die ?? 8,
       spell_choices,
+      traits: dataLevel?.traits ?? [],
+      traits_data: dataLevel?.traits_data ?? {},
     };
   }
 

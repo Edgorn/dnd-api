@@ -19,6 +19,8 @@ describe("GetLevelUpData", () => {
       class: "class1",
       hit_die: 8,
       prof_bonus: 2,
+      traits: [],
+      traits_data: {},
       spell_choices: [{ choose: 1, options: [], query_type: "filter", query_filter: { level: 0 } }],
     };
     personajeServiceMock.getLevelUpData.mockResolvedValue(expected);

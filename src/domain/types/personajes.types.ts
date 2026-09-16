@@ -348,8 +348,8 @@ export interface LevelUpData {
   class: string;
   hit_die: number;
   prof_bonus: number;
-  // traits?: TraitApi[];
-  // traits_data?: TraitDataMongo;
+  traits?: TraitApi[];
+  traits_data?: TraitDataMongo;
   // traits_options?: { name: string; options: TraitApi[] };
   // ability_score?: boolean;
   // dotes?: ChoiceApi<DoteApi>;
