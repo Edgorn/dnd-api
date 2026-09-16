@@ -8,7 +8,18 @@ import { LanguageApi } from "./language.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { TraitApi, TraitDataMongo } from "./traits.types"
 import { AttributeApi } from "./attribute.types"
+import { SubclassApi } from "./subclass.types"
 import { ObjectId } from "mongoose"
+
+export interface SubclassChoiceConfig {
+  name: string;
+  description: string[];
+  level: number;
+}
+
+export interface SubclassChoiceMenuApi extends SubclassChoiceConfig {
+  options: SubclassApi[];
+}
 
 export type SpellPreparedFrom = "known" | "classList";
 
@@ -71,6 +82,7 @@ export interface InputCreateCharacterClass {
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
   levels?: CharacterClassLevelInput[];
+  subclassChoice?: SubclassChoiceConfig | null;
 }
 
 export interface InputUpdateCharacterClass {
@@ -93,6 +105,7 @@ export interface InputUpdateCharacterClass {
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
   levels?: CharacterClassLevelInput[];
+  subclassChoice?: SubclassChoiceConfig | null;
 }
 
 export interface CharacterClassMongo {
@@ -116,6 +129,7 @@ export interface CharacterClassMongo {
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
+  subclassChoice?: SubclassChoiceConfig | null;
 }
 
 export interface CharacterClassLevelMongo {
@@ -228,7 +242,8 @@ export interface CharacterClassApi {
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig;
   levels?: CharacterClassLevelInput[];
-  subclasesData?: SubclassesOptionsApi;
+  subclassChoice?: SubclassChoiceConfig;
+  subclasses?: SubclassApi[];
   deletedAt?: Date | null;
 }
 
@@ -238,13 +253,14 @@ export interface SubclassesOptionsApi {
   options: SubclassOptionApi[];
 }
 
-export interface SubclassOptionApi extends SubclassApi {
+export interface SubclassOptionApi extends EmbeddedSubclassApi {
   id: string;
   name: string;
   img: string;
 }
 
-export interface SubclassApi {
+/** Legacy embedded subclass payload (levels[].subclasses). Kept for old documents. */
+export interface EmbeddedSubclassApi {
   traits: TraitApi[];
   traits_options?: {
     name: string;
@@ -268,7 +284,7 @@ export interface ClaseLevelUp {
   };
   ability_score?: boolean;
   dotes?: ChoiceApi<DoteApi>;
-  subclasesData?: SubclassesOptionsApi | null;
+  subclassChoice?: SubclassChoiceMenuApi | null;
   double_skills?: number;
   spells?: SpellApi[];
   spell_choices?: ChoiceApi<SpellApi>[];
@@ -281,7 +297,7 @@ export interface ClaseLevelUp {
 // Aliases for legacy compatibility
 export type ClaseMongo = CharacterClassMongo;
 export type ClaseApi = CharacterClassApi;
-export type SubclaseApi = SubclassApi;
+export type SubclaseApi = EmbeddedSubclassApi;
 export type SubclaseOptionApi = SubclassOptionApi;
 export type SubclasesOptionsApi = SubclassesOptionsApi;
 export type SubclaseMongo = SubclassMongo;

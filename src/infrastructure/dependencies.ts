@@ -92,6 +92,7 @@ import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repo
 import CampaignReaderRepository from "./databases/mongoDb/repositories/campaignReader.repository";
 import CharacterSheetPdfGenerator from "./pdf/CharacterSheetPdfGenerator";
 import TraitRepository from "./databases/mongoDb/repositories/trait.repository";
+import SubclassRepository from "./databases/mongoDb/repositories/subclass.repository";
 import UserRepository from "./databases/mongoDb/repositories/user.repository";
 import RaceRepository from "./databases/mongoDb/repositories/race.repository";
 import BackgroundRepository from "./databases/mongoDb/repositories/background.repository";
@@ -133,12 +134,20 @@ import { SpellController } from "./http/controllers/spell.controller";
 import { SystemController } from "./http/controllers/system.controller";
 import CriaturaRepository from "./databases/mongoDb/repositories/criaturas.repository";
 import { TraitController } from "./http/controllers/trait.controller";
+import { SubclassController } from "./http/controllers/subclass.controller";
 import GetTraitsBySystemsUseCase from "../application/use-cases/trait/getTraitsBySystems.use-case";
 import TraitService from "../domain/services/trait.service";
 import CreateTraitUseCase from "../application/use-cases/trait/createTrait.use-case";
 import UpdateTraitUseCase from "../application/use-cases/trait/updateTrait.use-case";
 import SoftDeleteTraitUseCase from "../application/use-cases/trait/softDeleteTrait.use-case";
 import RestoreTraitUseCase from "../application/use-cases/trait/restoreTrait.use-case";
+import SubclassService from "../domain/services/subclass.service";
+import GetSubclassesBySystems from "../application/use-cases/subclass/getSubclassesBySystems.use-case";
+import GetSubclassById from "../application/use-cases/subclass/getSubclassById.use-case";
+import CreateSubclass from "../application/use-cases/subclass/createSubclass.use-case";
+import UpdateSubclass from "../application/use-cases/subclass/updateSubclass.use-case";
+import SoftDeleteSubclass from "../application/use-cases/subclass/softDeleteSubclass.use-case";
+import RestoreSubclass from "../application/use-cases/subclass/restoreSubclass.use-case";
 import { SkillController } from "./http/controllers/skill.controller";
 import SkillService from "../domain/services/skill.service";
 import GetSkillsBySystems from "../application/use-cases/skill/getSkillsBySystems.use-case";
@@ -199,6 +208,7 @@ const equipmentRepository = new EquipmentRepository(systemRepository, damageRepo
 const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
 const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository)
+const subclassRepository = new SubclassRepository(systemRepository, traitRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const skillService = new SkillService(skillRepository)
@@ -213,7 +223,8 @@ const characterClassRepository = new CharacterClassRepository(
   doteRepository,
   invocacionRepository,
   languageRepository,
-  attributeService
+  attributeService,
+  subclassRepository
 );
 
 const raceRepository = new RaceRepository(
@@ -256,6 +267,7 @@ const personajeRepository = new PersonajeRepository(
   spellRepository,
   doteRepository,
   characterClassRepository,
+  subclassRepository,
   invocacionRepository,
   raceRepository,
   criaturaRepository,
@@ -292,6 +304,7 @@ const equipmentService = new EquipmentService(equipmentRepository)
 const personajeService = new PersonajeService(personajeRepository)
 const spellService = new SpellService(spellRepository)
 const traitService = new TraitService(traitRepository)
+const subclassService = new SubclassService(subclassRepository)
 const systemService = new SystemService(systemRepository)
 const getSystemApi = new GetSystemApi(
   systemService,
@@ -381,6 +394,13 @@ const createTraitUseCase = new CreateTraitUseCase(traitService, systemService)
 const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService)
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
+
+const getSubclassesBySystems = new GetSubclassesBySystems(subclassService)
+const getSubclassById = new GetSubclassById(subclassService)
+const createSubclass = new CreateSubclass(subclassService, systemService, characterClassService)
+const updateSubclass = new UpdateSubclass(subclassService, systemService, characterClassService)
+const softDeleteSubclass = new SoftDeleteSubclass(subclassService, systemService)
+const restoreSubclass = new RestoreSubclass(subclassService, systemService)
 
 const getSkillsBySystems = new GetSkillsBySystems(skillService)
 const createSkill = new CreateSkill(skillService, systemService)
@@ -496,6 +516,15 @@ export const systemController = new SystemController(
 )
 
 export const traitController = new TraitController(getTraitsBySystemsUseCase, createTraitUseCase, updateTraitUseCase, softDeleteTrait, restoreTrait)
+
+export const subclassController = new SubclassController(
+  getSubclassesBySystems,
+  getSubclassById,
+  createSubclass,
+  updateSubclass,
+  softDeleteSubclass,
+  restoreSubclass
+)
 
 export const skillController = new SkillController(
   getSkillsBySystems,

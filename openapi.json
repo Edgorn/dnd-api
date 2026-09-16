@@ -725,6 +725,183 @@
           }
         }
       },
+      "SubclassLevelApi": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel de clase en el que se otorgan estos rasgos."
+          },
+          "traits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Trait"
+            },
+            "description": "Rasgos hidratados otorgados en este nivel."
+          },
+          "traits_data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "description": "Datos dinámicos de rasgos (usos, interpolación de texto)."
+          }
+        }
+      },
+      "Subclass": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB de la subclase."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "Sistema que publica esta subclase."
+          },
+          "classId": {
+            "type": "string",
+            "description": "ID de la clase a la que pertenece (puede ser de un sistema ancestro)."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la subclase."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descripción detallada por párrafos."
+          },
+          "img": {
+            "type": "string",
+            "description": "URL de la imagen representativa."
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubclassLevelApi"
+            },
+            "description": "Progresión de rasgos por nivel."
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Fecha de borrado lógico."
+          }
+        }
+      },
+      "SubclassLevelInput": {
+        "type": "object",
+        "required": [
+          "level"
+        ],
+        "properties": {
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel de clase."
+          },
+          "traits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "ObjectIds de rasgos otorgados en este nivel. Si se omite en una actualización, se conservan."
+          },
+          "traits_data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "description": "Datos dinámicos de rasgos de este nivel."
+          }
+        }
+      },
+      "InputCreateSubclass": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "classId",
+          "name"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "Sistema al que pertenece la subclase."
+          },
+          "classId": {
+            "type": "string",
+            "description": "ObjectId de la clase padre (propia o de un sistema ancestro)."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la subclase."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descripción por párrafos."
+          },
+          "img": {
+            "type": "string",
+            "description": "URL de la imagen."
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubclassLevelInput"
+            },
+            "description": "Progresión de rasgos (level, traits, traits_data)."
+          }
+        }
+      },
+      "InputUpdateSubclass": {
+        "type": "object",
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "Sistema al que pertenece la subclase."
+          },
+          "classId": {
+            "type": "string",
+            "description": "ObjectId de la clase padre."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre de la subclase."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descripción por párrafos."
+          },
+          "img": {
+            "type": "string",
+            "description": "URL de la imagen."
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubclassLevelInput"
+            },
+            "description": "Niveles fusionados por número. Los traits de un nivel solo se sustituyen si el campo viene definido."
+          }
+        }
+      },
       "Spell": {
         "type": "object",
         "properties": {
@@ -2401,6 +2578,27 @@
               }
             }
           },
+          "subclasses": {
+            "type": "array",
+            "description": "Subclases del personaje hidratadas con id de clase, nombre e id de subclase.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "class": {
+                  "type": "string",
+                  "description": "ID de la clase a la que pertenece la subclase."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nombre de la subclase."
+                },
+                "id": {
+                  "type": "string",
+                  "description": "ID de la subclase."
+                }
+              }
+            }
+          },
           "CA": {
             "type": "number",
             "description": "Clase de Armadura calculada."
@@ -2491,16 +2689,32 @@
           },
           "subclasses": {
             "type": "array",
+            "description": "Subclases del personaje hidratadas con id de clase, nombre e id de subclase.",
             "items": {
-              "type": "string"
+              "type": "object",
+              "properties": {
+                "class": {
+                  "type": "string",
+                  "description": "ID de la clase a la que pertenece la subclase."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nombre de la subclase."
+                },
+                "id": {
+                  "type": "string",
+                  "description": "ID de la subclase."
+                }
+              }
             }
           },
           "campaign": {
             "type": "object",
             "nullable": true,
             "properties": {
-              "index": {
-                "type": "string"
+              "id": {
+                "type": "string",
+                "description": "ID de la campaña asociada."
               },
               "name": {
                 "type": "string",
@@ -4073,9 +4287,16 @@
             },
             "description": "Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros y traits)."
           },
-          "subclasesData": {
-            "type": "object",
-            "description": "Información de las subclases disponibles."
+          "subclassChoice": {
+            "$ref": "#/components/schemas/SubclassChoiceConfig",
+            "description": "Tipo de elección de subclase (nombre del grupo, texto y nivel en el que se elige)."
+          },
+          "subclasses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subclass"
+            },
+            "description": "Subclases disponibles para esta clase en los sistemas de la petición (incluye ancestros)."
           },
           "deletedAt": {
             "type": "string",
@@ -4105,6 +4326,32 @@
               "minimum": 0
             },
             "description": "Ranuras por nivel de conjuro (clave \"1\"..\"9\", valor = cantidad)."
+          }
+        }
+      },
+      "SubclassChoiceConfig": {
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "level"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo de subclase (p. ej. Tradiciones arcanas)."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Texto de ambientación del tipo de subclase."
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel de clase en el que se elige la subclase."
           }
         }
       },
@@ -4302,6 +4549,15 @@
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
             "description": "Niveles con tabla de ranuras, elecciones de conjuros y traits (level, spellcasting, spell_choices, traits)."
+          },
+          "subclassChoice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubclassChoiceConfig"
+              }
+            ],
+            "nullable": true,
+            "description": "Tipo de elección de subclase. No incluye el catálogo; las subclases se crean en /subclasses."
           }
         }
       },
@@ -4410,6 +4666,15 @@
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
             "description": "Niveles con tabla de ranuras, elecciones de conjuros y traits; se fusionan por level. Los traits de un nivel solo se sustituyen si el campo viene definido.\n"
+          },
+          "subclassChoice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubclassChoiceConfig"
+              }
+            ],
+            "nullable": true,
+            "description": "Tipo de elección de subclase. Enviar null para eliminarlo."
           }
         }
       },
@@ -5767,6 +6032,290 @@
           },
           "404": {
             "description": "Sistema no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/subclasses": {
+      "get": {
+        "summary": "Obtener subclases filtradas por sistema",
+        "tags": [
+          "Subclases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del sistema para filtrar (incluye ancestros)."
+          },
+          {
+            "in": "query",
+            "name": "classId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ObjectId de la clase para limitar el listado."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de subclases devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Subclass"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una nueva subclase",
+        "tags": [
+          "Subclases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateSubclass"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subclase creada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subclass"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos o la clase no pertenece al árbol de sistemas."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para crear subclases en este sistema."
+          },
+          "404": {
+            "description": "Sistema o clase asociada no encontrados."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/subclasses/{id}": {
+      "get": {
+        "summary": "Obtener una subclase por ID",
+        "tags": [
+          "Subclases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la subclase."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subclase obtenida con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subclass"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Subclase no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar una subclase existente",
+        "tags": [
+          "Subclases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la subclase a editar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateSubclass"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subclase modificada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subclass"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID o datos inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para editar esta subclase."
+          },
+          "404": {
+            "description": "Subclase no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Borrado lógico de una subclase",
+        "tags": [
+          "Subclases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la subclase a eliminar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Subclase eliminada lógicamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para borrar esta subclase."
+          },
+          "404": {
+            "description": "Subclase no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/subclasses/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar una subclase borrada lógicamente",
+        "tags": [
+          "Subclases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la subclase a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subclase restaurada con éxito."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para restaurar esta subclase."
+          },
+          "404": {
+            "description": "Subclase no encontrada."
           },
           "500": {
             "description": "Error del servidor."
@@ -7808,7 +8357,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel y elecciones de conjuros).\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`).\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel y elecciones de conjuros).\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`).\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\n",
         "tags": [
           "Personajes"
         ],
@@ -7879,6 +8428,31 @@
                       "items": {
                         "$ref": "#/components/schemas/SpellChoiceApi"
                       }
+                    },
+                    "subclassChoice": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Menú de subclases si el personaje debe elegir en este nivel. Incluye name, description, level y options hidratadas. Nulo si ya tiene subclase o aún no toca elegir.\n",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "level": {
+                          "type": "integer"
+                        },
+                        "options": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Subclass"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -7906,7 +8480,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje. Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`), ASI ni dotes.\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje. Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`), ASI ni dotes.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
         "tags": [
           "Personajes"
         ],
@@ -7956,6 +8530,10 @@
                         "description": "ObjectId de MongoDB del conjuro."
                       }
                     }
+                  },
+                  "subclass": {
+                    "type": "string",
+                    "description": "ObjectId de la subclase elegida. Obligatorio si el GET level-up-data devolvió `subclassChoice`. Si el personaje ya la eligió en la creación, omitir.\n"
                   }
                 }
               }

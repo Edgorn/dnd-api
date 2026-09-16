@@ -105,11 +105,16 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts a spell repository config and level traits", () => {
+  it("accepts a spell repository config, level traits and subclassChoice", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
       name: "Mago",
       spellRepository: wizardSpellRepository,
+      subclassChoice: {
+        name: "Tradiciones arcanas",
+        description: ["El estudio de la magia es muy antiguo."],
+        level: 2
+      },
       levels: [
         {
           level: 1,
@@ -153,5 +158,21 @@ describe("UpdateCharacterClassSchema spellRepository", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("accepts subclassChoice and null to clear it", () => {
+    const withChoice = UpdateCharacterClassSchema.safeParse({
+      subclassChoice: {
+        name: "Tradiciones arcanas",
+        description: ["El estudio de la magia es muy antiguo."],
+        level: 2
+      }
+    });
+    const cleared = UpdateCharacterClassSchema.safeParse({
+      subclassChoice: null
+    });
+
+    expect(withChoice.success).toBe(true);
+    expect(cleared.success).toBe(true);
   });
 });

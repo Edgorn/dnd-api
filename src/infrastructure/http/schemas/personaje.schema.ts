@@ -46,6 +46,10 @@ export const LevelUpSchema = z.object({
       )
     )
     .optional(),
+  subclass: z
+    .string()
+    .regex(objectIdRegex, "La subclase debe ser un ObjectId válido de MongoDB")
+    .optional(),
 });
 
 export const PrepareSpellsSchema = z.object({

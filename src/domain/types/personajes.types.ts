@@ -8,7 +8,7 @@ import { CharacterEquipmentApi } from "./equipment.types"
 import { DoteApi } from "./dotes.types"
 import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
-import { SpellcastingLevel } from "./characterClass.types"
+import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { CriaturaApi } from "./criaturas.types"
 import { CharacterAttributeApi, AttributeApi } from "./attribute.types"
@@ -122,6 +122,7 @@ export interface TypeLevelUp {
   hpIncrease: number;
   userId: string;
   spells?: string[][];
+  subclass?: string;
 }
 
 export interface TypeAddEquipment {
@@ -180,6 +181,12 @@ export interface CharacterCampaignLink {
   campaign: string | null
 }
 
+export interface CharacterSubclassApi {
+  class: string
+  name: string
+  id: string
+}
+
 export interface PersonajeBasico {
   id: string,
   img: string,
@@ -191,6 +198,7 @@ export interface PersonajeBasico {
     name: string,
     level: number
   }[],
+  subclasses: CharacterSubclassApi[],
   CA: number,
   HPMax: number,
   HPActual: number,
@@ -282,9 +290,9 @@ export interface PersonajeApi {
     name: string,
     hit_die: number
   }[],
-  subclasses: string[],
+  subclasses: CharacterSubclassApi[],
   campaign: {
-    index: string,
+    id: string,
     name: string | null | undefined
   } | null,
   appearance: {
@@ -350,15 +358,6 @@ export interface LevelUpData {
   prof_bonus: number;
   traits?: TraitApi[];
   traits_data?: TraitDataMongo;
-  // traits_options?: { name: string; options: TraitApi[] };
-  // ability_score?: boolean;
-  // dotes?: ChoiceApi<DoteApi>;
-  // subclasesData?: SubclassesOptionsApi | null;
-  // double_skills?: number;
-  // spells?: SpellApi[];
   spell_choices?: ChoiceApi<SpellApi>[];
-  // spell_changes?: ChoiceApi<SpellApi>[][];
-  // skill_choices?: ChoiceApi<SkillApi>;
-  // invocations_choices?: ChoiceApi<InvocacionApi>;
-  // invocations_change?: ChoiceApi<InvocacionApi>;
+  subclassChoice?: SubclassChoiceMenuApi | null;
 }

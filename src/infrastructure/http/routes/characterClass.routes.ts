@@ -121,9 +121,14 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
  *           description: Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros y traits).
- *         subclasesData:
- *           type: object
- *           description: Información de las subclases disponibles.
+ *         subclassChoice:
+ *           $ref: '#/components/schemas/SubclassChoiceConfig'
+ *           description: Tipo de elección de subclase (nombre del grupo, texto y nivel en el que se elige).
+ *         subclasses:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Subclass'
+ *           description: Subclases disponibles para esta clase en los sistemas de la petición (incluye ancestros).
  *         deletedAt:
  *           type: string
  *           format: date-time
@@ -149,6 +154,25 @@ const router = Router();
  *             type: integer
  *             minimum: 0
  *           description: Ranuras por nivel de conjuro (clave "1".."9", valor = cantidad).
+ *     SubclassChoiceConfig:
+ *       type: object
+ *       required:
+ *         - name
+ *         - description
+ *         - level
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre del tipo de subclase (p. ej. Tradiciones arcanas).
+ *         description:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Texto de ambientación del tipo de subclase.
+ *         level:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nivel de clase en el que se elige la subclase.
  *     CharacterClassLevelInput:
  *       type: object
  *       required:
@@ -290,6 +314,11 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
  *           description: Niveles con tabla de ranuras, elecciones de conjuros y traits (level, spellcasting, spell_choices, traits).
+ *         subclassChoice:
+ *           allOf:
+ *             - $ref: '#/components/schemas/SubclassChoiceConfig'
+ *           nullable: true
+ *           description: Tipo de elección de subclase. No incluye el catálogo; las subclases se crean en /subclasses.
  *     InputUpdateCharacterClass:
  *       type: object
  *       properties:
@@ -364,6 +393,11 @@ const router = Router();
  *           description: >
  *             Niveles con tabla de ranuras, elecciones de conjuros y traits;
  *             se fusionan por level. Los traits de un nivel solo se sustituyen si el campo viene definido.
+ *         subclassChoice:
+ *           allOf:
+ *             - $ref: '#/components/schemas/SubclassChoiceConfig'
+ *           nullable: true
+ *           description: Tipo de elección de subclase. Enviar null para eliminarlo.
  */
 
 /**

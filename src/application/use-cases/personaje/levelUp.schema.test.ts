@@ -38,4 +38,22 @@ describe("LevelUpSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts an optional subclass ObjectId", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      subclass: validId,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid subclass id", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      subclass: "evocation",
+    });
+    expect(result.success).toBe(false);
+  });
 });

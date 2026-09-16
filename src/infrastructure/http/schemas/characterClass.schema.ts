@@ -97,7 +97,12 @@ const characterClassFields = {
   spellsPreparedFormula: classFormulaSchema("spellsPreparedFormula"),
   preparedFrom: PreparedFromSchema.optional(),
   spellRepository: SpellRepositoryConfigSchema.nullable().optional(),
-  levels: z.array(CharacterClassLevelInputSchema).optional()
+  levels: z.array(CharacterClassLevelInputSchema).optional(),
+  subclassChoice: z.object({
+    name: z.string().min(1, "El nombre del tipo de subclase no puede estar vacío"),
+    description: z.array(z.string()).default([]),
+    level: z.number().int().min(1, "El nivel de elección de subclase debe ser al menos 1")
+  }).nullable().optional()
 };
 
 export const CreateCharacterClassSchema = z.object({

@@ -326,6 +326,21 @@ const router = Router();
  *                 type: string
  *               level:
  *                 type: number
+ *         subclasses:
+ *           type: array
+ *           description: Subclases del personaje hidratadas con id de clase, nombre e id de subclase.
+ *           items:
+ *             type: object
+ *             properties:
+ *               class:
+ *                 type: string
+ *                 description: ID de la clase a la que pertenece la subclase.
+ *               name:
+ *                 type: string
+ *                 description: Nombre de la subclase.
+ *               id:
+ *                 type: string
+ *                 description: ID de la subclase.
  *         CA:
  *           type: number
  *           description: Clase de Armadura calculada.
@@ -388,14 +403,26 @@ const router = Router();
  *                 type: number
  *         subclasses:
  *           type: array
+ *           description: Subclases del personaje hidratadas con id de clase, nombre e id de subclase.
  *           items:
- *             type: string
+ *             type: object
+ *             properties:
+ *               class:
+ *                 type: string
+ *                 description: ID de la clase a la que pertenece la subclase.
+ *               name:
+ *                 type: string
+ *                 description: Nombre de la subclase.
+ *               id:
+ *                 type: string
+ *                 description: ID de la subclase.
  *         campaign:
  *           type: object
  *           nullable: true
  *           properties:
- *             index:
+ *             id:
  *               type: string
+ *               description: ID de la campaña asociada.
  *             name:
  *               type: string
  *               nullable: true
@@ -1232,6 +1259,8 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       (dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel y elecciones de conjuros).
  *       `traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen
  *       elecciones (`traits_options`).
+ *       Si el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene
+ *       una subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.
  *       `spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`
  *       de la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos
  *       sintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con
@@ -1287,6 +1316,25 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   description: Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips, conjuros conocidos desde spellsLearned y choices persistidas).
  *                   items:
  *                     $ref: '#/components/schemas/SpellChoiceApi'
+ *                 subclassChoice:
+ *                   type: object
+ *                   nullable: true
+ *                   description: >
+ *                     Menú de subclases si el personaje debe elegir en este nivel.
+ *                     Incluye name, description, level y options hidratadas. Nulo si ya tiene subclase o aún no toca elegir.
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     description:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     level:
+ *                       type: integer
+ *                     options:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Subclass'
  *       400:
  *         description: Datos de entrada inválidos.
  *       401:
@@ -1315,6 +1363,7 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       `spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se
  *       guardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y
  *       `traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`), ASI ni dotes.
+ *       Si el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).
  *     tags:
  *       - Personajes
  *     security:
@@ -1356,6 +1405,11 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                   items:
  *                     type: string
  *                     description: ObjectId de MongoDB del conjuro.
+ *               subclass:
+ *                 type: string
+ *                 description: >
+ *                   ObjectId de la subclase elegida. Obligatorio si el GET level-up-data
+ *                   devolvió `subclassChoice`. Si el personaje ya la eligió en la creación, omitir.
  *     responses:
  *       200:
  *         description: Personaje actualizado tras la subida de nivel.

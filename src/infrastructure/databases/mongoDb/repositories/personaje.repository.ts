@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { CharacterCampaignLink, LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi } from '../../../../domain/types/personajes.types';
+import { CharacterCampaignLink, CharacterSubclassApi, LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi } from '../../../../domain/types/personajes.types';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -11,6 +11,7 @@ import { canAccessCharacter } from '../../../../domain/services/characterAccess'
 import { ICampaignReader } from '../../../../domain/ports/ICampaignReader';
 import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
 import ICharacterClassRepository from '../../../../domain/repositories/ICharacterClassRepository';
+import ISubclassRepository from '../../../../domain/repositories/ISubclassRepository';
 import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
@@ -50,6 +51,7 @@ import {
 } from '../../../../utils/characterSpellcasting';
 import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
+import { SubclassApi } from '../../../../domain/types/subclass.types';
 import ICoinRepository from '../../../../domain/repositories/ICoinRepository';
 import { CoinApi } from '../../../../domain/types/coin.types';
 import {
@@ -61,7 +63,7 @@ import {
   DEFAULT_PROFICIENCY_PROGRESSION,
   DEFAULT_XP_PROGRESSION,
 } from '../../../../utils/systemRulesMerge';
-import { SpellcastingLevel } from '../../../../domain/types/characterClass.types';
+import { SpellcastingLevel, SubclassChoiceMenuApi } from '../../../../domain/types/characterClass.types';
 
 const nameTraits: any = {
   "totemic-spirit-bear": "Furia"
@@ -78,6 +80,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly spellRepository: ISpellRepository,
     private readonly doteRepository: IDoteRepository,
     private readonly claseRepository: ICharacterClassRepository,
+    private readonly subclassRepository: ISubclassRepository,
     private readonly invocacionRepository: IInvocacionRepository,
     private readonly raceRepository: IRaceRepository,
     private readonly criaturaRepository: ICriaturaRepository,
@@ -168,6 +171,29 @@ export default class PersonajeRepository implements IPersonajeRepository {
       moneyArray = [money as any];
     }
 
+    let resolvedTraits = [...(traits ?? [])];
+    let resolvedTraitsData = { ...(traits_data ?? {}) };
+    let resolvedSubclasses: string[] = [];
+
+    if (subclase) {
+      const subclass = await this.assertSubclassAvailable(subclase, claseId, systems ?? []);
+      resolvedSubclasses = [subclass.id];
+      const characterClass = await this.claseRepository.getById(claseId);
+      if (characterClass?.subclassChoice?.level === 1) {
+        const level1 = subclass.levels.find(row => row.level === 1);
+        if (level1) {
+          const merged = mergeLevelUpTraits(
+            resolvedTraits,
+            resolvedTraitsData,
+            level1.traits,
+            level1.traits_data
+          );
+          resolvedTraits = merged.traits;
+          resolvedTraitsData = merged.traits_data;
+        }
+      }
+    }
+
     const personaje = new Personaje({
       name,
       user,
@@ -179,10 +205,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
       raceId: raceId,
       campaign,
       classes: [{ class: claseId, name: clase ?? "Ninguna", level: 1, hit_die }],
-      subclasses: subclase ? [subclase] : [],
+      subclasses: resolvedSubclasses,
       race: race,
-      traits,
-      traits_data: { ...traits_data },
+      traits: resolvedTraits,
+      traits_data: resolvedTraitsData,
       prof_bonus: resolvedProfBonus,
       speed,
       plusSpeed: 0,
@@ -523,7 +549,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const nextLevel = level + 1;
     const totalLevels = personaje.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
-    const { hit_die, spell_choices, traits, traits_data } = await this.resolveLevelUpClassData(
+    const { hit_die, spell_choices, traits, traits_data, subclassChoice } = await this.resolveLevelUpClassData(
       personaje,
       classId,
       nextLevel
@@ -538,11 +564,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spell_choices,
       traits,
       traits_data,
+      subclassChoice: subclassChoice ?? null,
     };
   }
 
   async levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
-    const { id, classId, hpIncrease, userId, spells } = data;
+    const { id, classId, hpIncrease, userId, spells, subclass } = data;
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
@@ -579,9 +606,15 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const nextLevel = (characterClass.level ?? 0) + 1;
+    const nextSubclassIds = await this.resolveLevelUpSubclassIds(
+      personaje,
+      classId,
+      nextLevel,
+      subclass
+    );
     const knownSpellIds = this.getClassSpellIds(personaje, classId);
     const { spell_choices, traits: levelTraits, traits_data: levelTraitsData } =
-      await this.resolveLevelUpClassData(personaje, classId, nextLevel);
+      await this.resolveLevelUpClassData(personaje, classId, nextLevel, nextSubclassIds);
     const pickResult = validateLevelUpSpellPicks(spell_choices, spells, knownSpellIds);
     if ("error" in pickResult) {
       throw new ValidationError(pickResult.error);
@@ -628,6 +661,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           prof_bonus: Math.max(newProfBonus, personaje.prof_bonus ?? 0),
           traits: nextTraits,
           traits_data: nextTraitsData,
+          subclasses: nextSubclassIds,
           ...(spellsUpdate ? { spells: spellsUpdate } : {}),
         },
         $inc: {
@@ -1043,17 +1077,20 @@ export default class PersonajeRepository implements IPersonajeRepository {
   private async resolveLevelUpClassData(
     personaje: PersonajeMongo,
     classId: string,
-    nextLevel: number
+    nextLevel: number,
+    subclassIds?: string[]
   ): Promise<{
     hit_die: number;
     spell_choices?: ChoiceApi<SpellApi>[];
     traits: TraitApi[];
     traits_data: TraitDataMongo;
+    subclassChoice?: SubclassChoiceMenuApi | null;
   }> {
-    const dataLevel = await this.claseRepository.dataLevelUp?.(
+    const dataLevel = await this.claseRepository.dataLevelUp(
       classId,
       nextLevel,
-      personaje.subclasses ?? []
+      subclassIds ?? personaje.subclasses ?? [],
+      personaje.systems ?? []
     );
     const clase = await this.claseRepository.getById(classId);
     const knownSpellIds = this.getClassSpellIds(personaje, classId);
@@ -1081,7 +1118,95 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spell_choices,
       traits: dataLevel?.traits ?? [],
       traits_data: dataLevel?.traits_data ?? {},
+      subclassChoice: dataLevel?.subclassChoice ?? null,
     };
+  }
+
+  private async resolveLevelUpSubclassIds(
+    personaje: PersonajeMongo,
+    classId: string,
+    nextLevel: number,
+    subclassId?: string
+  ): Promise<string[]> {
+    const assigned = await this.getAssignedSubclassesForClass(personaje.subclasses ?? [], classId);
+    const classDoc = await this.claseRepository.getById(classId);
+    const choiceLevel = classDoc?.subclassChoice?.level;
+    const needsSubclass = Boolean(choiceLevel && nextLevel >= choiceLevel && assigned.length === 0);
+    const currentIds = [...(personaje.subclasses ?? [])];
+
+    if (needsSubclass) {
+      if (!subclassId) {
+        throw new ValidationError("Debe elegir una subclase al subir de nivel");
+      }
+      const picked = await this.assertSubclassAvailable(subclassId, classId, personaje.systems ?? []);
+      return [...new Set([...currentIds, picked.id])];
+    }
+
+    if (subclassId) {
+      if (assigned.length && !assigned.some(item => item.id === subclassId)) {
+        throw new ValidationError("El personaje ya tiene una subclase para esta clase");
+      }
+      const picked = await this.assertSubclassAvailable(subclassId, classId, personaje.systems ?? []);
+      return [...new Set([...currentIds, picked.id])];
+    }
+
+    return currentIds;
+  }
+
+  private async getAssignedSubclassesForClass(subclassIds: string[], classId: string): Promise<SubclassApi[]> {
+    if (!subclassIds.length) return [];
+    const docs = await this.subclassRepository.getByIds(subclassIds);
+    return docs.filter(item => item.classId === classId);
+  }
+
+  private async assertSubclassAvailable(
+    subclassId: string,
+    classId: string,
+    systems: string[]
+  ): Promise<SubclassApi> {
+    const subclass = await this.subclassRepository.getById(subclassId);
+    if (!subclass || subclass.deletedAt) {
+      throw new NotFoundError("Subclase no encontrada");
+    }
+    if (subclass.classId !== classId) {
+      throw new ValidationError("La subclase no pertenece a la clase del personaje");
+    }
+    const tree = await this.systemRepository.getSystemsAndAncestors(systems);
+    if (!tree.includes(subclass.ruleset)) {
+      throw new ValidationError("La subclase no está disponible en los sistemas del personaje");
+    }
+    return subclass;
+  }
+
+  private async getSubclassMapByIds(ids: string[]): Promise<Map<string, SubclassApi>> {
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+    if (!uniqueIds.length) return new Map();
+    const docs = await this.subclassRepository.getByIds(uniqueIds);
+    return new Map(docs.map(item => [item.id, item]));
+  }
+
+  private mapSubclassSummaries(ids: string[], byId: Map<string, SubclassApi>): CharacterSubclassApi[] {
+    const summaries: CharacterSubclassApi[] = [];
+    for (const id of ids) {
+      const subclass = byId.get(id);
+      if (subclass) {
+        summaries.push({
+          class: subclass.classId,
+          name: subclass.name,
+          id: subclass.id
+        });
+      }
+    }
+    return summaries;
+  }
+
+  private async hydrateSubclasses(
+    ids: string[],
+    subclassById?: Map<string, SubclassApi>
+  ): Promise<CharacterSubclassApi[]> {
+    if (!ids.length) return [];
+    const byId = subclassById ?? await this.getSubclassMapByIds(ids);
+    return this.mapSubclassSummaries(ids, byId);
   }
 
   private async buildCantripSpellChoices(
@@ -1196,16 +1321,24 @@ export default class PersonajeRepository implements IPersonajeRepository {
     )];
 
     const campaignMap = await this.campaignReader.getNamesByIds(campaignIds);
+    const subclassById = await this.getSubclassMapByIds(
+      personajes.flatMap((personaje) => personaje.subclasses ?? [])
+    );
 
     return Promise.all(personajes.map((personaje) => {
       const campaignName = personaje.campaign
         ? campaignMap.get(personaje.campaign.toString())
         : undefined;
-      return this.formatBasicCharacter(personaje, userName, campaignName);
+      return this.formatBasicCharacter(personaje, userName, campaignName, subclassById);
     }));
   }
 
-  private async formatBasicCharacter(personaje: PersonajeMongo, userName?: string, campaignName?: string): Promise<PersonajeBasico> {
+  private async formatBasicCharacter(
+    personaje: PersonajeMongo,
+    userName?: string,
+    campaignName?: string,
+    subclassById?: Map<string, SubclassApi>
+  ): Promise<PersonajeBasico> {
     const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
     const user = userName ?? await this.userRepository.getUserName(personaje?.user ?? null)
 
@@ -1223,6 +1356,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     }
 
+    const subclasses = await this.hydrateSubclasses(personaje.subclasses ?? [], subclassById);
+
     return {
       id: personaje?._id?.toString() ?? '',
       img: personaje.img,
@@ -1234,6 +1369,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       race: personaje.race,
       campaign: finalCampaignName,
       classes: personaje?.classes?.map((clas: any) => { return { name: clas.name, level: clas.level } }) ?? [],
+      subclasses,
       CA,
       HPMax: personaje.HPMax,
       HPActual: personaje.HPActual,
@@ -1622,8 +1758,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       race: personaje.race,
       size: personaje.size,
       classes: clases,
-      subclasses: personaje.subclasses,
-      campaign: personaje?.campaign ? { index: personaje?.campaign, name: campaignSummary?.name } : null,
+      subclasses: await this.hydrateSubclasses(personaje.subclasses ?? []),
+      campaign: personaje?.campaign ? { id: personaje?.campaign, name: campaignSummary?.name } : null,
       appearance: personaje?.appearance,
       background: personaje?.background,
       level,
