@@ -165,6 +165,26 @@ describe("CharacterClass Use Cases", () => {
       ).rejects.toBeInstanceOf(AppError);
       expect(characterClassServiceMock.create).not.toHaveBeenCalled();
     });
+
+    it("should create class with abilityScoreProgression override", async () => {
+      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.create.mockResolvedValue({
+        ...createdClass,
+        abilityScoreProgression: [4, 6, 8, 12, 14, 16, 19]
+      });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Guerrero",
+        abilityScoreProgression: [4, 6, 8, 12, 14, 16, 19]
+      };
+
+      const result = await useCase.execute(input, "user1");
+
+      expect(result.abilityScoreProgression).toEqual([4, 6, 8, 12, 14, 16, 19]);
+      expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+    });
   });
 
   describe("UpdateCharacterClass", () => {
@@ -191,6 +211,22 @@ describe("CharacterClass Use Cases", () => {
       const result = await useCase.execute(input, "user1");
 
       expect(result.hit_die).toBe(12);
+      expect(characterClassServiceMock.update).toHaveBeenCalledWith(input);
+    });
+
+    it("should pass abilityScoreProgression null to clear the class override", async () => {
+      const useCase = new UpdateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      characterClassServiceMock.getById.mockResolvedValue({ ...createdClass, ruleset: "sys1" });
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.update.mockResolvedValue(createdClass);
+
+      const input = {
+        id: "class1",
+        abilityScoreProgression: null
+      };
+
+      await useCase.execute(input, "user1");
+
       expect(characterClassServiceMock.update).toHaveBeenCalledWith(input);
     });
   });

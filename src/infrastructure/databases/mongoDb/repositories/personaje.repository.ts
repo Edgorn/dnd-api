@@ -9,7 +9,7 @@ import AttributeService from '../../../../domain/services/attribute.service';
 import SkillService from '../../../../domain/services/skill.service';
 import { canAccessCharacter } from '../../../../domain/services/characterAccess';
 import { ICampaignReader } from '../../../../domain/ports/ICampaignReader';
-import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
+import IFeatRepository from '../../../../domain/repositories/IFeatRepository';
 import ICharacterClassRepository from '../../../../domain/repositories/ICharacterClassRepository';
 import ISubclassRepository from '../../../../domain/repositories/ISubclassRepository';
 import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
@@ -18,12 +18,19 @@ import IProficiencyRepository from '../../../../domain/repositories/IProficiency
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
+import { FeatApi } from '../../../../domain/types/feat.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
 import { CharacterEquipmentApi } from '../../../../domain/types/equipment.types';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
+import {
+  applyAbilityScoreIncreases,
+  filterLevelUpFeatChoices,
+  getOwnedFeatIds,
+  validateLevelUpAbilityScorePick
+} from '../../../../utils/characterLevelUpAbilityScore';
 import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
 import { CharacterAttributeApi, AttributeApi } from '../../../../domain/types/attribute.types';
 import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
@@ -78,7 +85,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly languageRepository: ILanguageRepository,
     private readonly skillService: SkillService,
     private readonly spellRepository: ISpellRepository,
-    private readonly doteRepository: IDoteRepository,
+    private readonly featRepository: IFeatRepository,
     private readonly claseRepository: ICharacterClassRepository,
     private readonly subclassRepository: ISubclassRepository,
     private readonly invocacionRepository: IInvocacionRepository,
@@ -131,7 +138,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       traits,
       traits_data,
       money,
-      dotes,
+      feats,
       hit_die,
       prof_bonus
     } = data
@@ -220,7 +227,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       proficiencies,
       spells,
       equipment: equipment,
-      dotes,
+      feats: feats ?? [],
       money: moneyArray,
       HPMax: HP,
       HPActual: HP,
@@ -549,11 +556,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const nextLevel = level + 1;
     const totalLevels = personaje.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
-    const { hit_die, spell_choices, traits, traits_data, subclassChoice } = await this.resolveLevelUpClassData(
-      personaje,
-      classId,
-      nextLevel
-    );
+    const { hit_die, spell_choices, traits, traits_data, subclassChoice, ability_score, feats } =
+      await this.resolveLevelUpClassData(personaje, classId, nextLevel);
 
     return {
       class: classId,
@@ -565,11 +569,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
       traits,
       traits_data,
       subclassChoice: subclassChoice ?? null,
+      ability_score,
+      feats,
     };
   }
 
   async levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
-    const { id, classId, hpIncrease, userId, spells, subclass } = data;
+    const { id, classId, hpIncrease, userId, spells, subclass, abilityScore, feat } = data;
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
@@ -613,7 +619,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       subclass
     );
     const knownSpellIds = this.getClassSpellIds(personaje, classId);
-    const { spell_choices, traits: levelTraits, traits_data: levelTraitsData } =
+    const { spell_choices, traits: levelTraits, traits_data: levelTraitsData, ability_score, feats } =
       await this.resolveLevelUpClassData(personaje, classId, nextLevel, nextSubclassIds);
     const pickResult = validateLevelUpSpellPicks(spell_choices, spells, knownSpellIds);
     if ("error" in pickResult) {
@@ -624,8 +630,25 @@ export default class PersonajeRepository implements IPersonajeRepository {
       await this.assertCanLearnClassCantrips(personaje, classId, pickResult.spellIds);
     }
 
+    const ownedFeatIds = getOwnedFeatIds(personaje);
+    const asiResult = validateLevelUpAbilityScorePick({
+      abilityScoreGranted: ability_score,
+      increases: abilityScore?.increases,
+      featId: feat,
+      attributes: personaje.attributes ?? [],
+      availableFeatIds: feats?.options.map(option => option.id) ?? [],
+      maxAttributeValue: rulesConfig.defaultMaxAttributeValue
+    });
+    if ("error" in asiResult) {
+      throw new ValidationError(asiResult.error);
+    }
+
+    const nextAttributes = asiResult.kind === "increases"
+      ? applyAbilityScoreIncreases(personaje.attributes ?? [], asiResult.increases)
+      : undefined;
+
     const apiAttributesForHp = await this.attributeService.formatAttributes(
-      personaje.attributes ?? [],
+      nextAttributes ?? personaje.attributes ?? [],
       personaje.systems ?? []
     );
 
@@ -663,6 +686,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
           traits_data: nextTraitsData,
           subclasses: nextSubclassIds,
           ...(spellsUpdate ? { spells: spellsUpdate } : {}),
+          ...(nextAttributes ? { attributes: nextAttributes } : {}),
+          ...(asiResult.kind === "feat" ? { feats: [...ownedFeatIds, asiResult.featId] } : {}),
         },
         $inc: {
           "classes.$[elem].level": 1,
@@ -1085,6 +1110,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     traits: TraitApi[];
     traits_data: TraitDataMongo;
     subclassChoice?: SubclassChoiceMenuApi | null;
+    ability_score: boolean;
+    feats?: ChoiceApi<FeatApi>;
   }> {
     const dataLevel = await this.claseRepository.dataLevelUp(
       classId,
@@ -1113,12 +1140,23 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ? [...synthesized, ...(dataLevel?.spell_choices ?? [])]
       : dataLevel?.spell_choices;
 
+    const ability_score = Boolean(dataLevel?.ability_score);
+    const feats = ability_score
+      ? filterLevelUpFeatChoices(
+          dataLevel?.feats,
+          getOwnedFeatIds(personaje),
+          personaje.attributes ?? []
+        )
+      : undefined;
+
     return {
       hit_die: dataLevel?.hit_die ?? 8,
       spell_choices,
       traits: dataLevel?.traits ?? [],
       traits_data: dataLevel?.traits_data ?? {},
       subclassChoice: dataLevel?.subclassChoice ?? null,
+      ability_score,
+      feats,
     };
   }
 
@@ -1670,7 +1708,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const campaignSummary = personaje?.campaign
       ? await this.campaignReader.getById(personaje.campaign)
       : null;
-    const dotes = await this.doteRepository.obtenerDotesPorIndices(personaje?.dotes ?? [])
+    const feats = await this.featRepository.getFeatsByIds(personaje?.feats ?? personaje?.dotes ?? [])
 
     const initiativeBonusFormula = await this.systemRepository.getInitiativeBonusFormula(personaje.systems ?? []);
     let initiativeBonus = 0;
@@ -1791,7 +1829,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       prof_bonus: personaje.prof_bonus,
       saving_throws: personaje.saving_throws,
       equipment: equipmentWithCombatBonuses,
-      dotes,
+      feats,
       money,
       spells: updatedSpells,
       maxCarryingCapacity,

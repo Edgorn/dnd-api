@@ -121,6 +121,13 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
  *           description: Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros y traits).
+ *         abilityScoreProgression:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: |
+ *             Override de niveles de clase con Mejora de característica.
+ *             Si se omite, se usa el default del sistema. Array vacío desactiva la mejora en esta clase.
  *         subclassChoice:
  *           $ref: '#/components/schemas/SubclassChoiceConfig'
  *           description: Tipo de elección de subclase (nombre del grupo, texto y nivel en el que se elige).
@@ -314,6 +321,13 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
  *           description: Niveles con tabla de ranuras, elecciones de conjuros y traits (level, spellcasting, spell_choices, traits).
+ *         abilityScoreProgression:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: |
+ *             Override de niveles con Mejora de característica (reemplazo completo del default del sistema).
+ *             Array vacío desactiva la mejora en esta clase. Si se omite, se hereda el default del sistema.
  *         subclassChoice:
  *           allOf:
  *             - $ref: '#/components/schemas/SubclassChoiceConfig'
@@ -393,6 +407,14 @@ const router = Router();
  *           description: >
  *             Niveles con tabla de ranuras, elecciones de conjuros y traits;
  *             se fusionan por level. Los traits de un nivel solo se sustituyen si el campo viene definido.
+ *         abilityScoreProgression:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           nullable: true
+ *           description: |
+ *             Override de niveles con Mejora de característica. Enviar null para volver al default del sistema.
+ *             Array vacío desactiva la mejora en esta clase.
  *         subclassChoice:
  *           allOf:
  *             - $ref: '#/components/schemas/SubclassChoiceConfig'

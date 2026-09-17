@@ -6,6 +6,7 @@ const varianteSchema = new Schema<VarianteMongo>({
   ability_bonuses: [],
   skill_choices: {},
   ability_bonus_choices: {},
+  feats: Number,
   dotes: Number
 });
 

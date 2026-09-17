@@ -198,7 +198,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
       invocations: character?.invocations ?? [],
       disciplines: [],
       metamagic: [],
-      dotes: character?.dotes ?? [],
+      feats: character?.feats ?? [],
       pdfDoc: originalPdf,
     });
 

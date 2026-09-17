@@ -90,4 +90,29 @@ describe("mergeRulesFromAncestry integration scenarios", () => {
     expect(config.proficiencyProgression).toEqual([2, 2]);
     expect(config.baseAcFormula).toBe("10 + @attributes.dex.modifier");
   });
+
+  it("treats empty abilityScoreProgression as an explicit child value", () => {
+    const config = mergeRulesFromAncestry([
+      {
+        _id: "child" as never,
+        name: "Child",
+        description: "",
+        publisher: "pub",
+        isOpen: false,
+        isBase: false,
+        abilityScoreProgression: [],
+      },
+      {
+        _id: "parent" as never,
+        name: "Parent",
+        description: "",
+        publisher: "pub",
+        isOpen: false,
+        isBase: false,
+        abilityScoreProgression: [4, 8, 12, 16, 19],
+      },
+    ] as never);
+
+    expect(config.abilityScoreProgression).toEqual([]);
+  });
 });

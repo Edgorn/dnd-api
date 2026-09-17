@@ -9,7 +9,7 @@ import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubracesApi, UpdateRace
 import { AttributeApi } from '../../../../domain/types/attribute.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import RaceModel from '../schemas/Race';
-import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
+import IFeatRepository from '../../../../domain/repositories/IFeatRepository';
 import { TraitDataMongo } from '../../../../domain/types/traits.types';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 
@@ -19,7 +19,7 @@ export default class RaceRepository implements IRaceRepository {
     private readonly spellRepository: ISpellRepository,
     private readonly skillService: SkillService,
     private readonly proficiencyRepository: IProficiencyRepository,
-    private readonly doteRepository: IDoteRepository,
+    private readonly featRepository: IFeatRepository,
     private readonly traitRepository: ITraitRepository,
     private readonly attributeService: AttributeService,
     private readonly systemRepository?: ISystemRepository
@@ -232,9 +232,9 @@ export default class RaceRepository implements IRaceRepository {
   }
 
   async formatearVariante(variante: VarianteMongo, ruleset?: string): Promise<VarianteApi> {
-    const [skill_choices, dotes, ability_bonuses, ability_bonus_choices] = await Promise.all([
+    const [skill_choices, feats, ability_bonuses, ability_bonus_choices] = await Promise.all([
       ruleset ? this.skillService.formatSkillChoices(variante?.skill_choices) : Promise.resolve(undefined),
-      this.doteRepository.formatearOpcionesDeDote(variante.dotes),
+      this.featRepository.formatFeatChoices(variante.feats ?? variante.dotes, ruleset),
       ruleset ? this.attributeService.formatAbilityBonuses(variante?.ability_bonuses ?? [], ruleset) : Promise.resolve([]),
       ruleset ? this.attributeService.formatAbilityBonusChoices(variante?.ability_bonus_choices, ruleset) : Promise.resolve(undefined)
     ])
@@ -244,7 +244,7 @@ export default class RaceRepository implements IRaceRepository {
       ability_bonuses,
       ability_bonus_choices,
       skill_choices,
-      dotes
+      feats
     }
   }
 

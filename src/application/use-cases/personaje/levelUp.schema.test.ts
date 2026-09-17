@@ -56,4 +56,77 @@ describe("LevelUpSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts a +2 abilityScore increase", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      abilityScore: { increases: [{ key: "str", bonus: 2 }] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts two +1 abilityScore increases", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      abilityScore: { increases: [{ key: "str", bonus: 1 }, { key: "dex", bonus: 1 }] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an optional feat ObjectId", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      feat: validId,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects sending abilityScore and feat together", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      abilityScore: { increases: [{ key: "str", bonus: 2 }] },
+      feat: validId,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects abilityScore increases that do not sum to 2", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      abilityScore: { increases: [{ key: "str", bonus: 1 }] },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicate abilityScore keys", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      abilityScore: { increases: [{ key: "str", bonus: 1 }, { key: "str", bonus: 1 }] },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a bonus other than 1 or 2", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      abilityScore: { increases: [{ key: "str", bonus: 3 }] },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid feat id", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      feat: "alert",
+    });
+    expect(result.success).toBe(false);
+  });
 });

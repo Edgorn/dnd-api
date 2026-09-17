@@ -104,6 +104,7 @@ export default class SystemRepository implements ISystemRepository {
       maxSpellLevel: data.maxSpellLevel,
       xpProgression: data.xpProgression,
       proficiencyProgression: data.proficiencyProgression,
+      abilityScoreProgression: data.abilityScoreProgression,
       hpInitialFormula: data.hpInitialFormula,
       hpLevelUpFormula: data.hpLevelUpFormula,
       baseAcFormula: data.baseAcFormula,
@@ -138,6 +139,7 @@ export default class SystemRepository implements ISystemRepository {
       maxSpellLevel,
       xpProgression,
       proficiencyProgression,
+      abilityScoreProgression,
       hpInitialFormula,
       hpLevelUpFormula,
       baseAcFormula,
@@ -170,6 +172,7 @@ export default class SystemRepository implements ISystemRepository {
     if (maxSpellLevel !== undefined) updateFields.maxSpellLevel = maxSpellLevel;
     if (xpProgression !== undefined) updateFields.xpProgression = xpProgression;
     if (proficiencyProgression !== undefined) updateFields.proficiencyProgression = proficiencyProgression;
+    if (abilityScoreProgression !== undefined) updateFields.abilityScoreProgression = abilityScoreProgression;
     if (hpInitialFormula !== undefined) updateFields.hpInitialFormula = hpInitialFormula;
     if (hpLevelUpFormula !== undefined) updateFields.hpLevelUpFormula = hpLevelUpFormula;
     if (baseAcFormula !== undefined) updateFields.baseAcFormula = baseAcFormula;

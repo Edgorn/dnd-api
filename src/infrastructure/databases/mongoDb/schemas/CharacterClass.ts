@@ -42,6 +42,7 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
   spellsPreparedFormula: { type: String, default: undefined },
   preparedFrom: { type: String, enum: ["known", "classList"], default: undefined },
   spellRepository: { type: Schema.Types.Mixed, default: undefined },
+  abilityScoreProgression: { type: [Number], default: undefined },
   subclassChoice: { type: Schema.Types.Mixed, default: undefined }
 }, { collection: 'character_classes', timestamps: true });
 

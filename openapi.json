@@ -446,6 +446,13 @@
             },
             "description": "Bonificador de competencia por nivel total del personaje."
           },
+          "abilityScoreProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Niveles de clase que otorgan Mejora de característica por defecto\n(p. ej. 4, 8, 12, 16, 19). Array vacío desactiva la mejora en este sistema.\nUna clase puede sustituir esta lista.\n"
+          },
           "hpInitialFormula": {
             "type": "string",
             "description": "Fórmula de puntos de golpe iniciales (nivel 1). Ver SystemCharacterFormulaSyntax.\nEjemplo: max(@class.hitDie) + @attributes.con.modifier\n"
@@ -579,6 +586,13 @@
             },
             "description": "Bonificador de competencia por nivel total. Debe coincidir con maxLevel."
           },
+          "abilityScoreProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Niveles de clase que otorgan Mejora de característica por defecto.\nNo debe coincidir en longitud con maxLevel. Cada valor debe ser único,\nmayor o igual que 1 y no superar maxLevel. Array vacío desactiva la mejora.\n"
+          },
           "hpInitialFormula": {
             "type": "string",
             "description": "Fórmula de PG nivel 1. Ver SystemCharacterFormulaSyntax.\nEjemplo: max(@class.hitDie) + @attributes.con.modifier\n"
@@ -680,6 +694,13 @@
             "items": {
               "type": "integer"
             }
+          },
+          "abilityScoreProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Niveles de clase con Mejora de característica por defecto. Array vacío desactiva la mejora."
           },
           "hpInitialFormula": {
             "type": "string",
@@ -1678,8 +1699,8 @@
           "skill_choices": {
             "type": "object"
           },
-          "dotes": {
-            "type": "object"
+          "feats": {
+            "$ref": "#/components/schemas/FeatChoiceApi"
           }
         }
       },
@@ -2208,33 +2229,6 @@
           "passive": {
             "type": "number",
             "description": "Valor pasivo calculado según passiveSkillFormula del sistema. Solo presente si el sistema define la fórmula."
-          }
-        }
-      },
-      "Dote": {
-        "type": "object",
-        "properties": {
-          "index": {
-            "type": "string",
-            "description": "Identificador del dote."
-          },
-          "name": {
-            "type": "string",
-            "description": "Nombre del dote."
-          },
-          "description": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Descripción detallada del dote."
-          },
-          "summary": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Resumen del dote."
           }
         }
       },
@@ -2911,10 +2905,10 @@
               "$ref": "#/components/schemas/CharacterEquipmentApi"
             }
           },
-          "dotes": {
+          "feats": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Dote"
+              "$ref": "#/components/schemas/Feat"
             }
           },
           "money": {
@@ -2982,7 +2976,7 @@
           "traits",
           "traits_data",
           "money",
-          "dotes",
+          "feats",
           "hit_die",
           "prof_bonus"
         ],
@@ -3122,11 +3116,12 @@
               }
             }
           },
-          "dotes": {
+          "feats": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "IDs de los dotes del personaje."
           },
           "hit_die": {
             "type": "number"
@@ -3335,6 +3330,226 @@
           },
           "ruleset": {
             "type": "string"
+          }
+        }
+      },
+      "Feat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB del dote."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del dote."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descripción detallada del dote."
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Resumen del dote."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema al que pertenece el dote."
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Fecha de borrado lógico. Nulo si el dote está activo."
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/FeatRequirements"
+          }
+        }
+      },
+      "FeatAttributeRequirement": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "min"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave del atributo dentro del sistema (por ejemplo, str)."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del atributo resuelto (por ejemplo, Fuerza)."
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Valor mínimo que debe tener el atributo."
+          },
+          "icon": {
+            "type": "string",
+            "description": "Icono del atributo, si existe."
+          }
+        }
+      },
+      "FeatRequirements": {
+        "type": "object",
+        "required": [
+          "attributeMode",
+          "attributes"
+        ],
+        "properties": {
+          "attributeMode": {
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ],
+            "description": "all exige todos los atributos; any exige al menos uno."
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeatAttributeRequirement"
+            },
+            "description": "Requisitos de puntuación de atributo."
+          }
+        }
+      },
+      "FeatAttributeRequirementInput": {
+        "type": "object",
+        "required": [
+          "key",
+          "min"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave del atributo dentro del sistema (por ejemplo, str)."
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Valor mínimo que debe tener el atributo."
+          }
+        }
+      },
+      "FeatRequirementsInput": {
+        "type": "object",
+        "properties": {
+          "attributeMode": {
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ],
+            "description": "all exige todos los atributos; any exige al menos uno."
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeatAttributeRequirementInput"
+            },
+            "description": "Requisitos de puntuación de atributo."
+          }
+        }
+      },
+      "FeatChoiceApi": {
+        "type": "object",
+        "properties": {
+          "choose": {
+            "type": "number",
+            "description": "Cantidad de dotes a seleccionar."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Feat"
+            },
+            "description": "Lista de dotes disponibles para elegir."
+          },
+          "query_type": {
+            "type": "string",
+            "enum": [
+              "all",
+              "options",
+              "filter"
+            ],
+            "description": "Tipo de consulta usada para obtener las opciones."
+          }
+        }
+      },
+      "InputCreateFeat": {
+        "type": "object",
+        "required": [
+          "name",
+          "ruleset"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del dote."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descripción detallada."
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Resumen del dote."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema al que pertenece el dote."
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/FeatRequirementsInput"
+          }
+        }
+      },
+      "InputUpdateFeat": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ruleset": {
+            "type": "string"
+          },
+          "requirements": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FeatRequirementsInput"
+              }
+            ],
+            "nullable": true,
+            "description": "Requisitos del dote. Enviar nulo para eliminarlos."
           }
         }
       },
@@ -4287,6 +4502,13 @@
             },
             "description": "Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros y traits)."
           },
+          "abilityScoreProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Override de niveles de clase con Mejora de característica.\nSi se omite, se usa el default del sistema. Array vacío desactiva la mejora en esta clase.\n"
+          },
           "subclassChoice": {
             "$ref": "#/components/schemas/SubclassChoiceConfig",
             "description": "Tipo de elección de subclase (nombre del grupo, texto y nivel en el que se elige)."
@@ -4550,6 +4772,13 @@
             },
             "description": "Niveles con tabla de ranuras, elecciones de conjuros y traits (level, spellcasting, spell_choices, traits)."
           },
+          "abilityScoreProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Override de niveles con Mejora de característica (reemplazo completo del default del sistema).\nArray vacío desactiva la mejora en esta clase. Si se omite, se hereda el default del sistema.\n"
+          },
           "subclassChoice": {
             "allOf": [
               {
@@ -4666,6 +4895,14 @@
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
             "description": "Niveles con tabla de ranuras, elecciones de conjuros y traits; se fusionan por level. Los traits de un nivel solo se sustituyen si el campo viene definido.\n"
+          },
+          "abilityScoreProgression": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "nullable": true,
+            "description": "Override de niveles con Mejora de característica. Enviar null para volver al default del sistema.\nArray vacío desactiva la mejora en esta clase.\n"
           },
           "subclassChoice": {
             "allOf": [
@@ -5859,7 +6096,7 @@
       },
       "post": {
         "summary": "Crear un nuevo sistema",
-        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\"\n}\n```\n",
+        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"abilityScoreProgression\": [4, 8, 12, 16, 19],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\"\n}\n```\n",
         "tags": [
           "Sistemas"
         ],
@@ -8357,7 +8594,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel y elecciones de conjuros).\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`).\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`).\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
         "tags": [
           "Personajes"
         ],
@@ -8396,7 +8633,8 @@
                   "required": [
                     "class",
                     "hit_die",
-                    "prof_bonus"
+                    "prof_bonus",
+                    "ability_score"
                   ],
                   "properties": {
                     "class": {
@@ -8453,6 +8691,18 @@
                           }
                         }
                       }
+                    },
+                    "ability_score": {
+                      "type": "boolean",
+                      "description": "True si este nivel de clase otorga Mejora de característica. En ese caso el POST debe enviar `abilityScore` (repartir 2 puntos) o `feat`.\n"
+                    },
+                    "feats": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/FeatChoiceApi"
+                        }
+                      ],
+                      "description": "Dotes disponibles si `ability_score` es true (elige 1 en lugar de los +2). Excluye dotes ya poseídas y las que no cumplen requisitos de atributo.\n"
                     }
                   }
                 }
@@ -8480,7 +8730,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje. Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`), ASI ni dotes.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
         "tags": [
           "Personajes"
         ],
@@ -8534,6 +8784,45 @@
                   "subclass": {
                     "type": "string",
                     "description": "ObjectId de la subclase elegida. Obligatorio si el GET level-up-data devolvió `subclassChoice`. Si el personaje ya la eligió en la creación, omitir.\n"
+                  },
+                  "abilityScore": {
+                    "type": "object",
+                    "description": "Incrementos de característica (suma total 2). Mutuamente excluyente con `feat`. Obligatorio si `ability_score` es true y no se envía `feat`.\n",
+                    "required": [
+                      "increases"
+                    ],
+                    "properties": {
+                      "increases": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "key",
+                            "bonus"
+                          ],
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "description": "Clave de la característica del personaje (p. ej. str)."
+                            },
+                            "bonus": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ],
+                              "description": "Puntos a sumar a esa característica."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "feat": {
+                    "type": "string",
+                    "description": "ObjectId de la dote elegida en lugar de los +2. Mutuamente excluyente con `abilityScore`. Debe estar en `feats.options` del GET.\n"
                   }
                 }
               }
@@ -8564,7 +8853,7 @@
             }
           },
           "400": {
-            "description": "Datos inválidos, elecciones de conjuros incorrectas, fórmula ausente, dado excedido o nivel máximo alcanzado."
+            "description": "Datos inválidos, elecciones de conjuros o ASI incorrectas, fórmula ausente, dado excedido o nivel máximo alcanzado."
           },
           "401": {
             "description": "No autorizado."
@@ -9289,6 +9578,253 @@
           },
           "404": {
             "description": "Idioma no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/feats": {
+      "get": {
+        "summary": "Obtener los dotes asociados a ciertos sistemas",
+        "tags": [
+          "Dotes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "description": "Sistema o sistemas para los cuales filtrar los dotes (incluye ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de dotes obtenida con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Feat"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo dote",
+        "tags": [
+          "Dotes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateFeat"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dote creado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feat"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros incorrectos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "No tienes permisos para crear dotes en este sistema."
+          },
+          "404": {
+            "description": "Sistema asociado no encontrado."
+          },
+          "409": {
+            "description": "Conflicto, el dote ya existe."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/feats/{id}": {
+      "put": {
+        "summary": "Actualizar un dote existente",
+        "tags": [
+          "Dotes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del dote a actualizar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateFeat"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dote actualizado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feat"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parámetros incorrectos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "No tienes permisos para modificar este dote."
+          },
+          "404": {
+            "description": "Dote o sistema asociado no encontrado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de un dote",
+        "tags": [
+          "Dotes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del dote a borrar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Dote borrado exitosamente."
+          },
+          "400": {
+            "description": "ID de dote requerido."
+          },
+          "403": {
+            "description": "No tienes permisos para borrar este dote."
+          },
+          "404": {
+            "description": "Dote o sistema asociado no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/feats/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar un dote borrado lógicamente",
+        "tags": [
+          "Dotes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del dote a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dote restaurado exitosamente."
+          },
+          "400": {
+            "description": "ID de dote requerido."
+          },
+          "403": {
+            "description": "No tienes permisos para restaurar este dote."
+          },
+          "404": {
+            "description": "Dote o sistema asociado no encontrado."
           },
           "500": {
             "description": "Error del servidor."

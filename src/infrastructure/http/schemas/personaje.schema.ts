@@ -33,6 +33,13 @@ export const UpdateCharacterXpSchema = z.object({
   XP: z.number().int().min(0, "La experiencia no puede ser negativa"),
 });
 
+const AbilityScoreIncreaseSchema = z.object({
+  key: z.string().min(1, "La clave de característica es requerida"),
+  bonus: z.union([z.literal(1), z.literal(2)], {
+    message: "El bonus de característica debe ser 1 o 2",
+  }),
+});
+
 export const LevelUpSchema = z.object({
   class: z.string().min(1, "ID de clase requerido"),
   hpIncrease: z
@@ -50,6 +57,51 @@ export const LevelUpSchema = z.object({
     .string()
     .regex(objectIdRegex, "La subclase debe ser un ObjectId válido de MongoDB")
     .optional(),
+  abilityScore: z
+    .object({
+      increases: z
+        .array(AbilityScoreIncreaseSchema)
+        .min(1, "Debe indicar al menos un incremento")
+        .max(2, "Como máximo 2 incrementos"),
+    })
+    .optional(),
+  feat: z
+    .string()
+    .regex(objectIdRegex, "La dote debe ser un ObjectId válido de MongoDB")
+    .optional(),
+}).superRefine((data, ctx) => {
+  if (data.abilityScore !== undefined && data.feat !== undefined) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Debe elegir mejora de característica o dote, no ambas",
+      path: ["feat"],
+    });
+  }
+
+  const increases = data.abilityScore?.increases;
+  if (!increases) return;
+
+  const seen = new Set<string>();
+  let total = 0;
+  for (let i = 0; i < increases.length; i++) {
+    if (seen.has(increases[i].key)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `abilityScore.increases contiene la característica duplicada ${increases[i].key}`,
+        path: ["abilityScore", "increases", i, "key"],
+      });
+    }
+    seen.add(increases[i].key);
+    total += increases[i].bonus;
+  }
+
+  if (total !== 2) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Los incrementos de característica deben sumar 2 puntos",
+      path: ["abilityScore", "increases"],
+    });
+  }
 });
 
 export const PrepareSpellsSchema = z.object({

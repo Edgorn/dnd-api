@@ -32,8 +32,8 @@ const router = Router();
  *           type: object
  *         skill_choices:
  *           type: object
- *         dotes:
- *           type: object
+ *         feats:
+ *           $ref: '#/components/schemas/FeatChoiceApi'
  *     Race:
  *       type: object
  *       properties:

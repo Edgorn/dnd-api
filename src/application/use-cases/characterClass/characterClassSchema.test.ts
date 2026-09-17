@@ -176,3 +176,60 @@ describe("UpdateCharacterClassSchema spellRepository", () => {
     expect(cleared.success).toBe(true);
   });
 });
+
+describe("CharacterClassSchema abilityScoreProgression", () => {
+  it("is optional on create", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago"
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty array on create", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Guerrero",
+      abilityScoreProgression: []
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a fighter override on create", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Guerrero",
+      abilityScoreProgression: [4, 6, 8, 12, 14, 16, 19]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a level of 0", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Guerrero",
+      abilityScoreProgression: [0, 4]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts null on update to clear the override", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      abilityScoreProgression: null
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty array on update", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      abilityScoreProgression: []
+    });
+
+    expect(result.success).toBe(true);
+  });
+});

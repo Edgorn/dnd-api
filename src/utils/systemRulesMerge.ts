@@ -44,6 +44,10 @@ export function mergeRulesFromAncestry(ancestry: System[]): SystemRulesConfig {
         (config as Record<string, unknown>)[key] = val;
       }
     }
+
+    if (config.abilityScoreProgression === undefined && Array.isArray(ancestor.abilityScoreProgression)) {
+      config.abilityScoreProgression = ancestor.abilityScoreProgression;
+    }
   }
 
   return config;

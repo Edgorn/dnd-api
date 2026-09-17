@@ -93,6 +93,14 @@ const router = Router();
  *           items:
  *             type: integer
  *           description: Bonificador de competencia por nivel total del personaje.
+ *         abilityScoreProgression:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: |
+ *             Niveles de clase que otorgan Mejora de característica por defecto
+ *             (p. ej. 4, 8, 12, 16, 19). Array vacío desactiva la mejora en este sistema.
+ *             Una clase puede sustituir esta lista.
  *         hpInitialFormula:
  *           type: string
  *           description: |
@@ -209,6 +217,14 @@ const router = Router();
  *           items:
  *             type: integer
  *           description: Bonificador de competencia por nivel total. Debe coincidir con maxLevel.
+ *         abilityScoreProgression:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: |
+ *             Niveles de clase que otorgan Mejora de característica por defecto.
+ *             No debe coincidir en longitud con maxLevel. Cada valor debe ser único,
+ *             mayor o igual que 1 y no superar maxLevel. Array vacío desactiva la mejora.
  *         hpInitialFormula:
  *           type: string
  *           description: |
@@ -298,6 +314,11 @@ const router = Router();
  *           type: array
  *           items:
  *             type: integer
+ *         abilityScoreProgression:
+ *           type: array
+ *           items:
+ *             type: integer
+ *           description: Niveles de clase con Mejora de característica por defecto. Array vacío desactiva la mejora.
  *         hpInitialFormula:
  *           type: string
  *           description: Fórmula de PG nivel 1. Ver SystemCharacterFormulaSyntax.
@@ -372,6 +393,7 @@ router.get('/systems', authMiddleware, systemController.getSystems);
  *         "maxLevel": 20,
  *         "xpProgression": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],
  *         "proficiencyProgression": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],
+ *         "abilityScoreProgression": [4, 8, 12, 16, 19],
  *         "hpInitialFormula": "max(@class.hitDie) + @attributes.con.modifier",
  *         "hpLevelUpFormula": "@class.hitDie + @attributes.con.modifier",
  *         "baseAcFormula": "10 + @attributes.dex.modifier",

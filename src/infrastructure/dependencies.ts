@@ -85,7 +85,7 @@ import CampaignRepository from "./databases/mongoDb/repositories/campaign.reposi
 import CharacterClassRepository from "./databases/mongoDb/repositories/characterClass.repository";
 import ProficiencyRepository from "./databases/mongoDb/repositories/proficiency.repository";
 import SpellRepository from "./databases/mongoDb/repositories/spell.repository";
-import DoteRepository from "./databases/mongoDb/repositories/dote.repository";
+import FeatRepository from "./databases/mongoDb/repositories/feat.repository";
 import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
 import LanguageRepository from "./databases/mongoDb/repositories/language.repository";
 import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
@@ -176,6 +176,13 @@ import SoftDeleteSkill from "../application/use-cases/skill/softDeleteSkill.use-
 import RestoreSkill from "../application/use-cases/skill/restoreSkill.use-case";
 import SoftDeleteLanguage from "../application/use-cases/language/softDeleteLanguage.use-case";
 import RestoreLanguage from "../application/use-cases/language/restoreLanguage.use-case";
+import { FeatController } from "./http/controllers/feat.controller";
+import FeatService from "../domain/services/feat.service";
+import GetFeatsBySystems from "../application/use-cases/feat/getFeatsBySystems.use-case";
+import CreateFeat from "../application/use-cases/feat/createFeat.use-case";
+import UpdateFeat from "../application/use-cases/feat/updateFeat.use-case";
+import SoftDeleteFeat from "../application/use-cases/feat/softDeleteFeat.use-case";
+import RestoreFeat from "../application/use-cases/feat/restoreFeat.use-case";
 
 import CreateSpell from "../application/use-cases/spell/createSpell.use-case";
 import UpdateSpell from "../application/use-cases/spell/updateSpell.use-case";
@@ -205,12 +212,12 @@ const damageRepository = new DamageRepository(systemRepository)
 const propertyRepository = new PropertyRepository(systemRepository)
 const coinRepository = new CoinRepository(systemRepository)
 const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propertyRepository, proficiencyRepository, coinRepository)
-const doteRepository = new DoteRepository()
 const languageRepository = new LanguageRepository(systemRepository)
 const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository)
 const subclassRepository = new SubclassRepository(systemRepository, traitRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
+const featRepository = new FeatRepository(systemRepository, attributeService)
 const skillService = new SkillService(skillRepository)
 const invocacionRepository = new InvocacionRepository(spellRepository, traitRepository)
 const characterClassRepository = new CharacterClassRepository(
@@ -220,7 +227,7 @@ const characterClassRepository = new CharacterClassRepository(
   equipmentRepository,
   traitRepository,
   spellRepository,
-  doteRepository,
+  featRepository,
   invocacionRepository,
   languageRepository,
   attributeService,
@@ -232,7 +239,7 @@ const raceRepository = new RaceRepository(
   spellRepository,
   skillService,
   proficiencyRepository,
-  doteRepository,
+  featRepository,
   traitRepository,
   attributeService,
   systemRepository
@@ -265,7 +272,7 @@ const personajeRepository = new PersonajeRepository(
   languageRepository,
   skillService,
   spellRepository,
-  doteRepository,
+  featRepository,
   characterClassRepository,
   subclassRepository,
   invocacionRepository,
@@ -423,8 +430,8 @@ export const magicSchoolController = new MagicSchoolController(
   getMagicSchoolsBySystems
 );
 
-const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository);
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -548,6 +555,21 @@ export const languageController = new LanguageController(
   updateLanguage,
   softDeleteLanguage,
   restoreLanguage
+)
+
+const featService = new FeatService(featRepository, attributeService)
+const getFeatsBySystems = new GetFeatsBySystems(featService)
+const createFeat = new CreateFeat(featService, systemService)
+const updateFeat = new UpdateFeat(featService, systemService)
+const softDeleteFeat = new SoftDeleteFeat(featService, systemService)
+const restoreFeat = new RestoreFeat(featService, systemService)
+
+export const featController = new FeatController(
+  getFeatsBySystems,
+  createFeat,
+  updateFeat,
+  softDeleteFeat,
+  restoreFeat
 )
 
 export const attributeController = new AttributeController(

@@ -299,6 +299,26 @@ describe("mergeRulesFromAncestry", () => {
     expect(config.xpProgression).toEqual([0, 100]);
   });
 
+  it("inherits abilityScoreProgression when child has none", () => {
+    const parentWithAsi: System = { ...parent, abilityScoreProgression: [4, 8, 12, 16, 19] };
+    const config = mergeRulesFromAncestry([child, parentWithAsi, grandparent]);
+    expect(config.abilityScoreProgression).toEqual([4, 8, 12, 16, 19]);
+  });
+
+  it("lets the child override abilityScoreProgression", () => {
+    const childWithAsi: System = { ...child, abilityScoreProgression: [4, 6, 8] };
+    const parentWithAsi: System = { ...parent, abilityScoreProgression: [4, 8, 12, 16, 19] };
+    const config = mergeRulesFromAncestry([childWithAsi, parentWithAsi, grandparent]);
+    expect(config.abilityScoreProgression).toEqual([4, 6, 8]);
+  });
+
+  it("treats an empty abilityScoreProgression as an explicit disable", () => {
+    const childWithoutAsi: System = { ...child, abilityScoreProgression: [] };
+    const parentWithAsi: System = { ...parent, abilityScoreProgression: [4, 8, 12, 16, 19] };
+    const config = mergeRulesFromAncestry([childWithoutAsi, parentWithAsi, grandparent]);
+    expect(config.abilityScoreProgression).toEqual([]);
+  });
+
   it("inherits attackBonusFormula and meleeAttackAttributes from child", () => {
     const config = mergeRulesFromAncestry([child, parent, grandparent]);
     expect(config.attackBonusFormula).toBe("child-attack");

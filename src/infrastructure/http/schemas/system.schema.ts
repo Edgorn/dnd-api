@@ -35,11 +35,28 @@ const weaponFormulaSchema = (fieldLabel: string) =>
     }
   });
 
+export const abilityScoreProgressionSchema = z
+  .array(z.number().int().min(1, "Cada nivel de mejora de característica debe ser al menos 1"))
+  .superRefine((values, ctx) => {
+    const seen = new Set<number>();
+    for (let i = 0; i < values.length; i++) {
+      if (seen.has(values[i])) {
+        ctx.addIssue({
+          code: "custom",
+          message: `abilityScoreProgression contiene el nivel duplicado ${values[i]}`,
+          path: [i],
+        });
+      }
+      seen.add(values[i]);
+    }
+  });
+
 const progressionArrayRefinement = (
   data: {
     maxLevel?: number;
     xpProgression?: number[];
     proficiencyProgression?: number[];
+    abilityScoreProgression?: number[];
   },
   ctx: z.RefinementCtx
 ) => {
@@ -67,6 +84,17 @@ const progressionArrayRefinement = (
 
   validateProgression("xpProgression", data.xpProgression);
   validateProgression("proficiencyProgression", data.proficiencyProgression);
+
+  if (data.abilityScoreProgression === undefined || data.maxLevel === undefined) return;
+  for (let i = 0; i < data.abilityScoreProgression.length; i++) {
+    if (data.abilityScoreProgression[i] > data.maxLevel) {
+      ctx.addIssue({
+        code: "custom",
+        message: `abilityScoreProgression no puede contener niveles mayores que maxLevel (${data.maxLevel})`,
+        path: ["abilityScoreProgression", i],
+      });
+    }
+  }
 };
 
 export const systemRulesFields = {
@@ -81,6 +109,7 @@ export const systemRulesFields = {
   maxSpellLevel: z.number().int().min(0).optional(),
   xpProgression: z.array(z.number().int().min(0)).optional(),
   proficiencyProgression: z.array(z.number().int()).optional(),
+  abilityScoreProgression: abilityScoreProgressionSchema.optional(),
   hpInitialFormula: systemFormulaSchema("hpInitialFormula"),
   hpLevelUpFormula: systemFormulaSchema("hpLevelUpFormula"),
   baseAcFormula: systemFormulaSchema("baseAcFormula"),

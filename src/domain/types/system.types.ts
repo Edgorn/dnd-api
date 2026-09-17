@@ -22,6 +22,7 @@ export interface System {
   maxSpellLevel?: number;
   xpProgression?: number[];
   proficiencyProgression?: number[];
+  abilityScoreProgression?: number[];
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;
@@ -45,6 +46,7 @@ export interface SystemRulesConfig {
   maxSpellLevel?: number;
   xpProgression?: number[];
   proficiencyProgression?: number[];
+  abilityScoreProgression?: number[];
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;
@@ -77,6 +79,7 @@ export interface SystemApi {
   maxSpellLevel?: number;
   xpProgression?: number[];
   proficiencyProgression?: number[];
+  abilityScoreProgression?: number[];
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;
@@ -111,6 +114,7 @@ export interface TypeCrearSystem {
   maxSpellLevel?: number;
   xpProgression?: number[];
   proficiencyProgression?: number[];
+  abilityScoreProgression?: number[];
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;
@@ -141,6 +145,7 @@ export interface TypeModificarSystem {
   maxSpellLevel?: number;
   xpProgression?: number[];
   proficiencyProgression?: number[];
+  abilityScoreProgression?: number[];
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;

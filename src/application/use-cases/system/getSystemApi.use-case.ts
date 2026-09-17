@@ -141,6 +141,7 @@ export default class GetSystemApi {
       maxSpellLevel: mergedRules.maxSpellLevel,
       xpProgression: mergedRules.xpProgression,
       proficiencyProgression: mergedRules.proficiencyProgression,
+      abilityScoreProgression: mergedRules.abilityScoreProgression,
       hpInitialFormula: mergedRules.hpInitialFormula,
       hpLevelUpFormula: mergedRules.hpLevelUpFormula,
       baseAcFormula: mergedRules.baseAcFormula,

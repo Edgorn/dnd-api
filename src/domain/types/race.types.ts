@@ -2,7 +2,7 @@ import { ObjectId } from "mongoose"
 import { ChoiceApi, ChoiceMongo, Speed } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { SpellApi } from "./spell.types"
-import { DoteApi } from "./dotes.types"
+import { FeatApi } from "./feat.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi, CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { TraitApi, TraitDataMongo } from "./traits.types"
@@ -58,7 +58,8 @@ export interface VarianteMongo {
   ability_bonuses: AttributeBonus[],
   skill_choices?: ChoiceMongo,
   ability_bonus_choices: ChoiceMongo,
-  dotes?: number
+  feats?: number;
+  dotes?: number;
 }
 
 export interface RaceApi {
@@ -107,7 +108,7 @@ export interface VarianteApi {
   ability_bonuses: AttributeBonus[],
   skill_choices?: ChoiceApi<SkillApi>,
   ability_bonus_choices?: ChoiceApi<AttributeBonus>,
-  dotes?: ChoiceApi<DoteApi>
+  feats?: ChoiceApi<FeatApi>
 }
 
 export interface CreateRace {

@@ -1,7 +1,7 @@
 import { ChoiceApi, ChoiceMongo } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceSpell, SpellApi } from "./spell.types"
-import { DoteApi } from "./dotes.types"
+import { FeatApi } from "./feat.types"
 import { EquipmentInstanceApi, CharacterEquipmentMongo, EquipmentChoiceMongo, EquipmentCost, ResolvedEquipmentChoiceApi } from "./equipment.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi } from "./language.types"
@@ -82,6 +82,7 @@ export interface InputCreateCharacterClass {
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
   levels?: CharacterClassLevelInput[];
+  abilityScoreProgression?: number[] | null;
   subclassChoice?: SubclassChoiceConfig | null;
 }
 
@@ -105,6 +106,7 @@ export interface InputUpdateCharacterClass {
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
   levels?: CharacterClassLevelInput[];
+  abilityScoreProgression?: number[] | null;
   subclassChoice?: SubclassChoiceConfig | null;
 }
 
@@ -130,6 +132,7 @@ export interface CharacterClassMongo {
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
   subclassChoice?: SubclassChoiceConfig | null;
+  abilityScoreProgression?: number[] | null;
 }
 
 export interface CharacterClassLevelMongo {
@@ -242,6 +245,7 @@ export interface CharacterClassApi {
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig;
   levels?: CharacterClassLevelInput[];
+  abilityScoreProgression?: number[];
   subclassChoice?: SubclassChoiceConfig;
   subclasses?: SubclassApi[];
   deletedAt?: Date | null;
@@ -283,7 +287,7 @@ export interface ClaseLevelUp {
     options: TraitApi[];
   };
   ability_score?: boolean;
-  dotes?: ChoiceApi<DoteApi>;
+  feats?: ChoiceApi<FeatApi>;
   subclassChoice?: SubclassChoiceMenuApi | null;
   double_skills?: number;
   spells?: SpellApi[];

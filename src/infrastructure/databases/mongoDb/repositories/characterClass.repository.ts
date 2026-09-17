@@ -1,7 +1,7 @@
 import ICharacterClassRepository from '../../../../domain/repositories/ICharacterClassRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import IDoteRepository from '../../../../domain/repositories/IDoteRepository';
+import IFeatRepository from '../../../../domain/repositories/IFeatRepository';
 import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 import SkillService from '../../../../domain/services/skill.service';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
@@ -23,7 +23,7 @@ import {
   SubclassChoiceMenuApi
 } from '../../../../domain/types/characterClass.types';
 import { ChoiceSpell } from '../../../../domain/types/spell.types';
-import { DoteApi } from '../../../../domain/types/dotes.types';
+import { FeatApi } from '../../../../domain/types/feat.types';
 import { EquipmentApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from '../../../../domain/types/equipment.types';
 import { AttributeApi } from '../../../../domain/types/attribute.types';
 import { TraitApi, TraitDataMongo } from '../../../../domain/types/traits.types';
@@ -38,6 +38,10 @@ import {
   remainingCantripPicks,
   resolveClassSpellSlotsForLevel,
 } from '../../../../utils/characterSpellcasting';
+import {
+  hasAbilityScoreAtLevel,
+  resolveAbilityScoreProgression
+} from '../../../../utils/abilityScoreProgression';
 
 export default class CharacterClassRepository implements ICharacterClassRepository {
   constructor(
@@ -47,7 +51,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     private readonly equipmentRepository?: IEquipmentRepository,
     private readonly traitRepository?: ITraitRepository,
     private readonly spellRepository?: ISpellRepository,
-    private readonly doteRepository?: IDoteRepository,
+    private readonly featRepository?: IFeatRepository,
     private readonly invocationRepository?: IInvocacionRepository,
     private readonly languageRepository?: ILanguageRepository,
     private readonly attributeService?: AttributeService,
@@ -97,6 +101,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellsPreparedFormula: data.spellsPreparedFormula,
       preparedFrom: data.preparedFrom,
       spellRepository: data.spellRepository ?? undefined,
+      abilityScoreProgression: data.abilityScoreProgression ?? undefined,
       subclassChoice: data.subclassChoice ?? undefined,
       levels: this.mapLevelsForCreate(data.levels)
     });
@@ -126,6 +131,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     if (updateFields.subclassChoice === null) {
       (updateFields as Record<string, unknown>).subclassChoice = null;
+    }
+
+    if (updateFields.abilityScoreProgression === null) {
+      (updateFields as Record<string, unknown>).abilityScoreProgression = null;
     }
 
     const setFields: Record<string, unknown> = { ...updateFields };
@@ -185,12 +194,19 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       characterClass.subclassChoice
     );
 
+    const abilityScore = await this.resolveLevelUpAbilityScore(
+      characterClass,
+      level,
+      dataLevel?.ability_score
+    );
+
     if (!dataLevel) {
       return {
         hit_die: hitDie,
         traits: subclassTraits,
         traits_data: subclassTraitsData,
-        subclassChoice: subclassChoiceMenu
+        subclassChoice: subclassChoiceMenu,
+        ...abilityScore
       };
     }
 
@@ -211,12 +227,6 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const traits = this.traitRepository
       ? await this.traitRepository.getTraitsByIndexes(uniqueTraitIds, dataLevel?.traits_data)
       : [];
-
-    let feats: ChoiceApi<DoteApi> | undefined = undefined;
-
-    if (dataLevel.ability_score && this.doteRepository) {
-      feats = await this.doteRepository.formatearOpcionesDeDote(1);
-    }
 
     const spell_choices = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined;
     const spell_changes_aux = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.spell_changes?.options) : undefined;
@@ -251,8 +261,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       traits_data: { ...(dataLevel.traits_data ?? {}), ...subclassTraitsData },
       traits_options,
       subclassChoice: subclassChoiceMenu,
-      ability_score: dataLevel.ability_score,
-      dotes: feats,
+      ...abilityScore,
       double_skills: dataLevel.double_skills,
       spell_choices,
       spells,
@@ -392,6 +401,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellsPreparedFormula: characterClass.spellsPreparedFormula,
       preparedFrom: characterClass.preparedFrom,
       ...(characterClass.spellRepository ? { spellRepository: characterClass.spellRepository } : {}),
+      ...(Array.isArray(characterClass.abilityScoreProgression)
+        ? { abilityScoreProgression: characterClass.abilityScoreProgression }
+        : {}),
       ...(characterClass.subclassChoice ? { subclassChoice: characterClass.subclassChoice } : {}),
       subclasses,
       levels: this.toSlimLevels(characterClass.levels ?? []),
@@ -472,6 +484,32 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       subclassTraitsData,
       subclassChoiceMenu
     };
+  }
+
+  private async resolveLevelUpAbilityScore(
+    characterClass: CharacterClassMongo,
+    level: number,
+    legacyFlag?: boolean
+  ): Promise<{ ability_score?: boolean; feats?: ChoiceApi<FeatApi> }> {
+    const ruleset = characterClass.ruleset;
+    const systemDefault = ruleset
+      ? (await this.systemRepository.getMergedRulesConfig([ruleset])).abilityScoreProgression
+      : undefined;
+    const resolved = resolveAbilityScoreProgression(
+      characterClass.abilityScoreProgression,
+      systemDefault
+    );
+    const ability_score = hasAbilityScoreAtLevel(level, resolved, legacyFlag);
+
+    if (!ability_score) {
+      return { ability_score: false };
+    }
+
+    const feats = this.featRepository
+      ? await this.featRepository.formatFeatChoices(1, ruleset)
+      : undefined;
+
+    return { ability_score: true, feats };
   }
 
   private mapLevelsForCreate(levels?: CharacterClassLevelInput[]): CharacterClassLevelMongo[] {

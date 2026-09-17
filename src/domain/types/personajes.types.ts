@@ -5,7 +5,7 @@ import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceApi, Damage, Speed } from "."
 import { CharacterEquipmentApi } from "./equipment.types"
-import { DoteApi } from "./dotes.types"
+import { FeatApi } from "./feat.types"
 import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
@@ -76,7 +76,7 @@ export interface TypeCrearPersonaje {
     unit: string,
     quantity: number
   }[],
-  dotes: string[],
+  feats: string[],
   hit_die: number,
   prof_bonus: number
 }
@@ -116,6 +116,11 @@ export interface CharacterSpellPrivilegeApi {
   selections: SpellApi[][];
 }
 
+export interface AbilityScoreIncreaseInput {
+  key: string;
+  bonus: 1 | 2;
+}
+
 export interface TypeLevelUp {
   id: string;
   classId: string;
@@ -123,6 +128,8 @@ export interface TypeLevelUp {
   userId: string;
   spells?: string[][];
   subclass?: string;
+  abilityScore?: { increases: AbilityScoreIncreaseInput[] };
+  feat?: string;
 }
 
 export interface TypeAddEquipment {
@@ -262,7 +269,8 @@ export interface PersonajeMongo {
     quantity: number;
     unit: string;
   }[],
-  dotes: string[],
+  feats?: string[],
+  dotes?: string[],
   prof_bonus: number,
   plusSpeed: 0,
   proficiency_weapon: string[],
@@ -337,7 +345,7 @@ export interface PersonajeApi {
   prof_bonus: number,
   saving_throws: string[],
   equipment: CharacterEquipmentApi[],
-  dotes: DoteApi[],
+  feats: FeatApi[],
   money: ({
     quantity: number;
   } & CoinApi)[],
@@ -360,4 +368,6 @@ export interface LevelUpData {
   traits_data?: TraitDataMongo;
   spell_choices?: ChoiceApi<SpellApi>[];
   subclassChoice?: SubclassChoiceMenuApi | null;
+  ability_score: boolean;
+  feats?: ChoiceApi<FeatApi>;
 }

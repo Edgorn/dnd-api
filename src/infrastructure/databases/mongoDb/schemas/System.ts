@@ -18,6 +18,7 @@ const system: Schema = new Schema<System>({
   maxSpellLevel: Number,
   xpProgression: [Number],
   proficiencyProgression: [Number],
+  abilityScoreProgression: { type: [Number], default: undefined },
   hpInitialFormula: String,
   hpLevelUpFormula: String,
   baseAcFormula: String,

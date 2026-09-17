@@ -56,26 +56,6 @@ const router = Router();
  *           type: number
  *           description: Valor pasivo calculado según passiveSkillFormula del sistema. Solo presente si el sistema define la fórmula.
  *
- *     Dote:
- *       type: object
- *       properties:
- *         index:
- *           type: string
- *           description: Identificador del dote.
- *         name:
- *           type: string
- *           description: Nombre del dote.
- *         description:
- *           type: array
- *           items:
- *             type: string
- *           description: Descripción detallada del dote.
- *         summary:
- *           type: array
- *           items:
- *             type: string
- *           description: Resumen del dote.
- *
  *     Estado:
  *       type: object
  *       properties:
@@ -551,10 +531,10 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterEquipmentApi'
- *         dotes:
+ *         feats:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Dote'
+ *             $ref: '#/components/schemas/Feat'
  *         money:
  *           type: array
  *           items:
@@ -605,7 +585,7 @@ const router = Router();
  *         - traits
  *         - traits_data
  *         - money
- *         - dotes
+ *         - feats
  *         - hit_die
  *         - prof_bonus
  *       properties:
@@ -699,10 +679,11 @@ const router = Router();
  *                 description: ID de la moneda.
  *               quantity:
  *                 type: number
- *         dotes:
+ *         feats:
  *           type: array
  *           items:
  *             type: string
+ *           description: IDs de los dotes del personaje.
  *         hit_die:
  *           type: number
  *         prof_bonus:
@@ -1256,7 +1237,8 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *     summary: Obtener datos para subir de nivel
  *     description: |
  *       Devuelve la información necesaria para subir de nivel en una clase concreta del personaje
- *       (dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel y elecciones de conjuros).
+ *       (dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros
+ *       y, si toca, mejora de característica).
  *       `traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen
  *       elecciones (`traits_options`).
  *       Si el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene
@@ -1265,6 +1247,9 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       de la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos
  *       sintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con
  *       ranuras), más las elecciones persistidas de niveles 1–9.
+ *       Si el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes
+ *       elegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2
+ *       (un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.
  *     tags:
  *       - Personajes
  *     security:
@@ -1293,6 +1278,7 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                 - class
  *                 - hit_die
  *                 - prof_bonus
+ *                 - ability_score
  *               properties:
  *                 class:
  *                   type: string
@@ -1335,6 +1321,17 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/Subclass'
+ *                 ability_score:
+ *                   type: boolean
+ *                   description: >
+ *                     True si este nivel de clase otorga Mejora de característica.
+ *                     En ese caso el POST debe enviar `abilityScore` (repartir 2 puntos) o `feat`.
+ *                 feats:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/FeatChoiceApi'
+ *                   description: >
+ *                     Dotes disponibles si `ability_score` es true (elige 1 en lugar de los +2).
+ *                     Excluye dotes ya poseídas y las que no cumplen requisitos de atributo.
  *       400:
  *         description: Datos de entrada inválidos.
  *       401:
@@ -1358,11 +1355,15 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       según el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema
  *       del personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado
  *       de la tirada o media del dado); el servidor aplica la fórmula del sistema con los
- *       atributos del personaje. Reinicia la XP a 0.
+ *       atributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.
  *       Si `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir
  *       `spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se
  *       guardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y
- *       `traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`), ASI ni dotes.
+ *       `traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).
+ *       Si el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de
+ *       `abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)
+ *       o `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos
+ *       mecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.
  *       Si el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).
  *     tags:
  *       - Personajes
@@ -1410,6 +1411,36 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                 description: >
  *                   ObjectId de la subclase elegida. Obligatorio si el GET level-up-data
  *                   devolvió `subclassChoice`. Si el personaje ya la eligió en la creación, omitir.
+ *               abilityScore:
+ *                 type: object
+ *                 description: >
+ *                   Incrementos de característica (suma total 2). Mutuamente excluyente con `feat`.
+ *                   Obligatorio si `ability_score` es true y no se envía `feat`.
+ *                 required:
+ *                   - increases
+ *                 properties:
+ *                   increases:
+ *                     type: array
+ *                     minItems: 1
+ *                     maxItems: 2
+ *                     items:
+ *                       type: object
+ *                       required:
+ *                         - key
+ *                         - bonus
+ *                       properties:
+ *                         key:
+ *                           type: string
+ *                           description: Clave de la característica del personaje (p. ej. str).
+ *                         bonus:
+ *                           type: integer
+ *                           enum: [1, 2]
+ *                           description: Puntos a sumar a esa característica.
+ *               feat:
+ *                 type: string
+ *                 description: >
+ *                   ObjectId de la dote elegida en lugar de los +2. Mutuamente excluyente con
+ *                   `abilityScore`. Debe estar en `feats.options` del GET.
  *     responses:
  *       200:
  *         description: Personaje actualizado tras la subida de nivel.
@@ -1426,7 +1457,7 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                 basico:
  *                   $ref: '#/components/schemas/PersonajeBasico'
  *       400:
- *         description: Datos inválidos, elecciones de conjuros incorrectas, fórmula ausente, dado excedido o nivel máximo alcanzado.
+ *         description: Datos inválidos, elecciones de conjuros o ASI incorrectas, fórmula ausente, dado excedido o nivel máximo alcanzado.
  *       401:
  *         description: No autorizado.
  *       403:

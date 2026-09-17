@@ -3,6 +3,7 @@ import IAttributeRepository from "../../../domain/repositories/IAttributeReposit
 import ISkillRepository from "../../../domain/repositories/ISkillRepository";
 import ILanguageRepository from "../../../domain/repositories/ILanguageRepository";
 import IMagicSchoolRepository from "../../../domain/repositories/IMagicSchoolRepository";
+import IFeatRepository from "../../../domain/repositories/IFeatRepository";
 import { AppError } from "../../../domain/errors/AppError";
 
 export default class CascadeSoftDeleteSystem {
@@ -11,7 +12,8 @@ export default class CascadeSoftDeleteSystem {
     private readonly attributeRepository: IAttributeRepository,
     private readonly skillRepository: ISkillRepository,
     private readonly languageRepository: ILanguageRepository,
-    private readonly magicSchoolRepository?: IMagicSchoolRepository
+    private readonly magicSchoolRepository?: IMagicSchoolRepository,
+    private readonly featRepository?: IFeatRepository
   ) {}
 
   async execute(id: string, userId: string): Promise<void> {
@@ -37,6 +39,10 @@ export default class CascadeSoftDeleteSystem {
 
     if (this.magicSchoolRepository) {
       cascadePromises.push(this.magicSchoolRepository.softDeleteByRuleset(id, deletedAt));
+    }
+
+    if (this.featRepository) {
+      cascadePromises.push(this.featRepository.softDeleteByRuleset(id, deletedAt));
     }
 
     await Promise.all(cascadePromises);

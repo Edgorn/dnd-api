@@ -54,6 +54,7 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   HPMax: Number,
   HPActual: Number,
   XP: Number,
+  feats: [],
   dotes: [],
   forms: [String],
   preparedSpells: { type: Schema.Types.Mixed, default: {} },

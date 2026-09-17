@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CharacterEquipmentSchema, CostSchema, EquipmentChoiceMongoSchema } from "./equipment.schema";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
+import { abilityScoreProgressionSchema } from "./system.schema";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -98,6 +99,7 @@ const characterClassFields = {
   preparedFrom: PreparedFromSchema.optional(),
   spellRepository: SpellRepositoryConfigSchema.nullable().optional(),
   levels: z.array(CharacterClassLevelInputSchema).optional(),
+  abilityScoreProgression: abilityScoreProgressionSchema.optional(),
   subclassChoice: z.object({
     name: z.string().min(1, "El nombre del tipo de subclase no puede estar vacío"),
     description: z.array(z.string()).default([]),
@@ -121,7 +123,8 @@ export const UpdateCharacterClassSchema = z.object({
   name: z.string().optional(),
   description: z.union([z.string(), z.array(z.string())]).optional(),
   img: z.string().optional(),
-  ...characterClassFields
+  ...characterClassFields,
+  abilityScoreProgression: abilityScoreProgressionSchema.nullable().optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
   spellPreparationPairRefinement(data, ctx);
