@@ -272,7 +272,6 @@ export interface PersonajeMongo {
   feats?: string[],
   dotes?: string[],
   prof_bonus: number,
-  plusSpeed: 0,
   proficiency_weapon: string[],
   proficiency_armor: string[],
   proficiencies: string[],

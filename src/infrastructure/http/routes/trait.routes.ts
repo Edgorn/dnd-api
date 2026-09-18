@@ -51,6 +51,51 @@ const router = Router();
  *           description: >
  *             Reglas de privilegio de conjuro que otorga el rasgo (elección del personaje,
  *             preparados automáticos, lanzamiento sin ranura y sustitución).
+ *         speed:
+ *           $ref: '#/components/schemas/TraitSpeed'
+ *           description: Efecto de velocidad de movimiento que otorga el rasgo.
+ *     TraitSpeed:
+ *       type: object
+ *       description: >
+ *         Un rasgo define un único efecto de velocidad. `set` aumenta el modo
+ *         hasta el valor indicado (nunca reduce). `add` suma. `equalToWalk`
+ *         copia la velocidad de caminar al modo indicado al final.
+ *         `condition` por ahora solo admite `always` (o puede omitirse).
+ *       properties:
+ *         set:
+ *           $ref: '#/components/schemas/MovementSpeeds'
+ *           description: Aumenta cada modo hasta este valor (por ejemplo, Pies Veloces a 35 pies).
+ *         add:
+ *           $ref: '#/components/schemas/MovementSpeeds'
+ *           description: Suma pies a cada modo indicado.
+ *         equalToWalk:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [fly, climb, swim, burrow]
+ *           description: Tras set y add, esos modos quedan al menos iguales a walk.
+ *         condition:
+ *           type: string
+ *           enum: [always]
+ *           description: Condición de aplicación. Por ahora el único valor válido es always.
+ *     MovementSpeeds:
+ *       type: object
+ *       properties:
+ *         walk:
+ *           type: number
+ *           exclusiveMinimum: 0
+ *         fly:
+ *           type: number
+ *           exclusiveMinimum: 0
+ *         climb:
+ *           type: number
+ *           exclusiveMinimum: 0
+ *         swim:
+ *           type: number
+ *           exclusiveMinimum: 0
+ *         burrow:
+ *           type: number
+ *           exclusiveMinimum: 0
  *     SpellPrivilegeRule:
  *       type: object
  *       required:
@@ -163,6 +208,9 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/SpellPrivilegeRule'
  *           description: Reglas de privilegio de conjuro que otorga el rasgo.
+ *         speed:
+ *           $ref: '#/components/schemas/TraitSpeed'
+ *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
  *     InputUpdateTrait:
  *       type: object
  *       properties:
@@ -197,6 +245,9 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/SpellPrivilegeRule'
  *           description: Reglas de privilegio de conjuro que otorga el rasgo.
+ *         speed:
+ *           $ref: '#/components/schemas/TraitSpeed'
+ *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
  */
 
 /**

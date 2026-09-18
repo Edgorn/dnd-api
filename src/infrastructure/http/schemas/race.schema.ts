@@ -46,3 +46,25 @@ export const CreateRaceSchema = z.object({
 export const UpdateRaceSchema = CreateRaceSchema.partial().refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });
+
+export const UpsertRaceOverrideSchema = z.object({
+  ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío"),
+  name: z.string().min(1, "El nombre no puede estar vacío").nullable().optional(),
+  description: z.array(z.string()).nullable().optional(),
+  img: z.string().nullable().optional(),
+  alignment: z.string().nullable().optional()
+}).refine(
+  data =>
+    data.name !== undefined
+    || data.description !== undefined
+    || data.img !== undefined
+    || data.alignment !== undefined,
+  { message: "Debe proporcionar al menos un campo de flavor para el parche" }
+);
+
+export const RaceOverrideQuerySchema = z.object({
+  ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío")
+});
+
+export type UpsertRaceOverrideBody = z.infer<typeof UpsertRaceOverrideSchema>;
+export type RaceOverrideQuery = z.infer<typeof RaceOverrideQuerySchema>;

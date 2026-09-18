@@ -67,6 +67,35 @@ describe("CreateTraitSchema spellPrivileges", () => {
   });
 });
 
+describe("CreateTraitSchema speed", () => {
+  it("accepts Fleet of Foot style set walk", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pies Veloces",
+      speed: { set: { walk: 35 } },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty speed object", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      speed: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a condition other than always", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      speed: { add: { walk: 10 }, condition: "notHeavyArmor" },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("UpdateTraitSchema spellPrivileges", () => {
   it("accepts updating only spellPrivileges", () => {
     const result = UpdateTraitSchema.safeParse({

@@ -12,6 +12,7 @@ import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { SpellApi } from "../../../../domain/types/spell.types";
 import { EstadoApi } from "../../../../domain/types/estados.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
+import { normalizeTraitSpeed } from "../../../../utils/applyTraitSpeed";
 import { Types } from 'mongoose';
 import { AppError } from '../../../../domain/errors/AppError';
 
@@ -215,7 +216,7 @@ export default class TraitRepository implements ITraitRepository {
         proficiencies,
         skills,
         spells,
-        speed: trait?.speed ?? undefined,
+        speed: normalizeTraitSpeed(trait?.speed),
         bonuses: trait?.bonuses ?? undefined,
         ...(Array.isArray(trait.spellPrivileges) && trait.spellPrivileges.length
           ? { spellPrivileges: trait.spellPrivileges }

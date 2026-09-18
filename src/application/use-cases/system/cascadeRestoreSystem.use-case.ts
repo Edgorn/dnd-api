@@ -4,6 +4,7 @@ import ISkillRepository from "../../../domain/repositories/ISkillRepository";
 import ILanguageRepository from "../../../domain/repositories/ILanguageRepository";
 import IMagicSchoolRepository from "../../../domain/repositories/IMagicSchoolRepository";
 import IFeatRepository from "../../../domain/repositories/IFeatRepository";
+import IEntityOverrideRepository from "../../../domain/repositories/IEntityOverrideRepository";
 import { AppError } from "../../../domain/errors/AppError";
 
 export default class CascadeRestoreSystem {
@@ -13,7 +14,8 @@ export default class CascadeRestoreSystem {
     private readonly skillRepository: ISkillRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly magicSchoolRepository?: IMagicSchoolRepository,
-    private readonly featRepository?: IFeatRepository
+    private readonly featRepository?: IFeatRepository,
+    private readonly entityOverrideRepository?: IEntityOverrideRepository
   ) {}
 
   async execute(id: string, userId: string): Promise<void> {
@@ -47,6 +49,10 @@ export default class CascadeRestoreSystem {
 
     if (this.featRepository) {
       cascadePromises.push(this.featRepository.restoreByRuleset(id, deletedAt));
+    }
+
+    if (this.entityOverrideRepository) {
+      cascadePromises.push(this.entityOverrideRepository.restoreByRuleset(id, deletedAt));
     }
 
     await Promise.all(cascadePromises);

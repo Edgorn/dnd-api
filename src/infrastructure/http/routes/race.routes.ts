@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { raceController, authMiddleware } from "../../dependencies";
-import { validateSchema } from "../middlewares/validateSchema";
-import { CreateRaceSchema, UpdateRaceSchema } from "../schemas/race.schema";
+import { CreateRaceSchema, UpdateRaceSchema, UpsertRaceOverrideSchema, RaceOverrideQuerySchema } from "../schemas/race.schema";
+import { validateSchema, validateQuery } from "../middlewares/validateSchema";
 
 const router = Router();
 
@@ -125,6 +125,79 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/VarianteApi'
+ *         inherited:
+ *           type: boolean
+ *           description: Indica si la raza pertenece a un sistema ancestro del ruleset consultado.
+ *         overriddenFields:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [name, description, img, alignment]
+ *           description: Campos de flavor sustituidos por un parche del sistema consultado.
+ *         overrideRuleset:
+ *           type: string
+ *           description: ID del sistema cuyo parche se ha aplicado.
+ *     RaceOverride:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: ID del parche.
+ *         ruleset:
+ *           type: string
+ *           description: ID del sistema hijo que aplica el parche.
+ *         entityType:
+ *           type: string
+ *           enum: [race]
+ *           description: Tipo de entidad parcheada.
+ *         sourceId:
+ *           type: string
+ *           description: ID canónico de la raza del sistema ancestro.
+ *         patch:
+ *           $ref: '#/components/schemas/RaceFlavorPatch'
+ *     RaceFlavorPatch:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre local de la raza.
+ *         description:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Descripción local de la raza.
+ *         img:
+ *           type: string
+ *           description: Imagen local de la raza.
+ *         alignment:
+ *           type: string
+ *           description: Alineamiento local de la raza.
+ *     InputUpsertRaceOverride:
+ *       type: object
+ *       required:
+ *         - ruleset
+ *       properties:
+ *         ruleset:
+ *           type: string
+ *           description: ID o nombre del sistema hijo que aplica el parche.
+ *         name:
+ *           type: string
+ *           nullable: true
+ *           description: Nombre local. Envíe null para dejar de sobreescribir este campo.
+ *         description:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             type: string
+ *           description: Descripción local. Envíe null para dejar de sobreescribir este campo.
+ *         img:
+ *           type: string
+ *           nullable: true
+ *           description: Imagen local. Envíe null para dejar de sobreescribir este campo.
+ *         alignment:
+ *           type: string
+ *           nullable: true
+ *           description: Alineamiento local. Envíe null para dejar de sobreescribir este campo.
  *     InputCreateRace:
  *       type: object
  *       required:
@@ -282,6 +355,7 @@ const router = Router();
  * /races:
  *   get:
  *     summary: Obtener el listado de razas (con soporte para herencia del sistema)
+ *     description: Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor del sistema consultado (el más cercano gana).
  *     tags:
  *       - Razas
  *     security:
@@ -338,6 +412,127 @@ router.get('/races', authMiddleware, raceController.getRaces);
  *         description: Error del servidor.
  */
 router.post('/races', authMiddleware, validateSchema(CreateRaceSchema), raceController.createRace);
+
+/**
+ * @openapi
+ * /races/{id}/override:
+ *   get:
+ *     summary: Obtener el parche de flavor de una raza heredada
+ *     tags:
+ *       - Razas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID canónico de la raza del sistema padre.
+ *       - in: query
+ *         name: ruleset
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema hijo que posee el parche.
+ *     responses:
+ *       200:
+ *         description: Parche obtenido exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RaceOverride'
+ *       400:
+ *         description: La raza no es heredable en ese sistema.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: No tienes permisos para consultar este parche.
+ *       404:
+ *         description: Raza, sistema o parche no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/races/:id/override', authMiddleware, validateQuery(RaceOverrideQuerySchema), raceController.getRaceOverride);
+
+/**
+ * @openapi
+ * /races/{id}/override:
+ *   put:
+ *     summary: Crear o actualizar el parche de flavor de una raza heredada
+ *     description: El sistema hijo reescribe descripción, nombre, imagen o alineamiento sin modificar la raza canónica del padre. Envíe null en un campo para dejar de sobreescribirlo.
+ *     tags:
+ *       - Razas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID canónico de la raza del sistema padre.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/InputUpsertRaceOverride'
+ *     responses:
+ *       200:
+ *         description: Parche guardado exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RaceOverride'
+ *       400:
+ *         description: Datos inválidos o la raza no es heredable en ese sistema.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: No tienes permisos para modificar parches en este sistema.
+ *       404:
+ *         description: Raza o sistema no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.put('/races/:id/override', authMiddleware, validateSchema(UpsertRaceOverrideSchema), raceController.upsertRaceOverride);
+
+/**
+ * @openapi
+ * /races/{id}/override:
+ *   delete:
+ *     summary: Eliminar el parche de flavor de una raza heredada
+ *     tags:
+ *       - Razas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID canónico de la raza del sistema padre.
+ *       - in: query
+ *         name: ruleset
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema hijo que posee el parche.
+ *     responses:
+ *       200:
+ *         description: Parche eliminado exitosamente.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: No tienes permisos para borrar este parche.
+ *       404:
+ *         description: Raza, sistema o parche no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.delete('/races/:id/override', authMiddleware, validateQuery(RaceOverrideQuerySchema), raceController.deleteRaceOverride);
 
 /**
  * @openapi

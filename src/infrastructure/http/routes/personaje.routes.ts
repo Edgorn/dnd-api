@@ -351,8 +351,17 @@ const router = Router();
  *             type: string
  *         speed:
  *           type: object
+ *           description: Velocidad persistida del personaje (sin aplicar rasgos).
  *           properties:
  *             walk:
+ *               type: number
+ *             fly:
+ *               type: number
+ *             climb:
+ *               type: number
+ *             swim:
+ *               type: number
+ *             burrow:
  *               type: number
  *
  *     PersonajeApi:
@@ -489,8 +498,17 @@ const router = Router();
  *           type: number
  *         speed:
  *           type: object
+ *           description: Velocidad calculada del personaje, incluyendo efectos de rasgos. walk es obligatorio; fly, climb, swim y burrow son opcionales.
  *           properties:
  *             walk:
+ *               type: number
+ *             fly:
+ *               type: number
+ *             climb:
+ *               type: number
+ *             swim:
+ *               type: number
+ *             burrow:
  *               type: number
  *         skills:
  *           type: array

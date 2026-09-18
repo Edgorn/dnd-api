@@ -25,6 +25,7 @@ import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRe
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
+import { applyTraitSpeed } from '../../../../utils/applyTraitSpeed';
 import {
   applyAbilityScoreIncreases,
   filterLevelUpFeatChoices,
@@ -218,7 +219,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       traits_data: resolvedTraitsData,
       prof_bonus: resolvedProfBonus,
       speed,
-      plusSpeed: 0,
       size,
       languages: languages,
       saving_throws: saving_throws ?? [],
@@ -1421,12 +1421,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
   private async calcularCA(personaje: PersonajeMongo, traits: TraitApi[]) {
     let armadura = false
-    let armaduraPesada = false
     let CA = 10
     let shield = 0
     let bonus = 0
-
-    let plusSpeed = 0
 
     const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment.filter(eq => eq.equipped))
 
@@ -1452,10 +1449,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
           }
 
           armadura = true
-
-          if (armor.armor?.category === "Pesada") {
-            armaduraPesada = true
-          }
         }
       } else {
         bonus += armor.bonuses?.armor_class ?? 0
@@ -1500,19 +1493,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     }
 
-    if (!armaduraPesada) {
-      if (personaje.traits.includes('fast-movement')) {
-        plusSpeed += 10
-      }
-
-      /*if (traits.includes('unarmored-movement')) {
-        plusSpeed += traitsData['unarmored-movement'].FEET ?? 0
-      }*/
-    }
-
     return {
-      CA: CA + shield + bonus,
-      plusSpeed
+      CA: CA + shield + bonus
     }
   }
 
@@ -1563,10 +1545,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
       if (trait?.proficiencies) {
         proficiencies.push(...trait?.proficiencies)
-      }
-
-      if (trait?.speed) {
-        speed.walk = trait?.speed
       }
     })
 
@@ -1719,7 +1697,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       initiativeBonus = dexAttr?.modifier ?? 0;
     }
 
-    const { CA, plusSpeed } = await this.calcularCA(personaje, traits)
+    const { CA } = await this.calcularCA(personaje, traits)
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
 
     let maxCarryingCapacity: number;
@@ -1811,9 +1789,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       initiativeBonus,
       HPMax: personaje?.HPMax,
       CA,
-      speed: {
-        walk: speed.walk + plusSpeed
-      },
+      speed: applyTraitSpeed(speed, traits),
       skills: skillsWithPassive,
       languages: {
         understands: idiomas_understands,

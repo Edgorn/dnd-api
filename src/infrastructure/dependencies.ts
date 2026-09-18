@@ -23,6 +23,11 @@ import UpdateBackground from "../application/use-cases/background/updateBackgrou
 import SoftDeleteBackground from "../application/use-cases/background/softDeleteBackground.use-case";
 import RestoreBackground from "../application/use-cases/background/restoreBackground.use-case";
 import GetAllRacesUseCase from "../application/use-cases/race/getAllRaces.use-case";
+import UpsertRaceOverride from "../application/use-cases/race/upsertRaceOverride.use-case";
+import DeleteRaceOverride from "../application/use-cases/race/deleteRaceOverride.use-case";
+import GetRaceOverride from "../application/use-cases/race/getRaceOverride.use-case";
+import EntityOverrideRepository from "./databases/mongoDb/repositories/entityOverride.repository";
+import EntityOverrideService from "../domain/services/entityOverride.service";
 import GetCharacterClassesBySystems from "../application/use-cases/characterClass/getCharacterClassesBySystems.use-case";
 import CreateCharacterClass from "../application/use-cases/characterClass/createCharacterClass.use-case";
 import UpdateCharacterClass from "../application/use-cases/characterClass/updateCharacterClass.use-case";
@@ -205,6 +210,8 @@ import { MagicSchoolController } from "./http/controllers/magicSchool.controller
 const estadoRepository = new EstadoRepository()
 const userRepository = new UserRepository()
 const systemRepository = new SystemRepository()
+const entityOverrideRepository = new EntityOverrideRepository()
+const entityOverrideService = new EntityOverrideService(entityOverrideRepository)
 const skillRepository = new SkillRepository(systemRepository)
 const proficiencyRepository = new ProficiencyRepository(systemRepository)
 const spellRepository = new SpellRepository(systemRepository)
@@ -330,9 +337,12 @@ const acceptJoinCampaign = new AcceptJoinCampaign(campaignService)
 const denyJoinCampaign = new DenyJoinCampaign(campaignService)
 const addCharacterToCampaign = new AddCharacterToCampaign(campaignService, personajeService)
 
-const getAllRaces = new GetAllRacesUseCase(raceService);
+const getAllRaces = new GetAllRacesUseCase(raceService, systemService, entityOverrideService);
 const createRace = new CreateRaceUseCase(raceService);
 const updateRace = new UpdateRaceUseCase(raceService);
+const upsertRaceOverride = new UpsertRaceOverride(raceService, systemService, entityOverrideService);
+const deleteRaceOverride = new DeleteRaceOverride(raceService, systemService, entityOverrideService);
+const getRaceOverride = new GetRaceOverride(raceService, systemService, entityOverrideService);
 
 const getBackgroundsBySystems = new GetBackgroundsBySystems(backgroundRepository);
 const getBackgroundById = new GetBackgroundById(backgroundRepository);
@@ -430,8 +440,8 @@ export const magicSchoolController = new MagicSchoolController(
   getMagicSchoolsBySystems
 );
 
-const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository);
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -440,7 +450,16 @@ const restoreSkill = new RestoreSkill(skillService, systemService);
 const softDeleteRace = new SoftDeleteRace(raceService, systemService);
 const restoreRace = new RestoreRace(raceService, systemService);
 
-export const raceController = new RaceController(getAllRaces, createRace, updateRace, softDeleteRace, restoreRace);
+export const raceController = new RaceController(
+  getAllRaces,
+  createRace,
+  updateRace,
+  softDeleteRace,
+  restoreRace,
+  upsertRaceOverride,
+  deleteRaceOverride,
+  getRaceOverride
+);
 
 export const campaignController = new CampaignController(
   createCampaign,

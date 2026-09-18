@@ -4,6 +4,25 @@ import { ProficiencyApi } from "./proficiencies.types"
 import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 
+export type MovementMode = "walk" | "fly" | "climb" | "swim" | "burrow";
+
+export interface MovementSpeeds {
+  walk?: number;
+  fly?: number;
+  climb?: number;
+  swim?: number;
+  burrow?: number;
+}
+
+export type TraitSpeedCondition = "always";
+
+export interface TraitSpeed {
+  set?: MovementSpeeds;
+  add?: MovementSpeeds;
+  equalToWalk?: Exclude<MovementMode, "walk">[];
+  condition?: TraitSpeedCondition;
+}
+
 export type SpellPrivilegeSource = "known" | "classList";
 export type SpellPrivilegeRecharge = "shortRest" | "longRest" | "shortOrLongRest";
 
@@ -46,7 +65,7 @@ export interface TraitMongo {
   conditional_resistances: string[],
   proficiencies?: string[],
   skills?: string[],
-  speed?: number,
+  speed?: number | TraitSpeed,
   discard?: string[],
   spells?: [],
   bonuses?: {
@@ -80,7 +99,7 @@ export interface TraitApi {
   condition_inmunities: EstadoApi[],
   proficiencies: ProficiencyApi[],
   skills?: string[],
-  speed?: number,
+  speed?: TraitSpeed,
   spells?: SpellApi[]
   discard?: string[],
   bonuses?: {
@@ -102,7 +121,8 @@ export interface CreateTrait {
   incompatible_traits: string[],
   proficiencies?: string[],
   skills?: string[],
-  spellPrivileges?: SpellPrivilegeRule[]
+  spellPrivileges?: SpellPrivilegeRule[],
+  speed?: TraitSpeed
 }
 
 export interface UpdateTrait {
@@ -114,5 +134,6 @@ export interface UpdateTrait {
   incompatible_traits?: string[],
   proficiencies?: string[],
   skills?: string[],
-  spellPrivileges?: SpellPrivilegeRule[]
+  spellPrivileges?: SpellPrivilegeRule[],
+  speed?: TraitSpeed
 }

@@ -34,6 +34,10 @@ export default class SystemService {
     return this.systemRepository.getByIdWithDeleted(id);
   }
 
+  getAncestry(systemId: string): Promise<System[]> {
+    return this.systemRepository.getAncestry(systemId);
+  }
+
   getSystemsAndAncestors(systems: string[]): Promise<string[]> {
     return this.systemRepository.getSystemsAndAncestors(systems);
   }

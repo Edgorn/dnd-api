@@ -47,7 +47,7 @@ export default class RaceRepository implements IRaceRepository {
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
 
-      return this.formatearRazas(razas);
+      return this.formatearRazas(razas, expandedRulesets);
     } catch (error) {
       console.error("Error obteniendo razas:", error);
       throw new Error("No se pudieron obtener los razas");
@@ -155,11 +155,11 @@ export default class RaceRepository implements IRaceRepository {
     }
   }
 
-  formatearRazas(razas: RaceMongo[]): Promise<RaceApi[]> {
-    return Promise.all(razas.map(raza => this.formatearRaza(raza)));
+  formatearRazas(razas: RaceMongo[], allowedRulesets?: string[]): Promise<RaceApi[]> {
+    return Promise.all(razas.map(raza => this.formatearRaza(raza, allowedRulesets)));
   }
 
-  async formatearRaza(raza: RaceMongo): Promise<RaceApi> {
+  async formatearRaza(raza: RaceMongo, allowedRulesets?: string[]): Promise<RaceApi> {
     const dataLevel = raza?.levels?.find(level => level.level === 1)
     const ruleset = raza.ruleset;
 
@@ -174,7 +174,7 @@ export default class RaceRepository implements IRaceRepository {
       this.skillService.formatSkillChoices(raza.skill_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.understands ?? []),
       this.proficiencyRepository.formatProficiencyChoices(raza?.proficiencies_choices),
-      this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, ruleset),
+      this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, allowedRulesets),
       this.formatearVariantes(raza?.variants ?? [], ruleset),
       this.spellRepository.formatSpellChoices(raza?.spell_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
@@ -214,11 +214,19 @@ export default class RaceRepository implements IRaceRepository {
     };
   }
 
-  async formatearSubrazas(raza: RaceMongo, traitsData?: TraitDataMongo, ruleset?: string): Promise<SubracesApi | undefined> {
-    const childRaces = await RaceModel.find({ parentId: raza._id, deletedAt: null });
+  async formatearSubrazas(raza: RaceMongo, traitsData?: TraitDataMongo, allowedRulesets?: string[]): Promise<SubracesApi | undefined> {
+    const childQuery: { parentId: RaceMongo["_id"]; deletedAt: null; ruleset?: { $in: string[] } } = {
+      parentId: raza._id,
+      deletedAt: null,
+    };
+    if (allowedRulesets) {
+      childQuery.ruleset = { $in: allowedRulesets };
+    }
+
+    const childRaces = await RaceModel.find(childQuery);
     if (childRaces.length === 0) return undefined;
 
-    const formateadas = await Promise.all(childRaces.map(child => this.formatearRaza(child)));
+    const formateadas = await Promise.all(childRaces.map(child => this.formatearRaza(child, allowedRulesets)));
 
     return {
       name: raza.subraces_name ?? 'Subrazas',

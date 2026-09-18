@@ -8,18 +8,31 @@ import { mergeRulesFromAncestry } from '../../../../utils/systemRulesMerge';
 export default class SystemRepository implements ISystemRepository {
   constructor() {}
 
-  private async getAncestry(systemId: string): Promise<System[]> {
-    const ancestry: System[] = [];
-    let currentId = systemId;
-    const visited = new Set<string>();
+  private async resolveSystem(systemId: string): Promise<System | null> {
+    if (mongoose.Types.ObjectId.isValid(systemId)) {
+      const byId = await this.getById(systemId);
+      if (byId) return byId;
+    }
+
+    return SistemasModel.findOne({ name: systemId, deletedAt: null }).lean();
+  }
+
+  async getAncestry(systemId: string): Promise<System[]> {
+    const start = await this.resolveSystem(systemId);
+    if (!start) return [];
+
+    const ancestry: System[] = [start];
+    const visited = new Set<string>([start._id.toString()]);
+    let currentId = start.parentId ? start.parentId.toString() : "";
 
     while (currentId && !visited.has(currentId)) {
       visited.add(currentId);
-      const sys = await this.getById(currentId);
-      if (!sys) break;
-      ancestry.push(sys);
-      currentId = sys.parentId ? sys.parentId.toString() : '';
+      const parent = await this.getById(currentId);
+      if (!parent) break;
+      ancestry.push(parent);
+      currentId = parent.parentId ? parent.parentId.toString() : "";
     }
+
     return ancestry;
   }
 

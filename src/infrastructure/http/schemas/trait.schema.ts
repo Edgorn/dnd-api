@@ -28,6 +28,24 @@ export const SpellPrivilegeRuleSchema = z.object({
   }).nullable()
 });
 
+const MovementSpeedsSchema = z.object({
+  walk: z.number().positive().optional(),
+  fly: z.number().positive().optional(),
+  climb: z.number().positive().optional(),
+  swim: z.number().positive().optional(),
+  burrow: z.number().positive().optional()
+});
+
+export const TraitSpeedSchema = z.object({
+  set: MovementSpeedsSchema.optional(),
+  add: MovementSpeedsSchema.optional(),
+  equalToWalk: z.array(z.enum(["fly", "climb", "swim", "burrow"])).optional(),
+  condition: z.enum(["always"]).optional()
+}).refine(
+  data => Boolean(data.set) || Boolean(data.add) || Boolean(data.equalToWalk?.length),
+  { message: "Debe incluir al menos set, add o equalToWalk" }
+);
+
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -36,7 +54,8 @@ export const CreateTraitSchema = z.object({
   incompatible_traits: z.array(z.string()).optional().default([]),
   proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
-  spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional()
+  spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
+  speed: TraitSpeedSchema.optional()
 });
 
 export const UpdateTraitSchema = z.object({
@@ -47,7 +66,8 @@ export const UpdateTraitSchema = z.object({
   incompatible_traits: z.array(z.string()).optional(),
   proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
-  spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional()
+  spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
+  speed: TraitSpeedSchema.optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

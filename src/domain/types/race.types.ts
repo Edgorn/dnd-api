@@ -95,7 +95,10 @@ export interface RaceApi {
   spellcasting?: AttributeApi,
   subraces?: SubracesApi,
   parentId?: string | null,
-  variants: VarianteApi[]
+  variants: VarianteApi[],
+  inherited?: boolean,
+  overriddenFields?: Array<"name" | "description" | "img" | "alignment">,
+  overrideRuleset?: string
 }
 
 export interface SubracesApi {
