@@ -94,6 +94,25 @@ describe("CreateTraitSchema speed", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts suppressedByArmorTypeIds and acFormula", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Defensa sin armadura",
+      acFormula: "10 + @attributes.dex.modifier + @attributes.con.modifier",
+      suppressedByArmorTypeIds: ["507f1f77bcf86cd799439011"],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid suppressedByArmorTypeIds value", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Defensa sin armadura",
+      suppressedByArmorTypeIds: ["not-an-id"],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("UpdateTraitSchema spellPrivileges", () => {

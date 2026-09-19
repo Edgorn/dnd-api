@@ -3,6 +3,7 @@ import { ChoiceApi } from ".";
 import { CoinApi } from "./coin.types";
 import { Property } from "./property.types";
 import { ProficiencyApi } from "./proficiencies.types";
+import { ArmorType } from "./armorType.types";
 
 export interface WeaponDamageMongo {
   dice: string;
@@ -39,15 +40,41 @@ export interface WeaponApi {
   };
 }
 
+export interface ArmorAttributeBonus {
+  key: string;
+  max?: number;
+}
+
+export interface ArmorAttributeMinimum {
+  key: string;
+  value: number;
+  unmetSpeedPenalty?: number;
+}
+
+export interface ArmorClass {
+  base: number;
+  attributeBonus?: ArmorAttributeBonus;
+}
+
 export interface ArmorMongo {
-  category?: string;
-  class?: {
-    base: number;
-    dex_bonus: number;
-    max_bonus: number;
-  };
-  str_minimum?: number;
-  stealth_disadvantage?: number;
+  typeId?: string;
+  class?: ArmorClass;
+  attributeMinimum?: ArmorAttributeMinimum;
+  disadvantageSkillKeys?: string[];
+}
+
+export interface ArmorInput {
+  typeId?: string;
+  class?: ArmorClass;
+  attributeMinimum?: ArmorAttributeMinimum;
+  disadvantageSkillKeys?: string[];
+}
+
+export interface ArmorApi {
+  type?: ArmorType | null;
+  class?: ArmorClass;
+  attributeMinimum?: ArmorAttributeMinimum;
+  disadvantageSkillKeys?: string[];
 }
 
 export type LiquidUnit = 'gallon' | 'pint' | 'ounce';
@@ -170,7 +197,7 @@ export interface EquipmentApi {
   content?: EquipmentInstanceApi[];
   equipped?: boolean;
   weapon?: WeaponApi;
-  armor?: ArmorMongo;
+  armor?: ArmorApi;
   isMagic?: boolean;
   isBond?: boolean;
   bonuses?: {
@@ -258,7 +285,8 @@ export interface WeaponBasic {
 }
 
 export interface ArmorBasic {
-  category?: string;
+  typeId?: string;
+  typeName?: string;
 }
 
 export interface InputCreateEquipment {
@@ -274,6 +302,7 @@ export interface InputCreateEquipment {
   containerStats?: ContainerRules | null;
   proficiencies?: string[] | null;
   weapon?: WeaponMongo | null;
+  armor?: ArmorInput | null;
   content?: CharacterEquipmentMongo[];
 }
 
@@ -291,5 +320,6 @@ export interface InputUpdateEquipment {
   containerStats?: ContainerRules | null;
   proficiencies?: string[] | null;
   weapon?: WeaponMongo | null;
+  armor?: ArmorInput | null;
   content?: CharacterEquipmentMongo[];
 }

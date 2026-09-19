@@ -54,6 +54,15 @@ const router = Router();
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo.
+ *         acFormula:
+ *           type: string
+ *           description: Fórmula de CA sin armadura (defensa sin armadura).
+ *           example: "10 + @attributes.dex.modifier + @attributes.con.modifier"
+ *         suppressedByArmorTypeIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
  *     TraitSpeed:
  *       type: object
  *       description: >
@@ -211,6 +220,14 @@ const router = Router();
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
+ *         acFormula:
+ *           type: string
+ *           description: Fórmula de CA sin armadura.
+ *         suppressedByArmorTypeIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
  *     InputUpdateTrait:
  *       type: object
  *       properties:
@@ -248,6 +265,14 @@ const router = Router();
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
+ *         acFormula:
+ *           type: string
+ *           description: Fórmula de CA sin armadura.
+ *         suppressedByArmorTypeIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
  */
 
 /**

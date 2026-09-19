@@ -116,6 +116,41 @@ describe("Equipment Use Cases", () => {
       expect(equipmentServiceMock.create).toHaveBeenCalledWith(input);
     });
 
+    it("should create armor equipment when the type belongs to the system", async () => {
+      const armorTypeServiceMock = {
+        getById: vi.fn().mockResolvedValue({
+          id: "type1",
+          ruleset: "sys1",
+          deletedAt: null
+        })
+      };
+      systemServiceMock.getSystemsAndAncestors = vi.fn().mockResolvedValue(["sys1"]);
+      const useCase = new CreateEquipment(equipmentServiceMock, systemServiceMock, armorTypeServiceMock as any);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      equipmentServiceMock.create.mockResolvedValue({ id: "eq1", name: "Cota de malla" });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Cota de malla",
+        description: "Anillos metálicos",
+        cost: { quantity: 75, unit: "coin1" },
+        weight: 27.5,
+        category: "Armadura",
+        subcategory: "Pesada",
+        equipSlot: "armor" as const,
+        armor: {
+          typeId: "60d0fe4f5311236168a109ca",
+          class: { base: 16 },
+          attributeMinimum: { key: "str", value: 13, unmetSpeedPenalty: 10 },
+          disadvantageSkillKeys: ["stealth"]
+        }
+      };
+
+      const result = await useCase.execute(input, "user1");
+      expect(result).toEqual({ id: "eq1", name: "Cota de malla" });
+      expect(armorTypeServiceMock.getById).toHaveBeenCalledWith("60d0fe4f5311236168a109ca");
+    });
+
     it("should throw error if system is not found", async () => {
       const useCase = new CreateEquipment(equipmentServiceMock, systemServiceMock);
       systemServiceMock.getById.mockResolvedValue(null);
@@ -374,14 +409,14 @@ describe("Equipment Use Cases", () => {
   });
 
   describe("GetEquipmentsArmor", () => {
-    it("should return armor filtered by body equipSlot", async () => {
+    it("should return wearable equipment filtered by body equipSlot", async () => {
       const useCase = new GetEquipmentsArmor(equipmentServiceMock);
       equipmentServiceMock.getArmor.mockResolvedValue([
-        { id: "eq1", name: "Leather Armor", equipSlot: "armor" }
+        { id: "eq1", name: "Iron Helmet", equipSlot: "head" }
       ]);
 
       const result = await useCase.execute(["sys1"]);
-      expect(result).toEqual([{ id: "eq1", name: "Leather Armor", equipSlot: "armor" }]);
+      expect(result).toEqual([{ id: "eq1", name: "Iron Helmet", equipSlot: "head" }]);
       expect(equipmentServiceMock.getArmor).toHaveBeenCalledWith(["sys1"]);
     });
 

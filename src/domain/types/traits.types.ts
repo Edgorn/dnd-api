@@ -71,6 +71,8 @@ export interface TraitMongo {
   bonuses?: {
     armor_class: number
   },
+  acFormula?: string,
+  suppressedByArmorTypeIds?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
   deletedAt?: Date | null
 }
@@ -105,6 +107,8 @@ export interface TraitApi {
   bonuses?: {
     armor_class: number
   },
+  acFormula?: string,
+  suppressedByArmorTypeIds?: string[],
   spellPrivileges?: SpellPrivilegeRule[]
 }
 
@@ -122,7 +126,9 @@ export interface CreateTrait {
   proficiencies?: string[],
   skills?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
-  speed?: TraitSpeed
+  speed?: TraitSpeed,
+  acFormula?: string,
+  suppressedByArmorTypeIds?: string[]
 }
 
 export interface UpdateTrait {
@@ -135,5 +141,7 @@ export interface UpdateTrait {
   proficiencies?: string[],
   skills?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
-  speed?: TraitSpeed
+  speed?: TraitSpeed,
+  acFormula?: string,
+  suppressedByArmorTypeIds?: string[]
 }

@@ -344,6 +344,7 @@ export interface PersonajeApi {
   prof_bonus: number,
   saving_throws: string[],
   equipment: CharacterEquipmentApi[],
+  wearingArmorWithoutProficiency: boolean,
   feats: FeatApi[],
   money: ({
     quantity: number;

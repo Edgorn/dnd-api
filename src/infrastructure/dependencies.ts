@@ -118,6 +118,15 @@ import RestoreProperty from "../application/use-cases/property/restoreProperty.u
 import GetPropertiesBySystems from "../application/use-cases/property/getPropertiesBySystems.use-case";
 import GetPropertyById from "../application/use-cases/property/getPropertyById.use-case";
 import { PropertyController } from "./http/controllers/property.controller";
+import ArmorTypeRepository from "./databases/mongoDb/repositories/armorType.repository";
+import ArmorTypeService from "../domain/services/armorType.service";
+import CreateArmorType from "../application/use-cases/armorType/createArmorType.use-case";
+import UpdateArmorType from "../application/use-cases/armorType/updateArmorType.use-case";
+import SoftDeleteArmorType from "../application/use-cases/armorType/softDeleteArmorType.use-case";
+import RestoreArmorType from "../application/use-cases/armorType/restoreArmorType.use-case";
+import GetArmorTypesBySystems from "../application/use-cases/armorType/getArmorTypesBySystems.use-case";
+import GetArmorTypeById from "../application/use-cases/armorType/getArmorTypeById.use-case";
+import { ArmorTypeController } from "./http/controllers/armorType.controller";
 import EstadoRepository from "./databases/mongoDb/repositories/estado.repository";
 import InvocacionRepository from "./databases/mongoDb/repositories/invocacion.repository";
 import SystemRepository from "./databases/mongoDb/repositories/system.repository";
@@ -217,8 +226,10 @@ const proficiencyRepository = new ProficiencyRepository(systemRepository)
 const spellRepository = new SpellRepository(systemRepository)
 const damageRepository = new DamageRepository(systemRepository)
 const propertyRepository = new PropertyRepository(systemRepository)
+const armorTypeRepository = new ArmorTypeRepository(systemRepository)
+const armorTypeService = new ArmorTypeService(armorTypeRepository)
 const coinRepository = new CoinRepository(systemRepository)
-const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propertyRepository, proficiencyRepository, coinRepository)
+const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propertyRepository, proficiencyRepository, coinRepository, armorTypeRepository)
 const languageRepository = new LanguageRepository(systemRepository)
 const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository)
 const subclassRepository = new SubclassRepository(systemRepository, traitRepository)
@@ -357,8 +368,8 @@ const updateCharacterClass = new UpdateCharacterClass(characterClassService, sys
 const softDeleteCharacterClass = new SoftDeleteCharacterClass(characterClassService, systemService);
 const restoreCharacterClass = new RestoreCharacterClass(characterClassService, systemService);
 
-const createEquipment = new CreateEquipment(equipmentService, systemService);
-const updateEquipment = new UpdateEquipment(equipmentService, systemService);
+const createEquipment = new CreateEquipment(equipmentService, systemService, armorTypeService);
+const updateEquipment = new UpdateEquipment(equipmentService, systemService, armorTypeService);
 const getEquipmentById = new GetEquipmentById(equipmentService);
 const getEquipmentsBySystems = new GetEquipmentsBySystems(equipmentService);
 const softDeleteEquipment = new SoftDeleteEquipment(equipmentService, systemService);
@@ -407,8 +418,8 @@ const getSpellsByLevel = new GetSpellsByLevel(spellService);
 const getRitualSpells = new GetRitualSpells(spellService);
 
 const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService, systemService)
-const createTraitUseCase = new CreateTraitUseCase(traitService, systemService)
-const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService)
+const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService)
+const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService)
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 
@@ -440,8 +451,8 @@ export const magicSchoolController = new MagicSchoolController(
   getMagicSchoolsBySystems
 );
 
-const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository);
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -662,6 +673,22 @@ export const propertyController = new PropertyController(
   restoreProperty,
   getPropertiesBySystems,
   getPropertyById
+);
+
+const createArmorType = new CreateArmorType(armorTypeService, systemService);
+const updateArmorType = new UpdateArmorType(armorTypeService, systemService);
+const softDeleteArmorType = new SoftDeleteArmorType(armorTypeService, systemService);
+const restoreArmorType = new RestoreArmorType(armorTypeService, systemService);
+const getArmorTypesBySystems = new GetArmorTypesBySystems(armorTypeService);
+const getArmorTypeById = new GetArmorTypeById(armorTypeService);
+
+export const armorTypeController = new ArmorTypeController(
+  createArmorType,
+  updateArmorType,
+  softDeleteArmorType,
+  restoreArmorType,
+  getArmorTypesBySystems,
+  getArmorTypeById
 );
 
 

@@ -316,24 +316,8 @@ const router = Router();
  *               items:
  *                 type: string
  *         armor:
- *           type: object
+ *           $ref: '#/components/schemas/ArmorInput'
  *           description: Datos de armadura personalizados. Sobrescribe parcialmente la armadura base si se indica id.
- *           properties:
- *             category:
- *               type: string
- *             class:
- *               type: object
- *               properties:
- *                 base:
- *                   type: number
- *                 dex_bonus:
- *                   type: number
- *                 max_bonus:
- *                   type: number
- *             str_minimum:
- *               type: number
- *             stealth_disadvantage:
- *               type: number
  *         isMagic:
  *           type: boolean
  *         isBond:

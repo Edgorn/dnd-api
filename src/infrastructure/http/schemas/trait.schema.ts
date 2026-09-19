@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Types } from "mongoose";
+import { validateSystemFormula } from "../../../utils/formulaValidation";
 
 const SpellPrivilegeLevelFilterSchema = z.union([
   z.number().int().min(0).max(9),
@@ -46,6 +47,14 @@ export const TraitSpeedSchema = z.object({
   { message: "Debe incluir al menos set, add o equalToWalk" }
 );
 
+const acFormulaSchema = z.string().min(1, "La fórmula de CA no puede estar vacía").optional().superRefine((val, ctx) => {
+  if (val === undefined) return;
+  const error = validateSystemFormula(val);
+  if (error) {
+    ctx.addIssue({ code: "custom", message: `acFormula: ${error}` });
+  }
+});
+
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -55,7 +64,9 @@ export const CreateTraitSchema = z.object({
   proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
   spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
-  speed: TraitSpeedSchema.optional()
+  speed: TraitSpeedSchema.optional(),
+  acFormula: acFormulaSchema,
+  suppressedByArmorTypeIds: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada tipo de armadura debe ser un ID de Mongo válido" })).optional()
 });
 
 export const UpdateTraitSchema = z.object({
@@ -67,7 +78,9 @@ export const UpdateTraitSchema = z.object({
   proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
   spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
-  speed: TraitSpeedSchema.optional()
+  speed: TraitSpeedSchema.optional(),
+  acFormula: acFormulaSchema,
+  suppressedByArmorTypeIds: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada tipo de armadura debe ser un ID de Mongo válido" })).optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

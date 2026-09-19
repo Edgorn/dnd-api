@@ -143,6 +143,18 @@
           "speed": {
             "$ref": "#/components/schemas/TraitSpeed",
             "description": "Efecto de velocidad de movimiento que otorga el rasgo."
+          },
+          "acFormula": {
+            "type": "string",
+            "description": "Fórmula de CA sin armadura (defensa sin armadura).",
+            "example": "10 + @attributes.dex.modifier + @attributes.con.modifier"
+          },
+          "suppressedByArmorTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
           }
         }
       },
@@ -373,6 +385,17 @@
           "speed": {
             "$ref": "#/components/schemas/TraitSpeed",
             "description": "Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always."
+          },
+          "acFormula": {
+            "type": "string",
+            "description": "Fórmula de CA sin armadura."
+          },
+          "suppressedByArmorTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
           }
         }
       },
@@ -425,6 +448,17 @@
           "speed": {
             "$ref": "#/components/schemas/TraitSpeed",
             "description": "Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always."
+          },
+          "acFormula": {
+            "type": "string",
+            "description": "Fórmula de CA sin armadura."
+          },
+          "suppressedByArmorTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
           }
         }
       },
@@ -2407,6 +2441,10 @@
           "passive": {
             "type": "number",
             "description": "Valor pasivo calculado según passiveSkillFormula del sistema. Solo presente si el sistema define la fórmula."
+          },
+          "disadvantage": {
+            "type": "boolean",
+            "description": "Si es true, el personaje tiene desventaja en esta habilidad (p. ej. por armadura)."
           }
         }
       },
@@ -3108,6 +3146,10 @@
             "items": {
               "$ref": "#/components/schemas/CharacterEquipmentApi"
             }
+          },
+          "wearingArmorWithoutProficiency": {
+            "type": "boolean",
+            "description": "True si el personaje lleva armadura o escudo equipado sin la competencia requerida."
           },
           "feats": {
             "type": "array",
@@ -4021,6 +4063,110 @@
           }
         }
       },
+      "ArmorAttributeBonus": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave del atributo cuyo modificador se suma a la CA (p. ej. dex).",
+            "example": "dex"
+          },
+          "max": {
+            "type": "number",
+            "description": "Tope del modificador. Si se omite, no hay tope.",
+            "example": 2
+          }
+        }
+      },
+      "ArmorAttributeMinimum": {
+        "type": "object",
+        "required": [
+          "key",
+          "value"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave del atributo exigido (p. ej. str).",
+            "example": "str"
+          },
+          "value": {
+            "type": "number",
+            "description": "Valor mínimo del atributo.",
+            "example": 13
+          },
+          "unmetSpeedPenalty": {
+            "type": "number",
+            "description": "Pies restados a la velocidad de caminar si no se cumple el mínimo.",
+            "example": 10
+          }
+        }
+      },
+      "ArmorClass": {
+        "type": "object",
+        "required": [
+          "base"
+        ],
+        "properties": {
+          "base": {
+            "type": "number",
+            "description": "Clase de armadura base.",
+            "example": 16
+          },
+          "attributeBonus": {
+            "$ref": "#/components/schemas/ArmorAttributeBonus"
+          }
+        }
+      },
+      "ArmorInput": {
+        "type": "object",
+        "properties": {
+          "typeId": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de armadura (ArmorType)."
+          },
+          "class": {
+            "$ref": "#/components/schemas/ArmorClass"
+          },
+          "attributeMinimum": {
+            "$ref": "#/components/schemas/ArmorAttributeMinimum"
+          },
+          "disadvantageSkillKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Claves de habilidad a las que aplicar desventaja al llevar esta pieza. Ausente o vacío = sin desventaja.",
+            "example": [
+              "stealth"
+            ]
+          }
+        }
+      },
+      "Armor": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ArmorType",
+            "nullable": true
+          },
+          "class": {
+            "$ref": "#/components/schemas/ArmorClass"
+          },
+          "attributeMinimum": {
+            "$ref": "#/components/schemas/ArmorAttributeMinimum"
+          },
+          "disadvantageSkillKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "Equipment": {
         "type": "object",
         "properties": {
@@ -4083,41 +4229,15 @@
           "weapon": {
             "$ref": "#/components/schemas/Weapon"
           },
+          "armor": {
+            "$ref": "#/components/schemas/Armor"
+          },
           "content": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EquipmentInstanceApi"
             },
             "description": "Objetos contenidos en el equipamiento (contenedores o packs)."
-          },
-          "armor": {
-            "type": "object",
-            "description": "Datos de armadura del equipamiento.",
-            "properties": {
-              "category": {
-                "type": "string"
-              },
-              "class": {
-                "type": "object",
-                "properties": {
-                  "base": {
-                    "type": "number"
-                  },
-                  "dex_bonus": {
-                    "type": "number"
-                  },
-                  "max_bonus": {
-                    "type": "number"
-                  }
-                }
-              },
-              "str_minimum": {
-                "type": "number"
-              },
-              "stealth_disadvantage": {
-                "type": "number"
-              }
-            }
           },
           "equipped": {
             "type": "boolean",
@@ -4272,6 +4392,10 @@
           "weapon": {
             "$ref": "#/components/schemas/WeaponInput"
           },
+          "armor": {
+            "$ref": "#/components/schemas/ArmorInput",
+            "nullable": true
+          },
           "content": {
             "type": "array",
             "items": {
@@ -4354,6 +4478,10 @@
           },
           "weapon": {
             "$ref": "#/components/schemas/WeaponInput",
+            "nullable": true
+          },
+          "armor": {
+            "$ref": "#/components/schemas/ArmorInput",
             "nullable": true
           },
           "content": {
@@ -5773,33 +5901,8 @@
             }
           },
           "armor": {
-            "type": "object",
-            "description": "Datos de armadura personalizados. Sobrescribe parcialmente la armadura base si se indica id.",
-            "properties": {
-              "category": {
-                "type": "string"
-              },
-              "class": {
-                "type": "object",
-                "properties": {
-                  "base": {
-                    "type": "number"
-                  },
-                  "dex_bonus": {
-                    "type": "number"
-                  },
-                  "max_bonus": {
-                    "type": "number"
-                  }
-                }
-              },
-              "str_minimum": {
-                "type": "number"
-              },
-              "stealth_disadvantage": {
-                "type": "number"
-              }
-            }
+            "$ref": "#/components/schemas/ArmorInput",
+            "description": "Datos de armadura personalizados. Sobrescribe parcialmente la armadura base si se indica id."
           },
           "isMagic": {
             "type": "boolean"
@@ -5919,6 +6022,99 @@
           },
           "icon": {
             "type": "string"
+          }
+        }
+      },
+      "ArmorDuration": {
+        "type": "object",
+        "required": [
+          "value",
+          "unit"
+        ],
+        "properties": {
+          "value": {
+            "type": "number",
+            "description": "Cantidad de tiempo.",
+            "example": 1
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unidad de tiempo (libre, p. ej. minute o action).",
+            "example": "minute"
+          }
+        }
+      },
+      "ArmorType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de armadura."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema al que pertenece."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo (ej. Ligera, Pesada, Escudo)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del tipo de armadura."
+          },
+          "don": {
+            "$ref": "#/components/schemas/ArmorDuration"
+          },
+          "doff": {
+            "$ref": "#/components/schemas/ArmorDuration"
+          }
+        }
+      },
+      "InputCreateArmorType": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "name",
+          "description",
+          "don",
+          "doff"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema de reglas."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo de armadura."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción."
+          },
+          "don": {
+            "$ref": "#/components/schemas/ArmorDuration"
+          },
+          "doff": {
+            "$ref": "#/components/schemas/ArmorDuration"
+          }
+        }
+      },
+      "InputUpdateArmorType": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "don": {
+            "$ref": "#/components/schemas/ArmorDuration"
+          },
+          "doff": {
+            "$ref": "#/components/schemas/ArmorDuration"
           }
         }
       }
@@ -10361,8 +10557,8 @@
     },
     "/equipment/armor": {
       "get": {
-        "summary": "Obtener equipamientos de armadura o ropa",
-        "description": "Devuelve equipamientos con ranura de cuerpo (head, neck, cloak, armor, hands, waist, feet, ring), sin depender de category o subcategory. Excluye ranuras de arma.",
+        "summary": "Obtener equipamientos de armadura",
+        "description": "Devuelve el equipamiento wearable (armadura o ropa) cuya ranura de cuerpo está definida (head, neck, cloak, armor, hands, waist, feet, ring). No depende del bloque armor ni de category. Excluye ranuras de arma.",
         "tags": [
           "Equipamiento"
         ],
@@ -10383,7 +10579,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de armaduras y ropa devuelta con éxito.",
+            "description": "Lista de armaduras devuelta con éxito.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10407,12 +10603,7 @@
                         "$ref": "#/components/schemas/EquipSlot"
                       },
                       "armor": {
-                        "type": "object",
-                        "properties": {
-                          "category": {
-                            "type": "string"
-                          }
-                        }
+                        "$ref": "#/components/schemas/Armor"
                       }
                     }
                   }
@@ -12457,6 +12648,276 @@
           },
           "404": {
             "description": "Característica no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/armor-types": {
+      "get": {
+        "summary": "Obtener tipos de armadura filtrados por sistemas",
+        "tags": [
+          "Tipos de Armadura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del sistema para filtrar tipos (incluye herencia de ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de tipos de armadura devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArmorType"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo tipo de armadura",
+        "tags": [
+          "Tipos de Armadura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateArmorType"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tipo de armadura creado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArmorType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "409": {
+            "description": "Ya existe un tipo de armadura con ese nombre en el sistema."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/armor-types/{id}": {
+      "get": {
+        "summary": "Obtener un tipo de armadura por su ID",
+        "tags": [
+          "Tipos de Armadura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de armadura."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tipo de armadura obtenido con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArmorType"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Tipo de armadura no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar un tipo de armadura existente",
+        "tags": [
+          "Tipos de Armadura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de armadura a editar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateArmorType"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tipo de armadura modificado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArmorType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Petición incorrecta."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "No se encontró el tipo de armadura."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de un tipo de armadura",
+        "tags": [
+          "Tipos de Armadura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de armadura a eliminar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Tipo de armadura borrado exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para eliminar."
+          },
+          "404": {
+            "description": "Tipo de armadura no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/armor-types/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar un tipo de armadura borrado lógicamente",
+        "tags": [
+          "Tipos de Armadura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de armadura a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tipo de armadura restaurado exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para restaurar."
+          },
+          "404": {
+            "description": "Tipo de armadura no encontrado."
           },
           "500": {
             "description": "Error del servidor."

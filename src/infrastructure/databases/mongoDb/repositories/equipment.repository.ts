@@ -4,6 +4,7 @@ import IDamageRepository from "../../../../domain/repositories/IDamageRepository
 import IPropertyRepository from "../../../../domain/repositories/IPropertyRepository";
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
 import ICoinRepository from "../../../../domain/repositories/ICoinRepository";
+import IArmorTypeRepository from "../../../../domain/repositories/IArmorTypeRepository";
 import {
   EquipmentApi,
   EquipmentCost,
@@ -25,6 +26,9 @@ import {
   WeaponDamageMongo,
   WeaponDamageApi,
   WeaponBasic,
+  ArmorMongo,
+  ArmorApi,
+  ArmorBasic,
   BODY_EQUIP_SLOTS
 } from "../../../../domain/types/equipment.types";
 import { NotFoundError } from "../../../../domain/errors/AppError";
@@ -41,19 +45,22 @@ export default class EquipmentRepository implements IEquipmentRepository {
   private readonly propertyRepository: IPropertyRepository;
   private readonly proficiencyRepository: IProficiencyRepository;
   private readonly coinRepository: ICoinRepository;
+  private readonly armorTypeRepository?: IArmorTypeRepository;
 
   constructor(
     systemRepository?: ISystemRepository,
     damageRepository?: IDamageRepository,
     propertyRepository?: IPropertyRepository,
     proficiencyRepository?: IProficiencyRepository,
-    coinRepository?: ICoinRepository
+    coinRepository?: ICoinRepository,
+    armorTypeRepository?: IArmorTypeRepository
   ) {
     this.systemRepository = systemRepository;
     this.damageRepository = damageRepository ?? new DamageRepository();
     this.propertyRepository = propertyRepository ?? new PropertyRepository();
     this.proficiencyRepository = proficiencyRepository ?? new ProficiencyRepository(systemRepository as any);
     this.coinRepository = coinRepository ?? new CoinRepository(systemRepository);
+    this.armorTypeRepository = armorTypeRepository;
   }
 
   async create(data: InputCreateEquipment): Promise<EquipmentApi> {
@@ -70,6 +77,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       containerStats: data.containerStats,
       proficiencies: data.proficiencies,
       weapon: data.weapon,
+      armor: data.armor,
       content: data.content,
       deletedAt: null
     });
@@ -169,7 +177,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       deletedAt: null
     }).lean();
 
-    const basic = equipments.map(e => this.formatEquipmentBasic(e));
+    const basic = await Promise.all(equipments.map(e => this.formatEquipmentBasic(e)));
     return ordenarPorNombre(basic);
   }
 
@@ -187,7 +195,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }
 
     const equipments = await EquipmentModel.find(query).lean();
-    const basic = equipments.map(e => this.formatEquipmentBasic(e));
+    const basic = await Promise.all(equipments.map(e => this.formatEquipmentBasic(e)));
     return ordenarPorNombre(basic);
   }
 
@@ -205,7 +213,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }
 
     const equipments = await EquipmentModel.find(query).lean();
-    const basic = equipments.map(e => this.formatEquipmentBasic(e));
+    const basic = await Promise.all(equipments.map(e => this.formatEquipmentBasic(e)));
     return ordenarPorNombre(basic);
   }
 
@@ -220,6 +228,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     const idStr = equipment._id.toString();
     const weapon = await this.formatWeapon(equipment.weapon);
+    const armor = await this.formatArmor(equipment.armor);
     const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(equipment.proficiencies ?? []);
     const content = (await this.getCharacterEquipmentsByIds(equipment.content ?? [])) ?? [];
     const cost = await this.formatEquipmentCost(equipment.cost);
@@ -240,7 +249,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       proficiencies,
       content,
       weapon,
-      armor: equipment.armor,
+      armor,
       bonuses: equipment.bonuses,
       deletedAt: equipment.deletedAt ?? null
     };
@@ -284,8 +293,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
-  private formatEquipmentBasic(equipment: any): EquipmentBasic {
+  private async formatEquipmentBasic(equipment: any): Promise<EquipmentBasic> {
     const idStr = equipment._id.toString();
+    const armor = await this.formatArmorBasic(equipment.armor);
     return {
       id: idStr,
       name: equipment.name || "",
@@ -293,7 +303,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       subcategory: equipment.subcategory || "",
       equipSlot: equipment.equipSlot ?? null,
       weapon: this.formatWeaponBasic(equipment.weapon),
-      armor: equipment.armor
+      armor
     };
   }
 
@@ -302,6 +312,16 @@ export default class EquipmentRepository implements IEquipmentRepository {
     return {
       category: weapon.category,
       range: weapon.range
+    };
+  }
+
+  private async formatArmorBasic(armor?: ArmorMongo): Promise<ArmorBasic | undefined> {
+    if (!armor) return undefined;
+    const formatted = await this.formatArmor(armor);
+    if (!formatted) return undefined;
+    return {
+      typeId: formatted.type?.id ?? armor.typeId,
+      typeName: formatted.type?.name
     };
   }
 
@@ -328,6 +348,20 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
+  private mergeArmor(base?: ArmorMongo, override?: ArmorMongo): ArmorMongo | undefined {
+    if (!base && !override) return undefined;
+    if (!base) return override;
+    if (!override) return base;
+
+    return {
+      ...base,
+      ...override,
+      class: override.class ?? base.class,
+      attributeMinimum: override.attributeMinimum ?? base.attributeMinimum,
+      disadvantageSkillKeys: override.disadvantageSkillKeys ?? base.disadvantageSkillKeys
+    };
+  }
+
   private formatCharacterDescription(description?: string | string[]): string {
     if (!description) return "";
     return Array.isArray(description) ? description.join("\n") : description;
@@ -345,6 +379,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     if (matched) {
       const mergedWeapon = this.mergeWeapon(matched.weapon, charEquipment.weapon);
       const weapon = await this.formatWeapon(mergedWeapon);
+      const armor = await this.formatArmor(this.mergeArmor(matched.armor, charEquipment.armor));
       const proficienciesIds = charEquipment.proficiencies ?? matched.proficiencies ?? [];
       const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(proficienciesIds);
       const contentSource = charEquipment.content ?? matched.content ?? [];
@@ -372,7 +407,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
         content,
         proficiencies,
         weapon,
-        armor: charEquipment.armor ?? matched.armor,
+        armor,
         isMagic: charEquipment.isMagic ?? matched.isMagic ?? false,
         isBond: charEquipment.isBond ?? false,
         isFavorite: charEquipment.isFavorite ?? false,
@@ -383,6 +418,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     const idStr = charEquipment.id || "";
     const weapon = await this.formatWeapon(charEquipment.weapon);
+    const armor = await this.formatArmor(charEquipment.armor);
     const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(charEquipment.proficiencies ?? []);
     const content = await this.getCharacterEquipmentsByIds(charEquipment.content ?? []);
     const cost = await this.formatEquipmentCost(charEquipment.cost);
@@ -404,12 +440,34 @@ export default class EquipmentRepository implements IEquipmentRepository {
       bonuses: charEquipment.bonuses,
       proficiencies,
       weapon,
-      armor: charEquipment.armor,
+      armor,
       isMagic: charEquipment.isMagic ?? false,
       isBond: charEquipment.isBond ?? false,
       isFavorite: charEquipment.isFavorite ?? false,
       equipped: charEquipment.equipped ?? false,
       deletedAt: null
+    };
+  }
+
+  private async formatArmor(armor?: ArmorMongo): Promise<ArmorApi | undefined> {
+    if (!armor) return undefined;
+
+    let type = null;
+    if (armor.typeId && this.armorTypeRepository) {
+      const found = await this.armorTypeRepository.getById(armor.typeId);
+      type = found && !found.deletedAt ? found : null;
+    }
+
+    return {
+      type,
+      class: armor.class
+        ? {
+            base: armor.class.base,
+            ...(armor.class.attributeBonus ? { attributeBonus: armor.class.attributeBonus } : {})
+          }
+        : undefined,
+      attributeMinimum: armor.attributeMinimum,
+      disadvantageSkillKeys: armor.disadvantageSkillKeys
     };
   }
 

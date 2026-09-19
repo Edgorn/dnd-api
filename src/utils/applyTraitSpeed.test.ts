@@ -56,6 +56,22 @@ describe("applyTraitSpeed", () => {
     });
   });
 
+  it("skips speed from a trait suppressed by equipped armor type ids", () => {
+    expect(applyTraitSpeed(
+      { walk: 30 },
+      [{ speed: { add: { walk: 10 } }, suppressedByArmorTypeIds: ["heavy-type"] }],
+      { typeIds: ["heavy-type"] }
+    )).toEqual({ walk: 30 });
+  });
+
+  it("applies speed when equipped type ids do not match", () => {
+    expect(applyTraitSpeed(
+      { walk: 30 },
+      [{ speed: { add: { walk: 10 } }, suppressedByArmorTypeIds: ["heavy-type"] }],
+      { typeIds: ["light-type"] }
+    )).toEqual({ walk: 40 });
+  });
+
   it("defaults missing walk to 30", () => {
     expect(applyTraitSpeed(undefined, [])).toEqual({ walk: 30 });
   });

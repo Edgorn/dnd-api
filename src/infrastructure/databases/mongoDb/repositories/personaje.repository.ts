@@ -27,6 +27,14 @@ import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain
 import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
 import { applyTraitSpeed } from '../../../../utils/applyTraitSpeed';
 import {
+  applyArmorStrengthSpeedPenalty,
+  collectEquippedArmorSuppression,
+  collectStealthDisadvantageSkillKeys,
+  computeArmorClass,
+  findBodyArmor,
+  isWearingArmorWithoutProficiency
+} from '../../../../utils/armorRules';
+import {
   applyAbilityScoreIncreases,
   filterLevelUpFeatChoices,
   getOwnedFeatIds,
@@ -1419,83 +1427,43 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
-  private async calcularCA(personaje: PersonajeMongo, traits: TraitApi[]) {
-    let armadura = false
-    let CA = 10
-    let shield = 0
-    let bonus = 0
+  private async calcularCA(
+    personaje: PersonajeMongo,
+    traits: TraitApi[],
+    options?: {
+      equipment?: CharacterEquipmentApi[];
+      attributes?: CharacterAttributeApi[];
+    }
+  ) {
+    const equipment = options?.equipment
+      ?? await this.equipmentRepository.getCharacterEquipmentsByIds(
+        (personaje.equipment ?? []).filter(eq => eq.equipped)
+      )
+      ?? [];
 
-    const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment.filter(eq => eq.equipped))
+    const attributes = options?.attributes ?? await this.attributeService.formatAttributes(
+      this.calcularAttributes(personaje),
+      personaje.systems ?? []
+    );
 
-    equipment?.forEach(equip => {
-      const armor = { ...equip, ...personaje.equipment.find(eq => eq.equipped && eq.id === equip.id) }
-      if (armor.category === 'Armadura') {
-        if (armor?.armor?.category === 'Escudo') {
-          shield += armor?.armor?.class?.base ?? 0
-
-          if (armor.isMagic) {
-            shield += 1
-          }
-        } else {
-          CA = armor?.armor?.class?.base ?? 10
-
-          if (armor.isMagic) {
-            CA += 1
-          }
-
-          if (armor?.armor?.class?.dex_bonus) {
-            const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
-            CA += Math.max(Math.min(Math.floor((dexVal / 2) - 5), armor?.armor?.class?.max_bonus ?? 99), 0)
-          }
-
-          armadura = true
-        }
-      } else {
-        bonus += armor.bonuses?.armor_class ?? 0
-      }
-    })
-
-    traits.forEach(trait => {
-      if (trait?.bonuses?.armor_class) {
-        bonus += trait?.bonuses?.armor_class ?? 0
-      }
-    })
-
-    if (!armadura) {
-      const hasSpecialUnarmoredDefense =
-        personaje.traits.includes('barbarian-unarmored-defense')
-        || personaje.traits.includes('monk-unarmored-defense')
-        || personaje.traits.includes('draconid-resistance');
-
-      if (!hasSpecialUnarmoredDefense) {
-        const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
-        if (rulesConfig.baseAcFormula) {
-          const apiAttributes = await this.attributeService.formatAttributes(
-            personaje.attributes,
-            personaje.systems ?? []
-          );
-          CA = evaluateFormula(rulesConfig.baseAcFormula, apiAttributes);
-        } else {
-          const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10;
-          CA = 10 + Math.floor((dexVal / 2) - 5);
-        }
-      } else if (personaje.traits.includes('barbarian-unarmored-defense')) {
-        const conVal = personaje.attributes.find(a => a.key === 'con')?.value ?? 10
-        const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
-        CA += Math.floor((conVal / 2) - 5) + Math.floor((dexVal / 2) - 5)
-      } else if (personaje.traits.includes('monk-unarmored-defense')) {
-        const wisVal = personaje.attributes.find(a => a.key === 'wis')?.value ?? 10
-        const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
-        CA += Math.floor((wisVal / 2) - 5) + Math.floor((dexVal / 2) - 5)
-      } else if (personaje.traits.includes('draconid-resistance')) {
-        const dexVal = personaje.attributes.find(a => a.key === 'dex')?.value ?? 10
-        CA += 3 + Math.floor((dexVal / 2) - 5)
-      }
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
+    let baseUnarmoredAc: number;
+    if (rulesConfig.baseAcFormula) {
+      baseUnarmoredAc = evaluateFormula(rulesConfig.baseAcFormula, attributes);
+    } else {
+      const dexAttr = attributes.find(a => a.key === "dex");
+      const dexMod = dexAttr?.modifier ?? Math.floor(((dexAttr?.value ?? 10) / 2) - 5);
+      baseUnarmoredAc = 10 + dexMod;
     }
 
     return {
-      CA: CA + shield + bonus
-    }
+      CA: computeArmorClass({
+        equipment,
+        traits,
+        attributes,
+        baseUnarmoredAc
+      })
+    };
   }
 
   private async formatCharacter(personaje: PersonajeMongo): Promise<PersonajeApi> {
@@ -1697,7 +1665,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       initiativeBonus = dexAttr?.modifier ?? 0;
     }
 
-    const { CA } = await this.calcularCA(personaje, traits)
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
 
     let maxCarryingCapacity: number;
@@ -1735,6 +1702,20 @@ export default class PersonajeRepository implements IPersonajeRepository {
       level,
       rules: rulesConfig,
     });
+
+    const { CA } = await this.calcularCA(personaje, traits, {
+      equipment: equipmentWithCombatBonuses,
+      attributes: apiAttributes
+    });
+    const equippedArmor = collectEquippedArmorSuppression(equipmentWithCombatBonuses);
+    const speedWithTraits = applyTraitSpeed(speed, traits, equippedArmor);
+    const bodyArmor = findBodyArmor(equipmentWithCombatBonuses);
+    const finalSpeed = applyArmorStrengthSpeedPenalty(speedWithTraits, bodyArmor, apiAttributes);
+    const stealthKeys = collectStealthDisadvantageSkillKeys(equipmentWithCombatBonuses);
+    const skillsWithArmor = skillsWithPassive.map(skill =>
+      stealthKeys.includes(skill.key) ? { ...skill, disadvantage: true } : skill
+    );
+    const wearingArmorWithoutProficiency = isWearingArmorWithoutProficiency(equipmentWithCombatBonuses);
 
     const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
     const money = await this.normalizeAndFormatMoney(personaje);
@@ -1789,8 +1770,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       initiativeBonus,
       HPMax: personaje?.HPMax,
       CA,
-      speed: applyTraitSpeed(speed, traits),
-      skills: skillsWithPassive,
+      speed: finalSpeed,
+      skills: skillsWithArmor,
       languages: {
         understands: idiomas_understands,
         speaks: idiomas_speaks,
@@ -1805,6 +1786,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       prof_bonus: personaje.prof_bonus,
       saving_throws: personaje.saving_throws,
       equipment: equipmentWithCombatBonuses,
+      wearingArmorWithoutProficiency,
       feats,
       money,
       spells: updatedSpells,

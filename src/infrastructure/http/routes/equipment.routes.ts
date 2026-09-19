@@ -182,6 +182,78 @@ const router = Router();
  *           example: "Melee"
  *         range_throw:
  *           $ref: '#/components/schemas/WeaponRangeThrow'
+ *     ArmorAttributeBonus:
+ *       type: object
+ *       required:
+ *         - key
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Clave del atributo cuyo modificador se suma a la CA (p. ej. dex).
+ *           example: "dex"
+ *         max:
+ *           type: number
+ *           description: Tope del modificador. Si se omite, no hay tope.
+ *           example: 2
+ *     ArmorAttributeMinimum:
+ *       type: object
+ *       required:
+ *         - key
+ *         - value
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Clave del atributo exigido (p. ej. str).
+ *           example: "str"
+ *         value:
+ *           type: number
+ *           description: Valor mínimo del atributo.
+ *           example: 13
+ *         unmetSpeedPenalty:
+ *           type: number
+ *           description: Pies restados a la velocidad de caminar si no se cumple el mínimo.
+ *           example: 10
+ *     ArmorClass:
+ *       type: object
+ *       required:
+ *         - base
+ *       properties:
+ *         base:
+ *           type: number
+ *           description: Clase de armadura base.
+ *           example: 16
+ *         attributeBonus:
+ *           $ref: '#/components/schemas/ArmorAttributeBonus'
+ *     ArmorInput:
+ *       type: object
+ *       properties:
+ *         typeId:
+ *           type: string
+ *           description: ID de MongoDB del tipo de armadura (ArmorType).
+ *         class:
+ *           $ref: '#/components/schemas/ArmorClass'
+ *         attributeMinimum:
+ *           $ref: '#/components/schemas/ArmorAttributeMinimum'
+ *         disadvantageSkillKeys:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Claves de habilidad a las que aplicar desventaja al llevar esta pieza. Ausente o vacío = sin desventaja.
+ *           example: ["stealth"]
+ *     Armor:
+ *       type: object
+ *       properties:
+ *         type:
+ *           $ref: '#/components/schemas/ArmorType'
+ *           nullable: true
+ *         class:
+ *           $ref: '#/components/schemas/ArmorClass'
+ *         attributeMinimum:
+ *           $ref: '#/components/schemas/ArmorAttributeMinimum'
+ *         disadvantageSkillKeys:
+ *           type: array
+ *           items:
+ *             type: string
  *     Equipment:
  *       type: object
  *       properties:
@@ -226,30 +298,13 @@ const router = Router();
  *           description: Competencias requeridas para usar el equipamiento.
  *         weapon:
  *           $ref: '#/components/schemas/Weapon'
+ *         armor:
+ *           $ref: '#/components/schemas/Armor'
  *         content:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/EquipmentInstanceApi'
  *           description: Objetos contenidos en el equipamiento (contenedores o packs).
- *         armor:
- *           type: object
- *           description: Datos de armadura del equipamiento.
- *           properties:
- *             category:
- *               type: string
- *             class:
- *               type: object
- *               properties:
- *                 base:
- *                   type: number
- *                 dex_bonus:
- *                   type: number
- *                 max_bonus:
- *                   type: number
- *             str_minimum:
- *               type: number
- *             stealth_disadvantage:
- *               type: number
  *         equipped:
  *           type: boolean
  *           description: Indica si el objeto está equipado.
@@ -352,6 +407,9 @@ const router = Router();
  *           example: ["60d0fe4f5311236168a109cc"]
  *         weapon:
  *           $ref: '#/components/schemas/WeaponInput'
+ *         armor:
+ *           $ref: '#/components/schemas/ArmorInput'
+ *           nullable: true
  *         content:
  *           type: array
  *           items:
@@ -409,6 +467,9 @@ const router = Router();
  *           example: ["60d0fe4f5311236168a109cc"]
  *         weapon:
  *           $ref: '#/components/schemas/WeaponInput'
+ *           nullable: true
+ *         armor:
+ *           $ref: '#/components/schemas/ArmorInput'
  *           nullable: true
  *         content:
  *           type: array
@@ -504,8 +565,8 @@ router.get("/equipment/weapons", authMiddleware, equipmentController.getWeapons)
  * @openapi
  * /equipment/armor:
  *   get:
- *     summary: Obtener equipamientos de armadura o ropa
- *     description: Devuelve equipamientos con ranura de cuerpo (head, neck, cloak, armor, hands, waist, feet, ring), sin depender de category o subcategory. Excluye ranuras de arma.
+ *     summary: Obtener equipamientos de armadura
+ *     description: Devuelve el equipamiento wearable (armadura o ropa) cuya ranura de cuerpo está definida (head, neck, cloak, armor, hands, waist, feet, ring). No depende del bloque armor ni de category. Excluye ranuras de arma.
  *     tags:
  *       - Equipamiento
  *     security:
@@ -518,7 +579,7 @@ router.get("/equipment/weapons", authMiddleware, equipmentController.getWeapons)
  *         description: ID o nombre del sistema para filtrar equipamientos (incluye ancestros).
  *     responses:
  *       200:
- *         description: Lista de armaduras y ropa devuelta con éxito.
+ *         description: Lista de armaduras devuelta con éxito.
  *         content:
  *           application/json:
  *             schema:
@@ -537,10 +598,7 @@ router.get("/equipment/weapons", authMiddleware, equipmentController.getWeapons)
  *                   equipSlot:
  *                     $ref: '#/components/schemas/EquipSlot'
  *                   armor:
- *                     type: object
- *                     properties:
- *                       category:
- *                         type: string
+ *                     $ref: '#/components/schemas/Armor'
  *       401:
  *         description: No autorizado.
  *       500:

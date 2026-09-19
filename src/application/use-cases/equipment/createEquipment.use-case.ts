@@ -1,12 +1,15 @@
 import EquipmentService from "../../../domain/services/equipment.service";
 import SystemService from "../../../domain/services/system.service";
+import ArmorTypeService from "../../../domain/services/armorType.service";
 import { AppError } from "../../../domain/errors/AppError";
 import { EquipmentApi, InputCreateEquipment } from "../../../domain/types/equipment.types";
+import { assertArmorTypeForRuleset } from "./assertArmorTypeForRuleset";
 
 export default class CreateEquipment {
   constructor(
     private readonly equipmentService: EquipmentService,
-    private readonly systemService: SystemService
+    private readonly systemService: SystemService,
+    private readonly armorTypeService?: ArmorTypeService
   ) { }
 
   async execute(data: InputCreateEquipment, userId: string): Promise<EquipmentApi> {
@@ -17,6 +20,10 @@ export default class CreateEquipment {
 
     if (system.publisher !== userId) {
       throw new AppError("No tienes permisos para crear equipamiento en este sistema", 403);
+    }
+
+    if (this.armorTypeService) {
+      await assertArmorTypeForRuleset(data.armor, data.ruleset, this.armorTypeService, this.systemService);
     }
 
     return this.equipmentService.create(data);

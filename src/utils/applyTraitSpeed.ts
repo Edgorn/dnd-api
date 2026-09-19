@@ -1,5 +1,6 @@
 import { Speed } from "../domain/types";
 import { MovementMode, TraitSpeed } from "../domain/types/traits.types";
+import { ArmorRulesTrait, ArmorSuppressionContext, isTraitSuppressedByArmor } from "./armorRules";
 
 const MOVEMENT_MODES: MovementMode[] = ["walk", "fly", "climb", "swim", "burrow"];
 
@@ -37,10 +38,12 @@ function shouldApply(speed: TraitSpeed): boolean {
 
 export function applyTraitSpeed(
   base: number | Speed | undefined | null,
-  traits: Array<{ speed?: number | TraitSpeed }>
+  traits: Array<{ speed?: number | TraitSpeed } & Pick<ArmorRulesTrait, "suppressedByArmorTypeIds">>,
+  equippedArmor: ArmorSuppressionContext = { typeIds: [] }
 ): Speed {
   const result = normalizeBaseSpeed(base);
   const effects = traits
+    .filter(trait => !isTraitSuppressedByArmor({ id: "", ...trait }, equippedArmor))
     .map(trait => normalizeTraitSpeed(trait.speed))
     .filter((speed): speed is TraitSpeed => Boolean(speed))
     .filter(shouldApply);

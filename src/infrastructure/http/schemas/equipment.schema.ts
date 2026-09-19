@@ -61,17 +61,27 @@ export const WeaponSchema = z.object({
   range_throw: WeaponRangeThrowSchema.optional()
 });
 
+export const ArmorAttributeBonusSchema = z.object({
+  key: z.string().min(1, "La clave de atributo no puede estar vacía"),
+  max: z.number().optional()
+});
+
 export const ArmorClassSchema = z.object({
   base: z.number(),
-  dex_bonus: z.number(),
-  max_bonus: z.number()
+  attributeBonus: ArmorAttributeBonusSchema.optional()
+});
+
+export const ArmorAttributeMinimumSchema = z.object({
+  key: z.string().min(1, "La clave de atributo no puede estar vacía"),
+  value: z.number().min(0, "El valor mínimo del atributo no puede ser negativo"),
+  unmetSpeedPenalty: z.number().min(0, "La penalización de velocidad no puede ser negativa").optional()
 });
 
 export const ArmorSchema = z.object({
-  category: z.string().optional(),
+  typeId: z.string().regex(objectIdRegex, "El tipo de armadura debe ser un ID válido de MongoDB").optional(),
   class: ArmorClassSchema.optional(),
-  str_minimum: z.number().optional(),
-  stealth_disadvantage: z.number().optional()
+  attributeMinimum: ArmorAttributeMinimumSchema.optional(),
+  disadvantageSkillKeys: z.array(z.string().min(1, "La clave de habilidad no puede estar vacía")).optional()
 });
 
 export const EquipmentBonusesSchema = z.object({
@@ -118,6 +128,7 @@ export const CreateEquipmentSchema = z.object({
   containerStats: ContainerRulesSchema.nullable().optional(),
   proficiencies: z.array(z.string()).optional(),
   weapon: WeaponSchema.nullable().optional(),
+  armor: ArmorSchema.nullable().optional(),
   content: z.array(CharacterEquipmentSchema).optional()
 });
 
@@ -134,6 +145,7 @@ export const UpdateEquipmentSchema = z.object({
   containerStats: ContainerRulesSchema.nullable().optional(),
   proficiencies: z.array(z.string()).optional(),
   weapon: WeaponSchema.nullable().optional(),
+  armor: ArmorSchema.nullable().optional(),
   content: z.array(CharacterEquipmentSchema).optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"

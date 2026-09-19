@@ -218,6 +218,8 @@ export default class TraitRepository implements ITraitRepository {
         spells,
         speed: normalizeTraitSpeed(trait?.speed),
         bonuses: trait?.bonuses ?? undefined,
+        acFormula: trait?.acFormula,
+        suppressedByArmorTypeIds: trait?.suppressedByArmorTypeIds,
         ...(Array.isArray(trait.spellPrivileges) && trait.spellPrivileges.length
           ? { spellPrivileges: trait.spellPrivileges }
           : {})

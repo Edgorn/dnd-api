@@ -55,6 +55,9 @@ const router = Router();
  *         passive:
  *           type: number
  *           description: Valor pasivo calculado según passiveSkillFormula del sistema. Solo presente si el sistema define la fórmula.
+ *         disadvantage:
+ *           type: boolean
+ *           description: Si es true, el personaje tiene desventaja en esta habilidad (p. ej. por armadura).
  *
  *     Estado:
  *       type: object
@@ -549,6 +552,9 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterEquipmentApi'
+ *         wearingArmorWithoutProficiency:
+ *           type: boolean
+ *           description: True si el personaje lleva armadura o escudo equipado sin la competencia requerida.
  *         feats:
  *           type: array
  *           items:

@@ -458,34 +458,6 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
   const equipo = equipment
     .filter(equip => equip.weapon !== undefined || (equip.equipSlot !== undefined && equip.equipSlot !== null))
     .map(equip => {
-      /*
-      if (equip.armor !== undefined && equip.armor.category !== 'Escudo' && equip.equipped) {
-        let CA = equip?.armor?.class?.base ?? 10
-
-        if (equip.isMagic) {
-          CA += 1
-        }
-
-        if (equip?.armor?.class?.dex_bonus) {
-          const dexVal = personaje.attributes?.find(a => a.key === 'dex')?.value ?? 10
-          CA += Math.max(Math.min(Math.floor((dexVal / 2) - 5), equip?.armor?.class?.max_bonus ?? 99), 0)
-        }
-
-        escribirParrafo({
-          titulo: '',
-          descripcion: (equip?.name ? (armaduras[equip.name] ?? equip.name) : '') + (equip.isMagic ? ' +1' : ''),
-          fontTitle: fontBold,
-          fontText: fontRegular,
-          maxWidth: 131,
-          page: page1,
-          x: 270,
-          y: page1.getHeight() - 609
-        })
-
-        //form.getTextField('ArmorWorn').setText("asdsadas");
-        //form.getTextField('ACworn').setText("123123123");
-      }*/
-
       let dataProperties = ''
 
       if (equip?.weapon?.properties && equip?.weapon?.properties.length > 0) {
