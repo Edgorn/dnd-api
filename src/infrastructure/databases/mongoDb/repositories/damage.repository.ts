@@ -55,7 +55,7 @@ export default class DamageRepository implements IDamageRepository {
     return this.formatDamage(damage);
   }
 
-  async getByIds(ids: string[]): Promise<Damage[]> {
+  async getByIds(ids: string[], includeDeleted = false): Promise<Damage[]> {
     if (!ids || ids.length === 0) return [];
 
     const validMongoIds = ids.filter(id => Types.ObjectId.isValid(id));
@@ -67,7 +67,12 @@ export default class DamageRepository implements IDamageRepository {
 
     if (validMongoIds.length === 0) return [];
 
-    const damages = await DamageModel.find({ _id: { $in: validMongoIds as any }, deletedAt: null });
+    const filter: Record<string, unknown> = { _id: { $in: validMongoIds as any } };
+    if (!includeDeleted) {
+      filter.deletedAt = null;
+    }
+
+    const damages = await DamageModel.find(filter).lean<DamageMongo[]>();
     const formatted = damages.map(d => this.formatDamage(d));
     return ordenarPorNombre(formatted);
   }

@@ -20,8 +20,8 @@ export default class DamageService {
     return this.damageRepository.getById(id);
   }
 
-  getByIds(ids: string[]): Promise<Damage[]> {
-    return this.damageRepository.getByIds(ids);
+  getByIds(ids: string[], includeDeleted = false): Promise<Damage[]> {
+    return this.damageRepository.getByIds(ids, includeDeleted);
   }
 
   softDelete(id: string): Promise<void> {

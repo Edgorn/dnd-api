@@ -5,10 +5,12 @@ import IPropertyRepository from "../../../../domain/repositories/IPropertyReposi
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
 import ICoinRepository from "../../../../domain/repositories/ICoinRepository";
 import IArmorTypeRepository from "../../../../domain/repositories/IArmorTypeRepository";
+import { Types } from "mongoose";
 import {
   EquipmentApi,
   EquipmentCost,
   EquipmentCostApi,
+  EquipmentMongo,
   InputCreateEquipment,
   InputUpdateEquipment,
   CharacterEquipmentMongo,
@@ -31,6 +33,11 @@ import {
   ArmorBasic,
   BODY_EQUIP_SLOTS
 } from "../../../../domain/types/equipment.types";
+import { CoinApi } from "../../../../domain/types/coin.types";
+import { Damage } from "../../../../domain/types/damage.types";
+import { Property } from "../../../../domain/types/property.types";
+import { ProficiencyApi } from "../../../../domain/types/proficiencies.types";
+import { ArmorType } from "../../../../domain/types/armorType.types";
 import { NotFoundError } from "../../../../domain/errors/AppError";
 import EquipmentModel from "../schemas/Equipment";
 import DamageRepository from "./damage.repository";
@@ -39,7 +46,27 @@ import ProficiencyRepository from "./proficiency.repository";
 import CoinRepository from "./coin.repository";
 import { ordenarPorNombre, ordenarPorFavoritoYNombre } from "../../../../utils/formatters";
 
+type EquipmentLookups = {
+  coins: Map<string, CoinApi>;
+  damages: Map<string, Damage>;
+  properties: Map<string, Property>;
+  proficiencies: Map<string, ProficiencyApi>;
+  armorTypes: Map<string, ArmorType>;
+  equipments: Map<string, EquipmentMongo>;
+};
+
+type IdBuckets = {
+  coins: Set<string>;
+  damages: Set<string>;
+  properties: Set<string>;
+  proficiencies: Set<string>;
+  armorTypes: Set<string>;
+  contentRefs: Set<string>;
+};
+
 export default class EquipmentRepository implements IEquipmentRepository {
+  private static readonly MAX_CONTENT_DEPTH = 5;
+
   private readonly systemRepository?: ISystemRepository;
   private readonly damageRepository: IDamageRepository;
   private readonly propertyRepository: IPropertyRepository;
@@ -118,8 +145,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }
 
     const equipments = await EquipmentModel.find(filter).lean();
-    const formatted = await Promise.all(equipments.map(e => this.formatEquipment(e)));
-    return ordenarPorNombre(formatted);
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentSync(e, lookups)));
   }
 
   async softDelete(id: string): Promise<void> {
@@ -177,8 +205,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
       deletedAt: null
     }).lean();
 
-    const basic = await Promise.all(equipments.map(e => this.formatEquipmentBasic(e)));
-    return ordenarPorNombre(basic);
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentBasicSync(e, lookups)));
   }
 
   async getWeapons(rulesets: string[] = []): Promise<EquipmentBasic[]> {
@@ -195,8 +224,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }
 
     const equipments = await EquipmentModel.find(query).lean();
-    const basic = await Promise.all(equipments.map(e => this.formatEquipmentBasic(e)));
-    return ordenarPorNombre(basic);
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentBasicSync(e, lookups)));
   }
 
   async getArmor(rulesets: string[] = []): Promise<EquipmentBasic[]> {
@@ -213,32 +243,159 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }
 
     const equipments = await EquipmentModel.find(query).lean();
-    const basic = await Promise.all(equipments.map(e => this.formatEquipmentBasic(e)));
-    return ordenarPorNombre(basic);
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentBasicSync(e, lookups)));
   }
 
   // Formatting helpers
-  private async formatEquipment(equipment: any): Promise<EquipmentApi> {
-    let description = "";
-    if (Array.isArray(equipment.description)) {
-      description = equipment.description.join("\n");
-    } else if (typeof equipment.description === "string") {
-      description = equipment.description;
+  private emptyIdBuckets(): IdBuckets {
+    return {
+      coins: new Set(),
+      damages: new Set(),
+      properties: new Set(),
+      proficiencies: new Set(),
+      armorTypes: new Set(),
+      contentRefs: new Set()
+    };
+  }
+
+  private extractCostUnitId(cost?: EquipmentCost | { quantity?: number; unit?: unknown }): string {
+    if (!cost?.unit) return "";
+    if (typeof cost.unit === "object" && cost.unit !== null && (cost.unit as { _id?: unknown })._id) {
+      return String((cost.unit as { _id: unknown })._id);
+    }
+    return String(cost.unit);
+  }
+
+  private collectRefs(
+    node: EquipmentMongo | CharacterEquipmentMongo | Record<string, any>,
+    buckets: IdBuckets,
+    visited: WeakSet<object> = new WeakSet()
+  ): void {
+    if (!node || typeof node !== "object") return;
+    if (visited.has(node)) return;
+    visited.add(node);
+
+    const unitId = this.extractCostUnitId(node.cost);
+    if (unitId) buckets.coins.add(unitId);
+
+    for (const proficiencyId of node.proficiencies ?? []) {
+      if (proficiencyId) buckets.proficiencies.add(proficiencyId);
     }
 
-    const idStr = equipment._id.toString();
-    const weapon = await this.formatWeapon(equipment.weapon);
-    const armor = await this.formatArmor(equipment.armor);
-    const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(equipment.proficiencies ?? []);
-    const content = (await this.getCharacterEquipmentsByIds(equipment.content ?? [])) ?? [];
-    const cost = await this.formatEquipmentCost(equipment.cost);
+    if (node.armor?.typeId) buckets.armorTypes.add(node.armor.typeId);
+
+    for (const damage of node.weapon?.damage ?? []) {
+      if (damage?.type) buckets.damages.add(damage.type);
+    }
+    for (const damage of node.weapon?.two_handed_damage ?? []) {
+      if (damage?.type) buckets.damages.add(damage.type);
+    }
+    for (const propertyId of node.weapon?.properties ?? []) {
+      if (propertyId) buckets.properties.add(propertyId);
+    }
+
+    for (const child of node.content ?? []) {
+      if (child?.id) buckets.contentRefs.add(child.id);
+      this.collectRefs(child, buckets, visited);
+    }
+  }
+
+  private async buildLookups(
+    roots: Array<EquipmentMongo | CharacterEquipmentMongo | Record<string, any>>
+  ): Promise<EquipmentLookups> {
+    const buckets = this.emptyIdBuckets();
+    const equipments = new Map<string, EquipmentMongo>();
+    const visited = new WeakSet<object>();
+
+    for (const root of roots) {
+      const rootId = (root as { _id?: { toString(): string } })._id?.toString();
+      if (rootId) {
+        equipments.set(rootId, root as EquipmentMongo);
+      }
+      this.collectRefs(root, buckets, visited);
+    }
+
+    let frontier = [...buckets.contentRefs].filter(
+      id => Types.ObjectId.isValid(id) && !equipments.has(id)
+    );
+
+    for (
+      let depth = 0;
+      depth < EquipmentRepository.MAX_CONTENT_DEPTH && frontier.length > 0;
+      depth++
+    ) {
+      const docs = await EquipmentModel.find({ _id: { $in: frontier } } as any).lean<EquipmentMongo[]>();
+      const nextContentRefs = new Set<string>();
+      const nestedBuckets: IdBuckets = {
+        coins: buckets.coins,
+        damages: buckets.damages,
+        properties: buckets.properties,
+        proficiencies: buckets.proficiencies,
+        armorTypes: buckets.armorTypes,
+        contentRefs: nextContentRefs
+      };
+
+      for (const doc of docs) {
+        const id = doc._id.toString();
+        if (equipments.has(id)) continue;
+        equipments.set(id, doc);
+        this.collectRefs(doc, nestedBuckets, visited);
+      }
+
+      frontier = [...nextContentRefs].filter(
+        id => Types.ObjectId.isValid(id) && !equipments.has(id)
+      );
+    }
+
+    const [coins, damages, properties, proficiencies, armorTypes] = await Promise.all([
+      this.coinRepository.getCoinsByIds([...buckets.coins]),
+      this.damageRepository.getByIds([...buckets.damages], true),
+      this.propertyRepository.getByIds([...buckets.properties]),
+      this.proficiencyRepository.getProficienciesByIndices([...buckets.proficiencies]),
+      this.armorTypeRepository?.getByIds([...buckets.armorTypes]) ?? Promise.resolve([])
+    ]);
+
+    return {
+      coins: new Map(coins.map(coin => [coin.id, coin])),
+      damages: new Map(
+        damages.flatMap(damage => (damage.id ? [[damage.id, damage] as [string, Damage]] : []))
+      ),
+      properties: new Map(
+        properties.flatMap(property => (property.id ? [[property.id, property] as [string, Property]] : []))
+      ),
+      proficiencies: new Map(proficiencies.map(proficiency => [proficiency.id, proficiency])),
+      armorTypes: new Map(armorTypes.map(armorType => [armorType.id, armorType])),
+      equipments
+    };
+  }
+
+  private async formatEquipment(equipment: any): Promise<EquipmentApi> {
+    const lookups = await this.buildLookups([equipment]);
+    return this.formatEquipmentSync(equipment, lookups);
+  }
+
+  private formatEquipmentSync(
+    equipment: any,
+    lookups: EquipmentLookups,
+    ancestry: Set<string> = new Set(),
+    includeContent = true
+  ): EquipmentApi {
+    const idStr = equipment._id ? equipment._id.toString() : equipment.id || "";
+    const nextAncestry = new Set(ancestry);
+    if (idStr) nextAncestry.add(idStr);
+
+    const isCycle = Boolean(idStr && ancestry.has(idStr));
+    const canExpandContent =
+      includeContent && !isCycle && nextAncestry.size <= EquipmentRepository.MAX_CONTENT_DEPTH;
 
     return {
       id: idStr,
       ruleset: equipment.ruleset || "",
       name: equipment.name || "",
-      description,
-      cost,
+      description: this.formatCharacterDescription(equipment.description),
+      cost: this.formatEquipmentCostSync(equipment.cost, lookups),
       weight: equipment.weight ?? 0,
       category: equipment.category || "",
       subcategory: equipment.subcategory || "",
@@ -246,38 +403,30 @@ export default class EquipmentRepository implements IEquipmentRepository {
       storageTags: equipment.storageTags,
       containerStats: equipment.containerStats,
       isMagic: equipment.isMagic ?? false,
-      proficiencies,
-      content,
-      weapon,
-      armor,
+      proficiencies: this.resolveProficiencies(equipment.proficiencies ?? [], lookups),
+      content: canExpandContent
+        ? this.formatContentSync(equipment.content ?? [], lookups, nextAncestry)
+        : [],
+      weapon: this.formatWeaponSync(equipment.weapon, lookups),
+      armor: this.formatArmorSync(equipment.armor, lookups),
       bonuses: equipment.bonuses,
       deletedAt: equipment.deletedAt ?? null
     };
   }
 
-  private async formatEquipmentCost(
-    cost?: EquipmentCost | { quantity?: number; unit?: unknown }
-  ): Promise<EquipmentCostApi> {
+  private formatEquipmentCostSync(
+    cost: EquipmentCost | { quantity?: number; unit?: unknown } | undefined,
+    lookups: EquipmentLookups
+  ): EquipmentCostApi {
     const quantity = cost?.quantity ?? 0;
-    let unitId = "";
+    const unitId = this.extractCostUnitId(cost);
+    const coin = unitId ? lookups.coins.get(unitId) : undefined;
 
-    if (cost?.unit) {
-      if (typeof cost.unit === "object" && cost.unit !== null && (cost.unit as { _id?: unknown })._id) {
-        unitId = String((cost.unit as { _id: unknown })._id);
-      } else {
-        unitId = String(cost.unit);
-      }
-    }
-
-    if (unitId) {
-      const coins = await this.coinRepository.getCoinsByIds([unitId]);
-      const coin = coins[0];
-      if (coin) {
-        return {
-          quantity,
-          ...coin
-        };
-      }
+    if (coin) {
+      return {
+        quantity,
+        ...coin
+      };
     }
 
     return {
@@ -293,17 +442,15 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
-  private async formatEquipmentBasic(equipment: any): Promise<EquipmentBasic> {
-    const idStr = equipment._id.toString();
-    const armor = await this.formatArmorBasic(equipment.armor);
+  private formatEquipmentBasicSync(equipment: any, lookups: EquipmentLookups): EquipmentBasic {
     return {
-      id: idStr,
+      id: equipment._id.toString(),
       name: equipment.name || "",
       category: equipment.category || "",
       subcategory: equipment.subcategory || "",
       equipSlot: equipment.equipSlot ?? null,
       weapon: this.formatWeaponBasic(equipment.weapon),
-      armor
+      armor: this.formatArmorBasicSync(equipment.armor, lookups)
     };
   }
 
@@ -315,9 +462,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
-  private async formatArmorBasic(armor?: ArmorMongo): Promise<ArmorBasic | undefined> {
+  private formatArmorBasicSync(armor: ArmorMongo | undefined, lookups: EquipmentLookups): ArmorBasic | undefined {
     if (!armor) return undefined;
-    const formatted = await this.formatArmor(armor);
+    const formatted = this.formatArmorSync(armor, lookups);
     if (!formatted) return undefined;
     return {
       typeId: formatted.type?.id ?? armor.typeId,
@@ -371,25 +518,47 @@ export default class EquipmentRepository implements IEquipmentRepository {
     charEquipment: CharacterEquipmentMongo,
     dbEquipments: any[]
   ): Promise<EquipmentInstanceApi> {
-    const quantity = charEquipment.quantity ?? 1;
-    const matched = dbEquipments.find(
-      e => e._id && e._id.toString() === charEquipment.id
+    const lookups = await this.buildLookups([charEquipment, ...dbEquipments]);
+    for (const doc of dbEquipments) {
+      if (doc?._id) {
+        lookups.equipments.set(doc._id.toString(), doc);
+      }
+    }
+    return this.formatCharacterEquipmentSync(charEquipment, lookups, new Set());
+  }
+
+  private formatContentSync(
+    content: CharacterEquipmentMongo[],
+    lookups: EquipmentLookups,
+    ancestry: Set<string>
+  ): EquipmentInstanceApi[] {
+    return ordenarPorFavoritoYNombre(
+      content.map(child => this.formatCharacterEquipmentSync(child, lookups, ancestry))
     );
+  }
+
+  private formatCharacterEquipmentSync(
+    charEquipment: CharacterEquipmentMongo,
+    lookups: EquipmentLookups,
+    ancestry: Set<string>
+  ): EquipmentInstanceApi {
+    const quantity = charEquipment.quantity ?? 1;
+    const matched = charEquipment.id ? lookups.equipments.get(charEquipment.id) : undefined;
+    const idStr = charEquipment.id || (matched?._id ? matched._id.toString() : "");
+    const isCycle = Boolean(idStr && ancestry.has(idStr));
+    const nextAncestry = new Set(ancestry);
+    if (idStr) nextAncestry.add(idStr);
+    const canExpandContent = !isCycle && nextAncestry.size <= EquipmentRepository.MAX_CONTENT_DEPTH;
 
     if (matched) {
+      const formattedEq = this.formatEquipmentSync(matched, lookups, ancestry, false);
       const mergedWeapon = this.mergeWeapon(matched.weapon, charEquipment.weapon);
-      const weapon = await this.formatWeapon(mergedWeapon);
-      const armor = await this.formatArmor(this.mergeArmor(matched.armor, charEquipment.armor));
-      const proficienciesIds = charEquipment.proficiencies ?? matched.proficiencies ?? [];
-      const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(proficienciesIds);
       const contentSource = charEquipment.content ?? matched.content ?? [];
-      const content = await this.getCharacterEquipmentsByIds(contentSource);
-      const formattedEq = await this.formatEquipment(matched);
       const customDesc = charEquipment.description
         ? this.formatCharacterDescription(charEquipment.description)
         : formattedEq.description;
       const cost = charEquipment.cost
-        ? await this.formatEquipmentCost(charEquipment.cost)
+        ? this.formatEquipmentCostSync(charEquipment.cost, lookups)
         : formattedEq.cost;
 
       return {
@@ -404,10 +573,13 @@ export default class EquipmentRepository implements IEquipmentRepository {
         storageTags: charEquipment.storageTags ?? formattedEq.storageTags,
         containerStats: charEquipment.containerStats ?? formattedEq.containerStats,
         bonuses: charEquipment.bonuses ?? formattedEq.bonuses,
-        content,
-        proficiencies,
-        weapon,
-        armor,
+        content: canExpandContent ? this.formatContentSync(contentSource, lookups, nextAncestry) : [],
+        proficiencies: this.resolveProficiencies(
+          charEquipment.proficiencies ?? matched.proficiencies ?? [],
+          lookups
+        ),
+        weapon: this.formatWeaponSync(mergedWeapon, lookups),
+        armor: this.formatArmorSync(this.mergeArmor(matched.armor, charEquipment.armor), lookups),
         isMagic: charEquipment.isMagic ?? matched.isMagic ?? false,
         isBond: charEquipment.isBond ?? false,
         isFavorite: charEquipment.isFavorite ?? false,
@@ -416,21 +588,16 @@ export default class EquipmentRepository implements IEquipmentRepository {
       };
     }
 
-    const idStr = charEquipment.id || "";
-    const weapon = await this.formatWeapon(charEquipment.weapon);
-    const armor = await this.formatArmor(charEquipment.armor);
-    const proficiencies = await this.proficiencyRepository.getProficienciesByIndices(charEquipment.proficiencies ?? []);
-    const content = await this.getCharacterEquipmentsByIds(charEquipment.content ?? []);
-    const cost = await this.formatEquipmentCost(charEquipment.cost);
-
     return {
       id: idStr,
       ruleset: "",
       name: charEquipment.name ?? idStr,
       description: this.formatCharacterDescription(charEquipment.description),
       quantity,
-      content: content ?? [],
-      cost,
+      content: canExpandContent
+        ? this.formatContentSync(charEquipment.content ?? [], lookups, nextAncestry)
+        : [],
+      cost: this.formatEquipmentCostSync(charEquipment.cost, lookups),
       weight: charEquipment.weight ?? 0,
       category: charEquipment.category ?? "",
       subcategory: charEquipment.subcategory ?? "",
@@ -438,9 +605,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
       storageTags: charEquipment.storageTags ?? undefined,
       containerStats: charEquipment.containerStats ?? undefined,
       bonuses: charEquipment.bonuses,
-      proficiencies,
-      weapon,
-      armor,
+      proficiencies: this.resolveProficiencies(charEquipment.proficiencies ?? [], lookups),
+      weapon: this.formatWeaponSync(charEquipment.weapon, lookups),
+      armor: this.formatArmorSync(charEquipment.armor, lookups),
       isMagic: charEquipment.isMagic ?? false,
       isBond: charEquipment.isBond ?? false,
       isFavorite: charEquipment.isFavorite ?? false,
@@ -449,12 +616,12 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
-  private async formatArmor(armor?: ArmorMongo): Promise<ArmorApi | undefined> {
+  private formatArmorSync(armor: ArmorMongo | undefined, lookups: EquipmentLookups): ArmorApi | undefined {
     if (!armor) return undefined;
 
     let type = null;
-    if (armor.typeId && this.armorTypeRepository) {
-      const found = await this.armorTypeRepository.getById(armor.typeId);
+    if (armor.typeId) {
+      const found = lookups.armorTypes.get(armor.typeId);
       type = found && !found.deletedAt ? found : null;
     }
 
@@ -471,35 +638,47 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
-  private async formatWeapon(weapon: WeaponMongo | undefined): Promise<WeaponApi | undefined> {
+  private formatWeaponSync(weapon: WeaponMongo | undefined, lookups: EquipmentLookups): WeaponApi | undefined {
     if (!weapon) return undefined;
-
-    const damage = await this.formatDamages(weapon.damage ?? []);
-    const properties = await this.propertyRepository.getByIds(weapon.properties ?? []);
-    const two_handed_damage = await this.formatDamages(weapon.two_handed_damage ?? []);
 
     return {
       category: weapon.category,
-      damage,
-      two_handed_damage,
-      properties,
+      damage: this.formatDamagesSync(weapon.damage ?? [], lookups),
+      two_handed_damage: this.formatDamagesSync(weapon.two_handed_damage ?? [], lookups),
+      properties: this.resolveProperties(weapon.properties ?? [], lookups),
       range: weapon.range,
       range_throw: weapon.range_throw
     };
   }
 
-  private async formatDamages(damages: WeaponDamageMongo[]): Promise<WeaponDamageApi[]> {
-    return Promise.all(damages.map(damage => this.formatDamage(damage)));
+  private formatDamagesSync(damages: WeaponDamageMongo[], lookups: EquipmentLookups): WeaponDamageApi[] {
+    return damages.map(damage => this.formatDamageSync(damage, lookups));
   }
 
-  private async formatDamage(damage: WeaponDamageMongo): Promise<WeaponDamageApi> {
-    const foundDamage = await this.damageRepository.getById(damage?.type ?? "");
+  private formatDamageSync(damage: WeaponDamageMongo, lookups: EquipmentLookups): WeaponDamageApi {
+    const foundDamage = lookups.damages.get(damage?.type ?? "");
 
     return {
       dice: damage.dice,
       name: foundDamage?.name ?? "",
       desc: foundDamage?.description ?? ""
     };
+  }
+
+  private resolveProficiencies(ids: string[], lookups: EquipmentLookups): ProficiencyApi[] {
+    return ordenarPorNombre(
+      ids
+        .map(id => lookups.proficiencies.get(id))
+        .filter((proficiency): proficiency is ProficiencyApi => Boolean(proficiency))
+    );
+  }
+
+  private resolveProperties(ids: string[], lookups: EquipmentLookups): Property[] {
+    return ordenarPorNombre(
+      ids
+        .map(id => lookups.properties.get(id))
+        .filter((property): property is Property => Boolean(property))
+    );
   }
 
   private async formatEquipmentChoice(choice: EquipmentOptionsMongo): Promise<EquipmentChoiceApi> {
@@ -646,8 +825,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
       deletedAt: null
     } as any).lean();
 
-    const formatted = await Promise.all(equipments.map(e => this.formatEquipment(e)));
-    return ordenarPorNombre(formatted);
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentSync(e, lookups)));
   }
 
   private async getEquipmentsByFilter(
@@ -680,8 +860,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
       .sort({ name: 1 })
       .lean();
 
-    const formatted = await Promise.all(equipments.map(e => this.formatEquipment(e)));
-    return ordenarPorNombre(formatted);
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentSync(e, lookups)));
   }
 
   private async getEquipmentsByCategory(
