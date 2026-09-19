@@ -9,21 +9,21 @@ const caracteristicas: {[key: string]: string} = {
   cha: 'Carisma'
 }
 
+const nameCollator = new Intl.Collator("es", { sensitivity: "base" });
+
 export const mapStringArrayToLabelValue = (arr?: string[]): OptionSelectApi[] => {
   return arr?.map(opt => ({ label: opt, value: opt })) ?? [];
 }
 
 export const ordenarPorNombre = <T extends { name: string }>(items: T[]): T[] => {
-  return [...items].sort((a, b) => 
-    a?.name?.localeCompare(b?.name, 'es', { sensitivity: 'base' })
-  );
+  return [...items].sort((a, b) => nameCollator.compare(a?.name ?? "", b?.name ?? ""));
 }
 
 export const ordenarPorFavoritoYNombre = <T extends { name: string; isFavorite?: boolean }>(items: T[]): T[] =>
   [...items].sort((a, b) => {
     const favDiff = Number(!!b.isFavorite) - Number(!!a.isFavorite);
     if (favDiff !== 0) return favDiff;
-    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    return nameCollator.compare(a?.name ?? "", b?.name ?? "");
   });
 
 export const formatearAbilityBonusChoices = (ability_bonus_choices: ChoiceMongo): ChoiceApi<AbilityBonusesApi> | undefined => {

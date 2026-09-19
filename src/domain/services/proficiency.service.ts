@@ -9,6 +9,10 @@ export default class ProficiencyService {
     return this.proficiencyRepository.getProficienciesByIndices(indices);
   }
 
+  async getDescendantProficiencies(parentIds: string[]): Promise<ProficiencyApi[]> {
+    return this.proficiencyRepository.getDescendantProficiencies(parentIds);
+  }
+
   async formatProficiencyChoices(choices: ChoiceMongo[] | undefined): Promise<ChoiceApi<ProficiencyApi>[]> {
     return this.proficiencyRepository.formatProficiencyChoices(choices);
   }

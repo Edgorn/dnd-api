@@ -1531,6 +1531,15 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ...new Map(proficienciesFiltrados.map(item => [item.id, item])).values()
     ];
 
+    const descendantProficiencies = await this.proficiencyRepository.getDescendantProficiencies(
+      proficienciesUnicos.map(item => item.id)
+    );
+    const proficienciesForEquipmentCheck = [
+      ...new Map(
+        [...proficienciesUnicos, ...descendantProficiencies].map(item => [item.id, item])
+      ).values(),
+    ];
+
     const idiomas_understands = await this.languageRepository.getLanguagesByIndex(personaje.languages?.understands ?? [])
     const idiomas_speaks = await this.languageRepository.getLanguagesByIndex(personaje.languages?.speaks ?? [])
     const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment)
@@ -1697,7 +1706,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const equipmentWithCombatBonuses = enrichEquipmentWithCombatBonuses({
       equipment: equipment ?? [],
       attributes: apiAttributes,
-      proficiencies: proficienciesUnicos,
+      proficiencies: proficienciesForEquipmentCheck,
       proficiencyBonus: personaje?.prof_bonus ?? 0,
       level,
       rules: rulesConfig,
@@ -1824,10 +1833,19 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ).values(),
     ];
 
+    const descendantProficiencies = await this.proficiencyRepository.getDescendantProficiencies(
+      proficiencies.map(item => item.id)
+    );
+    const proficienciesForEquipmentCheck = [
+      ...new Map(
+        [...proficiencies, ...descendantProficiencies].map(item => [item.id, item])
+      ).values(),
+    ];
+
     return enrichEquipmentWithCombatBonuses({
       equipment: equipment ?? [],
       attributes: apiAttributes,
-      proficiencies,
+      proficiencies: proficienciesForEquipmentCheck,
       proficiencyBonus: personaje?.prof_bonus ?? 0,
       level,
       rules: rulesConfig,

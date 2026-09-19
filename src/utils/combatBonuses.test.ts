@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { enrichEquipmentWithCombatBonuses, isEquipmentProficient } from "./combatBonuses";
+import {
+  enrichEquipmentWithCombatBonuses,
+  isEquipmentProficient,
+  characterHasRequiredProficiency,
+} from "./combatBonuses";
 import { EquipmentInstanceApi } from "../domain/types/equipment.types";
 import { ProficiencyApi } from "../domain/types/proficiencies.types";
 
@@ -61,6 +65,35 @@ describe("isEquipmentProficient", () => {
 
   it("returns false when character lacks required proficiency", () => {
     expect(isEquipmentProficient(baseEquipment, [])).toBe(false);
+  });
+
+  it("returns true when character has parent proficiency of required child", () => {
+    const allArmor: ProficiencyApi = {
+      id: "all-armor",
+      name: "Todas las armaduras",
+      type: "Armaduras",
+      parentProficiencyId: null,
+      ruleset: "dnd5e",
+      deletedAt: null,
+    };
+    const heavyArmor: ProficiencyApi = {
+      id: "heavy-armor",
+      name: "Armaduras pesadas",
+      type: "Armaduras",
+      parentProficiencyId: "all-armor",
+      ruleset: "dnd5e",
+      deletedAt: null,
+    };
+    const plateArmor: EquipmentInstanceApi = {
+      ...baseEquipment,
+      name: "Armadura de placas",
+      weapon: undefined,
+      proficiencies: [heavyArmor],
+    };
+
+    expect(isEquipmentProficient(plateArmor, [allArmor])).toBe(true);
+    expect(characterHasRequiredProficiency([heavyArmor], [allArmor])).toBe(true);
+    expect(isEquipmentProficient(plateArmor, [])).toBe(false);
   });
 });
 

@@ -12,6 +12,7 @@ import {
   escribirRasgos,
   escribirTransfondo,
 } from "../../utils/escribirPdf";
+import { characterHasRequiredProficiency } from "../../utils/combatBonuses";
 
 const SKILL_FIELD_MAP: Record<string, [string, string]> = {
   acrobatics: ["acroPROF", "Acrobatics"],
@@ -320,11 +321,15 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
 
     let suma = this.sumDamageBonus(character, equip);
 
-    if (
-      character?.proficiencies?.some((arma) =>
-        equip?.proficiencies?.some((p) => p.id === arma?.id)
-      )
-    ) {
+    const isProficient =
+      equip.isProficient !== undefined
+        ? equip.isProficient
+        : characterHasRequiredProficiency(
+            equip?.proficiencies ?? [],
+            character?.proficiencies ?? []
+          );
+
+    if (isProficient) {
       suma += character?.prof_bonus ?? 0;
     }
 

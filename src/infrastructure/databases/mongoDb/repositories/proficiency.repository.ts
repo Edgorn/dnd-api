@@ -16,9 +16,44 @@ export default class ProficiencyRepository implements IProficiencyRepository {
     const validMongoIds = indices.filter(item => Types.ObjectId.isValid(item));
     if (!validMongoIds.length) return [];
 
-    const proficiencies = await ProficiencySchema.find({ _id: { $in: validMongoIds } as any, deletedAt: null });
+    const proficiencies = await ProficiencySchema.find({
+      _id: { $in: validMongoIds } as any,
+      deletedAt: null
+    }).lean<ProficiencyMongo[]>();
     
     return ordenarPorNombre(this.formatProficiencies(proficiencies));
+  }
+
+  async getDescendantProficiencies(parentIds: string[]): Promise<ProficiencyApi[]> {
+    const validParentIds = parentIds.filter(id => Types.ObjectId.isValid(id));
+    if (!validParentIds.length) return [];
+
+    const collected: ProficiencyMongo[] = [];
+    const visitedParentIds = new Set<string>();
+    let currentParentIds = [...validParentIds];
+
+    while (currentParentIds.length > 0) {
+      const batchParentIds = currentParentIds.filter(id => !visitedParentIds.has(id));
+      if (batchParentIds.length === 0) break;
+
+      for (const id of batchParentIds) {
+        visitedParentIds.add(id);
+      }
+
+      const children = await ProficiencySchema.find({
+        parentProficiencyId: { $in: batchParentIds },
+        deletedAt: null,
+      }).lean<ProficiencyMongo[]>();
+
+      if (children.length === 0) break;
+
+      collected.push(...children);
+      currentParentIds = children
+        .map(child => child._id!.toString())
+        .filter(id => !visitedParentIds.has(id));
+    }
+
+    return ordenarPorNombre(this.formatProficiencies(collected));
   }
 
   async formatProficiencyChoices(opciones: ChoiceMongo[] | undefined): Promise<ChoiceApi<ProficiencyApi>[]> {
@@ -43,7 +78,7 @@ export default class ProficiencyRepository implements IProficiencyRepository {
     const proficiencies = await ProficiencySchema.find({
       ruleset: { $in: expandedRulesets },
       deletedAt: null
-    }).collation({ locale: 'es', strength: 1 }).sort({ name: 1 });
+    }).collation({ locale: 'es', strength: 1 }).sort({ name: 1 }).lean<ProficiencyMongo[]>();
 
     return this.formatProficiencies(proficiencies);
   }

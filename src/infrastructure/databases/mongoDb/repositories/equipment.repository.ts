@@ -170,15 +170,10 @@ export default class EquipmentRepository implements IEquipmentRepository {
     if (!equipments) return undefined;
     if (!equipments.length) return [];
 
-    const ids = equipments.map(e => e.id).filter((id): id is string => Boolean(id));
-    const objectIds = ids.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
-
-    const dbEquipments = await EquipmentModel.find({
-      _id: { $in: objectIds }
-    } as any).lean();
-
-    const formatted = await this.formatCharacterEquipments(equipments, dbEquipments);
-    return ordenarPorFavoritoYNombre(formatted);
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorFavoritoYNombre(
+      equipments.map(item => this.formatCharacterEquipmentSync(item, lookups, new Set()))
+    );
   }
 
   async formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined> {
@@ -313,6 +308,11 @@ export default class EquipmentRepository implements IEquipmentRepository {
       const rootId = (root as { _id?: { toString(): string } })._id?.toString();
       if (rootId) {
         equipments.set(rootId, root as EquipmentMongo);
+      } else {
+        const instanceId = (root as CharacterEquipmentMongo).id;
+        if (instanceId && Types.ObjectId.isValid(instanceId)) {
+          buckets.contentRefs.add(instanceId);
+        }
       }
       this.collectRefs(root, buckets, visited);
     }
@@ -472,15 +472,6 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
-  private async formatCharacterEquipments(
-    characterEquipments: CharacterEquipmentMongo[],
-    dbEquipments: any[]
-  ): Promise<EquipmentInstanceApi[]> {
-    return Promise.all(
-      characterEquipments.map(charEq => this.formatCharacterEquipment(charEq, dbEquipments))
-    );
-  }
-
   private mergeWeapon(base?: WeaponMongo, override?: WeaponMongo): WeaponMongo | undefined {
     if (!base && !override) return undefined;
     if (!base) return override;
@@ -514,19 +505,6 @@ export default class EquipmentRepository implements IEquipmentRepository {
     return Array.isArray(description) ? description.join("\n") : description;
   }
 
-  private async formatCharacterEquipment(
-    charEquipment: CharacterEquipmentMongo,
-    dbEquipments: any[]
-  ): Promise<EquipmentInstanceApi> {
-    const lookups = await this.buildLookups([charEquipment, ...dbEquipments]);
-    for (const doc of dbEquipments) {
-      if (doc?._id) {
-        lookups.equipments.set(doc._id.toString(), doc);
-      }
-    }
-    return this.formatCharacterEquipmentSync(charEquipment, lookups, new Set());
-  }
-
   private formatContentSync(
     content: CharacterEquipmentMongo[],
     lookups: EquipmentLookups,
@@ -550,69 +528,75 @@ export default class EquipmentRepository implements IEquipmentRepository {
     if (idStr) nextAncestry.add(idStr);
     const canExpandContent = !isCycle && nextAncestry.size <= EquipmentRepository.MAX_CONTENT_DEPTH;
 
-    if (matched) {
-      const formattedEq = this.formatEquipmentSync(matched, lookups, ancestry, false);
-      const mergedWeapon = this.mergeWeapon(matched.weapon, charEquipment.weapon);
-      const contentSource = charEquipment.content ?? matched.content ?? [];
-      const customDesc = charEquipment.description
-        ? this.formatCharacterDescription(charEquipment.description)
-        : formattedEq.description;
-      const cost = charEquipment.cost
-        ? this.formatEquipmentCostSync(charEquipment.cost, lookups)
-        : formattedEq.cost;
-
+    if (!matched) {
       return {
-        ...formattedEq,
-        name: charEquipment.name ?? formattedEq.name,
-        description: customDesc,
+        id: idStr,
+        ruleset: "",
+        name: charEquipment.name ?? idStr,
+        description: this.formatCharacterDescription(charEquipment.description),
         quantity,
-        category: charEquipment.category ?? formattedEq.category,
-        subcategory: charEquipment.subcategory ?? formattedEq.subcategory,
-        weight: charEquipment.weight ?? formattedEq.weight,
-        equipSlot: charEquipment.equipSlot !== undefined ? charEquipment.equipSlot : formattedEq.equipSlot,
-        storageTags: charEquipment.storageTags ?? formattedEq.storageTags,
-        containerStats: charEquipment.containerStats ?? formattedEq.containerStats,
-        bonuses: charEquipment.bonuses ?? formattedEq.bonuses,
-        content: canExpandContent ? this.formatContentSync(contentSource, lookups, nextAncestry) : [],
-        proficiencies: this.resolveProficiencies(
-          charEquipment.proficiencies ?? matched.proficiencies ?? [],
-          lookups
-        ),
-        weapon: this.formatWeaponSync(mergedWeapon, lookups),
-        armor: this.formatArmorSync(this.mergeArmor(matched.armor, charEquipment.armor), lookups),
-        isMagic: charEquipment.isMagic ?? matched.isMagic ?? false,
+        content: canExpandContent
+          ? this.formatContentSync(charEquipment.content ?? [], lookups, nextAncestry)
+          : [],
+        cost: this.formatEquipmentCostSync(charEquipment.cost, lookups),
+        weight: charEquipment.weight ?? 0,
+        category: charEquipment.category ?? "",
+        subcategory: charEquipment.subcategory ?? "",
+        equipSlot: charEquipment.equipSlot ?? null,
+        storageTags: charEquipment.storageTags ?? undefined,
+        containerStats: charEquipment.containerStats ?? undefined,
+        bonuses: charEquipment.bonuses,
+        proficiencies: this.resolveProficiencies(charEquipment.proficiencies ?? [], lookups),
+        weapon: this.formatWeaponSync(charEquipment.weapon, lookups),
+        armor: this.formatArmorSync(charEquipment.armor, lookups),
+        isMagic: charEquipment.isMagic ?? false,
         isBond: charEquipment.isBond ?? false,
         isFavorite: charEquipment.isFavorite ?? false,
         equipped: charEquipment.equipped ?? false,
-        cost
+        deletedAt: null
       };
     }
 
+    const formattedEq = this.formatEquipmentSync(
+      matched,
+      lookups,
+      ancestry,
+      canExpandContent && charEquipment.content === undefined
+    );
+
     return {
-      id: idStr,
-      ruleset: "",
-      name: charEquipment.name ?? idStr,
-      description: this.formatCharacterDescription(charEquipment.description),
+      ...formattedEq,
+      name: charEquipment.name ?? formattedEq.name,
+      description: charEquipment.description
+        ? this.formatCharacterDescription(charEquipment.description)
+        : formattedEq.description,
       quantity,
-      content: canExpandContent
-        ? this.formatContentSync(charEquipment.content ?? [], lookups, nextAncestry)
-        : [],
-      cost: this.formatEquipmentCostSync(charEquipment.cost, lookups),
-      weight: charEquipment.weight ?? 0,
-      category: charEquipment.category ?? "",
-      subcategory: charEquipment.subcategory ?? "",
-      equipSlot: charEquipment.equipSlot ?? null,
-      storageTags: charEquipment.storageTags ?? undefined,
-      containerStats: charEquipment.containerStats ?? undefined,
-      bonuses: charEquipment.bonuses,
-      proficiencies: this.resolveProficiencies(charEquipment.proficiencies ?? [], lookups),
-      weapon: this.formatWeaponSync(charEquipment.weapon, lookups),
-      armor: this.formatArmorSync(charEquipment.armor, lookups),
-      isMagic: charEquipment.isMagic ?? false,
+      category: charEquipment.category ?? formattedEq.category,
+      subcategory: charEquipment.subcategory ?? formattedEq.subcategory,
+      weight: charEquipment.weight ?? formattedEq.weight,
+      equipSlot: charEquipment.equipSlot !== undefined ? charEquipment.equipSlot : formattedEq.equipSlot,
+      storageTags: charEquipment.storageTags ?? formattedEq.storageTags,
+      containerStats: charEquipment.containerStats ?? formattedEq.containerStats,
+      bonuses: charEquipment.bonuses ?? formattedEq.bonuses,
+      content: charEquipment.content !== undefined
+        ? (canExpandContent ? this.formatContentSync(charEquipment.content, lookups, nextAncestry) : [])
+        : formattedEq.content,
+      proficiencies: charEquipment.proficiencies !== undefined
+        ? this.resolveProficiencies(charEquipment.proficiencies, lookups)
+        : formattedEq.proficiencies,
+      weapon: charEquipment.weapon
+        ? this.formatWeaponSync(this.mergeWeapon(matched.weapon, charEquipment.weapon), lookups)
+        : formattedEq.weapon,
+      armor: charEquipment.armor
+        ? this.formatArmorSync(this.mergeArmor(matched.armor, charEquipment.armor), lookups)
+        : formattedEq.armor,
+      isMagic: charEquipment.isMagic ?? formattedEq.isMagic ?? false,
       isBond: charEquipment.isBond ?? false,
       isFavorite: charEquipment.isFavorite ?? false,
       equipped: charEquipment.equipped ?? false,
-      deletedAt: null
+      cost: charEquipment.cost
+        ? this.formatEquipmentCostSync(charEquipment.cost, lookups)
+        : formattedEq.cost
     };
   }
 
@@ -862,7 +846,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     if (!equipments.length) return [];
     const lookups = await this.buildLookups(equipments);
-    return ordenarPorNombre(equipments.map(e => this.formatEquipmentSync(e, lookups)));
+    return equipments.map(e => this.formatEquipmentSync(e, lookups));
   }
 
   private async getEquipmentsByCategory(
@@ -881,9 +865,14 @@ export default class EquipmentRepository implements IEquipmentRepository {
       .sort({ name: 1 })
       .lean();
 
-    return this.formatCharacterEquipments(
-      equipments.map(e => ({ id: e._id.toString(), quantity: 1 })),
-      equipments
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return equipments.map(item =>
+      this.formatCharacterEquipmentSync(
+        { id: item._id.toString(), quantity: 1 },
+        lookups,
+        new Set()
+      )
     );
   }
 }

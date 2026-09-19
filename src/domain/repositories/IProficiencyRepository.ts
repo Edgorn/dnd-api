@@ -3,6 +3,7 @@ import { ProficiencyApi } from "../types/proficiencies.types";
 
 export default interface IProficiencyRepository {
   getProficienciesByIndices(indices: string[]): Promise<ProficiencyApi[]>;
+  getDescendantProficiencies(parentIds: string[]): Promise<ProficiencyApi[]>;
   formatProficiencyChoices(choices: ChoiceMongo[] | undefined): Promise<ChoiceApi<ProficiencyApi>[]>;
   getProficiencyById(id: string): Promise<ProficiencyApi | null>;
   getProficienciesBySystems(systems: string[]): Promise<ProficiencyApi[]>;

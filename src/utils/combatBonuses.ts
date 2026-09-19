@@ -27,18 +27,35 @@ export interface EnrichEquipmentCombatBonusesInput {
   >;
 }
 
-export function isEquipmentProficient(
-  equipment: EquipmentInstanceApi,
-  proficiencies: ProficiencyApi[]
+export function characterHasRequiredProficiency(
+  required: ProficiencyApi[],
+  owned: ProficiencyApi[]
 ): boolean {
-  const required = equipment.proficiencies ?? [];
   if (required.length === 0) {
     return true;
   }
 
-  return proficiencies.some(proficiency =>
-    required.some(equipmentProficiency => equipmentProficiency.id === proficiency.id)
-  );
+  const ownedIds = new Set(owned.map(proficiency => proficiency.id));
+
+  return required.some(requiredProficiency => {
+    if (ownedIds.has(requiredProficiency.id)) {
+      return true;
+    }
+    if (
+      requiredProficiency.parentProficiencyId &&
+      ownedIds.has(requiredProficiency.parentProficiencyId)
+    ) {
+      return true;
+    }
+    return false;
+  });
+}
+
+export function isEquipmentProficient(
+  equipment: EquipmentInstanceApi,
+  proficiencies: ProficiencyApi[]
+): boolean {
+  return characterHasRequiredProficiency(equipment.proficiencies ?? [], proficiencies);
 }
 
 function buildWeaponContext(
