@@ -104,7 +104,8 @@ const characterClassFields = {
     name: z.string().min(1, "El nombre del tipo de subclase no puede estar vacío"),
     description: z.array(z.string()).default([]),
     level: z.number().int().min(1, "El nivel de elección de subclase debe ser al menos 1")
-  }).nullable().optional()
+  }).nullable().optional(),
+  god: z.boolean().optional()
 };
 
 export const CreateCharacterClassSchema = z.object({

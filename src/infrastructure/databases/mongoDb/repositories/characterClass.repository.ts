@@ -103,6 +103,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellRepository: data.spellRepository ?? undefined,
       abilityScoreProgression: data.abilityScoreProgression ?? undefined,
       subclassChoice: data.subclassChoice ?? undefined,
+      god: data.god ?? false,
       levels: this.mapLevelsForCreate(data.levels)
     });
 
@@ -415,6 +416,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spell_choices: resolvedSpellChoices,
       equipment,
       equipment_choices,
+      god: characterClass.god ?? false,
       traits,
       traits_data: dataLevel?.traits_data ?? {},
       deletedAt: characterClass.deletedAt

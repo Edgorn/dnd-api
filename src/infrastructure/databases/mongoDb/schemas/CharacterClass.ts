@@ -44,7 +44,8 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
   preparedFrom: { type: String, enum: ["known", "classList"], default: undefined },
   spellRepository: { type: Schema.Types.Mixed, default: undefined },
   abilityScoreProgression: { type: [Number], default: undefined },
-  subclassChoice: { type: Schema.Types.Mixed, default: undefined }
+  subclassChoice: { type: Schema.Types.Mixed, default: undefined },
+  god: { type: Boolean, default: false }
 }, { collection: 'character_classes', timestamps: true });
 
 const CharacterClassModel = mongoose.model<CharacterClassMongo>("character_classes", characterClassSchema);

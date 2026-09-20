@@ -136,6 +136,9 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/Subclass'
  *           description: Subclases disponibles para esta clase en los sistemas de la petición (incluye ancestros).
+ *         god:
+ *           type: boolean
+ *           description: Indica si la clase exige elegir una deidad.
  *         deletedAt:
  *           type: string
  *           format: date-time
@@ -333,6 +336,9 @@ const router = Router();
  *             - $ref: '#/components/schemas/SubclassChoiceConfig'
  *           nullable: true
  *           description: Tipo de elección de subclase. No incluye el catálogo; las subclases se crean en /subclasses.
+ *         god:
+ *           type: boolean
+ *           description: Indica si la clase exige elegir una deidad.
  *     InputUpdateCharacterClass:
  *       type: object
  *       properties:
@@ -420,6 +426,9 @@ const router = Router();
  *             - $ref: '#/components/schemas/SubclassChoiceConfig'
  *           nullable: true
  *           description: Tipo de elección de subclase. Enviar null para eliminarlo.
+ *         god:
+ *           type: boolean
+ *           description: Indica si la clase exige elegir una deidad.
  */
 
 /**

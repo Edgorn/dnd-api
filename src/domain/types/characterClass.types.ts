@@ -84,6 +84,7 @@ export interface InputCreateCharacterClass {
   levels?: CharacterClassLevelInput[];
   abilityScoreProgression?: number[] | null;
   subclassChoice?: SubclassChoiceConfig | null;
+  god?: boolean;
 }
 
 export interface InputUpdateCharacterClass {
@@ -108,6 +109,7 @@ export interface InputUpdateCharacterClass {
   levels?: CharacterClassLevelInput[];
   abilityScoreProgression?: number[] | null;
   subclassChoice?: SubclassChoiceConfig | null;
+  god?: boolean;
 }
 
 export interface CharacterClassMongo {
@@ -133,6 +135,7 @@ export interface CharacterClassMongo {
   spellRepository?: SpellRepositoryConfig | null;
   subclassChoice?: SubclassChoiceConfig | null;
   abilityScoreProgression?: number[] | null;
+  god?: boolean;
 }
 
 export interface CharacterClassLevelMongo {
@@ -248,6 +251,7 @@ export interface CharacterClassApi {
   abilityScoreProgression?: number[];
   subclassChoice?: SubclassChoiceConfig;
   subclasses?: SubclassApi[];
+  god: boolean;
   deletedAt?: Date | null;
 }
 

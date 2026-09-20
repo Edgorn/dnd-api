@@ -105,6 +105,26 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts god as a boolean on create", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Clerigo",
+      god: true
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects god when it is not a boolean on create", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Clerigo",
+      god: "yes"
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("accepts a spell repository config, level traits and subclassChoice", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
@@ -174,6 +194,16 @@ describe("UpdateCharacterClassSchema spellRepository", () => {
 
     expect(withChoice.success).toBe(true);
     expect(cleared.success).toBe(true);
+  });
+
+  it("accepts god true or false on update", () => {
+    expect(UpdateCharacterClassSchema.safeParse({ god: true }).success).toBe(true);
+    expect(UpdateCharacterClassSchema.safeParse({ god: false }).success).toBe(true);
+  });
+
+  it("rejects god when it is not a boolean on update", () => {
+    const result = UpdateCharacterClassSchema.safeParse({ god: 1 });
+    expect(result.success).toBe(false);
   });
 });
 

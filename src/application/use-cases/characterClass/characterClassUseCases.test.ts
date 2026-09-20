@@ -40,6 +40,24 @@ describe("CharacterClass Use Cases", () => {
   });
 
   describe("CreateCharacterClass", () => {
+    it("should create class with god flag when deity selection is required", async () => {
+      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.create.mockResolvedValue({ ...createdClass, name: "Clerigo", god: true });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Clerigo",
+        hit_die: 8,
+        god: true
+      };
+
+      const result = await useCase.execute(input, "user1");
+
+      expect(result.god).toBe(true);
+      expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
     it("should create class with hit die, proficiencies, saving throws, skills and equipment", async () => {
       const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
