@@ -17,10 +17,8 @@ describe("DeleteEquipment", () => {
     const useCase = new DeleteEquipment(personajeServiceMock as any);
     const input = {
       id: "char1",
-      equip: "eq1",
+      instanceId: "inst1",
       quantity: 1,
-      isMagic: false,
-      isBond: false,
     };
     const expected = {
       equipment: [],
@@ -42,10 +40,8 @@ describe("DeleteEquipment", () => {
     await expect(
       useCase.execute({
         id: "char1",
-        equip: "eq1",
+        instanceId: "inst1",
         quantity: 1,
-        isMagic: false,
-        isBond: false,
       })
     ).rejects.toThrow(NotFoundError);
   });
@@ -59,10 +55,7 @@ describe("DeleteEquipment", () => {
     await expect(
       useCase.execute({
         id: "char1",
-        equip: "eq1",
-        quantity: 1,
-        isMagic: false,
-        isBond: false,
+        instanceId: "inst1",
       })
     ).rejects.toThrow(ConflictError);
   });

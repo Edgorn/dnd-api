@@ -14,6 +14,7 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
   saving_throws: { type: [String], default: [] },
   equipment: [
     {
+      _id: false,
       id: String,
       quantity: Number
     }

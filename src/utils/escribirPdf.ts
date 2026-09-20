@@ -4,6 +4,7 @@ import { CharacterEquipmentApi, BODY_EQUIP_SLOTS } from "../domain/types/equipme
 import { FeatApi } from "../domain/types/feat.types";
 import { TraitApi } from "../domain/types/traits.types";
 import { Ideal } from "../domain/types/background.types";
+import { computeArmorPieceAc } from "./armorRules";
 
 const abilities: { [key: string]: string } = {
   str: 'FUE',
@@ -450,9 +451,11 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
       x: 270,
       y: page1.getHeight() - 609
     })
-    //form.getTextField('ArmorWorn').setText(bodyArmor.name + (bodyArmor.isMagic ? ' +1' : ''));
-    // TODO: calcular CA de la armadura equipada y escribirla en ACworn
-    // form.getTextField('ACworn').setText('+' + (CA - 10));
+
+    if (bodyArmor.armor?.class) {
+      const pieceAc = computeArmorPieceAc(bodyArmor, personaje.attributes);
+      form.getTextField('ACworn').setText('' + pieceAc);
+    }
   }
 
   const equipo = equipment

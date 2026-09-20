@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { CharacterCampaignLink, CharacterSubclassApi, LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi } from '../../../../domain/types/personajes.types';
+import { CharacterCampaignLink, CharacterSubclassApi, LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi } from '../../../../domain/types/personajes.types';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -20,7 +20,7 @@ import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
 import { FeatApi } from '../../../../domain/types/feat.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
-import { CharacterEquipmentApi } from '../../../../domain/types/equipment.types';
+import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipSlot } from '../../../../domain/types/equipment.types';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
@@ -66,6 +66,15 @@ import {
   mergePreparedWithPrivileges,
 } from '../../../../utils/characterSpellcasting';
 import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
+import {
+  addToInventory,
+  cloneInventory,
+  createInventoryInstance,
+  removeOrDecrement,
+  splitOne,
+  tryMerge,
+} from '../../../../utils/inventoryStacks';
+import { applyEquip } from '../../../../utils/inventorySlots';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import { SubclassApi } from '../../../../domain/types/subclass.types';
 import ICoinRepository from '../../../../domain/repositories/ICoinRepository';
@@ -264,82 +273,31 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   async addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse> {
-    const { id, equip, quantity, isMagic, isBond } = data;
+    const { id, equipmentId, quantity, isMagic } = data;
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
       throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const equipment = [...(personaje.equipment ?? [])];
-    const normalizedIsMagic = !!isMagic;
-    const normalizedIsBond = !!isBond;
-
-    if (normalizedIsBond) {
-      equipment.push({
-        id: equip,
-        quantity,
-        isMagic: normalizedIsMagic,
-        isBond: true,
-        equipped: false,
-      });
-    } else {
-      const idx = equipment.findIndex(
-        eq => eq.id === equip && !!eq.isMagic === normalizedIsMagic && !eq.isBond
-      );
-
-      if (idx > -1) {
-        equipment[idx].quantity += quantity;
-      } else {
-        equipment.push({
-          id: equip,
-          quantity,
-          isMagic: normalizedIsMagic,
-          equipped: false,
-          isBond: false,
-        });
-      }
-    }
-
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      { $set: { equipment } },
-      { returnDocument: "after" }
+    const equipment = addToInventory(
+      this.toInventoryRows(personaje.equipment),
+      createInventoryInstance({ equipmentId, quantity, isMagic })
     );
 
-    if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
-    }
-
-    return {
-      equipment: await this.formatCharacterEquipment(resultado),
-    };
+    return this.saveInventory(id, equipment);
   }
 
   async deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse> {
-    const { id, equip, quantity, isMagic, isBond } = data;
+    const { id, instanceId, quantity } = data;
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
       throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const equipment = [...(personaje.equipment ?? [])];
-    const normalizedIsMagic = !!isMagic;
-    const normalizedIsBond = !!isBond;
-
-    const idx = equipment.findIndex(
-      eq =>
-        eq.id === equip
-        && !!eq.isMagic === normalizedIsMagic
-        && !!eq.isBond === normalizedIsBond
-    );
-
-    if (idx === -1) {
-      throw new NotFoundError("No se encontró el equipamiento en el personaje");
-    }
-
-    const item = equipment[idx];
+    const inventory = this.toInventoryRows(personaje.equipment);
+    const item = this.requireInventoryInstance(inventory, instanceId);
 
     if (item.isFavorite || item.equipped) {
       throw new ConflictError(
@@ -347,169 +305,64 @@ export default class PersonajeRepository implements IPersonajeRepository {
       );
     }
 
-    if (normalizedIsBond) {
-      if (normalizedIsMagic) {
-        equipment[idx] = { ...item, isBond: false };
-      } else {
-        equipment.splice(idx, 1);
-      }
-    } else if (item.quantity <= quantity) {
-      equipment.splice(idx, 1);
-    } else {
-      equipment[idx] = { ...item, quantity: item.quantity - quantity };
-    }
-
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      { $set: { equipment } },
-      { returnDocument: "after" }
-    );
-
-    if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
-    }
-
-    return {
-      equipment: await this.formatCharacterEquipment(resultado),
-    };
+    return this.saveInventory(id, removeOrDecrement(inventory, instanceId, quantity));
   }
 
-  async equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
-    const { id, equip, equipped, isMagic, isBond } = data;
-    const normalizedIsMagic = !!isMagic;
-    const normalizedIsBond = !!isBond;
-
+  async equipEquipment(data: TypeEquipEquipment): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
+    const { id, instanceId, equipped } = data;
     const personaje = await Personaje.findById(id);
     if (!personaje) {
       throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const equipment = [...(personaje.equipment ?? [])];
-    const idx = equipment.findIndex(
-      eq =>
-        eq.id === equip
-        && !!eq.isMagic === normalizedIsMagic
-        && !!eq.isBond === normalizedIsBond
-    );
-
-    if (idx === -1) {
-      throw new NotFoundError("No se encontró el equipamiento en el personaje");
-    }
+    let inventory = this.toInventoryRows(personaje.equipment);
+    this.requireInventoryInstance(inventory, instanceId);
 
     if (equipped) {
-      const formatted = await this.equipmentRepository.getCharacterEquipmentsByIds(equipment) ?? [];
-
-      const matchesItem = (
-        raw: { id?: string; isMagic?: boolean; isBond?: boolean },
-        fmt: { id: string; isMagic?: boolean; isBond?: boolean }
-      ) =>
-        fmt.id === raw.id
-        && !!fmt.isMagic === !!raw.isMagic
-        && !!fmt.isBond === !!raw.isBond;
-
-      const targetFormatted = formatted.find(fmt => matchesItem(equipment[idx], fmt));
-      const targetSlot = targetFormatted?.equipSlot ?? null;
-
-      if (!targetSlot) {
-        throw new ValidationError("El equipamiento no tiene ranura de equipamiento (equipSlot)");
-      }
-
-      for (let i = 0; i < equipment.length; i++) {
-        if (i === idx) continue;
-        const itemFormatted = formatted.find(fmt => matchesItem(equipment[i], fmt));
-        if (itemFormatted?.equipSlot === targetSlot) {
-          equipment[i] = { ...equipment[i], equipped: false };
-        }
-      }
-
-      equipment[idx] = { ...equipment[idx], equipped: true };
+      const slotOf = await this.buildSlotLookup(inventory);
+      const { inventory: next, instance } = splitOne(inventory, instanceId);
+      inventory = this.applyEquipOrThrow(next, instance.instanceId, true, slotOf);
     } else {
-      equipment[idx] = { ...equipment[idx], equipped: false };
+      inventory = applyEquip(inventory, instanceId, false, () => null);
     }
 
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      { $set: { equipment } },
-      { returnDocument: "after" }
-    );
-
-    if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
-    }
-
-    const completo = await this.formatCharacter(resultado);
-    const basico = await this.formatBasicCharacter(resultado);
-
-    return { completo, basico };
+    return this.saveInventoryAndFormatCharacter(id, inventory);
   }
 
   async toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse> {
-    const { id, equip, isMagic, isBond, isFavorite } = data;
-    const normalizedIsMagic = !!isMagic;
-    const normalizedIsBond = !!isBond;
-
-    const updated = await Personaje.findOneAndUpdate(
-      {
-        _id: id as any,
-        equipment: {
-          $elemMatch: {
-            id: equip,
-            isMagic: normalizedIsMagic,
-            isBond: normalizedIsBond,
-          },
-        },
-      },
-      { $set: { "equipment.$[elem].isFavorite": isFavorite } },
-      {
-        arrayFilters: [
-          {
-            "elem.id": equip,
-            "elem.isMagic": normalizedIsMagic,
-            "elem.isBond": normalizedIsBond,
-          },
-        ],
-        returnDocument: "after",
-      }
-    );
-
-    if (updated) {
-      return {
-        id,
-        equip,
-        isMagic: normalizedIsMagic,
-        isBond: normalizedIsBond,
-        isFavorite,
-      };
-    }
-
+    const { id, instanceId, isFavorite } = data;
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
       throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const equipment = personaje.equipment ?? [];
-    const idx = equipment.findIndex(
-      eq => eq.id === equip && !!eq.isMagic === normalizedIsMagic && !!eq.isBond === normalizedIsBond
-    );
+    let inventory = this.toInventoryRows(personaje.equipment);
+    this.requireInventoryInstance(inventory, instanceId);
 
-    if (idx === -1) {
-      throw new NotFoundError("No se encontró el equipamiento en el personaje");
+    let targetInstanceId = instanceId;
+    if (isFavorite) {
+      const split = splitOne(inventory, instanceId);
+      inventory = split.inventory;
+      targetInstanceId = split.instance.instanceId;
     }
 
-    equipment[idx].isFavorite = isFavorite;
+    const idx = inventory.findIndex(eq => eq.instanceId === targetInstanceId);
+    inventory[idx] = { ...inventory[idx], isFavorite };
 
-    await Personaje.findByIdAndUpdate(
+    const resultado = await Personaje.findByIdAndUpdate(
       id,
-      { $set: { equipment } },
+      { $set: { equipment: inventory } },
       { returnDocument: "after" }
     );
 
+    if (!resultado) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+    }
+
     return {
       id,
-      equip,
-      isMagic: normalizedIsMagic,
-      isBond: normalizedIsBond,
+      instanceId: targetInstanceId,
       isFavorite,
     };
   }
@@ -766,38 +619,33 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return this.formatBasicCharacter(resultado);
   }
 
-  async vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    const { equip, id } = data
+  async bindPactEquipment(data: TypeBindPactEquipment): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
+    const { id, instanceId, isBond } = data;
     const personaje = await Personaje.findById(id);
-    const equipment = personaje?.equipment ?? []
 
-    const idx = equipment.findIndex(eq => eq.id === equip && !!eq.isMagic === true)
-
-    if (idx > -1) {
-      equipment[idx].isBond = true
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
     }
 
-    const resultado = await Personaje.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          equipment
-        }
-      },
-      { returnDocument: 'after' }
-    );
+    let inventory = this.toInventoryRows(personaje.equipment);
+    const item = this.requireInventoryInstance(inventory, instanceId);
 
-    if (!resultado) {
-      return null
+    if (isBond) {
+      if (!item.isMagic) {
+        throw new ValidationError("Solo se puede vincular un pacto con equipamiento mágico");
+      }
+
+      const split = splitOne(inventory, instanceId);
+      inventory = split.inventory;
+      const idx = inventory.findIndex(eq => eq.instanceId === split.instance.instanceId);
+      inventory[idx] = { ...inventory[idx], isBond: true, quantity: 1 };
+    } else {
+      const idx = inventory.findIndex(eq => eq.instanceId === instanceId);
+      inventory[idx] = { ...inventory[idx], isBond: false };
+      inventory = tryMerge(inventory, instanceId);
     }
 
-    const completo = await this.formatCharacter(resultado)
-    const basico = await this.formatBasicCharacter(resultado)
-
-    return {
-      completo,
-      basico
-    }
+    return this.saveInventoryAndFormatCharacter(id, inventory);
   }
 
   async learnSpells(data: TypeLearnSpells): Promise<PersonajeApi> {
@@ -1437,7 +1285,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   ) {
     const equipment = options?.equipment
       ?? await this.equipmentRepository.getCharacterEquipmentsByIds(
-        (personaje.equipment ?? []).filter(eq => eq.equipped)
+        this.toHydrationRows((personaje.equipment ?? []).filter(eq => eq.equipped))
       )
       ?? [];
 
@@ -1542,7 +1390,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const idiomas_understands = await this.languageRepository.getLanguagesByIndex(personaje.languages?.understands ?? [])
     const idiomas_speaks = await this.languageRepository.getLanguagesByIndex(personaje.languages?.speaks ?? [])
-    const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment)
+    const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(this.toHydrationRows(personaje.equipment))
 
     const clases = personaje.classes
 
@@ -1807,6 +1655,110 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
   }
 
+  private toInventoryRows(equipment: PersonajeEquipmentMongo[] | undefined): PersonajeEquipmentMongo[] {
+    return cloneInventory(equipment ?? []);
+  }
+
+  private requireInventoryInstance(
+    inventory: PersonajeEquipmentMongo[],
+    instanceId: string
+  ): PersonajeEquipmentMongo {
+    const item = inventory.find(eq => eq.instanceId === instanceId);
+    if (!item) {
+      throw new NotFoundError("No se encontró el equipamiento en el personaje");
+    }
+    return item;
+  }
+
+  private toHydrationRows(equipment: PersonajeEquipmentMongo[] | undefined): CharacterEquipmentMongo[] {
+    return this.toInventoryRows(equipment).map(item => ({
+      instanceId: item.instanceId,
+      equipmentId: item.equipmentId,
+      id: item.equipmentId,
+      quantity: item.quantity,
+      equipped: item.equipped,
+      isMagic: item.isMagic,
+      isBond: item.isBond,
+      isFavorite: item.isFavorite,
+    }));
+  }
+
+  private async buildSlotLookup(
+    inventory: PersonajeEquipmentMongo[]
+  ): Promise<(item: PersonajeEquipmentMongo) => EquipSlot | null> {
+    const formatted = await this.equipmentRepository.getCharacterEquipmentsByIds(
+      this.toHydrationRows(inventory)
+    ) ?? [];
+    const slotByInstanceId = new Map(
+      formatted.map(item => [item.instanceId, item.equipSlot ?? null] as const)
+    );
+    const slotByEquipmentId = new Map(
+      formatted.map(item => [item.id, item.equipSlot ?? null] as const)
+    );
+
+    return (item: PersonajeEquipmentMongo) =>
+      slotByInstanceId.get(item.instanceId)
+      ?? slotByEquipmentId.get(item.equipmentId)
+      ?? null;
+  }
+
+  private applyEquipOrThrow(
+    inventory: PersonajeEquipmentMongo[],
+    instanceId: string,
+    equipped: boolean,
+    slotOf: (item: PersonajeEquipmentMongo) => EquipSlot | null
+  ): PersonajeEquipmentMongo[] {
+    try {
+      return applyEquip(inventory, instanceId, equipped, slotOf);
+    } catch (error) {
+      if (error instanceof Error && error.message === "NO_EQUIP_SLOT") {
+        throw new ValidationError("El equipamiento no tiene ranura de equipamiento (equipSlot)");
+      }
+      if (error instanceof Error && error.message === "INVENTORY_INSTANCE_NOT_FOUND") {
+        throw new NotFoundError("No se encontró el equipamiento en el personaje");
+      }
+      throw error;
+    }
+  }
+
+  private async saveInventory(
+    id: string,
+    equipment: PersonajeEquipmentMongo[]
+  ): Promise<UpdateCharacterEquipmentResponse> {
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { equipment } },
+      { returnDocument: "after" }
+    );
+
+    if (!resultado) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+    }
+
+    return {
+      equipment: await this.formatCharacterEquipment(resultado),
+    };
+  }
+
+  private async saveInventoryAndFormatCharacter(
+    id: string,
+    equipment: PersonajeEquipmentMongo[]
+  ): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { equipment } },
+      { returnDocument: "after" }
+    );
+
+    if (!resultado) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+    }
+
+    const completo = await this.formatCharacter(resultado);
+    const basico = await this.formatBasicCharacter(resultado);
+    return { completo, basico };
+  }
+
   private async formatCharacterEquipment(
     personaje: PersonajeMongo
   ): Promise<CharacterEquipmentApi[]> {
@@ -1814,7 +1766,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       personaje.classes?.map(cl => cl.level).reduce((acc, value) => acc + value, 0) ?? 0;
 
     const [equipment, apiAttributes, baseProficiencies, traits, rulesConfig] = await Promise.all([
-      this.equipmentRepository.getCharacterEquipmentsByIds(personaje.equipment ?? []),
+      this.equipmentRepository.getCharacterEquipmentsByIds(this.toHydrationRows(personaje.equipment ?? [])),
       this.attributeService.formatAttributes(
         this.calcularAttributes(personaje),
         personaje.systems ?? []

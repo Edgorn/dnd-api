@@ -9,14 +9,18 @@ export const CharacterIdParamsSchema = z.object({
     .regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB"),
 });
 
+export const CharacterEquipmentInstanceParamsSchema = CharacterIdParamsSchema.extend({
+  instanceId: z
+    .string()
+    .min(1, "ID de instancia requerido")
+    .regex(objectIdRegex, "El instanceId debe ser un ObjectId válido de MongoDB"),
+});
+
 export const LevelUpDataQuerySchema = z.object({
   class: z.string().min(1, "ID de clase requerido"),
 });
 
 export const ToggleFavoriteEquipmentSchema = z.object({
-  equip: z.string().min(1, "ID de equipamiento requerido"),
-  isMagic: z.boolean(),
-  isBond: z.boolean(),
   isFavorite: z.boolean(),
 });
 
@@ -137,19 +141,22 @@ export const BindSpellPrivilegesSchema = z.object({
   )
 });
 
-const CharacterEquipmentMutationSchema = z.object({
-  equip: z.string().min(1, "ID de equipamiento requerido"),
+export const AddCharacterEquipmentSchema = z.object({
+  equipmentId: z
+    .string()
+    .min(1, "ID de equipamiento requerido")
+    .regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB"),
   quantity: z.number().int().min(1, "La cantidad debe ser un entero mayor o igual a 1"),
-  isMagic: z.boolean(),
-  isBond: z.boolean(),
 });
 
-export const AddCharacterEquipmentSchema = CharacterEquipmentMutationSchema;
-export const DeleteCharacterEquipmentSchema = CharacterEquipmentMutationSchema;
+export const DeleteCharacterEquipmentQuerySchema = z.object({
+  quantity: z.coerce.number().int().min(1, "La cantidad debe ser un entero mayor o igual a 1").optional(),
+});
 
 export const UpdateCharacterEquipmentEquippedSchema = z.object({
-  equip: z.string().min(1, "ID de equipamiento requerido"),
-  isMagic: z.boolean(),
-  isBond: z.boolean(),
   equipped: z.boolean(),
+});
+
+export const BindPactEquipmentSchema = z.object({
+  isBond: z.boolean(),
 });

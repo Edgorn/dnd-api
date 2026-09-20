@@ -99,6 +99,7 @@ export function enrichEquipmentWithCombatBonuses(
     const isProficient = isEquipmentProficient(item, proficiencies);
     const enriched: CharacterEquipmentApi = {
       ...item,
+      instanceId: item.instanceId ?? "",
       isProficient,
     };
 

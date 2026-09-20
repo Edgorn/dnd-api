@@ -6,12 +6,12 @@ import GetLevelUpData from "../../../application/use-cases/personaje/getLevelUpD
 import LevelUp from "../../../application/use-cases/personaje/levelUp.use-case";
 import AddEquipment from "../../../application/use-cases/personaje/addEquipment.use-case";
 import DeleteEquipment from "../../../application/use-cases/personaje/deleteEquipment.use-case";
-import EquipArmor from "../../../application/use-cases/personaje/equipArmor.use-case";
+import EquipEquipment from "../../../application/use-cases/personaje/equipEquipment.use-case";
 import GenerateCharacterPdf from "../../../application/use-cases/personaje/generateCharacterPdf.use-case";
 import UpdateMoney from "../../../application/use-cases/personaje/updateMoney.use-case";
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
-import VincularPacto from "../../../application/use-cases/personaje/vincularPacto.use-case";
+import BindPactEquipment from "../../../application/use-cases/personaje/bindPactEquipment.use-case";
 import LearnSpells from "../../../application/use-cases/personaje/learnSpells.use-case";
 import AñadirForma from "../../../application/use-cases/personaje/añadirForma.use-case";
 import ToggleFavoriteEquipment from "../../../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
@@ -29,10 +29,10 @@ export class PersonajeController {
     private readonly levelUpUseCase: LevelUp,
     private readonly addEquipmentUseCase: AddEquipment,
     private readonly deleteEquipmentUseCase: DeleteEquipment,
-    private readonly equipArmor: EquipArmor,
+    private readonly equipEquipment: EquipEquipment,
     private readonly updateMoneyUseCase: UpdateMoney,
     private readonly generateCharacterPdf: GenerateCharacterPdf,
-    private readonly vincularPacto: VincularPacto,
+    private readonly bindPactEquipment: BindPactEquipment,
     private readonly learnSpellsUseCase: LearnSpells,
     private readonly añadirForma: AñadirForma,
     private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment,
@@ -107,13 +107,21 @@ export class PersonajeController {
 
   deleteEquipment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id, instanceId } = req.params;
 
       if (!id) {
         throw new ValidationError("Se requiere el ID del personaje");
       }
 
-      const data = await this.deleteEquipmentUseCase.execute({ id, ...req.body });
+      if (!instanceId) {
+        throw new ValidationError("Se requiere el ID de la instancia de equipamiento");
+      }
+
+      const quantity = req.query.quantity === undefined
+        ? undefined
+        : Number(req.query.quantity);
+
+      const data = await this.deleteEquipmentUseCase.execute({ id, instanceId, quantity });
       res.status(200).json(data);
     } catch (e) {
       console.error("[PersonajeController.deleteEquipment] Error:", e);
@@ -123,13 +131,17 @@ export class PersonajeController {
 
   updateEquipmentEquipped = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id, instanceId } = req.params;
 
       if (!id) {
         throw new ValidationError("Se requiere el ID del personaje");
       }
 
-      const data = await this.equipArmor.execute({ id, ...req.body });
+      if (!instanceId) {
+        throw new ValidationError("Se requiere el ID de la instancia de equipamiento");
+      }
+
+      const data = await this.equipEquipment.execute({ id, instanceId, ...req.body });
       res.status(200).json(data);
     } catch (e) {
       console.error("[PersonajeController.updateEquipmentEquipped] Error:", e);
@@ -137,24 +149,39 @@ export class PersonajeController {
     }
   };
 
-  vincularArmaPacto = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  bindPactEquipmentHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.vincularPacto.execute(req.body)
+      const { id, instanceId } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      if (!instanceId) {
+        throw new ValidationError("Se requiere el ID de la instancia de equipamiento");
+      }
+
+      const data = await this.bindPactEquipment.execute({ id, instanceId, ...req.body });
       res.status(200).json(data);
     } catch (e) {
+      console.error("[PersonajeController.bindPactEquipmentHandler] Error:", e);
       next(e);
     }
   };
 
   toggleFavoriteEquipmentHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const { id, instanceId } = req.params;
 
       if (!id) {
         throw new ValidationError("Se requiere el ID del personaje");
       }
 
-      const data = await this.toggleFavoriteEquipment.execute({ id, ...req.body });
+      if (!instanceId) {
+        throw new ValidationError("Se requiere el ID de la instancia de equipamiento");
+      }
+
+      const data = await this.toggleFavoriteEquipment.execute({ id, instanceId, ...req.body });
       res.status(200).json(data);
     } catch (e) {
       console.error("[PersonajeController.toggleFavoriteEquipmentHandler] Error:", e);

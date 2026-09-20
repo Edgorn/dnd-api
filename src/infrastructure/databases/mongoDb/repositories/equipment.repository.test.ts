@@ -351,6 +351,20 @@ describe("EquipmentRepository lookup batching", () => {
       expect(coinRepository.getCoinsByIds).toHaveBeenCalledTimes(1);
       expect(armorTypeRepository.getByIds).toHaveBeenCalledTimes(1);
     });
+
+    it("hydrates starting equipment when the lean subdocument has a mongoose _id", async () => {
+      const subdocId = "507f1f77bcf86cd799439099";
+      mockFindLean([dagger]);
+
+      const result = await repository.getCharacterEquipmentsByIds([
+        { _id: subdocId, id: DAGGER_ID, quantity: 1 } as { id: string; quantity: number }
+      ]);
+
+      expect(EquipmentModel.find).toHaveBeenCalledTimes(1);
+      expect(EquipmentModel.find).toHaveBeenCalledWith({ _id: { $in: [DAGGER_ID] } });
+      expect(result?.[0].name).toBe("Dagger");
+      expect(result?.[0].id).toBe(DAGGER_ID);
+    });
   });
 
   describe("cyclic content", () => {

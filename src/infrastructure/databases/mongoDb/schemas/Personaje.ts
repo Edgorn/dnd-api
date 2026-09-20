@@ -41,7 +41,19 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
     hit_die: String
   }],
   subclasses: [String],
-  equipment: [{}],
+  equipment: {
+    type: [{
+      _id: false,
+      instanceId: { type: String, required: true },
+      equipmentId: { type: String, required: true },
+      quantity: { type: Number, required: true, min: 1 },
+      equipped: { type: Boolean, required: true, default: false },
+      isMagic: { type: Boolean, required: true, default: false },
+      isBond: { type: Boolean, required: true, default: false },
+      isFavorite: { type: Boolean, required: true, default: false }
+    }],
+    default: []
+  },
   money: {
     type: [{
       _id: false,

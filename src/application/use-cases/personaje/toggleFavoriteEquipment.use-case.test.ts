@@ -16,16 +16,12 @@ describe("ToggleFavoriteEquipment", () => {
     const useCase = new ToggleFavoriteEquipment(personajeServiceMock as any);
     const input = {
       id: "char1",
-      equip: "eq1",
-      isMagic: false,
-      isBond: false,
+      instanceId: "inst1",
       isFavorite: true,
     };
     const expected = {
       id: "char1",
-      equip: "eq1",
-      isMagic: false,
-      isBond: false,
+      instanceId: "inst1",
       isFavorite: true,
     };
     personajeServiceMock.toggleFavoriteEquipment.mockResolvedValue(expected);

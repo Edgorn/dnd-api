@@ -345,8 +345,12 @@ const router = Router();
  *         - $ref: '#/components/schemas/EquipmentInstanceApi'
  *         - type: object
  *           required:
+ *             - instanceId
  *             - isProficient
  *           properties:
+ *             instanceId:
+ *               type: string
+ *               description: Identificador único de la instancia en el inventario del personaje.
  *             isProficient:
  *               type: boolean
  *               description: Indica si el personaje cumple las competencias requeridas por el equipamiento. Si el objeto no exige competencias, es true.

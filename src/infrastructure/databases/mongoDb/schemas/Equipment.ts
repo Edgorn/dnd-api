@@ -36,7 +36,11 @@ const equipmentSchema: Schema = new Schema<EquipmentMongo>(
     proficiencies: { type: [String], default: [] },
     weapon: { type: Schema.Types.Mixed },
     armor: { type: Schema.Types.Mixed },
-    content: [{ id: String, quantity: Number }],
+    content: [{
+      _id: false,
+      id: String,
+      quantity: Number
+    }],
     deletedAt: { type: Date, default: null }
   },
   { collection: "equipments", timestamps: true }

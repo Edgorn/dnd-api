@@ -122,6 +122,13 @@ function pieceAc(item: ArmorRulesEquipment, attributes: CharacterAttributeApi[],
   return armorClass.base + attributePart + magicBonus;
 }
 
+export function computeArmorPieceAc(
+  item: ArmorRulesEquipment,
+  attributes: CharacterAttributeApi[]
+): number {
+  return pieceAc(item, attributes, true);
+}
+
 export interface ComputeArmorClassInput {
   equipment: ArmorRulesEquipment[];
   traits: ArmorRulesTrait[];

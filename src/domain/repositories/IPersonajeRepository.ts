@@ -1,4 +1,4 @@
-import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAddEquipment, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]>
@@ -6,7 +6,7 @@ export default interface IPersonajeRepository {
   consultarPorId(idCharacter: string, user: string): Promise<PersonajeApi>
   addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse>
   deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse>
-  equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }>
+  equipEquipment(data: TypeEquipEquipment): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }>
   toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse>
   updateMoney(id: string, money: { quantity: number; unit: string }[]): Promise<UpdateCharacterMoneyResponse>
   updateXp(id: string, xp: number, userId: string): Promise<void>
@@ -15,7 +15,7 @@ export default interface IPersonajeRepository {
   getByIds(idCharacters: string[]): Promise<PersonajeBasico[]>
   getCampaignLink(characterId: string): Promise<CharacterCampaignLink | null>
   assignToCampaign(characterId: string, campaignId: string): Promise<PersonajeBasico | null>
-  vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null>
+  bindPactEquipment(data: TypeBindPactEquipment): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }>
   learnSpells(data: TypeLearnSpells): Promise<PersonajeApi>
   prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi>
   bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<PersonajeApi>

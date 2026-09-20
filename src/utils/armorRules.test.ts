@@ -5,6 +5,7 @@ import {
   collectEquippedArmorTypeIds,
   collectStealthDisadvantageSkillKeys,
   computeArmorClass,
+  computeArmorPieceAc,
   findBodyArmor,
   findStackingArmor,
   isBodyArmorPiece,
@@ -60,6 +61,37 @@ describe("applyAttributeBonus", () => {
 
   it("still applies a negative modifier when max is set", () => {
     expect(applyAttributeBonus(-2, 2)).toBe(-2);
+  });
+});
+
+describe("computeArmorPieceAc", () => {
+  it("adds dex modifier for light armor", () => {
+    const ac = computeArmorPieceAc({
+      armor: { class: { base: 12, attributeBonus: { key: "dex" } } }
+    }, attributes);
+    expect(ac).toBe(15);
+  });
+
+  it("adds no attribute bonus for heavy armor without attributeBonus", () => {
+    const ac = computeArmorPieceAc({
+      armor: { class: { base: 18 } }
+    }, attributes);
+    expect(ac).toBe(18);
+  });
+
+  it("adds magic +1", () => {
+    const ac = computeArmorPieceAc({
+      isMagic: true,
+      armor: { class: { base: 11, attributeBonus: { key: "dex" } } }
+    }, attributes);
+    expect(ac).toBe(15);
+  });
+
+  it("caps attribute bonus at max", () => {
+    const ac = computeArmorPieceAc({
+      armor: { class: { base: 14, attributeBonus: { key: "dex", max: 2 } } }
+    }, attributes);
+    expect(ac).toBe(16);
   });
 });
 

@@ -53,10 +53,10 @@ import GetLevelUpData from "../application/use-cases/personaje/getLevelUpData.us
 import LevelUp from "../application/use-cases/personaje/levelUp.use-case";
 import AddEquipment from "../application/use-cases/personaje/addEquipment.use-case";
 import DeleteEquipment from "../application/use-cases/personaje/deleteEquipment.use-case";
-import EquipArmor from "../application/use-cases/personaje/equipArmor.use-case";
+import EquipEquipment from "../application/use-cases/personaje/equipEquipment.use-case";
 import UpdateMoney from "../application/use-cases/personaje/updateMoney.use-case";
 import GenerateCharacterPdf from "../application/use-cases/personaje/generateCharacterPdf.use-case";
-import VincularPacto from "../application/use-cases/personaje/vincularPacto.use-case";
+import BindPactEquipment from "../application/use-cases/personaje/bindPactEquipment.use-case";
 import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import LearnSpells from "../application/use-cases/personaje/learnSpells.use-case";
 import PrepareSpells from "../application/use-cases/personaje/prepareSpells.use-case";
@@ -379,14 +379,14 @@ const getEquipmentsWeapons = new GetEquipmentsWeapons(equipmentService);
 const getEquipmentsArmor = new GetEquipmentsArmor(equipmentService);
 
 const getCharactersByUser = new GetCharactersByUser(personajeService);
-const crearPersonaje = new CrearPersonaje(personajeService, systemRepository);
+const crearPersonaje = new CrearPersonaje(personajeService, systemRepository, equipmentRepository);
 const obtenerPersonajePorId = new ObtenerPersonajePorId(personajeService);
 const updateCharacterXp = new UpdateCharacterXp(personajeService)
 const getLevelUpData = new GetLevelUpData(personajeService)
 const levelUp = new LevelUp(personajeService)
-const addEquipment = new AddEquipment(personajeService);
+const addEquipment = new AddEquipment(personajeService, equipmentRepository);
 const deleteEquipment = new DeleteEquipment(personajeService);
-const equiparArmadura = new EquipArmor(personajeService);
+const equipEquipment = new EquipEquipment(personajeService);
 const updateMoney = new UpdateMoney(personajeService);
 const characterSheetPdfGenerator = new CharacterSheetPdfGenerator();
 const generateCharacterPdf = new GenerateCharacterPdf(
@@ -394,7 +394,7 @@ const generateCharacterPdf = new GenerateCharacterPdf(
   userRepository,
   characterSheetPdfGenerator
 );
-const vincularPacto = new VincularPacto(personajeService);
+const bindPactEquipment = new BindPactEquipment(personajeService);
 const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
 const learnSpells = new LearnSpells(personajeService);
 const prepareSpells = new PrepareSpells(personajeService);
@@ -522,10 +522,10 @@ export const personajeController = new PersonajeController(
   levelUp,
   addEquipment,
   deleteEquipment,
-  equiparArmadura,
+  equipEquipment,
   updateMoney,
   generateCharacterPdf,
-  vincularPacto,
+  bindPactEquipment,
   learnSpells,
   añadirForma,
   toggleFavoriteEquipment,

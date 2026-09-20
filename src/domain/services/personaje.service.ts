@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { CharacterCampaignLink, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquiparArmadura, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -24,8 +24,8 @@ export default class PersonajeService {
     return this.personajeRepository.deleteEquipment(data);
   }
 
-  equiparArmadura(data: TypeEquiparArmadura): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
-    return this.personajeRepository.equiparArmadura(data);
+  equipEquipment(data: TypeEquipEquipment): Promise<{ completo: PersonajeApi; basico: PersonajeBasico }> {
+    return this.personajeRepository.equipEquipment(data);
   }
 
   toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse> {
@@ -60,8 +60,8 @@ export default class PersonajeService {
     return this.personajeRepository.assignToCampaign(characterId, campaignId);
   }
 
-  vincularPacto(data: { equip: string, id: string }): Promise<{ completo: PersonajeApi, basico: PersonajeBasico } | null> {
-    return this.personajeRepository.vincularPacto(data);
+  bindPactEquipment(data: TypeBindPactEquipment): Promise<{ completo: PersonajeApi; basico: PersonajeBasico }> {
+    return this.personajeRepository.bindPactEquipment(data);
   }
 
   learnSpells(data: TypeLearnSpells): Promise<PersonajeApi> {

@@ -131,6 +131,8 @@ export interface EquipmentCost {
 export type EquipmentCostApi = { quantity: number } & CoinApi;
 
 export interface CharacterEquipmentMongo {
+  instanceId?: string;
+  equipmentId?: string;
   id?: string;
   quantity?: number;
   name?: string;
@@ -211,9 +213,11 @@ export interface EquipmentInstanceApi extends EquipmentApi {
   quantity: number;
   equipped?: boolean;
   isFavorite?: boolean;
+  instanceId?: string;
 }
 
 export interface CharacterEquipmentApi extends EquipmentInstanceApi {
+  instanceId: string;
   isProficient: boolean;
   attackBonus?: number;
   damageBonus?: number;

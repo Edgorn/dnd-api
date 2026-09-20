@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentSchema, UpdateCharacterEquipmentEquippedSchema, CharacterIdParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -847,7 +847,7 @@ router.get('/character/:id/pdf', authMiddleware, validateParams(CharacterIdParam
  * /character/{id}/equipment:
  *   post:
  *     summary: Añadir equipamiento al inventario de un personaje
- *     description: Añade o incrementa la cantidad de un equipamiento en el inventario. Devuelve solo el array de equipamiento formateado.
+ *     description: Añade o incrementa la cantidad de un equipamiento en el inventario. Copia isMagic del catálogo y apila solo filas compatibles (mismo equipmentId e isMagic, sin pacto, sin equipar y sin favorito). Devuelve el inventario formateado.
  *     tags:
  *       - Personajes
  *     security:
@@ -866,24 +866,16 @@ router.get('/character/:id/pdf', authMiddleware, validateParams(CharacterIdParam
  *           schema:
  *             type: object
  *             required:
- *               - equip
+ *               - equipmentId
  *               - quantity
- *               - isMagic
- *               - isBond
  *             properties:
- *               equip:
+ *               equipmentId:
  *                 type: string
- *                 description: ID de MongoDB del equipamiento base.
+ *                 description: ID de MongoDB del equipamiento de catálogo.
  *               quantity:
  *                 type: integer
  *                 minimum: 1
  *                 description: Cantidad a añadir.
- *               isMagic:
- *                 type: boolean
- *                 description: Indica si el equipamiento es mágico.
- *               isBond:
- *                 type: boolean
- *                 description: Indica si el equipamiento está vinculado por pacto.
  *     responses:
  *       200:
  *         description: Equipamiento añadido con éxito.
@@ -904,18 +896,18 @@ router.get('/character/:id/pdf', authMiddleware, validateParams(CharacterIdParam
  *       401:
  *         description: No autorizado.
  *       404:
- *         description: Personaje no encontrado.
+ *         description: Personaje o equipamiento de catálogo no encontrado.
  *       500:
  *         description: Error del servidor.
  */
-router.post('/character/:id/equipment', authMiddleware, validateSchema(AddCharacterEquipmentSchema), personajeController.addEquipment);
+router.post('/character/:id/equipment', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(AddCharacterEquipmentSchema), personajeController.addEquipment);
 
 /**
  * @openapi
- * /character/{id}/equipment:
+ * /character/{id}/equipment/{instanceId}:
  *   delete:
  *     summary: Eliminar equipamiento del inventario de un personaje
- *     description: Reduce o elimina un equipamiento del inventario. No permite eliminar ítems favoritos o equipados. Devuelve solo el array de equipamiento formateado.
+ *     description: Reduce o elimina una instancia del inventario por instanceId. Si se indica quantity y es menor que la pila, decrementa; si no, elimina la fila. No permite eliminar ítems favoritos o equipados.
  *     tags:
  *       - Personajes
  *     security:
@@ -927,31 +919,19 @@ router.post('/character/:id/equipment', authMiddleware, validateSchema(AddCharac
  *         schema:
  *           type: string
  *         description: ID de MongoDB del personaje.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - equip
- *               - quantity
- *               - isMagic
- *               - isBond
- *             properties:
- *               equip:
- *                 type: string
- *                 description: ID de MongoDB del equipamiento base.
- *               quantity:
- *                 type: integer
- *                 minimum: 1
- *                 description: Cantidad a eliminar.
- *               isMagic:
- *                 type: boolean
- *                 description: Indica si el equipamiento es mágico.
- *               isBond:
- *                 type: boolean
- *                 description: Indica si el equipamiento está vinculado por pacto.
+ *       - in: path
+ *         name: instanceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la instancia de inventario.
+ *       - in: query
+ *         name: quantity
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Cantidad a restar. Si se omite o no es menor que la pila, se elimina la instancia.
  *     responses:
  *       200:
  *         description: Equipamiento eliminado con éxito.
@@ -972,22 +952,24 @@ router.post('/character/:id/equipment', authMiddleware, validateSchema(AddCharac
  *       401:
  *         description: No autorizado.
  *       404:
- *         description: Personaje o equipamiento no encontrado.
+ *         description: Personaje o instancia de equipamiento no encontrada.
  *       409:
  *         description: El equipamiento está marcado como favorito o está equipado.
  *       500:
  *         description: Error del servidor.
  */
-router.delete('/character/:id/equipment', authMiddleware, validateSchema(DeleteCharacterEquipmentSchema), personajeController.deleteEquipment);
+router.delete('/character/:id/equipment/:instanceId', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateQuery(DeleteCharacterEquipmentQuerySchema), personajeController.deleteEquipment);
 
 /**
  * @openapi
- * /character/{id}/equipment/equipped:
+ * /character/{id}/equipment/{instanceId}/equipped:
  *   patch:
- *     summary: Equipar o desequipar un ítem del inventario
+ *     summary: Equipar o desequipar una instancia del inventario
  *     description: |
- *       Cambia el estado equipped de un ítem del inventario.
- *       Al equipar, desequipa automáticamente cualquier otro ítem con la misma ranura (equipSlot).
+ *       Cambia el estado equipped de una instancia.
+ *       Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.
+ *       La ranura ring admite 2 objetos; el resto admite 1. Un arma two_handed ocupa main_hand y off_hand.
+ *       Si no hay hueco, desequipa las filas ocupadas en orden del array hasta hacer sitio.
  *       El ítem debe tener equipSlot definido. Devuelve el personaje completo y básico (incluye CA recalculada).
  *     tags:
  *       - Personajes
@@ -1000,6 +982,12 @@ router.delete('/character/:id/equipment', authMiddleware, validateSchema(DeleteC
  *         schema:
  *           type: string
  *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: instanceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la instancia de inventario.
  *     requestBody:
  *       required: true
  *       content:
@@ -1007,20 +995,8 @@ router.delete('/character/:id/equipment', authMiddleware, validateSchema(DeleteC
  *           schema:
  *             type: object
  *             required:
- *               - equip
- *               - isMagic
- *               - isBond
  *               - equipped
  *             properties:
- *               equip:
- *                 type: string
- *                 description: ID de MongoDB del equipamiento base.
- *               isMagic:
- *                 type: boolean
- *                 description: Indica si el equipamiento es mágico.
- *               isBond:
- *                 type: boolean
- *                 description: Indica si el equipamiento está vinculado por pacto.
  *               equipped:
  *                 type: boolean
  *                 description: true para equipar, false para desequipar.
@@ -1044,18 +1020,18 @@ router.delete('/character/:id/equipment', authMiddleware, validateSchema(DeleteC
  *       401:
  *         description: No autorizado.
  *       404:
- *         description: Personaje o equipamiento no encontrado.
+ *         description: Personaje o instancia de equipamiento no encontrada.
  *       500:
  *         description: Error del servidor.
  */
-router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema(UpdateCharacterEquipmentEquippedSchema), personajeController.updateEquipmentEquipped);
+router.patch('/character/:id/equipment/:instanceId/equipped', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(UpdateCharacterEquipmentEquippedSchema), personajeController.updateEquipmentEquipped);
 
 /**
  * @openapi
- * /character/{id}/equipment/favorite:
+ * /character/{id}/equipment/{instanceId}/favorite:
  *   patch:
- *     summary: Marcar o desmarcar un equipamiento como favorito
- *     description: Actualiza el estado de favorito de un ítem del inventario del personaje.
+ *     summary: Marcar o desmarcar una instancia como favorita
+ *     description: Actualiza el estado de favorito de una instancia del inventario. Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.
  *     tags:
  *       - Personajes
  *     security:
@@ -1067,6 +1043,12 @@ router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema
  *         schema:
  *           type: string
  *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: instanceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la instancia de inventario.
  *     requestBody:
  *       required: true
  *       content:
@@ -1074,20 +1056,8 @@ router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema
  *           schema:
  *             type: object
  *             required:
- *               - equip
- *               - isMagic
- *               - isBond
  *               - isFavorite
  *             properties:
- *               equip:
- *                 type: string
- *                 description: ID de MongoDB del equipamiento base.
- *               isMagic:
- *                 type: boolean
- *                 description: Indica si el equipamiento es mágico.
- *               isBond:
- *                 type: boolean
- *                 description: Indica si el equipamiento está vinculado por pacto.
  *               isFavorite:
  *                 type: boolean
  *                 description: Nuevo estado de favorito del equipamiento.
@@ -1100,23 +1070,15 @@ router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema
  *               type: object
  *               required:
  *                 - id
- *                 - equip
- *                 - isMagic
- *                 - isBond
+ *                 - instanceId
  *                 - isFavorite
  *               properties:
  *                 id:
  *                   type: string
  *                   description: ID de MongoDB del personaje.
- *                 equip:
+ *                 instanceId:
  *                   type: string
- *                   description: ID de MongoDB del equipamiento base.
- *                 isMagic:
- *                   type: boolean
- *                   description: Indica si el equipamiento es mágico.
- *                 isBond:
- *                   type: boolean
- *                   description: Indica si el equipamiento está vinculado por pacto.
+ *                   description: ID de MongoDB de la instancia mutada.
  *                 isFavorite:
  *                   type: boolean
  *                   description: Nuevo estado de favorito del equipamiento.
@@ -1125,11 +1087,75 @@ router.patch('/character/:id/equipment/equipped', authMiddleware, validateSchema
  *       401:
  *         description: No autorizado.
  *       404:
- *         description: Personaje o equipamiento no encontrado.
+ *         description: Personaje o instancia de equipamiento no encontrada.
  *       500:
  *         description: Error del servidor.
  */
-router.patch('/character/:id/equipment/favorite', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(ToggleFavoriteEquipmentSchema), personajeController.toggleFavoriteEquipmentHandler);
+router.patch('/character/:id/equipment/:instanceId/favorite', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(ToggleFavoriteEquipmentSchema), personajeController.toggleFavoriteEquipmentHandler);
+
+/**
+ * @openapi
+ * /character/{id}/equipment/{instanceId}/bond:
+ *   patch:
+ *     summary: Vincular o desvincular el pacto de una instancia
+ *     description: |
+ *       Actualiza isBond de una instancia. Vincular (isBond true) solo es válido si el objeto es mágico.
+ *       Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se vincula esa.
+ *       Los objetos vinculados nunca se apilan. Al desvincular, se intenta fusionar con una pila compatible.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: instanceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la instancia de inventario.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isBond
+ *             properties:
+ *               isBond:
+ *                 type: boolean
+ *                 description: true para vincular el pacto, false para desvincularlo.
+ *     responses:
+ *       200:
+ *         description: Pacto actualizado con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - completo
+ *                 - basico
+ *               properties:
+ *                 completo:
+ *                   $ref: '#/components/schemas/PersonajeApi'
+ *                 basico:
+ *                   $ref: '#/components/schemas/PersonajeBasico'
+ *       400:
+ *         description: Datos inválidos o el equipamiento no es mágico.
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje o instancia de equipamiento no encontrada.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id/equipment/:instanceId/bond', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(BindPactEquipmentSchema), personajeController.bindPactEquipmentHandler);
 
 /**
  * @openapi
@@ -1686,7 +1712,6 @@ router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateP
  *         description: Error del servidor.
  */
 router.post('/character/:id/known-spells', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(LearnSpellsSchema), personajeController.learnSpells);
-router.post('/character/vincularPacto', authMiddleware, personajeController.vincularArmaPacto);
 router.post('/character/:id/addForm', authMiddleware, personajeController.addForm);
 
 export default router;

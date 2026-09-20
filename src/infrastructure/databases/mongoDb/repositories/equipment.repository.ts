@@ -295,6 +295,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     for (const child of node.content ?? []) {
       if (child?.id) buckets.contentRefs.add(child.id);
+      if (child?.equipmentId) buckets.contentRefs.add(child.equipmentId);
       this.collectRefs(child, buckets, visited);
     }
   }
@@ -307,13 +308,19 @@ export default class EquipmentRepository implements IEquipmentRepository {
     const visited = new WeakSet<object>();
 
     for (const root of roots) {
-      const rootId = (root as { _id?: { toString(): string } })._id?.toString();
-      if (rootId) {
-        equipments.set(rootId, root as EquipmentMongo);
+      const instance = root as CharacterEquipmentMongo;
+      const isInstance = Boolean(instance.equipmentId)
+        || (instance.quantity !== undefined && Boolean(instance.id));
+
+      if (isInstance) {
+        const catalogId = instance.equipmentId ?? instance.id;
+        if (catalogId && Types.ObjectId.isValid(catalogId)) {
+          buckets.contentRefs.add(catalogId);
+        }
       } else {
-        const instanceId = (root as CharacterEquipmentMongo).id;
-        if (instanceId && Types.ObjectId.isValid(instanceId)) {
-          buckets.contentRefs.add(instanceId);
+        const rootId = (root as { _id?: { toString(): string } })._id?.toString();
+        if (rootId) {
+          equipments.set(rootId, root as EquipmentMongo);
         }
       }
       this.collectRefs(root, buckets, visited);
@@ -523,8 +530,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
     ancestry: Set<string>
   ): EquipmentInstanceApi {
     const quantity = charEquipment.quantity ?? 1;
-    const matched = charEquipment.id ? lookups.equipments.get(charEquipment.id) : undefined;
-    const idStr = charEquipment.id || (matched?._id ? matched._id.toString() : "");
+    const catalogId = charEquipment.equipmentId ?? charEquipment.id;
+    const matched = catalogId ? lookups.equipments.get(catalogId) : undefined;
+    const idStr = catalogId || (matched?._id ? matched._id.toString() : "");
     const isCycle = Boolean(idStr && ancestry.has(idStr));
     const nextAncestry = new Set(ancestry);
     if (idStr) nextAncestry.add(idStr);
@@ -533,6 +541,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     if (!matched) {
       return {
         id: idStr,
+        instanceId: charEquipment.instanceId,
         ruleset: "",
         name: charEquipment.name ?? idStr,
         description: this.formatCharacterDescription(charEquipment.description),
@@ -568,6 +577,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
     return {
       ...formattedEq,
+      instanceId: charEquipment.instanceId,
       name: charEquipment.name ?? formattedEq.name,
       description: charEquipment.description
         ? this.formatCharacterDescription(charEquipment.description)

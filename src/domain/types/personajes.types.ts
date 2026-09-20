@@ -16,12 +16,18 @@ import { Ideal } from "./background.types"
 import { CoinApi } from "./coin.types"
 
 export interface PersonajeEquipmentMongo {
+  instanceId: string;
+  equipmentId: string;
+  quantity: number;
+  equipped: boolean;
+  isMagic: boolean;
+  isBond: boolean;
+  isFavorite: boolean;
+}
+
+export interface CharacterStartingEquipmentInput {
   id: string;
   quantity: number;
-  equipped?: boolean;
-  isMagic?: boolean;
-  isBond?: boolean;
-  isFavorite?: boolean;
 }
 
 export interface TypeCrearPersonaje {
@@ -69,7 +75,7 @@ export interface TypeCrearPersonaje {
   saving_throws: string[],
   proficiencies: string[],
   subclase: string,
-  equipment: Pick<PersonajeEquipmentMongo, 'id' | 'quantity'>[];
+  equipment: PersonajeEquipmentMongo[];
   traits: string[],
   traits_data: TraitDataMongo,
   money: {
@@ -133,47 +139,44 @@ export interface TypeLevelUp {
 }
 
 export interface TypeAddEquipment {
-  quantity: number;
-  equip: string;
   id: string;
+  equipmentId: string;
+  quantity: number;
   isMagic: boolean;
-  isBond: boolean;
 }
 
 export interface TypeDeleteEquipment {
-  quantity: number;
-  equip: string;
   id: string;
-  isMagic: boolean;
-  isBond: boolean;
+  instanceId: string;
+  quantity?: number;
 }
 
 export interface UpdateCharacterEquipmentResponse {
   equipment: CharacterEquipmentApi[];
 }
 
-export interface TypeEquiparArmadura {
-  equipped: boolean;
-  equip: string;
+export interface TypeEquipEquipment {
   id: string;
-  isMagic: boolean;
-  isBond: boolean;
+  instanceId: string;
+  equipped: boolean;
 }
 
 export interface TypeToggleFavoriteEquipment {
   id: string;
-  equip: string;
-  isMagic: boolean;
-  isBond: boolean;
+  instanceId: string;
   isFavorite: boolean;
 }
 
 export interface ToggleFavoriteEquipmentResponse {
   id: string;
-  equip: string;
-  isMagic: boolean;
-  isBond: boolean;
+  instanceId: string;
   isFavorite: boolean;
+}
+
+export interface TypeBindPactEquipment {
+  id: string;
+  instanceId: string;
+  isBond: boolean;
 }
 
 export type PersonajeMoneyItem = { quantity: number } & CoinApi;

@@ -4302,9 +4302,14 @@
           {
             "type": "object",
             "required": [
+              "instanceId",
               "isProficient"
             ],
             "properties": {
+              "instanceId": {
+                "type": "string",
+                "description": "Identificador único de la instancia en el inventario del personaje."
+              },
               "isProficient": {
                 "type": "boolean",
                 "description": "Indica si el personaje cumple las competencias requeridas por el equipamiento. Si el objeto no exige competencias, es true."
@@ -8602,7 +8607,7 @@
     "/character/{id}/equipment": {
       "post": {
         "summary": "Añadir equipamiento al inventario de un personaje",
-        "description": "Añade o incrementa la cantidad de un equipamiento en el inventario. Devuelve solo el array de equipamiento formateado.",
+        "description": "Añade o incrementa la cantidad de un equipamiento en el inventario. Copia isMagic del catálogo y apila solo filas compatibles (mismo equipmentId e isMagic, sin pacto, sin equipar y sin favorito). Devuelve el inventario formateado.",
         "tags": [
           "Personajes"
         ],
@@ -8629,28 +8634,18 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "equip",
-                  "quantity",
-                  "isMagic",
-                  "isBond"
+                  "equipmentId",
+                  "quantity"
                 ],
                 "properties": {
-                  "equip": {
+                  "equipmentId": {
                     "type": "string",
-                    "description": "ID de MongoDB del equipamiento base."
+                    "description": "ID de MongoDB del equipamiento de catálogo."
                   },
                   "quantity": {
                     "type": "integer",
                     "minimum": 1,
                     "description": "Cantidad a añadir."
-                  },
-                  "isMagic": {
-                    "type": "boolean",
-                    "description": "Indica si el equipamiento es mágico."
-                  },
-                  "isBond": {
-                    "type": "boolean",
-                    "description": "Indica si el equipamiento está vinculado por pacto."
                   }
                 }
               }
@@ -8687,16 +8682,18 @@
             "description": "No autorizado."
           },
           "404": {
-            "description": "Personaje no encontrado."
+            "description": "Personaje o equipamiento de catálogo no encontrado."
           },
           "500": {
             "description": "Error del servidor."
           }
         }
-      },
+      }
+    },
+    "/character/{id}/equipment/{instanceId}": {
       "delete": {
         "summary": "Eliminar equipamiento del inventario de un personaje",
-        "description": "Reduce o elimina un equipamiento del inventario. No permite eliminar ítems favoritos o equipados. Devuelve solo el array de equipamiento formateado.",
+        "description": "Reduce o elimina una instancia del inventario por instanceId. Si se indica quantity y es menor que la pila, decrementa; si no, elimina la fila. No permite eliminar ítems favoritos o equipados.",
         "tags": [
           "Personajes"
         ],
@@ -8714,43 +8711,27 @@
               "type": "string"
             },
             "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la instancia de inventario."
+          },
+          {
+            "in": "query",
+            "name": "quantity",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Cantidad a restar. Si se omite o no es menor que la pila, se elimina la instancia."
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "equip",
-                  "quantity",
-                  "isMagic",
-                  "isBond"
-                ],
-                "properties": {
-                  "equip": {
-                    "type": "string",
-                    "description": "ID de MongoDB del equipamiento base."
-                  },
-                  "quantity": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Cantidad a eliminar."
-                  },
-                  "isMagic": {
-                    "type": "boolean",
-                    "description": "Indica si el equipamiento es mágico."
-                  },
-                  "isBond": {
-                    "type": "boolean",
-                    "description": "Indica si el equipamiento está vinculado por pacto."
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Equipamiento eliminado con éxito.",
@@ -8781,7 +8762,7 @@
             "description": "No autorizado."
           },
           "404": {
-            "description": "Personaje o equipamiento no encontrado."
+            "description": "Personaje o instancia de equipamiento no encontrada."
           },
           "409": {
             "description": "El equipamiento está marcado como favorito o está equipado."
@@ -8792,10 +8773,10 @@
         }
       }
     },
-    "/character/{id}/equipment/equipped": {
+    "/character/{id}/equipment/{instanceId}/equipped": {
       "patch": {
-        "summary": "Equipar o desequipar un ítem del inventario",
-        "description": "Cambia el estado equipped de un ítem del inventario.\nAl equipar, desequipa automáticamente cualquier otro ítem con la misma ranura (equipSlot).\nEl ítem debe tener equipSlot definido. Devuelve el personaje completo y básico (incluye CA recalculada).\n",
+        "summary": "Equipar o desequipar una instancia del inventario",
+        "description": "Cambia el estado equipped de una instancia.\nSi la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.\nLa ranura ring admite 2 objetos; el resto admite 1. Un arma two_handed ocupa main_hand y off_hand.\nSi no hay hueco, desequipa las filas ocupadas en orden del array hasta hacer sitio.\nEl ítem debe tener equipSlot definido. Devuelve el personaje completo y básico (incluye CA recalculada).\n",
         "tags": [
           "Personajes"
         ],
@@ -8813,6 +8794,15 @@
               "type": "string"
             },
             "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la instancia de inventario."
           }
         ],
         "requestBody": {
@@ -8822,24 +8812,9 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "equip",
-                  "isMagic",
-                  "isBond",
                   "equipped"
                 ],
                 "properties": {
-                  "equip": {
-                    "type": "string",
-                    "description": "ID de MongoDB del equipamiento base."
-                  },
-                  "isMagic": {
-                    "type": "boolean",
-                    "description": "Indica si el equipamiento es mágico."
-                  },
-                  "isBond": {
-                    "type": "boolean",
-                    "description": "Indica si el equipamiento está vinculado por pacto."
-                  },
                   "equipped": {
                     "type": "boolean",
                     "description": "true para equipar, false para desequipar."
@@ -8879,7 +8854,7 @@
             "description": "No autorizado."
           },
           "404": {
-            "description": "Personaje o equipamiento no encontrado."
+            "description": "Personaje o instancia de equipamiento no encontrada."
           },
           "500": {
             "description": "Error del servidor."
@@ -8887,10 +8862,10 @@
         }
       }
     },
-    "/character/{id}/equipment/favorite": {
+    "/character/{id}/equipment/{instanceId}/favorite": {
       "patch": {
-        "summary": "Marcar o desmarcar un equipamiento como favorito",
-        "description": "Actualiza el estado de favorito de un ítem del inventario del personaje.",
+        "summary": "Marcar o desmarcar una instancia como favorita",
+        "description": "Actualiza el estado de favorito de una instancia del inventario. Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.",
         "tags": [
           "Personajes"
         ],
@@ -8908,6 +8883,15 @@
               "type": "string"
             },
             "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la instancia de inventario."
           }
         ],
         "requestBody": {
@@ -8917,24 +8901,9 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "equip",
-                  "isMagic",
-                  "isBond",
                   "isFavorite"
                 ],
                 "properties": {
-                  "equip": {
-                    "type": "string",
-                    "description": "ID de MongoDB del equipamiento base."
-                  },
-                  "isMagic": {
-                    "type": "boolean",
-                    "description": "Indica si el equipamiento es mágico."
-                  },
-                  "isBond": {
-                    "type": "boolean",
-                    "description": "Indica si el equipamiento está vinculado por pacto."
-                  },
                   "isFavorite": {
                     "type": "boolean",
                     "description": "Nuevo estado de favorito del equipamiento."
@@ -8953,9 +8922,7 @@
                   "type": "object",
                   "required": [
                     "id",
-                    "equip",
-                    "isMagic",
-                    "isBond",
+                    "instanceId",
                     "isFavorite"
                   ],
                   "properties": {
@@ -8963,17 +8930,9 @@
                       "type": "string",
                       "description": "ID de MongoDB del personaje."
                     },
-                    "equip": {
+                    "instanceId": {
                       "type": "string",
-                      "description": "ID de MongoDB del equipamiento base."
-                    },
-                    "isMagic": {
-                      "type": "boolean",
-                      "description": "Indica si el equipamiento es mágico."
-                    },
-                    "isBond": {
-                      "type": "boolean",
-                      "description": "Indica si el equipamiento está vinculado por pacto."
+                      "description": "ID de MongoDB de la instancia mutada."
                     },
                     "isFavorite": {
                       "type": "boolean",
@@ -8991,7 +8950,96 @@
             "description": "No autorizado."
           },
           "404": {
-            "description": "Personaje o equipamiento no encontrado."
+            "description": "Personaje o instancia de equipamiento no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/equipment/{instanceId}/bond": {
+      "patch": {
+        "summary": "Vincular o desvincular el pacto de una instancia",
+        "description": "Actualiza isBond de una instancia. Vincular (isBond true) solo es válido si el objeto es mágico.\nSi la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se vincula esa.\nLos objetos vinculados nunca se apilan. Al desvincular, se intenta fusionar con una pila compatible.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la instancia de inventario."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isBond"
+                ],
+                "properties": {
+                  "isBond": {
+                    "type": "boolean",
+                    "description": "true para vincular el pacto, false para desvincularlo."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pacto actualizado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "completo",
+                    "basico"
+                  ],
+                  "properties": {
+                    "completo": {
+                      "$ref": "#/components/schemas/PersonajeApi"
+                    },
+                    "basico": {
+                      "$ref": "#/components/schemas/PersonajeBasico"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o el equipamiento no es mágico."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Personaje o instancia de equipamiento no encontrada."
           },
           "500": {
             "description": "Error del servidor."
