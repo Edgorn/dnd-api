@@ -160,18 +160,33 @@ const EquipmentChoiceFilterSchema = z.record(
   z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])
 );
 
+const EquipmentChoiceItemSchema = z.object({
+  type: z.literal("item"),
+  id: z.string().min(1, "El id del equipamiento no puede estar vacío"),
+  quantity: z.number().int().min(1).optional()
+});
+
+const EquipmentChoiceNestedSchema = z.object({
+  type: z.literal("choice"),
+  choose: z.number().int().min(1, "Debe elegir al menos 1"),
+  options: z.array(z.string()).optional(),
+  filter: EquipmentChoiceFilterSchema.optional()
+});
+
+const EquipmentChoiceLeafSchema = z.discriminatedUnion("type", [
+  EquipmentChoiceItemSchema,
+  EquipmentChoiceNestedSchema
+]);
+
+const EquipmentChoiceBundleSchema = z.object({
+  type: z.literal("bundle"),
+  items: z.array(EquipmentChoiceLeafSchema).min(2, "Un bundle debe contener al menos 2 elementos")
+});
+
 const EquipmentChoiceBranchSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("item"),
-    id: z.string().min(1, "El id del equipamiento no puede estar vacío"),
-    quantity: z.number().int().min(1).optional()
-  }),
-  z.object({
-    type: z.literal("choice"),
-    choose: z.number().int().min(1, "Debe elegir al menos 1"),
-    options: z.array(z.string()).optional(),
-    filter: EquipmentChoiceFilterSchema.optional()
-  })
+  EquipmentChoiceItemSchema,
+  EquipmentChoiceNestedSchema,
+  EquipmentChoiceBundleSchema
 ]);
 
 /** Input schema for class/background equipment_choices (simple options/filter or nested alternatives). */

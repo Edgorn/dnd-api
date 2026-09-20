@@ -120,7 +120,7 @@ const router = Router();
  *           description: Cantidad de objetos de equipamiento a seleccionar.
  *         options:
  *           type: array
- *           description: Si query_type es options/filter/all, lista de Equipment. Si es mixed, lista de ramas (item o choice anidada).
+ *           description: Si query_type es options/filter/all, lista de Equipment. Si es mixed, lista de ramas (item, choice anidada o bundle AND).
  *           items:
  *             oneOf:
  *               - $ref: '#/components/schemas/Equipment'
@@ -128,7 +128,7 @@ const router = Router();
  *         query_type:
  *           type: string
  *           enum: [all, options, filter, mixed]
- *           description: Tipo de consulta. mixed indica alternativas heterogéneas (ítem concreto vs sub-elección).
+ *           description: Tipo de consulta. mixed indica alternativas heterogéneas (ítem concreto, sub-elección o paquete AND).
  *         query_filter:
  *           $ref: '#/components/schemas/EquipmentChoiceFilter'
  *           description: Filtro aplicado si el query_type fue 'filter'. El ruleset se aplica automáticamente en servidor.
@@ -139,16 +139,21 @@ const router = Router();
  *       properties:
  *         type:
  *           type: string
- *           enum: [item, choice]
- *           description: item = equipamiento concreto; choice = sub-elección (options o filter).
+ *           enum: [item, choice, bundle]
+ *           description: item = equipamiento concreto; choice = sub-elección (options o filter); bundle = paquete AND de hojas item/choice.
  *         value:
- *           description: Equipment si type=item; ChoiceApi de Equipment si type=choice.
+ *           description: Equipment si type=item; ChoiceApi de Equipment si type=choice. Ausente cuando type=bundle.
  *           oneOf:
  *             - $ref: '#/components/schemas/Equipment'
  *             - $ref: '#/components/schemas/EquipmentChoiceApi'
  *         quantity:
  *           type: number
  *           description: Cantidad cuando type=item (por defecto 1).
+ *         items:
+ *           type: array
+ *           description: Hojas hidratadas del paquete AND cuando type=bundle (solo item o choice; no hay bundles anidados).
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentChoiceBranchApi'
  *     EquipmentChoiceFilter:
  *       type: object
  *       description: Criterios de filtrado dinámico de equipamiento. El ruleset del trasfondo se resuelve en servidor (con ancestros del sistema); no debe enviarse en el body.
@@ -189,7 +194,7 @@ const router = Router();
  *           description: Criterios de filtrado dinámico. Mutuamente excluyente con options y alternatives.
  *         alternatives:
  *           type: array
- *           description: Ramas heterogéneas (ítem vs sub-elección). Mutuamente excluyente con options/filter. Ejemplo Mago, saquito o canalizador arcano.
+ *           description: Ramas heterogéneas (ítem, sub-elección o bundle AND). Mutuamente excluyente con options/filter. Ejemplo Mago (saquito o canalizador) o Guerrero (arma marcial + escudo o dos armas marciales).
  *           items:
  *             $ref: '#/components/schemas/EquipmentChoiceBranchInput'
  *     EquipmentChoiceBranchInput:
@@ -199,7 +204,8 @@ const router = Router();
  *       properties:
  *         type:
  *           type: string
- *           enum: [item, choice]
+ *           enum: [item, choice, bundle]
+ *           description: item = equipamiento concreto; choice = sub-elección; bundle = paquete AND (mínimo 2 hojas item/choice, sin recursión).
  *         id:
  *           type: string
  *           description: ID del equipamiento cuando type=item.
@@ -217,6 +223,11 @@ const router = Router();
  *         filter:
  *           $ref: '#/components/schemas/EquipmentChoiceFilter'
  *           description: Filtro cuando type=choice (modo filter).
+ *         items:
+ *           type: array
+ *           description: Hojas del paquete AND cuando type=bundle (solo item o choice; mínimo 2). No admite bundles anidados.
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentChoiceBranchInput'
  *     BackgroundCharacterEquipment:
  *       allOf:
  *         - $ref: '#/components/schemas/Equipment'

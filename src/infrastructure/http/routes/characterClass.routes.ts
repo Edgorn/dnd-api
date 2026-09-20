@@ -80,7 +80,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/EquipmentChoiceApi'
- *           description: Opciones de equipamiento inicial resueltas (options, filter o mixed con ramas item/choice).
+ *           description: Opciones de equipamiento inicial resueltas (options, filter o mixed con ramas item/choice/bundle).
  *         spellcasting:
  *           $ref: '#/components/schemas/Attribute'
  *           description: Característica principal para lanzar conjuros de la clase (atributo hidratado).

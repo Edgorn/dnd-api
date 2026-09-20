@@ -234,15 +234,20 @@ export interface EquipmentChoiceApi {
 
 export type EquipmentChoiceFilter = Record<string, string | number | (string | number)[]>;
 
-/** Nested branch: concrete item or a nested flat choice (options/filter). */
-export type EquipmentChoiceBranchMongo =
+/** Leaf of an equipment choice: concrete item or a nested flat choice (options/filter). */
+export type EquipmentChoiceLeafMongo =
   | { type: "item"; id: string; quantity?: number }
   | { type: "choice"; choose: number; options?: string[]; filter?: EquipmentChoiceFilter };
+
+/** Nested branch: leaf or AND bundle of leaves (non-recursive). */
+export type EquipmentChoiceBranchMongo =
+  | EquipmentChoiceLeafMongo
+  | { type: "bundle"; items: EquipmentChoiceLeafMongo[] };
 
 /**
  * Equipment choice stored on classes/backgrounds.
  * Simple mode: options XOR filter (backward compatible).
- * Nested mode: alternatives (item vs nested choice, e.g. pouch vs arcane focus subcategory).
+ * Nested mode: alternatives (item vs nested choice vs AND bundle, e.g. pouch vs focus, or martial+shield vs two martial).
  */
 export interface EquipmentChoiceMongo {
   choose: number;
@@ -251,9 +256,13 @@ export interface EquipmentChoiceMongo {
   alternatives?: EquipmentChoiceBranchMongo[];
 }
 
-export type EquipmentChoiceBranchApi =
+export type EquipmentChoiceLeafApi =
   | { type: "item"; value: EquipmentApi; quantity?: number }
   | { type: "choice"; value: ChoiceApi<EquipmentApi> };
+
+export type EquipmentChoiceBranchApi =
+  | EquipmentChoiceLeafApi
+  | { type: "bundle"; items: EquipmentChoiceLeafApi[] };
 
 /** Resolved equipment choice for API responses (discriminated by query_type). */
 export type ResolvedEquipmentChoiceApi =

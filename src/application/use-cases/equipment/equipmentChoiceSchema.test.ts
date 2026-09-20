@@ -42,4 +42,56 @@ describe("EquipmentChoiceMongoSchema", () => {
     const result = EquipmentChoiceMongoSchema.safeParse({ choose: 1 });
     expect(result.success).toBe(false);
   });
+
+  it("accepts nested alternatives with AND bundle (martial+shield vs two martial)", () => {
+    const result = EquipmentChoiceMongoSchema.safeParse({
+      choose: 1,
+      alternatives: [
+        {
+          type: "bundle",
+          items: [
+            { type: "choice", choose: 1, filter: { "weapon.category": "Martial" } },
+            { type: "item", id: "507f1f77bcf86cd799439011", quantity: 1 }
+          ]
+        },
+        { type: "choice", choose: 2, filter: { "weapon.category": "Martial" } }
+      ]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects bundle with fewer than 2 items", () => {
+    const result = EquipmentChoiceMongoSchema.safeParse({
+      choose: 1,
+      alternatives: [
+        {
+          type: "bundle",
+          items: [{ type: "item", id: "507f1f77bcf86cd799439011" }]
+        }
+      ]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects nested bundle inside bundle items", () => {
+    const result = EquipmentChoiceMongoSchema.safeParse({
+      choose: 1,
+      alternatives: [
+        {
+          type: "bundle",
+          items: [
+            { type: "item", id: "507f1f77bcf86cd799439011" },
+            {
+              type: "bundle",
+              items: [
+                { type: "item", id: "507f1f77bcf86cd799439012" },
+                { type: "item", id: "507f1f77bcf86cd799439013" }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    expect(result.success).toBe(false);
+  });
 });

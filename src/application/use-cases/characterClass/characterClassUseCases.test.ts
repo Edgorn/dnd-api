@@ -141,6 +141,38 @@ describe("CharacterClass Use Cases", () => {
       expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
     });
 
+    it("should create class with equipment bundle alternatives (martial+shield vs two martial)", async () => {
+      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.create.mockResolvedValue(createdClass);
+
+      const input = {
+        ruleset: "sys1",
+        name: "Guerrero",
+        hit_die: 10,
+        equipment_choices: [
+          {
+            choose: 1,
+            alternatives: [
+              {
+                type: "bundle" as const,
+                items: [
+                  { type: "choice" as const, choose: 1, filter: { "weapon.category": "Martial" } },
+                  { type: "item" as const, id: "507f1f77bcf86cd799439011", quantity: 1 }
+                ]
+              },
+              { type: "choice" as const, choose: 2, filter: { "weapon.category": "Martial" } }
+            ]
+          }
+        ]
+      };
+
+      const result = await useCase.execute(input, "user1");
+
+      expect(result).toEqual(createdClass);
+      expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
     it("should create class with filter-only equipment choice", async () => {
       const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });

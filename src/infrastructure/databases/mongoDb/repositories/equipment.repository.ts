@@ -20,6 +20,8 @@ import {
   EquipmentChoiceMongo,
   EquipmentChoiceBranchMongo,
   EquipmentChoiceBranchApi,
+  EquipmentChoiceLeafMongo,
+  EquipmentChoiceLeafApi,
   ResolvedEquipmentChoiceApi,
   EquipmentChoiceFilter,
   EquipmentBasic,
@@ -733,21 +735,37 @@ export default class EquipmentRepository implements IEquipmentRepository {
     branch: EquipmentChoiceBranchMongo,
     ruleset?: string
   ): Promise<EquipmentChoiceBranchApi | null> {
-    if (branch.type === "item") {
-      const equipment = await this.getById(branch.id);
+    if (branch.type === "bundle") {
+      const leaves = await Promise.all(
+        branch.items.map(leaf => this.formatEquipmentChoiceLeaf(leaf, ruleset))
+      );
+      const items = leaves.filter((leaf): leaf is EquipmentChoiceLeafApi => leaf !== null);
+      if (items.length === 0) return null;
+      return { type: "bundle", items };
+    }
+
+    return this.formatEquipmentChoiceLeaf(branch, ruleset);
+  }
+
+  private async formatEquipmentChoiceLeaf(
+    leaf: EquipmentChoiceLeafMongo,
+    ruleset?: string
+  ): Promise<EquipmentChoiceLeafApi | null> {
+    if (leaf.type === "item") {
+      const equipment = await this.getById(leaf.id);
       if (!equipment) return null;
       return {
         type: "item",
         value: equipment,
-        quantity: branch.quantity ?? 1
+        quantity: leaf.quantity ?? 1
       };
     }
 
     const nested = await this.formatFlatEquipmentChoice(
       {
-        choose: branch.choose,
-        options: branch.options,
-        filter: branch.filter
+        choose: leaf.choose,
+        options: leaf.options,
+        filter: leaf.filter
       },
       ruleset
     );
