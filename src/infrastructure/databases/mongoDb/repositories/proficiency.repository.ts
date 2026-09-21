@@ -41,7 +41,7 @@ export default class ProficiencyRepository implements IProficiencyRepository {
       }
 
       const children = await ProficiencySchema.find({
-        parentProficiencyId: { $in: batchParentIds },
+        parentProficiencyId: { $in: batchParentIds } as any,
         deletedAt: null,
       }).lean<ProficiencyMongo[]>();
 
@@ -124,10 +124,13 @@ export default class ProficiencyRepository implements IProficiencyRepository {
 
     // Legacy data handling where options was a string (type)
     if (typeof opciones.options === 'string') {
-      const proficiencies = await this.getProficienciesByType(opciones.options as unknown as string);
+      const type = opciones.options as unknown as string;
+      const proficiencies = await this.getProficienciesByType(type);
       return {
         choose: opciones.choose,
-        options: proficiencies
+        options: proficiencies,
+        query_type: 'filter',
+        query_filter: { type },
       };
     }
 
@@ -135,7 +138,8 @@ export default class ProficiencyRepository implements IProficiencyRepository {
       const proficiencies = await this.getProficienciesByIndices(opciones.options);
       return {
         choose: opciones.choose,
-        options: proficiencies
+        options: proficiencies,
+        query_type: 'options',
       };
     }
 
@@ -156,7 +160,9 @@ export default class ProficiencyRepository implements IProficiencyRepository {
 
       return {
         choose: opciones.choose,
-        options: this.formatProficiencies(proficiencies)
+        options: this.formatProficiencies(proficiencies),
+        query_type: 'filter',
+        query_filter: opciones.filter,
       };
     }
 

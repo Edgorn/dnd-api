@@ -7,6 +7,11 @@ const ChoiceMongoSchema = z.object({
   filter: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional()
 });
 
+const TraitChoiceMongoSchema = z.object({
+  choose: z.number().int().min(1, "Debe elegir al menos 1"),
+  options: z.array(z.string()).min(1, "Debe incluir al menos una opción")
+});
+
 const IdealSchema = z.object({
   title: z.string().min(1, "El título no puede estar vacío"),
   description: z.string().min(1, "La descripción no puede estar vacía"),
@@ -25,9 +30,12 @@ export const CreateBackgroundSchema = z.object({
   img: z.string().optional(),
   god: z.boolean().optional(),
   traits: z.array(z.string()).nullable().optional(),
+  traits_choices: z.array(TraitChoiceMongoSchema).nullable().optional(),
   traits_data: z.record(z.string(), z.any()).nullable().optional(),
   skills: z.array(z.string()).nullable().optional(),
   language_choices: ChoiceMongoSchema.nullable().optional(),
+  proficiencies: z.array(z.string()).nullable().optional(),
+  proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   personality_traits: z.array(z.string()).nullable().optional(),
   ideals: z.array(IdealSchema).nullable().optional(),
   bonds: z.array(z.string()).nullable().optional(),
@@ -44,9 +52,12 @@ export const UpdateBackgroundSchema = z.object({
   img: z.string().optional(),
   god: z.boolean().optional(),
   traits: z.array(z.string()).nullable().optional(),
+  traits_choices: z.array(TraitChoiceMongoSchema).nullable().optional(),
   traits_data: z.record(z.string(), z.any()).nullable().optional(),
   skills: z.array(z.string()).nullable().optional(),
   language_choices: ChoiceMongoSchema.nullable().optional(),
+  proficiencies: z.array(z.string()).nullable().optional(),
+  proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   personality_traits: z.array(z.string()).nullable().optional(),
   ideals: z.array(IdealSchema).nullable().optional(),
   bonds: z.array(z.string()).nullable().optional(),

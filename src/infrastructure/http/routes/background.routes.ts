@@ -35,14 +35,58 @@ const router = Router();
  *         traits:
  *           type: array
  *           items:
- *             type: string
- *           description: Array de IDs de rasgos asociados.
+ *             $ref: '#/components/schemas/Trait'
+ *           description: Rasgos fijos otorgados por el trasfondo, hidratados.
+ *         traits_choices:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               choose:
+ *                 type: number
+ *                 description: Cantidad de rasgos a seleccionar.
+ *               options:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Trait'
+ *                 description: Rasgos disponibles para esta elección, hidratados.
+ *               query_type:
+ *                 type: string
+ *                 enum: [options]
+ *                 description: Tipo de consulta usada para obtener las opciones.
+ *           description: Elecciones de rasgos (elige N de una lista de IDs). No se otorgan hasta que el cliente las resuelva.
  *         traits_data:
  *           type: object
  *           description: Datos adicionales y mapa de configuración para los rasgos.
  *         language_choices:
  *           type: object
  *           description: Elección de idiomas para el trasfondo.
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Proficiency'
+ *           description: Competencias fijas otorgadas por el trasfondo, hidratadas.
+ *         proficiencies_choices:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               choose:
+ *                 type: number
+ *                 description: Cantidad de competencias a seleccionar.
+ *               options:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Proficiency'
+ *                 description: Competencias disponibles para esta elección, hidratadas.
+ *               query_type:
+ *                 type: string
+ *                 enum: [all, options, filter]
+ *                 description: Tipo de consulta usada para obtener las opciones.
+ *               query_filter:
+ *                 type: object
+ *                 description: Filtro aplicado si query_type es filter.
+ *           description: Elecciones independientes de competencias (por ejemplo instrumento y herramienta).
  *         equipment_choices:
  *           type: array
  *           items:
@@ -443,6 +487,25 @@ router.get('/backgrounds/:id', authMiddleware, backgroundController.getById);
  *                 type: array
  *                 items:
  *                   type: string
+ *                 description: IDs de rasgos fijos otorgados siempre.
+ *               traits_choices:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - choose
+ *                     - options
+ *                   properties:
+ *                     choose:
+ *                       type: number
+ *                       description: Cantidad de rasgos a seleccionar.
+ *                     options:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       minItems: 1
+ *                       description: IDs de rasgos entre los que elegir.
+ *                 description: Elecciones de rasgos (elige N de una lista de IDs). No admite filtro.
  *               traits_data:
  *                 type: object
  *               skills:
@@ -451,6 +514,16 @@ router.get('/backgrounds/:id', authMiddleware, backgroundController.getById);
  *                   type: string
  *               language_choices:
  *                 type: object
+ *               proficiencies:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: IDs de competencias fijas otorgadas por el trasfondo.
+ *               proficiencies_choices:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/ChoiceMongo'
+ *                 description: Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type herramienta).
  *               equipment_choices:
  *                 type: array
  *                 items:
@@ -554,6 +627,25 @@ router.post('/backgrounds', authMiddleware, validateSchema(CreateBackgroundSchem
  *                 type: array
  *                 items:
  *                   type: string
+ *                 description: IDs de rasgos fijos otorgados siempre.
+ *               traits_choices:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - choose
+ *                     - options
+ *                   properties:
+ *                     choose:
+ *                       type: number
+ *                       description: Cantidad de rasgos a seleccionar.
+ *                     options:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       minItems: 1
+ *                       description: IDs de rasgos entre los que elegir.
+ *                 description: Elecciones de rasgos (elige N de una lista de IDs). No admite filtro.
  *               traits_data:
  *                 type: object
  *               skills:
@@ -562,6 +654,16 @@ router.post('/backgrounds', authMiddleware, validateSchema(CreateBackgroundSchem
  *                   type: string
  *               language_choices:
  *                 type: object
+ *               proficiencies:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: IDs de competencias fijas otorgadas por el trasfondo.
+ *               proficiencies_choices:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/ChoiceMongo'
+ *                 description: Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type herramienta).
  *               equipment_choices:
  *                 type: array
  *                 items:

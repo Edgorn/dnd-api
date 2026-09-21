@@ -66,9 +66,12 @@ export default class BackgroundRepository implements IBackgroundRepository {
       img: data.img || "",
       god: data.god ?? false,
       traits: data.traits ?? [],
+      traits_choices: data.traits_choices ?? [],
       traits_data: data.traits_data ?? {},
       skills: data.skills ?? [],
       language_choices: data.language_choices ?? undefined,
+      proficiencies: data.proficiencies ?? [],
+      proficiencies_choices: data.proficiencies_choices ?? undefined,
       personality_traits: data.personality_traits ?? [],
       ideals: data.ideals ?? [],
       bonds: data.bonds ?? [],
@@ -91,6 +94,18 @@ export default class BackgroundRepository implements IBackgroundRepository {
 
     if (updateFields.equipment === null) {
       updateFields.equipment = [];
+    }
+
+    if (updateFields.proficiencies === null) {
+      updateFields.proficiencies = [];
+    }
+
+    if (updateFields.proficiencies_choices === null) {
+      updateFields.proficiencies_choices = [];
+    }
+
+    if (updateFields.traits_choices === null) {
+      updateFields.traits_choices = [];
     }
 
     const updatedBackground = await BackgroundModel.findByIdAndUpdate(
@@ -132,6 +147,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
 
     const [
       traits,
+      traits_choices,
       skills,
       language_choices,
       proficiencies,
@@ -142,6 +158,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       coins
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(background?.traits ?? [], background?.traits_data),
+      this.traitRepository.formatTraitChoices(background?.traits_choices),
       this.skillRepository.getSkillsByIds(background?.skills ?? []),
       this.languageRepository.formatLanguageChoices(background?.language_choices, background?.ruleset),
       this.proficiencyRepository.getProficienciesByIndices(background?.proficiencies ?? []),
@@ -171,6 +188,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       img: background.img || "",
       description: background.description ?? [],
       traits,
+      traits_choices,
       traits_data: background?.traits_data,
       skills,
       language_choices,
@@ -203,6 +221,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
 
     const [
       traits,
+      traits_choices,
       proficiencies_choices,
       mixed_choices,
       equipment,
@@ -211,6 +230,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       variant?.traits
         ? this.traitRepository.getTraitsByIndexes(variant?.traits ?? [], variant?.traits_data)
         : Promise.resolve(undefined),
+      this.traitRepository.formatTraitChoices(variant?.traits_choices),
       this.proficiencyRepository.formatProficiencyChoices(variant?.proficiencies_choices),
       this.formatearMixedChoices(variant.mixed_choices),
       this.equipmentRepository.getCharacterEquipmentsByIds(variant?.equipment),
@@ -221,6 +241,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       name: variant.name,
       description: variant.description,
       traits,
+      traits_choices,
       traits_data: variant?.traits_data,
       proficiencies_choices,
       mixed_choices,

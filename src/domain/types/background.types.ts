@@ -19,9 +19,12 @@ export interface InputCreateBackground {
   img?: string;
   god?: boolean;
   traits?: string[] | null;
+  traits_choices?: ChoiceMongo[] | null;
   traits_data?: TraitDataMongo | null;
   skills?: string[] | null;
   language_choices?: ChoiceMongo | null;
+  proficiencies?: string[] | null;
+  proficiencies_choices?: ChoiceMongo[] | null;
   personality_traits?: string[] | null;
   ideals?: Ideal[] | null;
   bonds?: string[] | null;
@@ -42,9 +45,12 @@ export interface InputUpdateBackground {
   img?: string;
   god?: boolean;
   traits?: string[] | null;
+  traits_choices?: ChoiceMongo[] | null;
   traits_data?: TraitDataMongo | null;
   skills?: string[] | null;
   language_choices?: ChoiceMongo | null;
+  proficiencies?: string[] | null;
+  proficiencies_choices?: ChoiceMongo[] | null;
   personality_traits?: string[] | null;
   ideals?: Ideal[] | null;
   bonds?: string[] | null;
@@ -65,6 +71,7 @@ export interface BackgroundMongo {
   description: string[];
   img: string;
   traits: string[];
+  traits_choices?: ChoiceMongo[];
   traits_data?: TraitDataMongo;
   skills: string[];
   language_choices?: ChoiceMongo;
@@ -91,6 +98,7 @@ export interface VariantMongo {
   name: string;
   description?: string[];
   traits?: string[];
+  traits_choices?: ChoiceMongo[];
   traits_data?: TraitDataMongo;
   proficiencies_choices?: ChoiceMongo[];
   mixed_choices?: MixedChoicesMongo[][];
@@ -114,6 +122,7 @@ export interface BackgroundApi {
   description: string[];
   img: string;
   traits: TraitApi[];
+  traits_choices?: ChoiceApi<TraitApi>[];
   traits_data?: TraitDataMongo;
   skills?: SkillApi[];
   language_choices?: ChoiceApi<LanguageApi>;
@@ -138,6 +147,7 @@ export interface VariantApi {
   name: string;
   description?: string[];
   traits?: TraitApi[];
+  traits_choices?: ChoiceApi<TraitApi>[];
   traits_data?: TraitDataMongo;
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
   mixed_choices?: MixedChoicesApi[][];

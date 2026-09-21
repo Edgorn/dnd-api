@@ -1,8 +1,10 @@
+import { ChoiceApi, ChoiceMongo } from "../types";
 import { CreateTrait, TraitApi, TraitDataMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../types/traits.types";
 
 export default interface ITraitRepository {
   getBySystems(ruleset: string[]): Promise<TraitApi[]>
   getTraitsByIndexes(params: string[], data?: TraitDataMongo): Promise<TraitApi[]>
+  formatTraitChoices(choices?: ChoiceMongo[]): Promise<ChoiceApi<TraitApi>[]>
   getTraitsOptions(traitsOptions: TraitsOptionsMongo | undefined): Promise<TraitsOptionsApi | undefined>
   getById(id: string): Promise<TraitApi | null>
   create(trait: CreateTrait): Promise<TraitApi>

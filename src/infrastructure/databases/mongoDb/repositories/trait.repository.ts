@@ -6,6 +6,7 @@ import IProficiencyRepository from "../../../../domain/repositories/IProficiency
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { SkillApi } from '../../../../domain/types/skill.types';
+import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
 import { CreateTrait, TraitApi, TraitDataMongo, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
@@ -47,6 +48,16 @@ export default class TraitRepository implements ITraitRepository {
 
     const traitsFormateados = await this.formatearTraits(traits, data);
     return ordenarPorNombre(traitsFormateados);
+  }
+
+  async formatTraitChoices(choices?: ChoiceMongo[]): Promise<ChoiceApi<TraitApi>[]> {
+    if (!choices?.length) return [];
+
+    const formatted = await Promise.all(
+      choices.map(choice => this.formatTraitChoice(choice))
+    );
+
+    return formatted.filter((item): item is ChoiceApi<TraitApi> => item !== undefined);
   }
 
   async getTraitsOptions(traitsOptions: TraitsOptionsMongo | undefined): Promise<TraitsOptionsApi | undefined> {
@@ -230,5 +241,16 @@ export default class TraitRepository implements ITraitRepository {
   private async formatearTrait(trait: TraitMongo, data: TraitDataMongo = {}): Promise<TraitApi> {
     const result = await this.formatearTraits([trait], data);
     return result[0];
+  }
+
+  private async formatTraitChoice(choice: ChoiceMongo | undefined): Promise<ChoiceApi<TraitApi> | undefined> {
+    if (!choice?.options?.length) return undefined;
+
+    const options = await this.getTraitsByIndexes(choice.options);
+    return {
+      choose: choice.choose,
+      options,
+      query_type: "options"
+    };
   }
 }

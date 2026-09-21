@@ -104,7 +104,7 @@ function applyRaceOverride(
 
     for (const key of RACE_FLAVOR_FIELDS) {
       const value = overlay.patch[key];
-      if (!isMeaningfulFlavorValue(value)) continue;
+      if (value === undefined || !isMeaningfulFlavorValue(value)) continue;
       result = applyFlavorField(result, key, value);
       if (!overriddenFields.includes(key)) {
         overriddenFields.push(key);
