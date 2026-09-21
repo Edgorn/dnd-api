@@ -47,13 +47,28 @@ export const TraitSpeedSchema = z.object({
   { message: "Debe incluir al menos set, add o equalToWalk" }
 );
 
-const acFormulaSchema = z.string().min(1, "La fórmula de CA no puede estar vacía").optional().superRefine((val, ctx) => {
-  if (val === undefined) return;
+export const TraitCompanionRosterSchema = z.object({
+  count: z
+    .number()
+    .int("El recuento de compañeros debe ser un entero")
+    .min(1, "El recuento de compañeros debe ser al menos 1")
+    .max(20, "El recuento de compañeros no puede superar 20"),
+  suggestedRoles: z
+    .array(z.string().min(1, "Cada rol sugerido no puede estar vacío"))
+    .optional()
+});
+
+const acFormulaSchema = z.string().min(1, "La fórmula de CA no puede estar vacía").nullish().superRefine((val, ctx) => {
+  if (val == null) return;
   const error = validateSystemFormula(val);
   if (error) {
     ctx.addIssue({ code: "custom", message: `acFormula: ${error}` });
   }
 });
+
+const suppressedByArmorTypeIdsSchema = z
+  .array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada tipo de armadura debe ser un ID de Mongo válido" }))
+  .nullish();
 
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
@@ -64,9 +79,10 @@ export const CreateTraitSchema = z.object({
   proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
   spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
+  companionRoster: TraitCompanionRosterSchema.optional(),
   speed: TraitSpeedSchema.optional(),
   acFormula: acFormulaSchema,
-  suppressedByArmorTypeIds: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada tipo de armadura debe ser un ID de Mongo válido" })).optional()
+  suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema
 });
 
 export const UpdateTraitSchema = z.object({
@@ -78,9 +94,10 @@ export const UpdateTraitSchema = z.object({
   proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
   spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
+  companionRoster: TraitCompanionRosterSchema.optional(),
   speed: TraitSpeedSchema.optional(),
   acFormula: acFormulaSchema,
-  suppressedByArmorTypeIds: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada tipo de armadura debe ser un ID de Mongo válido" })).optional()
+  suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

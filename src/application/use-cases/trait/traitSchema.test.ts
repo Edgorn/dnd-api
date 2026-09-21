@@ -113,12 +113,78 @@ describe("CreateTraitSchema speed", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts null acFormula and suppressedByArmorTypeIds", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Sentidos Divinos",
+      acFormula: null,
+      suppressedByArmorTypeIds: null,
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("UpdateTraitSchema spellPrivileges", () => {
   it("accepts updating only spellPrivileges", () => {
     const result = UpdateTraitSchema.safeParse({
       spellPrivileges: masteryPrivileges,
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("UpdateTraitSchema nullable armor fields", () => {
+  it("accepts null acFormula and suppressedByArmorTypeIds on full edit payload", () => {
+    const result = UpdateTraitSchema.safeParse({
+      name: "Sentidos Divinos",
+      description: ["párrafo"],
+      summary: ["resumen"],
+      incompatible_traits: [],
+      proficiencies: [],
+      skills: [],
+      spellPrivileges: [],
+      acFormula: null,
+      suppressedByArmorTypeIds: null,
+      ruleset: "507f1f77bcf86cd799439011",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("CreateTraitSchema companionRoster", () => {
+  it("accepts a UI hint with suggested roles", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Siervos",
+      companionRoster: {
+        count: 3,
+        suggestedRoles: ["Mayordomo", "Mensajero", "Asistente"],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a count outside 1..20", () => {
+    const tooLow = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Siervos",
+      companionRoster: { count: 0 },
+    });
+    const tooHigh = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Siervos",
+      companionRoster: { count: 21 },
+    });
+    expect(tooLow.success).toBe(false);
+    expect(tooHigh.success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema companionRoster", () => {
+  it("accepts updating only companionRoster", () => {
+    const result = UpdateTraitSchema.safeParse({
+      companionRoster: { count: 2 },
     });
     expect(result.success).toBe(true);
   });

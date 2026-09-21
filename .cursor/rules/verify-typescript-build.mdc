@@ -1,0 +1,13 @@
+---
+description: Tras cada desarrollo hay que ejecutar pnpm run build; si falla, falta un test en ese lugar.
+alwaysApply: true
+---
+
+# Verificar el build de TypeScript
+
+Tras completar un desarrollo (features, refactors, tipos, Zod, repositorios o endpoints), ejecuta `pnpm run build` antes de dar el trabajo por cerrado.
+
+- El comando debe terminar con código de salida 0.
+- Si `tsc` falla, corrige los errores y vuelve a ejecutar el build.
+- No consideres el trabajo terminado si el build falla, aunque pasen los tests o `pnpm dev` arranque.
+- Un `pnpm run build` fallido significa que **falta un test** en el código afectado (el fallo no se detectó antes). Después de arreglar la compilación, añade o amplía un test en ese lugar para cubrir el caso.

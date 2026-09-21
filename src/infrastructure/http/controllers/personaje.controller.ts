@@ -17,6 +17,7 @@ import AñadirForma from "../../../application/use-cases/personaje/añadirForma.
 import ToggleFavoriteEquipment from "../../../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import PrepareSpells from "../../../application/use-cases/personaje/prepareSpells.use-case";
 import BindSpellPrivileges from "../../../application/use-cases/personaje/bindSpellPrivileges.use-case";
+import UpdateCompanions from "../../../application/use-cases/personaje/updateCompanions.use-case";
 import { ValidationError } from "../../../domain/errors/AppError";
 
 export class PersonajeController {
@@ -37,7 +38,8 @@ export class PersonajeController {
     private readonly añadirForma: AñadirForma,
     private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment,
     private readonly prepareSpellsUseCase: PrepareSpells,
-    private readonly bindSpellPrivilegesUseCase: BindSpellPrivileges
+    private readonly bindSpellPrivilegesUseCase: BindSpellPrivileges,
+    private readonly updateCompanionsUseCase: UpdateCompanions
   ) { }
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -341,6 +343,23 @@ export class PersonajeController {
       const data = await this.añadirForma.execute({ id, form: req.body.form })
       res.status(200).json(data);
     } catch (e) {
+      next(e);
+    }
+  };
+
+  updateCompanions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const { companions } = req.body;
+      const data = await this.updateCompanionsUseCase.execute(id, companions, req.user!);
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.updateCompanions] Error:", e);
       next(e);
     }
   };

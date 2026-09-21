@@ -7,8 +7,9 @@ import {
 } from "../../../domain/types/personajes.types";
 import ISystemRepository from "../../../domain/repositories/ISystemRepository";
 import IEquipmentRepository from "../../../domain/repositories/IEquipmentRepository";
-import { NotFoundError } from "../../../domain/errors/AppError";
+import { NotFoundError, ValidationError } from "../../../domain/errors/AppError";
 import { addToInventory, createInventoryInstance } from "../../../utils/inventoryStacks";
+import { CompanionInputListSchema } from "../../../infrastructure/http/schemas/personaje.schema";
 
 export type CreateCharacterInput = Omit<TypeCrearPersonaje, "equipment"> & {
   equipment: CharacterStartingEquipmentInput[];
@@ -23,8 +24,22 @@ export default class CrearPersonaje {
 
   async execute(data: CreateCharacterInput): Promise<PersonajeBasico | null> {
     await this.systemRepository.verifySystemsNotBase(data.systems || []);
+    const companions = this.parseCompanions(data.companions);
     const equipment = await this.resolveStartingEquipment(data.equipment ?? []);
-    return this.personajeService.crear({ ...data, equipment });
+    return this.personajeService.crear({ ...data, equipment, companions });
+  }
+
+  private parseCompanions(companions: CreateCharacterInput["companions"]) {
+    if (companions === undefined) {
+      return [];
+    }
+
+    const parsed = CompanionInputListSchema.safeParse(companions);
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues.map(issue => issue.message).join(", "));
+    }
+
+    return parsed.data;
   }
 
   private async resolveStartingEquipment(

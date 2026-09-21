@@ -4,7 +4,7 @@ import { AppError } from "../../../domain/errors/AppError";
 import { ArmorInput } from "../../../domain/types/equipment.types";
 
 export async function assertArmorTypesForRuleset(
-  typeIds: string[] | undefined,
+  typeIds: string[] | null | undefined,
   ruleset: string,
   armorTypeService: ArmorTypeService,
   systemService: SystemService

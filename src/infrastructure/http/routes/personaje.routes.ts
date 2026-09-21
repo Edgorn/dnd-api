@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -367,6 +367,28 @@ const router = Router();
  *             burrow:
  *               type: number
  *
+ *     CharacterCompanion:
+ *       type: object
+ *       required:
+ *         - id
+ *         - name
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Identificador del compañero (ObjectId). En creación es opcional; el servidor lo genera si falta.
+ *         name:
+ *           type: string
+ *           description: Nombre narrativo del compañero.
+ *         role:
+ *           type: string
+ *           description: Rol libre (p. ej. Mayordomo). No es un enumerado.
+ *         notes:
+ *           type: string
+ *           description: Notas narrativas opcionales.
+ *         sourceTraitId:
+ *           type: string
+ *           description: ID del rasgo que sugirió el roster (orientación de UI; el servidor no lo exige).
+ *
  *     PersonajeApi:
  *       type: object
  *       properties:
@@ -588,6 +610,11 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/CharacterSpellPrivilegeApi'
  *           description: Conjuros vinculados a rasgos con privilegio de conjuro.
+ *         companions:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterCompanion'
+ *           description: Roster narrativo de compañeros. Vacío en fichas antiguas. No se valida contra companionRoster.count del rasgo.
  *     InputCrearPersonaje:
  *       type: object
  *       required:
@@ -712,6 +739,13 @@ const router = Router();
  *           type: number
  *         prof_bonus:
  *           type: number
+ *         companions:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterCompanion'
+ *           description: >
+ *             Roster narrativo opcional (máximo 20). El recuento companionRoster.count
+ *             de un rasgo es solo orientación de UI; el servidor no lo exige.
  */
 
 /**
@@ -1223,6 +1257,69 @@ router.patch('/character/:id/equipment/:instanceId/bond', authMiddleware, valida
  *         description: Error del servidor.
  */
 router.put('/character/:id/money', authMiddleware, validateSchema(UpdateCharacterMoneySchema), personajeController.updateMoney);
+
+/**
+ * @openapi
+ * /character/{id}/companions:
+ *   put:
+ *     summary: Sustituir el roster narrativo de compañeros
+ *     description: |
+ *       Reemplaza por completo la lista de compañeros del personaje (hasta 20 entradas).
+ *       Envíe un array vacío para vaciar el roster.
+ *       Es un registro narrativo (nombres, roles y notas). El servidor no simula combate
+ *       ni comprueba que la longitud coincida con `companionRoster.count` de ningún rasgo.
+ *       El identificador del personaje va en la URL, no en el cuerpo.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - companions
+ *             properties:
+ *               companions:
+ *                 type: array
+ *                 maxItems: 20
+ *                 items:
+ *                   $ref: '#/components/schemas/CharacterCompanion'
+ *     responses:
+ *       200:
+ *         description: Roster actualizado con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - companions
+ *               properties:
+ *                 companions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterCompanion'
+ *       400:
+ *         description: Datos de entrada inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.put('/character/:id/companions', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(UpdateCharacterCompanionsSchema), personajeController.updateCompanions);
 
 /**
  * @openapi

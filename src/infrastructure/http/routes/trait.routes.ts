@@ -56,13 +56,35 @@ const router = Router();
  *           description: Efecto de velocidad de movimiento que otorga el rasgo.
  *         acFormula:
  *           type: string
+ *           nullable: true
  *           description: Fórmula de CA sin armadura (defensa sin armadura).
  *           example: "10 + @attributes.dex.modifier + @attributes.con.modifier"
  *         suppressedByArmorTypeIds:
  *           type: array
+ *           nullable: true
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         companionRoster:
+ *           $ref: '#/components/schemas/TraitCompanionRoster'
+ *           description: >
+ *             Pista para la UI sobre cuántos compañeros pedir. `count` no se valida
+ *             contra la longitud del roster del personaje.
+ *     TraitCompanionRoster:
+ *       type: object
+ *       required:
+ *         - count
+ *       properties:
+ *         count:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 20
+ *           description: Orientación de UI (no es una regla de servidor).
+ *         suggestedRoles:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Roles sugeridos; el cliente puede mostrarlos, no son un enumerado.
  *     TraitSpeed:
  *       type: object
  *       description: >
@@ -222,12 +244,17 @@ const router = Router();
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
  *         acFormula:
  *           type: string
+ *           nullable: true
  *           description: Fórmula de CA sin armadura.
  *         suppressedByArmorTypeIds:
  *           type: array
+ *           nullable: true
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         companionRoster:
+ *           $ref: '#/components/schemas/TraitCompanionRoster'
+ *           description: Pista de UI. count no se exige al crear o actualizar el personaje.
  *     InputUpdateTrait:
  *       type: object
  *       properties:
@@ -267,12 +294,17 @@ const router = Router();
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
  *         acFormula:
  *           type: string
+ *           nullable: true
  *           description: Fórmula de CA sin armadura.
  *         suppressedByArmorTypeIds:
  *           type: array
+ *           nullable: true
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         companionRoster:
+ *           $ref: '#/components/schemas/TraitCompanionRoster'
+ *           description: Pista de UI. count no se exige al crear o actualizar el personaje.
  */
 
 /**

@@ -51,6 +51,11 @@ export interface SpellPrivilegeRule {
   replace: SpellPrivilegeReplace | null;
 }
 
+export interface TraitCompanionRoster {
+  count: number;
+  suggestedRoles?: string[];
+}
+
 export interface TraitMongo {
   _id: ObjectId,
   index: string,
@@ -74,6 +79,7 @@ export interface TraitMongo {
   acFormula?: string,
   suppressedByArmorTypeIds?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
+  companionRoster?: TraitCompanionRoster,
   deletedAt?: Date | null
 }
 
@@ -109,7 +115,8 @@ export interface TraitApi {
   },
   acFormula?: string,
   suppressedByArmorTypeIds?: string[],
-  spellPrivileges?: SpellPrivilegeRule[]
+  spellPrivileges?: SpellPrivilegeRule[],
+  companionRoster?: TraitCompanionRoster
 }
 
 export interface TraitsOptionsApi {
@@ -127,8 +134,9 @@ export interface CreateTrait {
   skills?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
   speed?: TraitSpeed,
-  acFormula?: string,
-  suppressedByArmorTypeIds?: string[]
+  acFormula?: string | null,
+  suppressedByArmorTypeIds?: string[] | null,
+  companionRoster?: TraitCompanionRoster
 }
 
 export interface UpdateTrait {
@@ -142,6 +150,7 @@ export interface UpdateTrait {
   skills?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
   speed?: TraitSpeed,
-  acFormula?: string,
-  suppressedByArmorTypeIds?: string[]
+  acFormula?: string | null,
+  suppressedByArmorTypeIds?: string[] | null,
+  companionRoster?: TraitCompanionRoster
 }

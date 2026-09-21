@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { CharacterCampaignLink, CharacterSubclassApi, LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi } from '../../../../domain/types/personajes.types';
+import { CharacterCampaignLink, CharacterSubclassApi, LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from '../../../../domain/types/personajes.types';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -74,6 +74,7 @@ import {
   splitOne,
   tryMerge,
 } from '../../../../utils/inventoryStacks';
+import { normalizeCompanions } from '../../../../utils/normalizeCompanions';
 import { applyEquip } from '../../../../utils/inventorySlots';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import { SubclassApi } from '../../../../domain/types/subclass.types';
@@ -248,7 +249,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       money: moneyArray,
       HPMax: HP,
       HPActual: HP,
-      XP: 0
+      XP: 0,
+      companions: normalizeCompanions(data.companions)
     })
 
     const resultado = await personaje.save()
@@ -401,6 +403,25 @@ export default class PersonajeRepository implements IPersonajeRepository {
     await this.assertCanAccessCharacter(personaje, userId);
 
     await Personaje.findByIdAndUpdate(id, { $set: { XP: xp } });
+  }
+
+  async updateCompanions(
+    id: string,
+    companions: CharacterCompanionInput[],
+    userId: string
+  ): Promise<UpdateCharacterCompanionsResponse> {
+    const personaje = await Personaje.findById(id);
+
+    if (!personaje) {
+      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+    }
+
+    await this.assertCanAccessCharacter(personaje, userId);
+
+    const normalized = normalizeCompanions(companions);
+    await Personaje.findByIdAndUpdate(id, { $set: { companions: normalized } });
+
+    return { companions: normalized };
   }
 
   async getLevelUpData(id: string, classId: string, userId: string): Promise<LevelUpData> {
@@ -1651,7 +1672,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spellcasting,
       invocations,
       forms: forms,
-      spellPrivileges: hydratedPrivileges
+      spellPrivileges: hydratedPrivileges,
+      companions: normalizeCompanions(personaje.companions)
     }
   }
 

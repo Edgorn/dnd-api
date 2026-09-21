@@ -69,7 +69,18 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   dotes: [],
   forms: [String],
   preparedSpells: { type: Schema.Types.Mixed, default: {} },
-  spellPrivileges: { type: [Schema.Types.Mixed], default: [] }
+  spellPrivileges: { type: [Schema.Types.Mixed], default: [] },
+  companions: {
+    type: [{
+      _id: false,
+      id: { type: String, required: true },
+      name: { type: String, required: true },
+      role: String,
+      notes: String,
+      sourceTraitId: String
+    }],
+    default: []
+  }
 }, { collection: 'Personajes' });
 
 const PersonajeModel = mongoose.model<PersonajeMongo>("Personajes", personajeSchema);

@@ -23,6 +23,7 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   acFormula: String,
   suppressedByArmorTypeIds: { type: [String], default: undefined },
   spellPrivileges: { type: Schema.Types.Mixed, default: undefined },
+  companionRoster: { type: Schema.Types.Mixed, default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: 'traits' });
 

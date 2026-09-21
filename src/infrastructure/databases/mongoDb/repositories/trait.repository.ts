@@ -78,7 +78,8 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   async create(trait: CreateTrait): Promise<TraitApi> {
-    const traitCreated = await TraitSchema.create(trait);
+    const payload = this.toMongooseWritePayload(trait);
+    const traitCreated = await TraitSchema.create(payload);
     return this.formatearTrait(traitCreated, {});
   }
 
@@ -87,9 +88,13 @@ export default class TraitRepository implements ITraitRepository {
     if (!Types.ObjectId.isValid(id)) {
       throw new AppError("Trait no encontrado", 404);
     }
+    const { $set, $unset } = this.toMongooseUpdateOperators(updateFields);
     const traitUpdated = await TraitSchema.findByIdAndUpdate(
       id,
-      { $set: updateFields },
+      {
+        ...(Object.keys($set).length ? { $set } : {}),
+        ...(Object.keys($unset).length ? { $unset } : {})
+      },
       { returnDocument: 'after' }
     );
     if (!traitUpdated) {
@@ -233,7 +238,8 @@ export default class TraitRepository implements ITraitRepository {
         suppressedByArmorTypeIds: trait?.suppressedByArmorTypeIds,
         ...(Array.isArray(trait.spellPrivileges) && trait.spellPrivileges.length
           ? { spellPrivileges: trait.spellPrivileges }
-          : {})
+          : {}),
+        ...(trait.companionRoster ? { companionRoster: trait.companionRoster } : {})
       };
     });
   }
@@ -241,6 +247,38 @@ export default class TraitRepository implements ITraitRepository {
   private async formatearTrait(trait: TraitMongo, data: TraitDataMongo = {}): Promise<TraitApi> {
     const result = await this.formatearTraits([trait], data);
     return result[0];
+  }
+
+  private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
+    const { acFormula, suppressedByArmorTypeIds, ...rest } = trait;
+    return {
+      ...rest,
+      ...(typeof acFormula === "string" ? { acFormula } : {}),
+      ...(Array.isArray(suppressedByArmorTypeIds) ? { suppressedByArmorTypeIds } : {})
+    };
+  }
+
+  private toMongooseUpdateOperators(updateFields: Omit<UpdateTrait, "id">): {
+    $set: Record<string, unknown>;
+    $unset: Record<string, 1>;
+  } {
+    const { acFormula, suppressedByArmorTypeIds, ...rest } = updateFields;
+    const $set: Record<string, unknown> = { ...rest };
+    const $unset: Record<string, 1> = {};
+
+    if (typeof acFormula === "string") {
+      $set.acFormula = acFormula;
+    } else if (acFormula === null) {
+      $unset.acFormula = 1;
+    }
+
+    if (Array.isArray(suppressedByArmorTypeIds)) {
+      $set.suppressedByArmorTypeIds = suppressedByArmorTypeIds;
+    } else if (suppressedByArmorTypeIds === null) {
+      $unset.suppressedByArmorTypeIds = 1;
+    }
+
+    return { $set, $unset };
   }
 
   private async formatTraitChoice(choice: ChoiceMongo | undefined): Promise<ChoiceApi<TraitApi> | undefined> {

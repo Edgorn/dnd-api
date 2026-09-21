@@ -243,6 +243,29 @@ export async function escribirOrganizaciones({ pdfDoc, personaje, form }: any) {
     })
 
     textY1 = textY
+    maxHeight1 = actualHeight1
+  }
+
+  if (personaje?.companions?.length) {
+    const descripcion = personaje.companions
+      .map((companion: { name: string; role?: string; notes?: string }) => {
+        const role = companion.role ? ` (${companion.role})` : "";
+        const notes = companion.notes ? `. ${companion.notes}` : "";
+        return `${companion.name}${role}${notes}`;
+      })
+      .join("\n");
+
+    escribirParrafo({
+      titulo: "Compañeros",
+      descripcion,
+      fontTitle: fontBold,
+      fontText: fontRegular,
+      maxWidth: 178,
+      page: page2,
+      x: 222,
+      y: textY1,
+      maxHeight: maxHeight1
+    });
   }
 }
 

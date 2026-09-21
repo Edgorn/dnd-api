@@ -121,6 +121,12 @@ Cuando vayas a crear o modificar código en este repositorio, sigue estrictament
     - Al refactorizar estructuras de datos o cambiar tipos en esquemas existentes (por ejemplo, cambiar un campo de objeto único a un array, como en `money`), los repositorios deben incluir mecanismos de normalización o tolerancia a datos antiguos al leer desde la base de datos (`formatear...`).
     - Las lecturas de MongoDB mediante `.lean()` devuelven documentos tal como están almacenados en la base de datos. Si un documento posee una estructura obsoleta (ej. un objeto en vez de un array), el código debe validar en tiempo de ejecución (`Array.isArray()`, comprobación de propiedades previas) y normalizar el dato antes de invocar métodos de array (`.map()`, `.filter()`, etc.) para prevenir errores fatales de ejecución (`TypeError: ... is not a function`).
 
+16. **Verificación de Compilación (`pnpm run build`):**
+    - Tras completar un desarrollo (nuevas features, refactors, cambios de tipos, esquemas Zod, repositorios o endpoints), es **obligatorio** ejecutar `pnpm run build` (`tsc`) antes de dar el trabajo por cerrado.
+    - El build debe terminar con código de salida 0. Si falla, hay que corregir los errores de TypeScript y volver a ejecutarlo hasta que compile.
+    - No se debe considerar el desarrollo terminado si `tsc` no pasa, aunque los tests unitarios o el servidor de desarrollo (`tsx`) funcionen.
+    - Si `pnpm run build` falla, debe interpretarse como que **falta un test** en el código afectado: el error no se detectó antes porque no había cobertura que ejerciera esos tipos o esa integración. Tras corregir el build, hay que añadir (o ampliar) un test en ese lugar para que el mismo fallo no vuelva a pasar desapercibido.
+
 ## 🧪 Pruebas Unitarias e Integración (Testing)
 
 - **Framework:** Se utiliza **Vitest** como framework de pruebas para el proyecto.

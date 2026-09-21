@@ -30,6 +30,26 @@ export interface CharacterStartingEquipmentInput {
   quantity: number;
 }
 
+export interface CharacterCompanion {
+  id: string;
+  name: string;
+  role?: string;
+  notes?: string;
+  sourceTraitId?: string;
+}
+
+export interface CharacterCompanionInput {
+  id?: string;
+  name: string;
+  role?: string;
+  notes?: string;
+  sourceTraitId?: string;
+}
+
+export interface UpdateCharacterCompanionsResponse {
+  companions: CharacterCompanion[];
+}
+
 export interface TypeCrearPersonaje {
   name: string,
   user: string,
@@ -84,7 +104,8 @@ export interface TypeCrearPersonaje {
   }[],
   feats: string[],
   hit_die: number,
-  prof_bonus: number
+  prof_bonus: number,
+  companions?: CharacterCompanionInput[]
 }
 
 export interface TypePrepareSpells {
@@ -285,7 +306,8 @@ export interface PersonajeMongo {
   invocations: string[],
   forms: string[],
   preparedSpells?: Record<string, string[]>,
-  spellPrivileges?: CharacterSpellPrivilegeMongo[]
+  spellPrivileges?: CharacterSpellPrivilegeMongo[],
+  companions?: CharacterCompanion[]
 }
 
 export interface PersonajeApi {
@@ -357,7 +379,8 @@ export interface PersonajeApi {
   spellcasting?: SpellcastingLevel[],
   invocations?: InvocacionApi[],
   forms?: CriaturaApi[],
-  spellPrivileges?: CharacterSpellPrivilegeApi[]
+  spellPrivileges?: CharacterSpellPrivilegeApi[],
+  companions: CharacterCompanion[]
 }
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";

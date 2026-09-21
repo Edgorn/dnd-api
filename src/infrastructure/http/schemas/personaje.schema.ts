@@ -160,3 +160,19 @@ export const UpdateCharacterEquipmentEquippedSchema = z.object({
 export const BindPactEquipmentSchema = z.object({
   isBond: z.boolean(),
 });
+
+export const CompanionInputSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "El nombre del compañero no puede estar vacío"),
+  role: z.string().optional(),
+  notes: z.string().optional(),
+  sourceTraitId: z.string().optional(),
+});
+
+export const CompanionInputListSchema = z
+  .array(CompanionInputSchema)
+  .max(20, "No se pueden registrar más de 20 compañeros");
+
+export const UpdateCharacterCompanionsSchema = z.object({
+  companions: CompanionInputListSchema,
+});
