@@ -4,6 +4,7 @@ import { BackgroundMongo } from "../../../../domain/types/background.types";
 const backgroundSchema: Schema = new Schema<BackgroundMongo>({
   ruleset: { type: String, required: true },
   deletedAt: { type: Date, default: null },
+  parentId: { type: Schema.Types.ObjectId, ref: "Background", default: null },
   name: { type: String, required: true },
   description: { type: [String], default: [] },
   img: { type: String, default: "" },
@@ -16,7 +17,6 @@ const backgroundSchema: Schema = new Schema<BackgroundMongo>({
   proficiencies_choices: { type: [], default: [] },
   equipment: { type: [], default: [] },
   equipment_choices: { type: [], default: [] },
-  starting_equipment_options: { type: [], default: [] },
   money: {
     type: [{
       _id: false,
@@ -39,8 +39,7 @@ const backgroundSchema: Schema = new Schema<BackgroundMongo>({
     default: []
   },
   bonds: { type: [String], default: [] },
-  flaws: { type: [String], default: [] },
-  variants: { type: [], default: [] }
+  flaws: { type: [String], default: [] }
 }, { collection: 'backgrounds', timestamps: true });
 
 const BackgroundModel = mongoose.model<BackgroundMongo>("Background", backgroundSchema);

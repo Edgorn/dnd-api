@@ -229,7 +229,7 @@ export interface EquipmentOptionsMongo {
   quantity: number;
 }
 
-/** Legacy formatted choice groups (starting_equipment_options path). */
+/** Legacy formatted choice groups (nested equipment_choices array shape). */
 export interface EquipmentChoiceApi {
   name: string;
   choose: number;

@@ -80,6 +80,28 @@ describe("CreateBackgroundSchema traits_choices", () => {
   });
 });
 
+describe("CreateBackgroundSchema parentId", () => {
+  it("accepts parentId for a variant", () => {
+    const result = CreateBackgroundSchema.safeParse({
+      ruleset: "sys1",
+      name: "Caballero",
+      parentId: "507f1f77bcf86cd799439011"
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty parentId", () => {
+    const result = CreateBackgroundSchema.safeParse({
+      ruleset: "sys1",
+      name: "Caballero",
+      parentId: ""
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("UpdateBackgroundSchema proficiencies", () => {
   it("accepts proficiencies and proficiencies_choices on update", () => {
     const result = UpdateBackgroundSchema.safeParse({
@@ -125,5 +147,15 @@ describe("UpdateBackgroundSchema traits_choices", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateBackgroundSchema parentId", () => {
+  it("accepts parentId", () => {
+    const result = UpdateBackgroundSchema.safeParse({
+      parentId: "507f1f77bcf86cd799439011"
+    });
+
+    expect(result.success).toBe(true);
   });
 });

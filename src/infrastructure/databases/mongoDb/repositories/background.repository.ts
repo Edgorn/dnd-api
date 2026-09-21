@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import IBackgroundRepository from '../../../../domain/repositories/IBackgroundRepository';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
@@ -13,14 +14,20 @@ import {
   InputCreateBackground,
   InputUpdateBackground,
   OptionsNameApi,
-  OptionsNameMongo,
-  VariantApi,
-  VariantMongo
+  OptionsNameMongo
 } from '../../../../domain/types/background.types';
-import { MixedChoicesApi, MixedChoicesMongo } from '../../../../domain/types';
 import { CoinApi } from '../../../../domain/types/coin.types';
 import { EquipmentApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from '../../../../domain/types/equipment.types';
 import { NotFoundError } from '../../../../domain/errors/AppError';
+import {
+  BACKGROUND_OVERLAY_FIELDS,
+  mergeBackgroundVariant
+} from '../../../../utils/mergeBackgroundVariant';
+
+interface FormatOptions {
+  nestVariants?: boolean;
+  allowedRulesets?: string[];
+}
 
 export default class BackgroundRepository implements IBackgroundRepository {
   constructor(
@@ -36,7 +43,10 @@ export default class BackgroundRepository implements IBackgroundRepository {
   async getBySystems(rulesets: string[], includeDeleted: boolean = false): Promise<BackgroundApi[]> {
     try {
       const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
-      const query: any = { ruleset: { $in: expandedRulesets } };
+      const query: Record<string, unknown> = {
+        ruleset: { $in: expandedRulesets },
+        parentId: null
+      };
       if (!includeDeleted) {
         query.deletedAt = null;
       }
@@ -45,7 +55,10 @@ export default class BackgroundRepository implements IBackgroundRepository {
         .sort({ name: 1 })
         .lean<BackgroundMongo[]>();
 
-      return this.formatearBackgrounds(backgrounds);
+      return this.formatearBackgrounds(backgrounds, {
+        nestVariants: true,
+        allowedRulesets: expandedRulesets
+      });
     } catch (error) {
       console.error("Error obteniendo transfondos/backgrounds:", error);
       throw new Error("No se pudieron obtener los trasfondos");
@@ -55,13 +68,69 @@ export default class BackgroundRepository implements IBackgroundRepository {
   async getById(id: string): Promise<BackgroundApi | null> {
     const doc = await BackgroundModel.findById(id).lean<BackgroundMongo>();
     if (!doc) return null;
-    return this.formatearBackground(doc);
+    return this.formatearBackground(doc, { nestVariants: !this.hasParent(doc) });
   }
 
   async create(data: InputCreateBackground): Promise<BackgroundApi> {
-    const newBackground = new BackgroundModel({
+    const isVariant = Boolean(data.parentId);
+    const payload = isVariant
+      ? this.buildVariantWritePayload(data)
+      : this.buildRootCreatePayload(data);
+
+    const newBackground = new BackgroundModel(payload);
+    await newBackground.save();
+
+    if (isVariant) {
+      await this.unsetMissingOverlayFields(newBackground._id, payload);
+    }
+
+    const saved = await BackgroundModel.findById(newBackground._id).lean<BackgroundMongo>();
+    if (!saved) {
+      throw new NotFoundError("No se pudo leer el trasfondo creado");
+    }
+    return this.formatearBackground(saved, { nestVariants: !isVariant });
+  }
+
+  async update(data: InputUpdateBackground): Promise<BackgroundApi> {
+    const existing = await BackgroundModel.findById(data.id).lean<BackgroundMongo>();
+    if (!existing) {
+      throw new NotFoundError(`No se encontró el trasfondo con id: ${data.id}`);
+    }
+
+    const isVariant = Boolean(data.parentId ?? existing.parentId);
+    const { $set, $unset } = isVariant
+      ? this.buildVariantUpdateOperators(data)
+      : this.buildRootUpdateOperators(data);
+
+    const updateQuery: Record<string, unknown> = {};
+    if (Object.keys($set).length > 0) updateQuery.$set = $set;
+    if (Object.keys($unset).length > 0) updateQuery.$unset = $unset;
+
+    if (Object.keys(updateQuery).length > 0) {
+      await BackgroundModel.findByIdAndUpdate(data.id, updateQuery);
+    }
+
+    const updated = await BackgroundModel.findById(data.id).lean<BackgroundMongo>();
+    if (!updated) {
+      throw new NotFoundError(`No se encontró el trasfondo con id: ${data.id}`);
+    }
+
+    return this.formatearBackground(updated, { nestVariants: !this.hasParent(updated) });
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await BackgroundModel.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } });
+  }
+
+  async restore(id: string): Promise<void> {
+    await BackgroundModel.findByIdAndUpdate(id, { $set: { deletedAt: null } });
+  }
+
+  private buildRootCreatePayload(data: InputCreateBackground): Record<string, unknown> {
+    return {
       ruleset: data.ruleset,
       name: data.name,
+      parentId: null,
       description: data.description || [],
       img: data.img || "",
       god: data.god ?? false,
@@ -79,71 +148,195 @@ export default class BackgroundRepository implements IBackgroundRepository {
       money: data.money ?? [],
       equipment_choices: data.equipment_choices ?? undefined,
       equipment: data.equipment ?? []
-    });
-
-    await newBackground.save();
-    return this.formatearBackground(newBackground);
+    };
   }
 
-  async update(data: InputUpdateBackground): Promise<BackgroundApi> {
-    const { id, ...updateFields } = data;
+  private buildVariantWritePayload(data: InputCreateBackground): Record<string, unknown> {
+    const payload: Record<string, unknown> = {
+      ruleset: data.ruleset,
+      name: data.name,
+      parentId: this.toObjectId(data.parentId)
+    };
 
-    if (updateFields.equipment_choices === null) {
-      updateFields.equipment_choices = [];
+    for (const key of BACKGROUND_OVERLAY_FIELDS) {
+      if (key === "name") continue;
+      const value = data[key as keyof InputCreateBackground];
+      if (value !== undefined && value !== null) {
+        payload[key] = value;
+      }
     }
 
-    if (updateFields.equipment === null) {
-      updateFields.equipment = [];
+    return payload;
+  }
+
+  private async unsetMissingOverlayFields(
+    id: unknown,
+    payload: Record<string, unknown>
+  ): Promise<void> {
+    const $unset: Record<string, 1> = {};
+    for (const key of BACKGROUND_OVERLAY_FIELDS) {
+      if (!(key in payload) || payload[key] === undefined) {
+        $unset[key] = 1;
+      }
+    }
+    if (Object.keys($unset).length === 0) return;
+    await BackgroundModel.updateOne({ _id: id }, { $unset });
+  }
+
+  private buildRootUpdateOperators(data: InputUpdateBackground): {
+    $set: Record<string, unknown>;
+    $unset: Record<string, 1>;
+  } {
+    const { id: _id, ...updateFields } = data;
+    const fields = { ...updateFields } as Record<string, unknown>;
+
+    if (fields.equipment_choices === null) fields.equipment_choices = [];
+    if (fields.equipment === null) fields.equipment = [];
+    if (fields.proficiencies === null) fields.proficiencies = [];
+    if (fields.proficiencies_choices === null) fields.proficiencies_choices = [];
+    if (fields.traits_choices === null) fields.traits_choices = [];
+    if (fields.parentId === undefined) {
+      delete fields.parentId;
+    } else {
+      fields.parentId = this.toObjectId(fields.parentId as string | null);
     }
 
-    if (updateFields.proficiencies === null) {
-      updateFields.proficiencies = [];
+    const $set: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) $set[key] = value;
     }
 
-    if (updateFields.proficiencies_choices === null) {
-      updateFields.proficiencies_choices = [];
+    return { $set, $unset: {} };
+  }
+
+  private buildVariantUpdateOperators(data: InputUpdateBackground): {
+    $set: Record<string, unknown>;
+    $unset: Record<string, 1>;
+  } {
+    const { id: _id, ...updateFields } = data;
+    const fields = updateFields as Record<string, unknown>;
+    const $set: Record<string, unknown> = {};
+    const $unset: Record<string, 1> = {};
+
+    if (fields.ruleset !== undefined) $set.ruleset = fields.ruleset;
+    if (fields.parentId !== undefined) {
+      $set.parentId = this.toObjectId(fields.parentId as string | null);
     }
 
-    if (updateFields.traits_choices === null) {
-      updateFields.traits_choices = [];
+    for (const key of BACKGROUND_OVERLAY_FIELDS) {
+      if (!(key in fields) || fields[key] === undefined) {
+        continue;
+      }
+      const value = fields[key];
+      if (value === null) {
+        $unset[key] = 1;
+      } else {
+        $set[key] = value;
+      }
     }
 
-    const updatedBackground = await BackgroundModel.findByIdAndUpdate(
-      id,
-      { $set: updateFields },
-      { returnDocument: 'after' }
+    return { $set, $unset };
+  }
+
+  private toObjectId(id: string | null | undefined): Types.ObjectId | null {
+    if (!id) return null;
+    return new Types.ObjectId(id);
+  }
+
+  private hasParent(background: BackgroundMongo): boolean {
+    return background.parentId != null && background.parentId !== "";
+  }
+
+  private parentIdToString(parentId: unknown): string | null {
+    if (parentId == null || parentId === "") return null;
+    return parentId.toString();
+  }
+
+  private formatearBackgrounds(
+    backgrounds: BackgroundMongo[],
+    options?: FormatOptions
+  ): Promise<BackgroundApi[]> {
+    return Promise.all(backgrounds.map(b => this.formatearBackground(b, options)));
+  }
+
+  private async formatearBackground(
+    background: BackgroundMongo,
+    options?: FormatOptions
+  ): Promise<BackgroundApi> {
+    if (this.hasParent(background)) {
+      return this.formatearVariantDocument(background);
+    }
+
+    const formatted = await this.hydrateBackground(background);
+    formatted.parentId = null;
+    formatted.variants = options?.nestVariants
+      ? await this.formatearChildVariants(background, options.allowedRulesets)
+      : [];
+    return formatted;
+  }
+
+  private async formatearVariantDocument(background: BackgroundMongo): Promise<BackgroundApi> {
+    const parent = await BackgroundModel.findById(background.parentId).lean<BackgroundMongo>();
+    const overlay = parent ? mergeBackgroundVariant(parent, background) : undefined;
+    const source = overlay
+      ? this.applyOverlayIdentity(overlay.merged, background)
+      : background;
+    const overriddenFields = overlay?.overriddenFields;
+
+    const formatted = await this.hydrateBackground(source);
+    formatted.parentId = this.parentIdToString(background.parentId);
+    formatted.variants = [];
+    if (overriddenFields && overriddenFields.length > 0) {
+      formatted.overriddenFields = overriddenFields;
+    }
+    return formatted;
+  }
+
+  private applyOverlayIdentity(merged: BackgroundMongo, child: BackgroundMongo): BackgroundMongo {
+    return {
+      ...merged,
+      _id: child._id,
+      ruleset: child.ruleset,
+      parentId: child.parentId,
+      deletedAt: child.deletedAt
+    };
+  }
+
+  private async formatearChildVariants(
+    parent: BackgroundMongo,
+    allowedRulesets?: string[]
+  ): Promise<BackgroundApi[]> {
+    if (!parent._id) return [];
+
+    const childQuery: { parentId: unknown; deletedAt: null; ruleset?: { $in: string[] } } = {
+      parentId: parent._id,
+      deletedAt: null
+    };
+    if (allowedRulesets) {
+      childQuery.ruleset = { $in: allowedRulesets };
+    }
+
+    const children = await BackgroundModel.find(childQuery).lean<BackgroundMongo[]>();
+    const formatted = await Promise.all(
+      children.map(child => this.formatearVariantDocument(child))
     );
 
-    if (!updatedBackground) {
-      throw new NotFoundError(`No se encontró el trasfondo con id: ${id}`);
-    }
-
-    return this.formatearBackground(updatedBackground);
+    return formatted.sort((a, b) =>
+      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+    );
   }
 
-  async softDelete(id: string): Promise<void> {
-    await BackgroundModel.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } });
-  }
-
-  async restore(id: string): Promise<void> {
-    await BackgroundModel.findByIdAndUpdate(id, { $set: { deletedAt: null } });
-  }
-
-  private formatearBackgrounds(backgrounds: BackgroundMongo[]): Promise<BackgroundApi[]> {
-    return Promise.all(backgrounds.map(b => this.formatearBackground(b)));
-  }
-
-  private async formatearBackground(background: BackgroundMongo): Promise<BackgroundApi> {
+  private async hydrateBackground(background: BackgroundMongo): Promise<BackgroundApi> {
     const options_name = this.formatearOptionsName(background?.options_name);
-    
-    let rawMoney: any[] = [];
+
+    let rawMoney: { quantity?: number; unit?: string }[] = [];
     if (Array.isArray(background?.money)) {
       rawMoney = background.money;
     } else if (background?.money && typeof background.money === 'object') {
       rawMoney = [background.money];
     }
 
-    const coinUnits = rawMoney.map(m => m?.unit).filter(Boolean);
+    const coinUnits = rawMoney.map(m => m?.unit).filter((unit): unit is string => Boolean(unit));
 
     const [
       traits,
@@ -154,7 +347,6 @@ export default class BackgroundRepository implements IBackgroundRepository {
       proficiencies_choices,
       equipment,
       equipment_choices,
-      variants,
       coins
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(background?.traits ?? [], background?.traits_data),
@@ -165,7 +357,6 @@ export default class BackgroundRepository implements IBackgroundRepository {
       this.proficiencyRepository.formatProficiencyChoices(background?.proficiencies_choices),
       this.equipmentRepository.getCharacterEquipmentsByIds(background?.equipment),
       this.formatBackgroundEquipmentChoices(background?.equipment_choices, background?.ruleset),
-      this.formatearVariants(background?.variants ?? [], background?.ruleset),
       this.coinRepository.getCoinsByIds(coinUnits)
     ]);
 
@@ -184,6 +375,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       id: background._id ? background._id.toString() : "",
       ruleset: background.ruleset || "",
       deletedAt: background.deletedAt,
+      parentId: this.parentIdToString(background.parentId),
       name: background.name,
       img: background.img || "",
       description: background.description ?? [],
@@ -204,51 +396,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       ideals: background?.ideals ?? [],
       bonds: background?.bonds ?? [],
       flaws: background?.flaws ?? [],
-      variants
-    };
-  }
-
-  private async formatearVariants(variants: VariantMongo[], ruleset: string): Promise<VariantApi[]> {
-    const formateadas = await Promise.all(variants.map(v => this.formatearVariant(v, ruleset)));
-
-    return formateadas.sort((a, b) =>
-      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
-    );
-  }
-
-  private async formatearVariant(variant: VariantMongo, ruleset: string): Promise<VariantApi> {
-    const options_name = this.formatearOptionsName(variant?.options_name);
-
-    const [
-      traits,
-      traits_choices,
-      proficiencies_choices,
-      mixed_choices,
-      equipment,
-      equipment_choices
-    ] = await Promise.all([
-      variant?.traits
-        ? this.traitRepository.getTraitsByIndexes(variant?.traits ?? [], variant?.traits_data)
-        : Promise.resolve(undefined),
-      this.traitRepository.formatTraitChoices(variant?.traits_choices),
-      this.proficiencyRepository.formatProficiencyChoices(variant?.proficiencies_choices),
-      this.formatearMixedChoices(variant.mixed_choices),
-      this.equipmentRepository.getCharacterEquipmentsByIds(variant?.equipment),
-      this.formatBackgroundEquipmentChoices(variant?.equipment_choices, ruleset)
-    ]);
-
-    return {
-      name: variant.name,
-      description: variant.description,
-      traits,
-      traits_choices,
-      traits_data: variant?.traits_data,
-      proficiencies_choices,
-      mixed_choices,
-      personalized_equipment: variant.personalized_equipment ?? [],
-      equipment,
-      equipment_choices,
-      options_name
+      variants: []
     };
   }
 
@@ -286,53 +434,5 @@ export default class BackgroundRepository implements IBackgroundRepository {
       rawChoices as EquipmentChoiceMongo[],
       ruleset
     );
-  }
-
-  private async formatearMixedChoices(mixedChoices: MixedChoicesMongo[][] | undefined): Promise<MixedChoicesApi[][] | undefined> {
-    if (!mixedChoices) return undefined;
-
-    const results = await Promise.all(mixedChoices.map(mixedChoice => this.formatearMixedChoice(mixedChoice)));
-
-    return results.filter((r): r is MixedChoicesApi[] => r !== undefined);
-  }
-
-  private async formatearMixedChoice(mixedChoices: MixedChoicesMongo[] | undefined): Promise<MixedChoicesApi[] | undefined> {
-    if (!mixedChoices) return undefined;
-
-    const results = await Promise.all(mixedChoices.map(async (mixedChoice) => {
-      if (mixedChoice.type === "proficiency") {
-        const competencia = await this.proficiencyRepository.getProficiencyById(mixedChoice.value);
-        if (competencia) {
-          return {
-            type: "proficiency",
-            value: competencia
-          };
-        }
-      } else if (mixedChoice.type === "choice") {
-        if (mixedChoice.value === "language_choices" && mixedChoice.language_choices) {
-          const idiomas = await this.languageRepository.formatLanguageChoices(mixedChoice.language_choices);
-          if (idiomas) {
-            return {
-              type: "choice",
-              value: "language_choices",
-              language_choices: idiomas
-            };
-          }
-        } else if (mixedChoice.value === "proficiencies_choices" && mixedChoice.proficiencies_choices) {
-          const competenciasChoices = await this.proficiencyRepository.formatProficiencyChoices(mixedChoice.proficiencies_choices);
-          if (competenciasChoices) {
-            return {
-              type: "choice",
-              value: "proficiencies_choices",
-              proficiencies_choices: competenciasChoices
-            };
-          }
-        }
-      }
-
-      return undefined;
-    }));
-
-    return results.filter((r): r is MixedChoicesApi => r !== undefined);
   }
 }

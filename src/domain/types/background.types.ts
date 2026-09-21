@@ -1,10 +1,30 @@
-import { ChoiceApi, ChoiceMongo, MixedChoicesApi, MixedChoicesMongo } from ".";
+import { ChoiceApi, ChoiceMongo } from ".";
 import { ProficiencyApi } from "./proficiencies.types";
-import { CharacterEquipmentMongo, EquipmentInstanceApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from "./equipment.types";
+import { CharacterEquipmentMongo, EquipmentInstanceApi, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from "./equipment.types";
 import { SkillApi } from "./skill.types";
 import { LanguageApi } from "./language.types";
 import { TraitApi, TraitDataMongo } from "./traits.types";
 import { CoinApi } from "./coin.types";
+
+export type BackgroundOverlayField =
+  | "name"
+  | "description"
+  | "img"
+  | "god"
+  | "traits"
+  | "traits_choices"
+  | "traits_data"
+  | "skills"
+  | "language_choices"
+  | "proficiencies"
+  | "proficiencies_choices"
+  | "personality_traits"
+  | "ideals"
+  | "bonds"
+  | "flaws"
+  | "money"
+  | "equipment"
+  | "equipment_choices";
 
 export interface Ideal {
   title: string;
@@ -15,9 +35,10 @@ export interface Ideal {
 export interface InputCreateBackground {
   ruleset: string;
   name: string;
-  description: string[];
+  description?: string[];
   img?: string;
   god?: boolean;
+  parentId?: string | null;
   traits?: string[] | null;
   traits_choices?: ChoiceMongo[] | null;
   traits_data?: TraitDataMongo | null;
@@ -44,6 +65,7 @@ export interface InputUpdateBackground {
   description?: string[];
   img?: string;
   god?: boolean;
+  parentId?: string | null;
   traits?: string[] | null;
   traits_choices?: ChoiceMongo[] | null;
   traits_data?: TraitDataMongo | null;
@@ -67,6 +89,7 @@ export interface BackgroundMongo {
   _id?: any;
   ruleset: string;
   deletedAt?: Date | null;
+  parentId?: any | null;
   name: string;
   description: string[];
   img: string;
@@ -79,7 +102,6 @@ export interface BackgroundMongo {
   proficiencies_choices?: ChoiceMongo[];
   equipment: CharacterEquipmentMongo[];
   equipment_choices?: EquipmentChoiceMongo[];
-  starting_equipment_options?: EquipmentOptionsMongo[][];
   personalized_equipment: string[];
   money: {
     quantity: number;
@@ -91,21 +113,6 @@ export interface BackgroundMongo {
   ideals: Ideal[];
   bonds: string[];
   flaws: string[];
-  variants: VariantMongo[];
-}
-
-export interface VariantMongo {
-  name: string;
-  description?: string[];
-  traits?: string[];
-  traits_choices?: ChoiceMongo[];
-  traits_data?: TraitDataMongo;
-  proficiencies_choices?: ChoiceMongo[];
-  mixed_choices?: MixedChoicesMongo[][];
-  equipment: CharacterEquipmentMongo[];
-  equipment_choices?: EquipmentChoiceMongo[];
-  personalized_equipment: string[];
-  options_name?: OptionsNameMongo;
 }
 
 export interface OptionsNameMongo {
@@ -118,6 +125,7 @@ export interface BackgroundApi {
   id: string;
   ruleset: string;
   deletedAt?: Date | null;
+  parentId?: string | null;
   name: string;
   description: string[];
   img: string;
@@ -140,21 +148,8 @@ export interface BackgroundApi {
   ideals: Ideal[];
   bonds: string[];
   flaws: string[];
-  variants: VariantApi[];
-}
-
-export interface VariantApi {
-  name: string;
-  description?: string[];
-  traits?: TraitApi[];
-  traits_choices?: ChoiceApi<TraitApi>[];
-  traits_data?: TraitDataMongo;
-  proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
-  mixed_choices?: MixedChoicesApi[][];
-  equipment?: EquipmentInstanceApi[];
-  equipment_choices?: ResolvedEquipmentChoiceApi[];
-  personalized_equipment: string[];
-  options_name?: OptionsNameApi;
+  variants: BackgroundApi[];
+  overriddenFields?: BackgroundOverlayField[];
 }
 
 export interface OptionsNameApi {

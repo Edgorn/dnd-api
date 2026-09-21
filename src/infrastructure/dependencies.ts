@@ -358,8 +358,8 @@ const getRaceOverride = new GetRaceOverride(raceService, systemService, entityOv
 
 const getBackgroundsBySystems = new GetBackgroundsBySystems(backgroundRepository);
 const getBackgroundById = new GetBackgroundById(backgroundRepository);
-const createBackground = new CreateBackground(backgroundRepository);
-const updateBackground = new UpdateBackground(backgroundRepository);
+const createBackground = new CreateBackground(backgroundRepository, systemRepository);
+const updateBackground = new UpdateBackground(backgroundRepository, systemRepository);
 const softDeleteBackground = new SoftDeleteBackground(backgroundRepository);
 const restoreBackground = new RestoreBackground(backgroundRepository);
 

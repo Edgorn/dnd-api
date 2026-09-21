@@ -50,10 +50,12 @@ export class BackgroundController {
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { description, ...rest } = req.body;
-      const normalizedDescription = typeof description === "string" ? [description] : (description || []);
+      const normalizedDescription = description === undefined
+        ? undefined
+        : (typeof description === "string" ? [description] : description);
       const data = await this.createBackgroundUseCase.execute({
         ...rest,
-        description: normalizedDescription
+        ...(normalizedDescription !== undefined ? { description: normalizedDescription } : {})
       });
       return res.status(201).json(data);
     } catch (e) {

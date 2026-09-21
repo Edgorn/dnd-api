@@ -18,6 +18,15 @@ const router = Router();
  *         ruleset:
  *           type: string
  *           description: Sistema de juego al que pertenece el trasfondo.
+ *         parentId:
+ *           type: string
+ *           nullable: true
+ *           description: ID del transfondo raíz si este documento es una variante. Null en transfondos padre.
+ *         overriddenFields:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Campos del overlay presentes en la variante (solo en hijos fusionados). Sirve para que el editor no persista campos heredados.
  *         name:
  *           type: string
  *           description: Nombre del trasfondo.
@@ -151,6 +160,11 @@ const router = Router();
  *                 format: date-time
  *                 nullable: true
  *           description: Monedas iniciales otorgadas por el trasfondo.
+ *         variants:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Background'
+ *           description: Variantes hijas fusionadas con el transfondo padre. Vacío en los documentos que ya son variantes.
  *         deletedAt:
  *           type: string
  *           format: date-time
@@ -473,6 +487,9 @@ router.get('/backgrounds/:id', authMiddleware, backgroundController.getById);
  *                 type: string
  *               name:
  *                 type: string
+ *               parentId:
+ *                 type: string
+ *                 description: ID del transfondo raíz. Si se indica, este documento se guarda como variante (overlay) de ese padre.
  *               description:
  *                 oneOf:
  *                   - type: string
@@ -613,6 +630,9 @@ router.post('/backgrounds', authMiddleware, validateSchema(CreateBackgroundSchem
  *                 type: string
  *               name:
  *                 type: string
+ *               parentId:
+ *                 type: string
+ *                 description: ID del transfondo raíz. Si se indica, este documento pasa a ser variante de ese padre.
  *               description:
  *                 oneOf:
  *                   - type: string

@@ -26,6 +26,7 @@ const MoneySchema = z.object({
 export const CreateBackgroundSchema = z.object({
   ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
+  parentId: z.string().min(1, "El identificador del transfondo padre no puede estar vacío").optional(),
   description: z.union([z.string(), z.array(z.string())]).optional(),
   img: z.string().optional(),
   god: z.boolean().optional(),
@@ -48,6 +49,7 @@ export const CreateBackgroundSchema = z.object({
 export const UpdateBackgroundSchema = z.object({
   ruleset: z.string().optional(),
   name: z.string().optional(),
+  parentId: z.string().min(1, "El identificador del transfondo padre no puede estar vacío").optional(),
   description: z.union([z.string(), z.array(z.string())]).optional(),
   img: z.string().optional(),
   god: z.boolean().optional(),
