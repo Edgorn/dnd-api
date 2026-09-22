@@ -14,6 +14,14 @@ import { CoinController } from "./http/controllers/coin.controller";
 import DenyJoinCampaign from "../application/use-cases/campaign/denyJoinCampaign.use-case";
 import AddCharacterToCampaign from "../application/use-cases/campaign/addCharacterToCampaign.use-case";
 import LoginUseCase from "../application/use-cases/user/login.use-case";
+import CreateUserUseCase from "../application/use-cases/user/createUser.use-case";
+import GetCurrentUserUseCase from "../application/use-cases/user/getCurrentUser.use-case";
+import UpdateUserNameUseCase from "../application/use-cases/user/updateUserName.use-case";
+import ChangePasswordUseCase from "../application/use-cases/user/changePassword.use-case";
+import ListUsersUseCase from "../application/use-cases/user/listUsers.use-case";
+import GetUserProfileUseCase from "../application/use-cases/user/getUserProfile.use-case";
+import UpdateUserProfileUseCase from "../application/use-cases/user/updateUserProfile.use-case";
+import SoftDeleteUserUseCase from "../application/use-cases/user/softDeleteUser.use-case";
 import ValidateTokenUseCase from "../application/use-cases/user/validateToken.use-case";
 import { createAuthMiddleware } from "./http/middlewares/auth.middleware";
 import GetBackgroundsBySystems from "../application/use-cases/background/getBackgroundsBySystems.use-case";
@@ -319,6 +327,14 @@ const userService = new UserService(userRepository, passwordHasher, tokenService
 const loginUseCase = new LoginUseCase(userService)
 const refreshTokenUseCase = new RefreshTokenUseCase(userService)
 const logoutUseCase = new LogoutUseCase(userService)
+const createUserUseCase = new CreateUserUseCase(userService)
+const getCurrentUserUseCase = new GetCurrentUserUseCase(userService)
+const updateUserNameUseCase = new UpdateUserNameUseCase(userService)
+const changePasswordUseCase = new ChangePasswordUseCase(userService)
+const listUsersUseCase = new ListUsersUseCase(userService)
+const getUserProfileUseCase = new GetUserProfileUseCase(userService)
+const updateUserProfileUseCase = new UpdateUserProfileUseCase(userService)
+const softDeleteUserUseCase = new SoftDeleteUserUseCase(userService)
 const validateTokenUseCase = new ValidateTokenUseCase(userService)
 
 export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
@@ -484,7 +500,19 @@ export const campaignController = new CampaignController(
   addCharacterToCampaign
 )
 
-export const userController = new UserController(loginUseCase, refreshTokenUseCase, logoutUseCase)
+export const userController = new UserController(
+  loginUseCase,
+  refreshTokenUseCase,
+  logoutUseCase,
+  createUserUseCase,
+  getCurrentUserUseCase,
+  updateUserNameUseCase,
+  changePasswordUseCase,
+  listUsersUseCase,
+  getUserProfileUseCase,
+  updateUserProfileUseCase,
+  softDeleteUserUseCase
+)
 
 export const backgroundController = new BackgroundController(
   getBackgroundsBySystems,

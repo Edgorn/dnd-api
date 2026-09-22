@@ -5,6 +5,8 @@ export interface UserDocument extends Document {
   name: string;
   password: string;
   accessibleSystems: string[];
+  isAdmin?: boolean;
+  deletedAt?: Date | null;
 }
 
 const userSchema: Schema = new Schema<UserDocument>({
@@ -18,11 +20,19 @@ const userSchema: Schema = new Schema<UserDocument>({
     type: String,
     required: [true, "La contraseña es obligatoria"]
   },
-  accessibleSystems: [String]
+  accessibleSystems: [String],
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date,
+    default: null
+  }
 }, {
   collection: 'users',
   timestamps: true
 });
 
 const UserModel = mongoose.model<UserDocument>("User", userSchema);
-export default UserModel;
+export default UserModel;
