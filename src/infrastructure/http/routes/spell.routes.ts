@@ -108,6 +108,32 @@ const router = Router();
  *         damage:
  *           type: object
  *           properties:
+ *             choices:
+ *               type: array
+ *               description: Elecciones de tipo de daño compartidas por varios componentes del conjuro.
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   key:
+ *                     type: string
+ *                     description: Clave que referencian los componentes.
+ *                   choose:
+ *                     type: number
+ *                     description: Cantidad de opciones que se eligen.
+ *                   options:
+ *                     type: array
+ *                     description: Tipos de daño entre los que se puede elegir.
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         description:
+ *                           type: string
+ *                         color:
+ *                           type: string
  *             base:
  *               type: array
  *               items:
@@ -122,6 +148,7 @@ const router = Router();
  *                     description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                   type:
  *                     type: object
+ *                     description: Tipo de daño fijo. Excluyente con choice.
  *                     properties:
  *                       id:
  *                         type: string
@@ -131,6 +158,9 @@ const router = Router();
  *                         type: string
  *                       color:
  *                         type: string
+ *                   choice:
+ *                     type: string
+ *                     description: Clave de una elección definida en choices. Excluyente con type.
  *             scaling:
  *               type: object
  *               properties:
@@ -161,6 +191,7 @@ const router = Router();
  *                               description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                             type:
  *                               type: object
+ *                               description: Tipo de daño fijo. Excluyente con choice.
  *                               properties:
  *                                 id:
  *                                   type: string
@@ -170,6 +201,9 @@ const router = Router();
  *                                   type: string
  *                                 color:
  *                                   type: string
+ *                             choice:
+ *                               type: string
+ *                               description: Clave de una elección definida en choices. Excluyente con type.
  *           description: Información de daño del conjuro.
  *         description:
  *           type: array
@@ -258,6 +292,23 @@ const router = Router();
  *         damage:
  *           type: object
  *           properties:
+ *             choices:
+ *               type: array
+ *               description: Elecciones de tipo de daño compartidas por varios componentes del conjuro.
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   key:
+ *                     type: string
+ *                     description: Clave que referencian los componentes.
+ *                   choose:
+ *                     type: number
+ *                     description: Cantidad de opciones que se eligen.
+ *                   options:
+ *                     type: array
+ *                     description: IDs de los tipos de daño entre los que se puede elegir.
+ *                     items:
+ *                       type: string
  *             base:
  *               type: array
  *               items:
@@ -272,7 +323,10 @@ const router = Router();
  *                     description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                   type:
  *                     type: string
- *                     description: ID del tipo de daño.
+ *                     description: ID del tipo de daño fijo. Excluyente con choice.
+ *                   choice:
+ *                     type: string
+ *                     description: Clave de una elección definida en choices. Excluyente con type.
  *             scaling:
  *               type: object
  *               properties:
@@ -303,7 +357,10 @@ const router = Router();
  *                               description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                             type:
  *                               type: string
- *                               description: ID del tipo de daño.
+ *                               description: ID del tipo de daño fijo. Excluyente con choice.
+ *                             choice:
+ *                               type: string
+ *                               description: Clave de una elección definida en choices. Excluyente con type.
  *         ritual:
  *           type: boolean
  *           description: Indica si el conjuro puede lanzarse como ritual.
@@ -380,6 +437,23 @@ const router = Router();
  *         damage:
  *           type: object
  *           properties:
+ *             choices:
+ *               type: array
+ *               description: Elecciones de tipo de daño compartidas por varios componentes del conjuro.
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   key:
+ *                     type: string
+ *                     description: Clave que referencian los componentes.
+ *                   choose:
+ *                     type: number
+ *                     description: Cantidad de opciones que se eligen.
+ *                   options:
+ *                     type: array
+ *                     description: IDs de los tipos de daño entre los que se puede elegir.
+ *                     items:
+ *                       type: string
  *             base:
  *               type: array
  *               items:
@@ -394,7 +468,10 @@ const router = Router();
  *                     description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                   type:
  *                     type: string
- *                     description: ID del tipo de daño.
+ *                     description: ID del tipo de daño fijo. Excluyente con choice.
+ *                   choice:
+ *                     type: string
+ *                     description: Clave de una elección definida en choices. Excluyente con type.
  *             scaling:
  *               type: object
  *               properties:
@@ -425,7 +502,10 @@ const router = Router();
  *                               description: Sumando fijo del componente, p. ej. el +1 de 1d4 + 1.
  *                             type:
  *                               type: string
- *                               description: ID del tipo de daño.
+ *                               description: ID del tipo de daño fijo. Excluyente con choice.
+ *                             choice:
+ *                               type: string
+ *                               description: Clave de una elección definida en choices. Excluyente con type.
  *         ritual:
  *           type: boolean
  *           description: Indica si el conjuro puede lanzarse como ritual.

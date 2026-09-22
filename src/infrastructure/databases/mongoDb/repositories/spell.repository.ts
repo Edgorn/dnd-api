@@ -2,12 +2,12 @@ import { Types } from "mongoose";
 import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi, SpellClassApi } from "../../../../domain/types/spell.types";
+import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi, SpellDamageChoiceApi, SpellDamageTypeApi, DamageComponentApi, SpellClassApi } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import SpellSchema from "../schemas/Spell";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
 
-const SPELL_POPULATE_PATHS = ['school', 'classes', 'damage.base.type', 'damage.scaling.steps.components.type'] as const;
+const SPELL_POPULATE_PATHS = ['school', 'classes', 'damage.choices.options', 'damage.base.type', 'damage.scaling.steps.components.type'] as const;
 
 export default class SpellRepository implements ISpellRepository {
   constructor(
@@ -242,30 +242,50 @@ export default class SpellRepository implements ISpellRepository {
       }
     }
 
-    const formatComponent = (c: any) => {
-      const d = c.type;
-      let typeObj: any = undefined;
-      if (d && typeof d === 'object') {
-        const damageId = d._id ? d._id.toString() : d.id;
-        if (damageId) {
-          typeObj = {
-            id: damageId,
-            name: d.name,
-            description: d.description,
-            color: d.color
-          };
-        }
-      }
+    const formatDamageRef = (damageRef: any): SpellDamageTypeApi | undefined => {
+      if (!damageRef || typeof damageRef !== "object") return undefined;
+      const damageId = damageRef._id ? damageRef._id.toString() : damageRef.id;
+      if (!damageId) return undefined;
       return {
-        diceCount: c.diceCount,
-        diceType: c.diceType,
-        bonus: c.bonus ?? 0,
-        type: typeObj
+        id: damageId,
+        name: damageRef.name,
+        description: damageRef.description,
+        color: damageRef.color
       };
     };
 
+    const formatComponent = (c: any): DamageComponentApi => {
+      const formatted: DamageComponentApi = {
+        diceCount: c.diceCount,
+        diceType: c.diceType,
+        bonus: c.bonus ?? 0
+      };
+      if (typeof c.choice === "string" && c.choice.length > 0) {
+        formatted.choice = c.choice;
+      }
+      const typeObj = formatDamageRef(c.type);
+      if (typeObj) {
+        formatted.type = typeObj;
+      }
+      return formatted;
+    };
+
+    const formatChoice = (choice: any): SpellDamageChoiceApi => ({
+      key: choice.key,
+      choose: choice.choose,
+      options: Array.isArray(choice.options)
+        ? choice.options.flatMap((option: any) => {
+            const formatted = formatDamageRef(option);
+            return formatted ? [formatted] : [];
+          })
+        : []
+    });
+
     let damageFormatted: SpellDamageApi | undefined = undefined;
     if (spell.damage) {
+      const choices = Array.isArray(spell.damage.choices)
+        ? spell.damage.choices.map(formatChoice)
+        : undefined;
       const base = Array.isArray(spell.damage.base) ? spell.damage.base.map(formatComponent) : [];
       let scaling = undefined;
       if (spell.damage.scaling) {
@@ -281,6 +301,7 @@ export default class SpellRepository implements ISpellRepository {
         };
       }
       damageFormatted = {
+        ...(choices !== undefined ? { choices } : {}),
         base,
         scaling
       };

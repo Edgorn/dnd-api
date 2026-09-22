@@ -5,7 +5,8 @@ const damageComponentSchemaDef = {
   diceCount: Number,
   diceType: String,
   bonus: { type: Number, default: 0 },
-  type: { type: Schema.Types.ObjectId, ref: 'damages' }
+  type: { type: Schema.Types.ObjectId, ref: 'damages' },
+  choice: String
 };
 
 const spellSchema: Schema = new Schema<SpellMongo>({
@@ -44,6 +45,11 @@ const spellSchema: Schema = new Schema<SpellMongo>({
     concentration: Boolean
   },
   damage: {
+    choices: [{
+      key: String,
+      choose: Number,
+      options: [{ type: Schema.Types.ObjectId, ref: "damages" }]
+    }],
     base: [damageComponentSchemaDef],
     scaling: {
       mode: { type: String, enum: ["per_slot_level", "character_level"] },

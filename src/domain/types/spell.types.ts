@@ -10,18 +10,38 @@ export interface SpellClassApi {
   name: string;
 }
 
+export interface SpellDamageChoiceMongo {
+  key: string;
+  choose: number;
+  options: any[];
+}
+
+export interface SpellDamageChoiceApi {
+  key: string;
+  choose: number;
+  options: SpellDamageTypeApi[];
+}
+
+export interface InputSpellDamageChoice {
+  key: string;
+  choose: number;
+  options: string[];
+}
+
 export interface DamageComponentMongo {
   diceCount: number;
   diceType: string;
   bonus?: number;
-  type: any;
+  type?: any;
+  choice?: string;
 }
 
 export interface DamageComponentApi {
   diceCount: number;
   diceType: string;
   bonus: number;
-  type: SpellDamageTypeApi;
+  type?: SpellDamageTypeApi;
+  choice?: string;
 }
 
 export type SpellDamageScalingMode = "per_slot_level" | "character_level";
@@ -61,11 +81,13 @@ export interface InputSpellDamageScaling {
 }
 
 export interface SpellDamageMongo {
+  choices?: SpellDamageChoiceMongo[];
   base: DamageComponentMongo[];
   scaling?: SpellDamageScalingMongo;
 }
 
 export interface SpellDamageApi {
+  choices?: SpellDamageChoiceApi[];
   base: DamageComponentApi[];
   scaling?: SpellDamageScalingApi;
 }
@@ -74,10 +96,12 @@ export interface InputDamageComponent {
   diceCount: number;
   diceType: string;
   bonus?: number;
-  type: string;
+  type?: string;
+  choice?: string;
 }
 
 export interface InputSpellDamage {
+  choices?: InputSpellDamageChoice[];
   base: InputDamageComponent[];
   scaling?: InputSpellDamageScaling;
 }

@@ -1306,6 +1306,44 @@
           "damage": {
             "type": "object",
             "properties": {
+              "choices": {
+                "type": "array",
+                "description": "Elecciones de tipo de daño compartidas por varios componentes del conjuro.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Clave que referencian los componentes."
+                    },
+                    "choose": {
+                      "type": "number",
+                      "description": "Cantidad de opciones que se eligen."
+                    },
+                    "options": {
+                      "type": "array",
+                      "description": "Tipos de daño entre los que se puede elegir.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "color": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
               "base": {
                 "type": "array",
                 "items": {
@@ -1323,6 +1361,7 @@
                     },
                     "type": {
                       "type": "object",
+                      "description": "Tipo de daño fijo. Excluyente con choice.",
                       "properties": {
                         "id": {
                           "type": "string"
@@ -1337,6 +1376,10 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "choice": {
+                      "type": "string",
+                      "description": "Clave de una elección definida en choices. Excluyente con type."
                     }
                   }
                 }
@@ -1383,6 +1426,7 @@
                               },
                               "type": {
                                 "type": "object",
+                                "description": "Tipo de daño fijo. Excluyente con choice.",
                                 "properties": {
                                   "id": {
                                     "type": "string"
@@ -1397,6 +1441,10 @@
                                     "type": "string"
                                   }
                                 }
+                              },
+                              "choice": {
+                                "type": "string",
+                                "description": "Clave de una elección definida en choices. Excluyente con type."
                               }
                             }
                           }
@@ -1537,6 +1585,30 @@
           "damage": {
             "type": "object",
             "properties": {
+              "choices": {
+                "type": "array",
+                "description": "Elecciones de tipo de daño compartidas por varios componentes del conjuro.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Clave que referencian los componentes."
+                    },
+                    "choose": {
+                      "type": "number",
+                      "description": "Cantidad de opciones que se eligen."
+                    },
+                    "options": {
+                      "type": "array",
+                      "description": "IDs de los tipos de daño entre los que se puede elegir.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
               "base": {
                 "type": "array",
                 "items": {
@@ -1554,7 +1626,11 @@
                     },
                     "type": {
                       "type": "string",
-                      "description": "ID del tipo de daño."
+                      "description": "ID del tipo de daño fijo. Excluyente con choice."
+                    },
+                    "choice": {
+                      "type": "string",
+                      "description": "Clave de una elección definida en choices. Excluyente con type."
                     }
                   }
                 }
@@ -1601,7 +1677,11 @@
                               },
                               "type": {
                                 "type": "string",
-                                "description": "ID del tipo de daño."
+                                "description": "ID del tipo de daño fijo. Excluyente con choice."
+                              },
+                              "choice": {
+                                "type": "string",
+                                "description": "Clave de una elección definida en choices. Excluyente con type."
                               }
                             }
                           }
@@ -1727,6 +1807,30 @@
           "damage": {
             "type": "object",
             "properties": {
+              "choices": {
+                "type": "array",
+                "description": "Elecciones de tipo de daño compartidas por varios componentes del conjuro.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Clave que referencian los componentes."
+                    },
+                    "choose": {
+                      "type": "number",
+                      "description": "Cantidad de opciones que se eligen."
+                    },
+                    "options": {
+                      "type": "array",
+                      "description": "IDs de los tipos de daño entre los que se puede elegir.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
               "base": {
                 "type": "array",
                 "items": {
@@ -1744,7 +1848,11 @@
                     },
                     "type": {
                       "type": "string",
-                      "description": "ID del tipo de daño."
+                      "description": "ID del tipo de daño fijo. Excluyente con choice."
+                    },
+                    "choice": {
+                      "type": "string",
+                      "description": "Clave de una elección definida en choices. Excluyente con type."
                     }
                   }
                 }
@@ -1791,7 +1899,11 @@
                               },
                               "type": {
                                 "type": "string",
-                                "description": "ID del tipo de daño."
+                                "description": "ID del tipo de daño fijo. Excluyente con choice."
+                              },
+                              "choice": {
+                                "type": "string",
+                                "description": "Clave de una elección definida en choices. Excluyente con type."
                               }
                             }
                           }
