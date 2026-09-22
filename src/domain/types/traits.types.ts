@@ -94,6 +94,13 @@ export interface TraitDamageChoiceRef {
   grantsResistance?: boolean;
 }
 
+export type TraitHitPointScope = "class" | "character";
+
+export interface TraitHitPoints {
+  perLevel: number;
+  scope: TraitHitPointScope;
+}
+
 export interface ResolvedDamageChoice {
   name: string;
   damage: Damage;
@@ -128,6 +135,7 @@ export interface TraitMongo {
   languages?: TraitLanguages,
   damageChoices?: TraitDamageChoice[],
   damageChoiceRef?: TraitDamageChoiceRef,
+  hitPoints?: TraitHitPoints,
   deletedAt?: Date | null
 }
 
@@ -168,7 +176,8 @@ export interface TraitApi {
   languages?: TraitLanguagesApi,
   damageChoices?: TraitDamageChoiceApi[],
   damageChoiceRef?: TraitDamageChoiceRef,
-  damageChoice?: ResolvedDamageChoice[]
+  damageChoice?: ResolvedDamageChoice[],
+  hitPoints?: TraitHitPoints
 }
 
 export interface TraitsOptionsApi {
@@ -191,7 +200,8 @@ export interface CreateTrait {
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguages | null,
   damageChoices?: TraitDamageChoice[] | null,
-  damageChoiceRef?: TraitDamageChoiceRef | null
+  damageChoiceRef?: TraitDamageChoiceRef | null,
+  hitPoints?: TraitHitPoints | null
 }
 
 export interface UpdateTrait {
@@ -210,5 +220,6 @@ export interface UpdateTrait {
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguages | null,
   damageChoices?: TraitDamageChoice[] | null,
-  damageChoiceRef?: TraitDamageChoiceRef | null
+  damageChoiceRef?: TraitDamageChoiceRef | null,
+  hitPoints?: TraitHitPoints | null
 }

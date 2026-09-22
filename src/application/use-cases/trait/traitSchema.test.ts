@@ -301,3 +301,51 @@ describe("UpdateTraitSchema companionRoster", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("CreateTraitSchema hitPoints", () => {
+  it("accepts class and character scopes", () => {
+    const classScope = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Resistencia dracónica",
+      hitPoints: { perLevel: 1, scope: "class" },
+    });
+    const characterScope = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Dureza enana",
+      hitPoints: { perLevel: 1, scope: "character" },
+    });
+    expect(classScope.success).toBe(true);
+    expect(characterScope.success).toBe(true);
+  });
+
+  it("rejects perLevel below 1 and unknown keys", () => {
+    const low = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      hitPoints: { perLevel: 0, scope: "character" },
+    });
+    const extra = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      hitPoints: { perLevel: 1, scope: "character", note: "x" },
+    });
+    expect(low.success).toBe(false);
+    expect(extra.success).toBe(false);
+  });
+
+  it("accepts null to clear hitPoints on create", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      hitPoints: null,
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("UpdateTraitSchema hitPoints", () => {
+  it("accepts null to clear hitPoints", () => {
+    const result = UpdateTraitSchema.safeParse({ hitPoints: null });
+    expect(result.success).toBe(true);
+  });
+});

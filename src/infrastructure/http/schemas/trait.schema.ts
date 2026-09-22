@@ -141,6 +141,14 @@ export const TraitDamageChoiceRefSchema = z.object({
   grantsResistance: z.boolean().optional()
 }).strict();
 
+export const TraitHitPointsSchema = z.object({
+  perLevel: z
+    .number()
+    .int("perLevel debe ser un entero")
+    .min(1, "perLevel debe ser al menos 1"),
+  scope: z.enum(["class", "character"])
+}).strict();
+
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -156,7 +164,8 @@ export const CreateTraitSchema = z.object({
   suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema,
   languages: TraitLanguagesSchema.nullish(),
   damageChoices: TraitDamageChoicesSchema.nullish(),
-  damageChoiceRef: TraitDamageChoiceRefSchema.nullish()
+  damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
+  hitPoints: TraitHitPointsSchema.nullish()
 });
 
 export const UpdateTraitSchema = z.object({
@@ -174,7 +183,8 @@ export const UpdateTraitSchema = z.object({
   suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema,
   languages: TraitLanguagesSchema.nullish(),
   damageChoices: TraitDamageChoicesSchema.nullish(),
-  damageChoiceRef: TraitDamageChoiceRefSchema.nullish()
+  damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
+  hitPoints: TraitHitPointsSchema.nullish()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

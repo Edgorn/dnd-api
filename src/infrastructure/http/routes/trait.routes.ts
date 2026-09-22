@@ -93,6 +93,27 @@ const router = Router();
  *             descripción se sustituyen uniéndolos con coma.
  *           items:
  *             $ref: '#/components/schemas/ResolvedDamageChoice'
+ *         hitPoints:
+ *           $ref: '#/components/schemas/TraitHitPoints'
+ *           description: >
+ *             Bono de puntos de golpe por nivel. scope class suma por nivel de la clase
+ *             que otorga el rasgo; scope character suma por nivel total del personaje.
+ *     TraitHitPoints:
+ *       type: object
+ *       required:
+ *         - perLevel
+ *         - scope
+ *       properties:
+ *         perLevel:
+ *           type: integer
+ *           minimum: 1
+ *           description: Puntos de golpe adicionales por nivel aplicables.
+ *         scope:
+ *           type: string
+ *           enum: [class, character]
+ *           description: >
+ *             class aplica el bono según los niveles de la clase o subclase que concede el rasgo;
+ *             character aplica el bono según el nivel total del personaje.
  *     TraitLanguages:
  *       type: object
  *       properties:
@@ -365,6 +386,11 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitDamageChoiceRef'
  *           description: Referencia a la tabla de otro rasgo. null borra el campo.
+ *         hitPoints:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitHitPoints'
+ *           description: Bono de PG por nivel. null borra el campo.
  *     TraitLanguagesInput:
  *       type: object
  *       properties:
@@ -472,6 +498,11 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitDamageChoiceRef'
  *           description: Referencia a la tabla de otro rasgo. null borra el campo.
+ *         hitPoints:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitHitPoints'
+ *           description: Bono de PG por nivel. null borra el campo.
  */
 
 /**

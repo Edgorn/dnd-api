@@ -26,6 +26,10 @@ import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
 import {
+  collectClassGrantedTraitIds,
+  traitHitPointBonus
+} from '../../../../utils/traitHitPoints';
+import {
   applyEnteringTraitChoices,
   mergeTraitLanguageIds,
   resolveCharacterTraitChoices
@@ -189,10 +193,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       HP += Math.floor((conVal / 2) - 5);
     }
 
-    if (traits.includes('dwarven-toughness') || traits.includes('draconid-resistance')) {
-      HP += 1
-    }
-
     const resolvedProfBonus = rulesConfig.proficiencyProgression?.[0] ?? prof_bonus ?? 0;
 
     let moneyArray: { quantity: number; unit: string }[] = [];
@@ -205,13 +205,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     let resolvedTraits = [...(traits ?? [])];
     let resolvedTraitsData = { ...(traits_data ?? {}) };
     let resolvedSubclasses: string[] = [];
+    const characterClass = await this.claseRepository.getById(claseId);
+    let subclassForTraits: Awaited<ReturnType<typeof this.assertSubclassAvailable>> | undefined;
 
     if (subclase) {
-      const subclass = await this.assertSubclassAvailable(subclase, claseId, systems ?? []);
-      resolvedSubclasses = [subclass.id];
-      const characterClass = await this.claseRepository.getById(claseId);
+      subclassForTraits = await this.assertSubclassAvailable(subclase, claseId, systems ?? []);
+      resolvedSubclasses = [subclassForTraits.id];
       if (characterClass?.subclassChoice?.level === 1) {
-        const level1 = subclass.levels.find(row => row.level === 1);
+        const level1 = subclassForTraits.levels.find(row => row.level === 1);
         if (level1) {
           const merged = mergeLevelUpTraits(
             resolvedTraits,
@@ -226,6 +227,18 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const loadedTraits = await this.traitRepository.getTraitsByIndexes(resolvedTraits);
+    const classGrantedTraitIds = collectClassGrantedTraitIds(
+      characterClass?.levels ?? [],
+      subclassForTraits?.levels ?? [],
+      1
+    );
+    HP += traitHitPointBonus({
+      traits: loadedTraits,
+      classGrantedTraitIds,
+      classLevel: 1,
+      characterLevel: 1,
+      previouslyOwnedIds: []
+    });
     const choiceResult = applyEnteringTraitChoices({
       existing: undefined,
       incoming: data.traitChoices,
@@ -550,7 +563,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       personaje.systems ?? []
     );
 
-    const HP = Math.floor(
+    let HP = Math.floor(
       evaluateFormula(
         rulesConfig.hpLevelUpFormula,
         apiAttributesForHp,
@@ -567,13 +580,29 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ?? 0;
 
     const spellsUpdate = this.mergeClassSpellIds(personaje, classId, pickResult.spellIds);
+    const previouslyOwnedTraitIds = personaje.traits ?? [];
     const { traits: nextTraits, traits_data: nextTraitsData } = mergeLevelUpTraits(
-      personaje.traits ?? [],
+      previouslyOwnedTraitIds,
       personaje.traits_data,
       levelTraits,
       levelTraitsData
     );
-    const ownedTraitIds = new Set(personaje.traits ?? []);
+    const levelUpClassDoc = await this.claseRepository.getById(classId);
+    const levelUpSubclasses = await this.getAssignedSubclassesForClass(nextSubclassIds, classId);
+    const levelUpTraitIds = await this.traitRepository.getTraitsByIndexes(nextTraits);
+    HP += traitHitPointBonus({
+      traits: levelUpTraitIds,
+      classGrantedTraitIds: collectClassGrantedTraitIds(
+        levelUpClassDoc?.levels ?? [],
+        levelUpSubclasses.flatMap(item => item.levels),
+        nextLevel
+      ),
+      classLevel: nextLevel,
+      characterLevel: newTotalLevels,
+      previouslyOwnedIds: previouslyOwnedTraitIds
+    });
+
+    const ownedTraitIds = new Set(previouslyOwnedTraitIds);
     const enteringTraits = (levelTraits ?? []).filter(trait => trait.id && !ownedTraitIds.has(trait.id));
     const choiceResult = applyEnteringTraitChoices({
       existing: personaje.traitChoices,

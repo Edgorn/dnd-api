@@ -255,7 +255,8 @@ export default class TraitRepository implements ITraitRepository {
         ...(trait.companionRoster ? { companionRoster: trait.companionRoster } : {}),
         ...this.formatLanguages(trait.languages, languageMap),
         ...this.formatDamageChoices(trait, choiceDamageMap),
-        ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {})
+        ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {}),
+        ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {})
       };
     });
   }
@@ -266,14 +267,15 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, languages, damageChoices, damageChoiceRef, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, languages, damageChoices, damageChoiceRef, hitPoints, ...rest } = trait;
     return {
       ...rest,
       ...(typeof acFormula === "string" ? { acFormula } : {}),
       ...(Array.isArray(suppressedByArmorTypeIds) ? { suppressedByArmorTypeIds } : {}),
       ...(languages ? { languages } : {}),
       ...(Array.isArray(damageChoices) ? { damageChoices } : {}),
-      ...(damageChoiceRef ? { damageChoiceRef } : {})
+      ...(damageChoiceRef ? { damageChoiceRef } : {}),
+      ...(hitPoints ? { hitPoints } : {})
     };
   }
 
@@ -287,6 +289,7 @@ export default class TraitRepository implements ITraitRepository {
       languages,
       damageChoices,
       damageChoiceRef,
+      hitPoints,
       ...rest
     } = updateFields;
     const $set: Record<string, unknown> = { ...rest };
@@ -307,6 +310,7 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "languages", languages);
     this.assignNullable($set, $unset, "damageChoices", damageChoices);
     this.assignNullable($set, $unset, "damageChoiceRef", damageChoiceRef);
+    this.assignNullable($set, $unset, "hitPoints", hitPoints);
 
     return { $set, $unset };
   }
