@@ -257,6 +257,126 @@
           "companionRoster": {
             "$ref": "#/components/schemas/TraitCompanionRoster",
             "description": "Pista para la UI sobre cuántos compañeros pedir. `count` no se valida contra la longitud del roster del personaje.\n"
+          },
+          "languages": {
+            "$ref": "#/components/schemas/TraitLanguages",
+            "description": "Idiomas que el rasgo concede de forma fija. No incluye notas ni elecciones."
+          },
+          "damageChoices": {
+            "type": "array",
+            "description": "Catálogo de elecciones de tipo de daño. GET /traits no incluye la fila elegida por un personaje.\n",
+            "items": {
+              "$ref": "#/components/schemas/TraitDamageChoice"
+            }
+          },
+          "damageChoiceRef": {
+            "$ref": "#/components/schemas/TraitDamageChoiceRef",
+            "description": "El rasgo no redefine la tabla: lee la elección de otro rasgo. Si grantsResistance es true, la ficha añade esos daños a las resistencias.\n"
+          },
+          "damageChoice": {
+            "type": "array",
+            "description": "Filas resueltas en la ficha del personaje (name y damage). No aparece en el catálogo. Con varias filas, {name} y {damage} de la descripción se sustituyen uniéndolos con coma.\n",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedDamageChoice"
+            }
+          }
+        }
+      },
+      "TraitLanguages": {
+        "type": "object",
+        "properties": {
+          "speaks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Language"
+            },
+            "description": "Idiomas que el personaje pasa a hablar."
+          },
+          "understands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Language"
+            },
+            "description": "Idiomas que el personaje pasa a entender."
+          }
+        }
+      },
+      "TraitDamageChoice": {
+        "type": "object",
+        "required": [
+          "key",
+          "choose",
+          "options"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave única de la elección dentro del rasgo."
+          },
+          "choose": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número de filas que el personaje debe elegir. No puede superar las opciones."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraitDamageChoiceOption"
+            }
+          }
+        }
+      },
+      "TraitDamageChoiceOption": {
+        "type": "object",
+        "required": [
+          "name",
+          "damageTypeId"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre único de la fila dentro del rasgo. Es la clave que el personaje guarda en traitChoices y sustituye {name} en la ficha.\n"
+          },
+          "damageTypeId": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de daño. Dos filas pueden compartir el mismo daño."
+          },
+          "damage": {
+            "$ref": "#/components/schemas/Damage",
+            "description": "Tipo de daño hidratado. Sustituye {damage} en la ficha."
+          }
+        }
+      },
+      "TraitDamageChoiceRef": {
+        "type": "object",
+        "required": [
+          "traitId",
+          "choiceKey"
+        ],
+        "properties": {
+          "traitId": {
+            "type": "string",
+            "description": "ID o index del rasgo que define la tabla."
+          },
+          "choiceKey": {
+            "type": "string",
+            "description": "Clave de la elección en ese rasgo."
+          },
+          "grantsResistance": {
+            "type": "boolean",
+            "description": "Si es true, los daños elegidos se unen a las resistencias del personaje."
+          }
+        }
+      },
+      "ResolvedDamageChoice": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la fila elegida."
+          },
+          "damage": {
+            "$ref": "#/components/schemas/Damage"
           }
         }
       },
@@ -525,6 +645,91 @@
           "companionRoster": {
             "$ref": "#/components/schemas/TraitCompanionRoster",
             "description": "Pista de UI. count no se exige al crear o actualizar el personaje."
+          },
+          "languages": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitLanguagesInput"
+              }
+            ],
+            "description": "Idiomas concedidos. null borra el campo."
+          },
+          "damageChoices": {
+            "nullable": true,
+            "type": "array",
+            "description": "Tabla de elecciones de daño. null borra el campo.",
+            "items": {
+              "$ref": "#/components/schemas/TraitDamageChoiceInput"
+            }
+          },
+          "damageChoiceRef": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitDamageChoiceRef"
+              }
+            ],
+            "description": "Referencia a la tabla de otro rasgo. null borra el campo."
+          }
+        }
+      },
+      "TraitLanguagesInput": {
+        "type": "object",
+        "properties": {
+          "speaks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs o index de idiomas que el personaje pasa a hablar."
+          },
+          "understands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs o index de idiomas que el personaje pasa a entender."
+          }
+        }
+      },
+      "TraitDamageChoiceInput": {
+        "type": "object",
+        "required": [
+          "key",
+          "choose",
+          "options"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "choose": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "damageTypeId"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "damageTypeId": {
+                  "type": "string",
+                  "description": "ID de MongoDB del tipo de daño del sistema o de un ancestro."
+                }
+              }
+            }
           }
         }
       },
@@ -594,6 +799,32 @@
           "companionRoster": {
             "$ref": "#/components/schemas/TraitCompanionRoster",
             "description": "Pista de UI. count no se exige al crear o actualizar el personaje."
+          },
+          "languages": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitLanguagesInput"
+              }
+            ],
+            "description": "Idiomas concedidos. null borra el campo."
+          },
+          "damageChoices": {
+            "nullable": true,
+            "type": "array",
+            "description": "Tabla de elecciones de daño. null borra el campo.",
+            "items": {
+              "$ref": "#/components/schemas/TraitDamageChoiceInput"
+            }
+          },
+          "damageChoiceRef": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitDamageChoiceRef"
+              }
+            ],
+            "description": "Referencia a la tabla de otro rasgo. null borra el campo."
           }
         }
       },
@@ -3372,7 +3603,12 @@
             }
           },
           "languages": {
-            "$ref": "#/components/schemas/CreatureLanguages"
+            "description": "Idiomas del personaje unidos con los que concede cada rasgo. Se deduplican antes de hidratarlos.\n",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreatureLanguages"
+              }
+            ]
           },
           "proficiencies": {
             "type": "array",
@@ -3382,13 +3618,14 @@
           },
           "traits": {
             "type": "array",
+            "description": "Rasgos del personaje. Si el rasgo define o referencia una elección de daño ya guardada, incluye damageChoice y sustituye {name} y {damage} en la descripción.\n",
             "items": {
               "$ref": "#/components/schemas/Trait"
             }
           },
           "traits_data": {
             "type": "object",
-            "description": "Datos dinámicos de elecciones de rasgos del personaje (TraitDataMongo)."
+            "description": "Textos dinámicos de rasgos del personaje. No guarda la fila de daño elegida."
           },
           "resistances": {
             "type": "array",
@@ -3625,6 +3862,19 @@
           },
           "traits_data": {
             "type": "object"
+          },
+          "traitChoices": {
+            "type": "object",
+            "description": "Elecciones de daño al recibir un rasgo con damageChoices. La clave exterior es el id del rasgo y la interior la clave de la elección. Cada lista debe tener tantos nombres de fila como indique choose, sin repetir.\n",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "money": {
             "type": "array",
@@ -10199,7 +10449,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
         "tags": [
           "Personajes"
         ],
@@ -10292,6 +10542,19 @@
                   "feat": {
                     "type": "string",
                     "description": "ObjectId de la dote elegida en lugar de los +2. Mutuamente excluyente con `abilityScore`. Debe estar en `feats.options` del GET.\n"
+                  },
+                  "traitChoices": {
+                    "type": "object",
+                    "description": "Elecciones de daño de los rasgos que entran en este nivel. Clave exterior: id del rasgo. Clave interior: choiceKey. El valor es la lista de nombres de fila, con longitud igual a choose. Obligatorio si el rasgo es nuevo y define damageChoices.\n",
+                    "additionalProperties": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
                   }
                 }
               }

@@ -5,9 +5,11 @@ import TraitSchema from "../schemas/Trait";
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
+import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import { SkillApi } from '../../../../domain/types/skill.types';
+import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitApi, TraitDataMongo, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitApi, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { SpellApi } from "../../../../domain/types/spell.types";
@@ -23,7 +25,8 @@ export default class TraitRepository implements ITraitRepository {
     private readonly proficiencyRepository: IProficiencyRepository,
     private readonly spellRepository: ISpellRepository,
     private readonly estadoRepository: IEstadoRepository,
-    private readonly skillRepository: ISkillRepository
+    private readonly skillRepository: ISkillRepository,
+    private readonly languageRepository: ILanguageRepository
   ) {}
 
   async getBySystems(ruleset: string[]): Promise<TraitApi[]> {
@@ -123,6 +126,8 @@ export default class TraitRepository implements ITraitRepository {
     const allSpells = new Set<string>();
     const allConditionInmunities = new Set<string>();
     const allIncompatibleTraits = new Set<string>();
+    const allLanguages = new Set<string>();
+    const allChoiceDamages = new Set<string>();
 
     for (const trait of traits) {
       (trait.resistances ?? []).forEach(r => allResistances.add(r));
@@ -132,6 +137,8 @@ export default class TraitRepository implements ITraitRepository {
       (trait.spells ?? []).forEach(s => allSpells.add(s));
       (trait.condition_inmunities ?? []).forEach(ci => allConditionInmunities.add(ci));
       (trait.incompatible_traits ?? []).forEach(it => allIncompatibleTraits.add(it));
+      this.languageIds(trait.languages).forEach(id => allLanguages.add(id));
+      this.damageChoiceTypeIds(trait).forEach(id => allChoiceDamages.add(id));
     }
 
     const [
@@ -141,7 +148,9 @@ export default class TraitRepository implements ITraitRepository {
       fetchedSkills,
       fetchedSpells,
       fetchedConditionInmunities,
-      fetchedIncompatibleTraits
+      fetchedIncompatibleTraits,
+      fetchedLanguages,
+      fetchedChoiceDamages
     ] = await Promise.all([
       allResistances.size ? this.damageRepository.getByIds(Array.from(allResistances)) : [],
       allConditionalResistances.size ? this.damageRepository.getByIds(Array.from(allConditionalResistances)) : [],
@@ -149,7 +158,9 @@ export default class TraitRepository implements ITraitRepository {
       allSkills.size ? this.skillRepository.getSkillsByIndices(Array.from(allSkills)) : [],
       allSpells.size ? this.spellRepository.getSpellsByIndexes(Array.from(allSpells)) : [],
       allConditionInmunities.size ? this.estadoRepository.obtenerEstadosPorIndices(Array.from(allConditionInmunities)) : [],
-      allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : []
+      allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : [],
+      allLanguages.size ? this.languageRepository.getLanguagesByIndex(Array.from(allLanguages)) : [],
+      allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : []
     ]);
 
     const resistanceMap = new Map<string, Damage>(fetchedResistances.map(item => [item.id!, item]));
@@ -165,6 +176,8 @@ export default class TraitRepository implements ITraitRepository {
     const spellMap = new Map<string, SpellApi>(fetchedSpells.map(item => [(item as any).index ?? (item as any).id, item]));
     const conditionInmunityMap = new Map<string, EstadoApi>(fetchedConditionInmunities.map(item => [(item as any).index ?? (item as any).id, item]));
     const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
+    const languageMap = new Map<string, LanguageApi>(fetchedLanguages.map(item => [item.id, item]));
+    const choiceDamageMap = new Map<string, Damage>(fetchedChoiceDamages.map(item => [item.id!, item]));
 
     return traits.map(trait => {
       const resistances = (trait.resistances ?? [])
@@ -239,7 +252,10 @@ export default class TraitRepository implements ITraitRepository {
         ...(Array.isArray(trait.spellPrivileges) && trait.spellPrivileges.length
           ? { spellPrivileges: trait.spellPrivileges }
           : {}),
-        ...(trait.companionRoster ? { companionRoster: trait.companionRoster } : {})
+        ...(trait.companionRoster ? { companionRoster: trait.companionRoster } : {}),
+        ...this.formatLanguages(trait.languages, languageMap),
+        ...this.formatDamageChoices(trait, choiceDamageMap),
+        ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {})
       };
     });
   }
@@ -250,11 +266,14 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, languages, damageChoices, damageChoiceRef, ...rest } = trait;
     return {
       ...rest,
       ...(typeof acFormula === "string" ? { acFormula } : {}),
-      ...(Array.isArray(suppressedByArmorTypeIds) ? { suppressedByArmorTypeIds } : {})
+      ...(Array.isArray(suppressedByArmorTypeIds) ? { suppressedByArmorTypeIds } : {}),
+      ...(languages ? { languages } : {}),
+      ...(Array.isArray(damageChoices) ? { damageChoices } : {}),
+      ...(damageChoiceRef ? { damageChoiceRef } : {})
     };
   }
 
@@ -262,7 +281,14 @@ export default class TraitRepository implements ITraitRepository {
     $set: Record<string, unknown>;
     $unset: Record<string, 1>;
   } {
-    const { acFormula, suppressedByArmorTypeIds, ...rest } = updateFields;
+    const {
+      acFormula,
+      suppressedByArmorTypeIds,
+      languages,
+      damageChoices,
+      damageChoiceRef,
+      ...rest
+    } = updateFields;
     const $set: Record<string, unknown> = { ...rest };
     const $unset: Record<string, 1> = {};
 
@@ -278,7 +304,82 @@ export default class TraitRepository implements ITraitRepository {
       $unset.suppressedByArmorTypeIds = 1;
     }
 
+    this.assignNullable($set, $unset, "languages", languages);
+    this.assignNullable($set, $unset, "damageChoices", damageChoices);
+    this.assignNullable($set, $unset, "damageChoiceRef", damageChoiceRef);
+
     return { $set, $unset };
+  }
+
+  private assignNullable(
+    $set: Record<string, unknown>,
+    $unset: Record<string, 1>,
+    key: string,
+    value: unknown
+  ): void {
+    if (value === null) {
+      $unset[key] = 1;
+      return;
+    }
+    if (value !== undefined) {
+      $set[key] = value;
+    }
+  }
+
+  private languageIds(languages?: TraitLanguages): string[] {
+    if (!languages || typeof languages !== "object") return [];
+    return [...(languages.speaks ?? []), ...(languages.understands ?? [])]
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+  }
+
+  private damageChoiceTypeIds(trait: TraitMongo): string[] {
+    if (!Array.isArray(trait.damageChoices)) return [];
+    return trait.damageChoices.flatMap(choice =>
+      (choice.options ?? [])
+        .map(option => option.damageTypeId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    );
+  }
+
+  private formatLanguages(
+    languages: TraitLanguages | undefined,
+    languageMap: Map<string, LanguageApi>
+  ): { languages: TraitApi["languages"] } | Record<string, never> {
+    if (!languages || typeof languages !== "object") return {};
+
+    const hydrate = (ids: string[] | undefined): LanguageApi[] =>
+      (Array.isArray(ids) ? ids : [])
+        .map(id => languageMap.get(id))
+        .filter((item): item is LanguageApi => !!item);
+
+    return {
+      languages: {
+        speaks: hydrate(languages.speaks),
+        understands: hydrate(languages.understands)
+      }
+    };
+  }
+
+  private formatDamageChoices(
+    trait: TraitMongo,
+    damageMap: Map<string, Damage>
+  ): { damageChoices: TraitDamageChoiceApi[] } | Record<string, never> {
+    if (!Array.isArray(trait.damageChoices)) return {};
+
+    return {
+      damageChoices: trait.damageChoices.map(choice => ({
+        key: choice.key,
+        choose: choice.choose,
+        options: (choice.options ?? []).map(option => {
+          const damage = damageMap.get(option.damageTypeId);
+          return {
+            name: option.name,
+            damageTypeId: option.damageTypeId,
+            ...(damage ? { damage } : {})
+          };
+        })
+      }))
+    };
   }
 
   private async formatTraitChoice(choice: ChoiceMongo | undefined): Promise<ChoiceApi<TraitApi> | undefined> {

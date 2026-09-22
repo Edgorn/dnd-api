@@ -70,6 +70,100 @@ const router = Router();
  *           description: >
  *             Pista para la UI sobre cuántos compañeros pedir. `count` no se valida
  *             contra la longitud del roster del personaje.
+ *         languages:
+ *           $ref: '#/components/schemas/TraitLanguages'
+ *           description: Idiomas que el rasgo concede de forma fija. No incluye notas ni elecciones.
+ *         damageChoices:
+ *           type: array
+ *           description: >
+ *             Catálogo de elecciones de tipo de daño. GET /traits no incluye la fila elegida
+ *             por un personaje.
+ *           items:
+ *             $ref: '#/components/schemas/TraitDamageChoice'
+ *         damageChoiceRef:
+ *           $ref: '#/components/schemas/TraitDamageChoiceRef'
+ *           description: >
+ *             El rasgo no redefine la tabla: lee la elección de otro rasgo.
+ *             Si grantsResistance es true, la ficha añade esos daños a las resistencias.
+ *         damageChoice:
+ *           type: array
+ *           description: >
+ *             Filas resueltas en la ficha del personaje (name y damage).
+ *             No aparece en el catálogo. Con varias filas, {name} y {damage} de la
+ *             descripción se sustituyen uniéndolos con coma.
+ *           items:
+ *             $ref: '#/components/schemas/ResolvedDamageChoice'
+ *     TraitLanguages:
+ *       type: object
+ *       properties:
+ *         speaks:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Language'
+ *           description: Idiomas que el personaje pasa a hablar.
+ *         understands:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Language'
+ *           description: Idiomas que el personaje pasa a entender.
+ *     TraitDamageChoice:
+ *       type: object
+ *       required:
+ *         - key
+ *         - choose
+ *         - options
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Clave única de la elección dentro del rasgo.
+ *         choose:
+ *           type: integer
+ *           minimum: 1
+ *           description: Número de filas que el personaje debe elegir. No puede superar las opciones.
+ *         options:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/TraitDamageChoiceOption'
+ *     TraitDamageChoiceOption:
+ *       type: object
+ *       required:
+ *         - name
+ *         - damageTypeId
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: >
+ *             Nombre único de la fila dentro del rasgo. Es la clave que el personaje
+ *             guarda en traitChoices y sustituye {name} en la ficha.
+ *         damageTypeId:
+ *           type: string
+ *           description: ID de MongoDB del tipo de daño. Dos filas pueden compartir el mismo daño.
+ *         damage:
+ *           $ref: '#/components/schemas/Damage'
+ *           description: Tipo de daño hidratado. Sustituye {damage} en la ficha.
+ *     TraitDamageChoiceRef:
+ *       type: object
+ *       required:
+ *         - traitId
+ *         - choiceKey
+ *       properties:
+ *         traitId:
+ *           type: string
+ *           description: ID o index del rasgo que define la tabla.
+ *         choiceKey:
+ *           type: string
+ *           description: Clave de la elección en ese rasgo.
+ *         grantsResistance:
+ *           type: boolean
+ *           description: Si es true, los daños elegidos se unen a las resistencias del personaje.
+ *     ResolvedDamageChoice:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre de la fila elegida.
+ *         damage:
+ *           $ref: '#/components/schemas/Damage'
  *     TraitCompanionRoster:
  *       type: object
  *       required:
@@ -255,6 +349,63 @@ const router = Router();
  *         companionRoster:
  *           $ref: '#/components/schemas/TraitCompanionRoster'
  *           description: Pista de UI. count no se exige al crear o actualizar el personaje.
+ *         languages:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitLanguagesInput'
+ *           description: Idiomas concedidos. null borra el campo.
+ *         damageChoices:
+ *           nullable: true
+ *           type: array
+ *           description: Tabla de elecciones de daño. null borra el campo.
+ *           items:
+ *             $ref: '#/components/schemas/TraitDamageChoiceInput'
+ *         damageChoiceRef:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitDamageChoiceRef'
+ *           description: Referencia a la tabla de otro rasgo. null borra el campo.
+ *     TraitLanguagesInput:
+ *       type: object
+ *       properties:
+ *         speaks:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs o index de idiomas que el personaje pasa a hablar.
+ *         understands:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs o index de idiomas que el personaje pasa a entender.
+ *     TraitDamageChoiceInput:
+ *       type: object
+ *       required:
+ *         - key
+ *         - choose
+ *         - options
+ *       properties:
+ *         key:
+ *           type: string
+ *         choose:
+ *           type: integer
+ *           minimum: 1
+ *         options:
+ *           type: array
+ *           items:
+ *             type: object
+ *             required:
+ *               - id
+ *               - name
+ *               - damageTypeId
+ *             properties:
+ *               id:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               damageTypeId:
+ *                 type: string
+ *                 description: ID de MongoDB del tipo de daño del sistema o de un ancestro.
  *     InputUpdateTrait:
  *       type: object
  *       properties:
@@ -305,6 +456,22 @@ const router = Router();
  *         companionRoster:
  *           $ref: '#/components/schemas/TraitCompanionRoster'
  *           description: Pista de UI. count no se exige al crear o actualizar el personaje.
+ *         languages:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitLanguagesInput'
+ *           description: Idiomas concedidos. null borra el campo.
+ *         damageChoices:
+ *           nullable: true
+ *           type: array
+ *           description: Tabla de elecciones de daño. null borra el campo.
+ *           items:
+ *             $ref: '#/components/schemas/TraitDamageChoiceInput'
+ *         damageChoiceRef:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitDamageChoiceRef'
+ *           description: Referencia a la tabla de otro rasgo. null borra el campo.
  */
 
 /**

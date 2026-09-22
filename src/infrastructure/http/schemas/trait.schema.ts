@@ -70,6 +70,77 @@ const suppressedByArmorTypeIdsSchema = z
   .array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada tipo de armadura debe ser un ID de Mongo válido" }))
   .nullish();
 
+export const TraitLanguagesSchema = z.object({
+  speaks: z.array(z.string().min(1, "El idioma no puede estar vacío")),
+  understands: z.array(z.string().min(1, "El idioma no puede estar vacío"))
+}).strict();
+
+const TraitDamageChoiceOptionSchema = z.object({
+  name: z.string().min(1, "El nombre de la fila no puede estar vacío"),
+  damageTypeId: z.string().refine(val => Types.ObjectId.isValid(val), {
+    message: "El tipo de daño debe ser un ID de Mongo válido"
+  })
+}).strict();
+
+const TraitDamageChoiceSchema = z.object({
+  key: z.string().min(1, "La clave de la elección no puede estar vacía"),
+  choose: z.number().int().min(1, "Debe elegir al menos 1 opción"),
+  options: z.array(TraitDamageChoiceOptionSchema).min(1, "La elección debe tener al menos una opción")
+}).strict().superRefine((choice, ctx) => {
+  if (choice.choose > choice.options.length) {
+    ctx.addIssue({
+      code: "custom",
+      message: "choose no puede superar el número de opciones",
+      path: ["choose"]
+    });
+  }
+
+  const names = new Set<string>();
+  choice.options.forEach((option, index) => {
+    if (names.has(option.name)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `El nombre de fila ${option.name} está repetido`,
+        path: ["options", index, "name"]
+      });
+    }
+    names.add(option.name);
+  });
+});
+
+export const TraitDamageChoicesSchema = z.array(TraitDamageChoiceSchema).superRefine((choices, ctx) => {
+  const keys = new Set<string>();
+  const optionNames = new Set<string>();
+
+  choices.forEach((choice, choiceIndex) => {
+    if (keys.has(choice.key)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `La clave ${choice.key} está repetida`,
+        path: [choiceIndex, "key"]
+      });
+    }
+    keys.add(choice.key);
+
+    choice.options.forEach((option, optionIndex) => {
+      if (optionNames.has(option.name)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `El nombre de fila ${option.name} está repetido`,
+          path: [choiceIndex, "options", optionIndex, "name"]
+        });
+      }
+      optionNames.add(option.name);
+    });
+  });
+});
+
+export const TraitDamageChoiceRefSchema = z.object({
+  traitId: z.string().min(1, "El rasgo referenciado no puede estar vacío"),
+  choiceKey: z.string().min(1, "La clave de la elección no puede estar vacía"),
+  grantsResistance: z.boolean().optional()
+}).strict();
+
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -82,7 +153,10 @@ export const CreateTraitSchema = z.object({
   companionRoster: TraitCompanionRosterSchema.optional(),
   speed: TraitSpeedSchema.optional(),
   acFormula: acFormulaSchema,
-  suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema
+  suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema,
+  languages: TraitLanguagesSchema.nullish(),
+  damageChoices: TraitDamageChoicesSchema.nullish(),
+  damageChoiceRef: TraitDamageChoiceRefSchema.nullish()
 });
 
 export const UpdateTraitSchema = z.object({
@@ -97,7 +171,10 @@ export const UpdateTraitSchema = z.object({
   companionRoster: TraitCompanionRosterSchema.optional(),
   speed: TraitSpeedSchema.optional(),
   acFormula: acFormulaSchema,
-  suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema
+  suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema,
+  languages: TraitLanguagesSchema.nullish(),
+  damageChoices: TraitDamageChoicesSchema.nullish(),
+  damageChoiceRef: TraitDamageChoiceRefSchema.nullish()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

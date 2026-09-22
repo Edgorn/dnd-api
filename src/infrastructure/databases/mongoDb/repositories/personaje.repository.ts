@@ -25,6 +25,11 @@ import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRe
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
+import {
+  applyEnteringTraitChoices,
+  mergeTraitLanguageIds,
+  resolveCharacterTraitChoices
+} from '../../../../utils/traitDamageChoices';
 import { applyTraitSpeed } from '../../../../utils/applyTraitSpeed';
 import {
   applyArmorStrengthSpeedPenalty,
@@ -220,6 +225,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     }
 
+    const loadedTraits = await this.traitRepository.getTraitsByIndexes(resolvedTraits);
+    const choiceResult = applyEnteringTraitChoices({
+      existing: undefined,
+      incoming: data.traitChoices,
+      enteringTraits: loadedTraits
+    });
+    if ("error" in choiceResult) {
+      throw new ValidationError(choiceResult.error);
+    }
+
     const personaje = new Personaje({
       name,
       user,
@@ -235,6 +250,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       race: race,
       traits: resolvedTraits,
       traits_data: resolvedTraitsData,
+      traitChoices: choiceResult.traitChoices,
       prof_bonus: resolvedProfBonus,
       speed,
       size,
@@ -457,7 +473,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   async levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
-    const { id, classId, hpIncrease, userId, spells, subclass, abilityScore, feat } = data;
+    const { id, classId, hpIncrease, userId, spells, subclass, abilityScore, feat, traitChoices } = data;
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
@@ -557,6 +573,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
       levelTraits,
       levelTraitsData
     );
+    const ownedTraitIds = new Set(personaje.traits ?? []);
+    const enteringTraits = (levelTraits ?? []).filter(trait => trait.id && !ownedTraitIds.has(trait.id));
+    const choiceResult = applyEnteringTraitChoices({
+      existing: personaje.traitChoices,
+      incoming: traitChoices,
+      enteringTraits
+    });
+    if ("error" in choiceResult) {
+      throw new ValidationError(choiceResult.error);
+    }
 
     const resultado = await Personaje.findByIdAndUpdate(
       id,
@@ -566,6 +592,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           prof_bonus: Math.max(newProfBonus, personaje.prof_bonus ?? 0),
           traits: nextTraits,
           traits_data: nextTraitsData,
+          traitChoices: choiceResult.traitChoices,
           subclasses: nextSubclassIds,
           ...(spellsUpdate ? { spells: spellsUpdate } : {}),
           ...(nextAttributes ? { attributes: nextAttributes } : {}),
@@ -1338,7 +1365,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
   private async formatCharacter(personaje: PersonajeMongo): Promise<PersonajeApi> {
     const level = personaje.classes.map(cl => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
 
-    const traits = await this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data)
+    const loadedTraits = await this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data)
+    const resolvedSheet = resolveCharacterTraitChoices(loadedTraits, personaje.traitChoices)
+    const traits = resolvedSheet.traits
     const invocations = await this.invocacionRepository.obtenerPorIndices(personaje.invocations)
     const skills = [...(personaje?.skills ?? [])]
 
@@ -1385,6 +1414,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     })
 
+    for (const damage of resolvedSheet.grantedResistances) {
+      if (damage.id && resistances.some(item => item.id === damage.id)) continue
+      resistances.push(damage)
+    }
+
     invocations.forEach(invocation => {
       if (invocation?.skills) {
         skills.push(...invocation?.skills)
@@ -1409,8 +1443,15 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ).values(),
     ];
 
-    const idiomas_understands = await this.languageRepository.getLanguagesByIndex(personaje.languages?.understands ?? [])
-    const idiomas_speaks = await this.languageRepository.getLanguagesByIndex(personaje.languages?.speaks ?? [])
+    const mergedLanguageIds = mergeTraitLanguageIds(
+      {
+        speaks: personaje.languages?.speaks ?? [],
+        understands: personaje.languages?.understands ?? []
+      },
+      traits
+    )
+    const idiomas_understands = await this.languageRepository.getLanguagesByIndex(mergedLanguageIds.understands)
+    const idiomas_speaks = await this.languageRepository.getLanguagesByIndex(mergedLanguageIds.speaks)
     const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(this.toHydrationRows(personaje.equipment))
 
     const clases = personaje.classes

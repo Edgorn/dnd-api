@@ -240,7 +240,7 @@ const armorTypeService = new ArmorTypeService(armorTypeRepository)
 const coinRepository = new CoinRepository(systemRepository)
 const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propertyRepository, proficiencyRepository, coinRepository, armorTypeRepository)
 const languageRepository = new LanguageRepository(systemRepository)
-const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository)
+const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository, languageRepository)
 const subclassRepository = new SubclassRepository(systemRepository, traitRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
@@ -435,9 +435,12 @@ const getSpellById = new GetSpellById(spellService);
 const getSpellsByLevel = new GetSpellsByLevel(spellService);
 const getRitualSpells = new GetRitualSpells(spellService);
 
+const languageService = new LanguageService(languageRepository)
+const damageService = new DamageService(damageRepository)
+
 const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService, systemService)
-const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService)
-const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService)
+const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService)
+const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService)
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 
@@ -602,8 +605,6 @@ export const skillController = new SkillController(
   restoreSkill
 )
 
-const languageService = new LanguageService(languageRepository)
-
 const getLanguagesBySystems = new GetLanguagesBySystem(languageService)
 const createLanguage = new CreateLanguage(languageService)
 const updateLanguage = new UpdateLanguage(languageService)
@@ -658,7 +659,6 @@ export const proficiencyController = new ProficiencyController(
   restoreProficiency
 );
 
-const damageService = new DamageService(damageRepository);
 const createDamage = new CreateDamage(damageService, systemService);
 const updateDamage = new UpdateDamage(damageService, systemService);
 const softDeleteDamage = new SoftDeleteDamage(damageService, systemService);

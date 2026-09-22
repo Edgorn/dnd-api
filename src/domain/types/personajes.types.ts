@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { SpellPrivilegeRule, TraitApi, TraitDataMongo } from "./traits.types"
+import { SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
 import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
@@ -98,6 +98,7 @@ export interface TypeCrearPersonaje {
   equipment: PersonajeEquipmentMongo[];
   traits: string[],
   traits_data: TraitDataMongo,
+  traitChoices?: TraitChoices,
   money: {
     unit: string,
     quantity: number
@@ -157,6 +158,7 @@ export interface TypeLevelUp {
   subclass?: string;
   abilityScore?: { increases: AbilityScoreIncreaseInput[] };
   feat?: string;
+  traitChoices?: TraitChoices;
 }
 
 export interface TypeAddEquipment {
@@ -289,6 +291,7 @@ export interface PersonajeMongo {
   subclasses: string[],
   traits: string[],
   traits_data: TraitDataMongo,
+  traitChoices?: TraitChoices,
   money: {
     quantity: number;
     unit: string;

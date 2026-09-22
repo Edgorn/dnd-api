@@ -3,6 +3,7 @@ import { Damage } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
+import { LanguageApi } from "./language.types"
 
 export type MovementMode = "walk" | "fly" | "climb" | "swim" | "burrow";
 
@@ -56,6 +57,50 @@ export interface TraitCompanionRoster {
   suggestedRoles?: string[];
 }
 
+export interface TraitLanguages {
+  speaks: string[];
+  understands: string[];
+}
+
+export interface TraitLanguagesApi {
+  speaks: LanguageApi[];
+  understands: LanguageApi[];
+}
+
+export interface TraitDamageChoiceOption {
+  name: string;
+  damageTypeId: string;
+}
+
+export interface TraitDamageChoiceOptionApi extends TraitDamageChoiceOption {
+  damage?: Damage;
+}
+
+export interface TraitDamageChoice {
+  key: string;
+  choose: number;
+  options: TraitDamageChoiceOption[];
+}
+
+export interface TraitDamageChoiceApi {
+  key: string;
+  choose: number;
+  options: TraitDamageChoiceOptionApi[];
+}
+
+export interface TraitDamageChoiceRef {
+  traitId: string;
+  choiceKey: string;
+  grantsResistance?: boolean;
+}
+
+export interface ResolvedDamageChoice {
+  name: string;
+  damage: Damage;
+}
+
+export type TraitChoices = Record<string, Record<string, string[]>>;
+
 export interface TraitMongo {
   _id: ObjectId,
   index: string,
@@ -80,6 +125,9 @@ export interface TraitMongo {
   suppressedByArmorTypeIds?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
   companionRoster?: TraitCompanionRoster,
+  languages?: TraitLanguages,
+  damageChoices?: TraitDamageChoice[],
+  damageChoiceRef?: TraitDamageChoiceRef,
   deletedAt?: Date | null
 }
 
@@ -116,7 +164,11 @@ export interface TraitApi {
   acFormula?: string,
   suppressedByArmorTypeIds?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
-  companionRoster?: TraitCompanionRoster
+  companionRoster?: TraitCompanionRoster,
+  languages?: TraitLanguagesApi,
+  damageChoices?: TraitDamageChoiceApi[],
+  damageChoiceRef?: TraitDamageChoiceRef,
+  damageChoice?: ResolvedDamageChoice[]
 }
 
 export interface TraitsOptionsApi {
@@ -136,7 +188,10 @@ export interface CreateTrait {
   speed?: TraitSpeed,
   acFormula?: string | null,
   suppressedByArmorTypeIds?: string[] | null,
-  companionRoster?: TraitCompanionRoster
+  companionRoster?: TraitCompanionRoster,
+  languages?: TraitLanguages | null,
+  damageChoices?: TraitDamageChoice[] | null,
+  damageChoiceRef?: TraitDamageChoiceRef | null
 }
 
 export interface UpdateTrait {
@@ -152,5 +207,8 @@ export interface UpdateTrait {
   speed?: TraitSpeed,
   acFormula?: string | null,
   suppressedByArmorTypeIds?: string[] | null,
-  companionRoster?: TraitCompanionRoster
+  companionRoster?: TraitCompanionRoster,
+  languages?: TraitLanguages | null,
+  damageChoices?: TraitDamageChoice[] | null,
+  damageChoiceRef?: TraitDamageChoiceRef | null
 }

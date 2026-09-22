@@ -44,6 +44,14 @@ const AbilityScoreIncreaseSchema = z.object({
   }),
 });
 
+export const TraitChoicesSchema = z.record(
+  z.string().min(1, "El id del rasgo no puede estar vacío"),
+  z.record(
+    z.string().min(1, "La clave de la elección no puede estar vacía"),
+    z.array(z.string().min(1, "El nombre de la fila no puede estar vacío"))
+  )
+);
+
 export const LevelUpSchema = z.object({
   class: z.string().min(1, "ID de clase requerido"),
   hpIncrease: z
@@ -73,6 +81,7 @@ export const LevelUpSchema = z.object({
     .string()
     .regex(objectIdRegex, "La dote debe ser un ObjectId válido de MongoDB")
     .optional(),
+  traitChoices: TraitChoicesSchema.optional(),
 }).superRefine((data, ctx) => {
   if (data.abilityScore !== undefined && data.feat !== undefined) {
     ctx.addIssue({

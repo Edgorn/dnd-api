@@ -24,6 +24,9 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   suppressedByArmorTypeIds: { type: [String], default: undefined },
   spellPrivileges: { type: Schema.Types.Mixed, default: undefined },
   companionRoster: { type: Schema.Types.Mixed, default: undefined },
+  languages: { type: Schema.Types.Mixed, default: undefined },
+  damageChoices: { type: Schema.Types.Mixed, default: undefined },
+  damageChoiceRef: { type: Schema.Types.Mixed, default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: 'traits' });
 

@@ -540,18 +540,25 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/SkillPersonajeApi'
  *         languages:
- *           $ref: '#/components/schemas/CreatureLanguages'
+ *           description: >
+ *             Idiomas del personaje unidos con los que concede cada rasgo.
+ *             Se deduplican antes de hidratarlos.
+ *           allOf:
+ *             - $ref: '#/components/schemas/CreatureLanguages'
  *         proficiencies:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Proficiency'
  *         traits:
  *           type: array
+ *           description: >
+ *             Rasgos del personaje. Si el rasgo define o referencia una elección de daño
+ *             ya guardada, incluye damageChoice y sustituye {name} y {damage} en la descripción.
  *           items:
  *             $ref: '#/components/schemas/Trait'
  *         traits_data:
  *           type: object
- *           description: Datos dinámicos de elecciones de rasgos del personaje (TraitDataMongo).
+ *           description: Textos dinámicos de rasgos del personaje. No guarda la fila de daño elegida.
  *         resistances:
  *           type: array
  *           items:
@@ -717,6 +724,18 @@ const router = Router();
  *             type: string
  *         traits_data:
  *           type: object
+ *         traitChoices:
+ *           type: object
+ *           description: >
+ *             Elecciones de daño al recibir un rasgo con damageChoices.
+ *             La clave exterior es el id del rasgo y la interior la clave de la elección.
+ *             Cada lista debe tener tantos nombres de fila como indique choose, sin repetir.
+ *           additionalProperties:
+ *             type: object
+ *             additionalProperties:
+ *               type: array
+ *               items:
+ *                 type: string
  *         money:
  *           type: array
  *           items:
@@ -1507,6 +1526,8 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       `spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se
  *       guardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y
  *       `traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).
+ *       Si un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con
+ *       esa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.
  *       Si el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de
  *       `abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)
  *       o `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos
@@ -1588,6 +1609,19 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                 description: >
  *                   ObjectId de la dote elegida en lugar de los +2. Mutuamente excluyente con
  *                   `abilityScore`. Debe estar en `feats.options` del GET.
+ *               traitChoices:
+ *                 type: object
+ *                 description: >
+ *                   Elecciones de daño de los rasgos que entran en este nivel.
+ *                   Clave exterior: id del rasgo. Clave interior: choiceKey.
+ *                   El valor es la lista de nombres de fila, con longitud igual a choose.
+ *                   Obligatorio si el rasgo es nuevo y define damageChoices.
+ *                 additionalProperties:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: string
  *     responses:
  *       200:
  *         description: Personaje actualizado tras la subida de nivel.

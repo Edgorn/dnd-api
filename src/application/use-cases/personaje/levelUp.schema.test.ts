@@ -121,6 +121,17 @@ describe("LevelUpSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts trait damage choices", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      traitChoices: {
+        "draconic-ancestry": { ancestor: ["red"] },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects an invalid feat id", () => {
     const result = LevelUpSchema.safeParse({
       class: "class1",

@@ -181,6 +181,118 @@ describe("CreateTraitSchema companionRoster", () => {
   });
 });
 
+const damageTypeId = "507f1f77bcf86cd799439011";
+
+const damageChoices = [{
+  key: "ancestor",
+  choose: 1,
+  options: [
+    { name: "Rojo", damageTypeId },
+    { name: "Oro", damageTypeId },
+  ],
+}];
+
+describe("CreateTraitSchema languages and damage choices", () => {
+  it("accepts fixed languages and a damage table that reuses a damage type", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Ascendencia",
+      languages: { speaks: ["draconic"], understands: ["draconic"] },
+      damageChoices,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a reference that consumes another trait table", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Resistencia",
+      damageChoiceRef: { traitId: "draconic-ancestry", choiceKey: "ancestor", grantsResistance: true },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null to clear languages, damage choices and the reference", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      languages: null,
+      damageChoices: null,
+      damageChoiceRef: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects notes and language choices on languages", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      languages: { speaks: [], understands: [], notes: "secreto" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a choose larger than the number of options", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      damageChoices: [{ ...damageChoices[0], choose: 3 }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicated choice keys and row names", () => {
+    const duplicatedKey = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      damageChoices: [damageChoices[0], { ...damageChoices[0], key: "ancestor" }],
+    });
+    const duplicatedRow = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      damageChoices: [{
+        key: "ancestor",
+        choose: 1,
+        options: [
+          { name: "Rojo", damageTypeId },
+          { name: "Rojo", damageTypeId },
+        ],
+      }],
+    });
+    const duplicatedNameAcrossChoices = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      damageChoices: [
+        damageChoices[0],
+        { key: "other", choose: 1, options: [{ name: "Rojo", damageTypeId }] },
+      ],
+    });
+    expect(duplicatedKey.success).toBe(false);
+    expect(duplicatedRow.success).toBe(false);
+    expect(duplicatedNameAcrossChoices.success).toBe(false);
+  });
+
+  it("rejects an option without a damage type id", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      damageChoices: [{
+        key: "ancestor",
+        choose: 1,
+        options: [{ name: "Rojo" }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema languages and damage choices", () => {
+  it("accepts null to clear the damage table", () => {
+    const result = UpdateTraitSchema.safeParse({ damageChoices: null });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("UpdateTraitSchema companionRoster", () => {
   it("accepts updating only companionRoster", () => {
     const result = UpdateTraitSchema.safeParse({
