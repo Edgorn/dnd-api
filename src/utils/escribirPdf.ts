@@ -1,5 +1,6 @@
 import { rgb, StandardFonts } from "pdf-lib";
-import { PersonajeApi } from "../domain/types/personajes.types";
+import { CharacterCompanion, PersonajeApi } from "../domain/types/personajes.types";
+import { SpellApi } from "../domain/types/spell.types";
 import { CharacterEquipmentApi, BODY_EQUIP_SLOTS } from "../domain/types/equipment.types";
 import { FeatApi } from "../domain/types/feat.types";
 import { TraitApi } from "../domain/types/traits.types";
@@ -247,25 +248,22 @@ export async function escribirOrganizaciones({ pdfDoc, personaje, form }: any) {
   }
 
   if (personaje?.companions?.length) {
-    const descripcion = personaje.companions
-      .map((companion: { name: string; role?: string; notes?: string }) => {
-        const role = companion.role ? ` (${companion.role})` : "";
-        const notes = companion.notes ? `. ${companion.notes}` : "";
-        return `${companion.name}${role}${notes}`;
-      })
-      .join("\n");
+    for (const companion of personaje.companions) {
+      const { textY, actualHeight } = escribirParrafo({
+        titulo: "",
+        descripcion: formatCompanionSheetRow(companion),
+        fontTitle: fontBold,
+        fontText: fontRegular,
+        maxWidth: 178,
+        page: page2,
+        x: 222,
+        y: textY1,
+        maxHeight: maxHeight1,
+      });
 
-    escribirParrafo({
-      titulo: "Compañeros",
-      descripcion,
-      fontTitle: fontBold,
-      fontText: fontRegular,
-      maxWidth: 178,
-      page: page2,
-      x: 222,
-      y: textY1,
-      maxHeight: maxHeight1
-    });
+      textY1 = textY;
+      maxHeight1 = actualHeight;
+    }
   }
 }
 
@@ -572,6 +570,23 @@ function formatNumber(num: any) {
   return (num >= 0 ? "+" : "") + num.toString();
 }
 
+export function mergeSheetSpells(
+  list: SpellApi[] | undefined,
+  prepared: SpellApi[] | undefined,
+): SpellApi[] {
+  const combined = [...(list ?? []), ...(prepared ?? [])];
+  return combined.filter(
+    (spell, index, self) =>
+      index === self.findIndex((item) => (item.id ?? item.name) === (spell.id ?? spell.name)),
+  );
+}
+
+export function formatCompanionSheetRow(companion: Pick<CharacterCompanion, "name" | "role" | "notes">): string {
+  const role = companion.role ? ` (${companion.role})` : "";
+  const notes = companion.notes ? `. ${companion.notes}` : "";
+  return `${companion.name}${role}${notes}`;
+}
+
 const nombres: any = {
   'Agarre electrizante': 'Controlar llamas',
   Amistad: 'Saeta de fuego',
@@ -634,14 +649,11 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
           checkSpells[index] = 0
         }
 
-        const listSpells = spells?.list
-          ?.sort((a, b) => {
+        const listSpells = mergeSheetSpells(spells?.list, spells?.prepared)
+          .sort((a, b) => {
             return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
           })
-          ?.filter(spell => spell.level === index)
-          ?.filter((obj, idx, self) =>
-            idx === self.findIndex((item) => (item.id ?? item.name) === (obj.id ?? obj.name))
-          );
+          .filter(spell => spell.level === index);
 
         listSpells?.forEach((spell, index2: number) => {
           const camposNivelActual = spellsList[index];

@@ -234,8 +234,14 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
   async getArmor(rulesets: string[] = []): Promise<EquipmentBasic[]> {
     const query: Record<string, unknown> = {
-      equipSlot: { $in: [...BODY_EQUIP_SLOTS] },
-      deletedAt: null
+      deletedAt: null,
+      $or: [
+        { equipSlot: { $in: [...BODY_EQUIP_SLOTS] } },
+        {
+          equipSlot: "off_hand",
+          "armor.class": { $exists: true, $ne: null }
+        }
+      ]
     };
 
     if (rulesets.length > 0) {

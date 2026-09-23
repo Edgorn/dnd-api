@@ -595,7 +595,7 @@ router.get("/equipment/weapons", authMiddleware, equipmentController.getWeapons)
  * /equipment/armor:
  *   get:
  *     summary: Obtener equipamientos de armadura
- *     description: Devuelve el equipamiento wearable (armadura o ropa) cuya ranura de cuerpo está definida (head, neck, cloak, armor, hands, waist, feet, ring). No depende del bloque armor ni de category. Excluye ranuras de arma.
+ *     description: Devuelve el equipamiento wearable por ranura de cuerpo (head, neck, cloak, armor, hands, waist, feet, ring) y escudos (off_hand con clase de armadura). No depende de category. Excluye armas y objetos de mano sin armor.class.
  *     tags:
  *       - Equipamiento
  *     security:

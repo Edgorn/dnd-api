@@ -12,6 +12,7 @@ import { Damage } from "../../../../domain/types/damage.types";
 import { Property } from "../../../../domain/types/property.types";
 import { ProficiencyApi } from "../../../../domain/types/proficiencies.types";
 import { ArmorType } from "../../../../domain/types/armorType.types";
+import { BODY_EQUIP_SLOTS } from "../../../../domain/types/equipment.types";
 
 vi.mock("../schemas/Equipment", () => ({
   default: {
@@ -447,6 +448,44 @@ describe("EquipmentRepository lookup batching", () => {
       const branch = result?.[0].query_type === "mixed" ? result[0].options[0] : undefined;
       expect(branch && "value" in branch ? branch.value : undefined).not.toHaveProperty("equipped");
       expect(branch && "value" in branch ? branch.value : undefined).not.toHaveProperty("instanceId");
+    });
+  });
+
+  describe("getArmor", () => {
+    it("queries body equip slots or off_hand items with armor class (shields)", async () => {
+      mockFindLean([]);
+
+      await repository.getArmor();
+
+      expect(EquipmentModel.find).toHaveBeenCalledWith({
+        deletedAt: null,
+        $or: [
+          { equipSlot: { $in: [...BODY_EQUIP_SLOTS] } },
+          {
+            equipSlot: "off_hand",
+            "armor.class": { $exists: true, $ne: null }
+          }
+        ]
+      });
+    });
+
+    it("applies expanded ruleset filter when rulesets are provided", async () => {
+      mockFindLean([]);
+
+      await repository.getArmor([RULESET]);
+
+      expect(systemRepository.getSystemsAndAncestors).toHaveBeenCalledWith([RULESET]);
+      expect(EquipmentModel.find).toHaveBeenCalledWith({
+        deletedAt: null,
+        $or: [
+          { equipSlot: { $in: [...BODY_EQUIP_SLOTS] } },
+          {
+            equipSlot: "off_hand",
+            "armor.class": { $exists: true, $ne: null }
+          }
+        ],
+        ruleset: { $in: [RULESET] }
+      });
     });
   });
 
