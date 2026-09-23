@@ -134,6 +134,54 @@ describe("UpdateTraitSchema spellPrivileges", () => {
   });
 });
 
+const druidRestriction = {
+  forbiddenMaterials: ["metal"],
+  unlessMaterials: ["mithral"],
+  scopes: ["armor", "shield"],
+  enforcement: "block",
+};
+
+describe("CreateTraitSchema equipmentRestriction", () => {
+  it("accepts a material restriction", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Druidas",
+      equipmentRestriction: druidRestriction,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null to clear the restriction", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Druidas",
+      equipmentRestriction: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an unknown material in the restriction", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Druidas",
+      equipmentRestriction: {
+        ...druidRestriction,
+        forbiddenMaterials: ["adamantine"],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema equipmentRestriction", () => {
+  it("accepts null to clear the restriction", () => {
+    const result = UpdateTraitSchema.safeParse({
+      equipmentRestriction: null,
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("UpdateTraitSchema nullable armor fields", () => {
   it("accepts null acFormula and suppressedByArmorTypeIds on full edit payload", () => {
     const result = UpdateTraitSchema.safeParse({

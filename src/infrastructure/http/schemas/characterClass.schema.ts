@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CharacterEquipmentSchema, CostSchema, EquipmentChoiceMongoSchema } from "./equipment.schema";
+import { CostSchema, EquipmentChoiceMongoSchema, GrantedEquipmentListSchema } from "./equipment.schema";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
 import { abilityScoreProgressionSchema } from "./system.schema";
 
@@ -90,7 +90,7 @@ const characterClassFields = {
   proficiencies: z.array(z.string()).optional(),
   saving_throws: z.array(z.string().min(1)).optional(),
   skill_choices: ChoiceMongoSchema.nullable().optional(),
-  equipment: z.array(CharacterEquipmentSchema).nullable().optional(),
+  equipment: GrantedEquipmentListSchema.nullable().optional(),
   equipment_choices: z.array(EquipmentChoiceMongoSchema).nullable().optional(),
   spellcasting: z.string().min(1).nullable().optional(),
   spellSaveDcFormula: classFormulaSchema("spellSaveDcFormula"),

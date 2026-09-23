@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CharacterEquipmentSchema, EquipmentChoiceMongoSchema } from "./equipment.schema";
+import { EquipmentChoiceMongoSchema, GrantedEquipmentListSchema } from "./equipment.schema";
 
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
@@ -43,7 +43,7 @@ export const CreateBackgroundSchema = z.object({
   flaws: z.array(z.string()).nullable().optional(),
   money: z.array(MoneySchema).nullable().optional(),
   equipment_choices: z.array(EquipmentChoiceMongoSchema).nullable().optional(),
-  equipment: z.array(CharacterEquipmentSchema).nullable().optional()
+  equipment: GrantedEquipmentListSchema.nullable().optional()
 });
 
 export const UpdateBackgroundSchema = z.object({
@@ -66,7 +66,7 @@ export const UpdateBackgroundSchema = z.object({
   flaws: z.array(z.string()).nullable().optional(),
   money: z.array(MoneySchema).nullable().optional(),
   equipment_choices: z.array(EquipmentChoiceMongoSchema).nullable().optional(),
-  equipment: z.array(CharacterEquipmentSchema).nullable().optional()
+  equipment: GrantedEquipmentListSchema.nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para actualizar"
 });

@@ -4,6 +4,20 @@ import { ProficiencyApi } from "./proficiencies.types"
 import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 import { LanguageApi } from "./language.types"
+import { EquipmentMaterial } from "./equipment.types"
+
+export const EQUIPMENT_RESTRICTION_SCOPES = ["armor", "shield"] as const;
+export type EquipmentRestrictionScope = typeof EQUIPMENT_RESTRICTION_SCOPES[number];
+
+export const EQUIPMENT_RESTRICTION_ENFORCEMENTS = ["block", "warn"] as const;
+export type EquipmentRestrictionEnforcement = typeof EQUIPMENT_RESTRICTION_ENFORCEMENTS[number];
+
+export interface EquipmentRestriction {
+  forbiddenMaterials: EquipmentMaterial[];
+  unlessMaterials?: EquipmentMaterial[];
+  scopes: EquipmentRestrictionScope[];
+  enforcement: EquipmentRestrictionEnforcement;
+}
 
 export type MovementMode = "walk" | "fly" | "climb" | "swim" | "burrow";
 
@@ -130,6 +144,7 @@ export interface TraitMongo {
   },
   acFormula?: string,
   suppressedByArmorTypeIds?: string[],
+  equipmentRestriction?: EquipmentRestriction,
   spellPrivileges?: SpellPrivilegeRule[],
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguages,
@@ -171,6 +186,7 @@ export interface TraitApi {
   },
   acFormula?: string,
   suppressedByArmorTypeIds?: string[],
+  equipmentRestriction?: EquipmentRestriction,
   spellPrivileges?: SpellPrivilegeRule[],
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguagesApi,
@@ -197,6 +213,7 @@ export interface CreateTrait {
   speed?: TraitSpeed,
   acFormula?: string | null,
   suppressedByArmorTypeIds?: string[] | null,
+  equipmentRestriction?: EquipmentRestriction | null,
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguages | null,
   damageChoices?: TraitDamageChoice[] | null,
@@ -217,6 +234,7 @@ export interface UpdateTrait {
   speed?: TraitSpeed,
   acFormula?: string | null,
   suppressedByArmorTypeIds?: string[] | null,
+  equipmentRestriction?: EquipmentRestriction | null,
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguages | null,
   damageChoices?: TraitDamageChoice[] | null,

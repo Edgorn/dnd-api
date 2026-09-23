@@ -254,6 +254,14 @@
             },
             "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
           },
+          "equipmentRestriction": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EquipmentRestriction"
+              }
+            ],
+            "description": "Restricción de material al equipar. block rechaza el equipado; warn lo permite para que el cliente avise.\n"
+          },
           "companionRoster": {
             "$ref": "#/components/schemas/TraitCompanionRoster",
             "description": "Pista para la UI sobre cuántos compañeros pedir. `count` no se valida contra la longitud del roster del personaje.\n"
@@ -283,6 +291,62 @@
           "hitPoints": {
             "$ref": "#/components/schemas/TraitHitPoints",
             "description": "Bono de puntos de golpe por nivel. scope class suma por nivel de la clase que otorga el rasgo; scope character suma por nivel total del personaje.\n"
+          }
+        }
+      },
+      "EquipmentRestriction": {
+        "type": "object",
+        "required": [
+          "forbiddenMaterials",
+          "scopes",
+          "enforcement"
+        ],
+        "properties": {
+          "forbiddenMaterials": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMaterial"
+            },
+            "description": "Materiales que el rasgo prohíbe equipar.",
+            "example": [
+              "metal"
+            ]
+          },
+          "unlessMaterials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMaterial"
+            },
+            "description": "Materiales que excepcionan la prohibición, como el mithral.",
+            "example": [
+              "mithral"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "armor",
+                "shield"
+              ]
+            },
+            "description": "Ámbitos afectados. armor es la ranura armor. shield es la ranura off_hand cuando el objeto tiene clase de armadura.\n",
+            "example": [
+              "armor",
+              "shield"
+            ]
+          },
+          "enforcement": {
+            "type": "string",
+            "enum": [
+              "block",
+              "warn"
+            ],
+            "description": "block impide equipar el objeto. warn lo permite y el cliente puede avisar con el rasgo y los materiales.\n",
+            "example": "block"
           }
         }
       },
@@ -668,6 +732,15 @@
             },
             "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
           },
+          "equipmentRestriction": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EquipmentRestriction"
+              }
+            ],
+            "description": "Restricción de material al equipar. null borra el campo. block rechaza el equipado; warn lo permite para que el cliente avise.\n"
+          },
           "companionRoster": {
             "$ref": "#/components/schemas/TraitCompanionRoster",
             "description": "Pista de UI. count no se exige al crear o actualizar el personaje."
@@ -830,6 +903,15 @@
               "type": "string"
             },
             "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
+          },
+          "equipmentRestriction": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EquipmentRestriction"
+              }
+            ],
+            "description": "Restricción de material al equipar. null borra el campo. block rechaza el equipado; warn lo permite para que el cliente avise.\n"
           },
           "companionRoster": {
             "$ref": "#/components/schemas/TraitCompanionRoster",
@@ -2450,6 +2532,13 @@
             "$ref": "#/components/schemas/AttributeApi",
             "description": "Característica principal para lanzar conjuros de la raza. En una subraza se hereda de la raza padre si el hijo no la define."
           },
+          "equipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterEquipmentApi"
+            },
+            "description": "Equipamiento fijo concedido por la raza, con personalizaciones aplicadas."
+          },
           "parentId": {
             "type": "string",
             "description": "ID de la raza padre si esta raza es una subraza (Opcional)."
@@ -2662,6 +2751,14 @@
           "spellcasting": {
             "type": "string",
             "description": "Identificador único (ObjectId) del atributo usado como característica principal para lanzar conjuros (Opcional)."
+          },
+          "equipment": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/GrantedEquipmentEntry"
+            },
+            "description": "Equipamiento fijo concedido por la raza."
           }
         }
       },
@@ -2741,6 +2838,14 @@
           "spellcasting": {
             "type": "string",
             "description": "Identificador único (ObjectId) del atributo usado como característica principal para lanzar conjuros (Opcional)."
+          },
+          "equipment": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/GrantedEquipmentEntry"
+            },
+            "description": "Equipamiento fijo concedido por la raza."
           }
         }
       },
@@ -3886,17 +3991,9 @@
           "equipment": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "ID de MongoDB del equipamiento base."
-                },
-                "quantity": {
-                  "type": "number"
-                }
-              }
-            }
+              "$ref": "#/components/schemas/GrantedEquipmentEntry"
+            },
+            "description": "Equipamiento inicial del personaje. Cada entrada puede ser un id de catálogo o un objeto parcial con id obligatorio y campos que personalizan la instancia.\n"
           },
           "traits": {
             "type": "array",
@@ -4517,6 +4614,19 @@
         "description": "Ranura de equipamiento del personaje donde se coloca el objeto.",
         "example": "head"
       },
+      "EquipmentMaterial": {
+        "type": "string",
+        "enum": [
+          "metal",
+          "wood",
+          "leather",
+          "hide",
+          "cloth",
+          "bone",
+          "mithral"
+        ],
+        "description": "Material del objeto. Un array vacío o ausente significa material desconocido."
+      },
       "WeaponDamage": {
         "type": "object",
         "required": [
@@ -4800,6 +4910,16 @@
               "arrow"
             ]
           },
+          "materials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMaterial"
+            },
+            "description": "Materiales del objeto en el catálogo. Vacío o ausente significa material desconocido y no activa restricciones de rasgos.\n",
+            "example": [
+              "metal"
+            ]
+          },
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
           },
@@ -4965,6 +5085,16 @@
               "arrow"
             ]
           },
+          "materials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMaterial"
+            },
+            "description": "Materiales del objeto. Vacío o ausente significa material desconocido.",
+            "example": [
+              "leather"
+            ]
+          },
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
           },
@@ -5050,6 +5180,18 @@
             "example": [
               "ammunition",
               "arrow"
+            ]
+          },
+          "materials": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMaterial"
+            },
+            "description": "Materiales del objeto. null vacía el campo. Vacío o ausente significa material desconocido.",
+            "example": [
+              "metal",
+              "mithral"
             ]
           },
           "containerStats": {
@@ -5645,7 +5787,7 @@
           "equipment": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/BackgroundCharacterEquipment"
+              "$ref": "#/components/schemas/GrantedEquipmentEntry"
             },
             "description": "Equipamiento fijo inicial."
           },
@@ -5773,7 +5915,7 @@
           "equipment": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/BackgroundCharacterEquipment"
+              "$ref": "#/components/schemas/GrantedEquipmentEntry"
             },
             "description": "Equipamiento fijo inicial."
           },
@@ -6283,7 +6425,7 @@
           },
           "options": {
             "type": "array",
-            "description": "Si query_type es options/filter/all, lista de Equipment. Si es mixed, lista de ramas (item, choice anidada o bundle AND).",
+            "description": "Si query_type es options, lista de Equipment en el orden guardado; un parcial manual pisa nombre, descripción y materiales del catálogo. Si es filter, el catálogo sin personalización. Si es mixed, lista de ramas (item, choice anidada o bundle AND).",
             "items": {
               "oneOf": [
                 {
@@ -6339,7 +6481,11 @@
           },
           "quantity": {
             "type": "number",
-            "description": "Cantidad cuando type=item (por defecto 1)."
+            "description": "Cantidad de la elección cuando type=item (por defecto 1). No es la cantidad del inventario."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre personalizado cuando type=item. También se aceptan los demás campos opcionales de BackgroundEquipmentInput (description, materials, weight, etc.). La respuesta no incluye instanceId ni equipped."
           },
           "items": {
             "type": "array",
@@ -6392,10 +6538,18 @@
           },
           "options": {
             "type": "array",
+            "description": "Opciones elegidas a mano, en el orden que debe conservarse al hidratar. Cada elemento es un ID de catálogo o un objeto parcial con id obligatorio (nombre, descripción, materiales y el resto de campos de BackgroundEquipmentInput). Mutuamente excluyente con filter y alternatives. filter sigue devolviendo el catálogo sin personalización.\n",
             "items": {
-              "type": "string"
-            },
-            "description": "Lista explícita de IDs de MongoDB. Mutuamente excluyente con filter y alternatives."
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "ID de MongoDB del equipamiento en catálogo."
+                },
+                {
+                  "$ref": "#/components/schemas/BackgroundEquipmentInput"
+                }
+              ]
+            }
           },
           "filter": {
             "$ref": "#/components/schemas/EquipmentChoiceFilter",
@@ -6439,10 +6593,18 @@
           },
           "options": {
             "type": "array",
+            "description": "Cuando type=choice, cada elemento es un ID de catálogo o un parcial con id (igual que options de la elección simple).",
             "items": {
-              "type": "string"
-            },
-            "description": "IDs cuando type=choice (modo options)."
+              "oneOf": [
+                {
+                  "type": "string",
+                  "description": "ID de MongoDB del equipamiento en catálogo."
+                },
+                {
+                  "$ref": "#/components/schemas/BackgroundEquipmentInput"
+                }
+              ]
+            }
           },
           "filter": {
             "$ref": "#/components/schemas/EquipmentChoiceFilter",
@@ -6488,9 +6650,21 @@
           }
         ]
       },
+      "GrantedEquipmentEntry": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "ID de MongoDB del equipamiento en catálogo."
+          },
+          {
+            "$ref": "#/components/schemas/BackgroundEquipmentInput"
+          }
+        ],
+        "description": "Equipamiento concedido como id de catálogo o como objeto parcial con id obligatorio. Los campos opcionales del objeto sobrescriben el catálogo al hidratar o al crear el personaje.\n"
+      },
       "BackgroundEquipmentInput": {
         "type": "object",
-        "description": "Equipamiento fijo del trasfondo. Debe incluir id (referencia a equipamiento base) o name (objeto personalizado). Todos los demás campos son opcionales y sobrescriben los valores base.",
+        "description": "Equipamiento parcial concedido. El id del catálogo es obligatorio. El resto de campos son opcionales y sobrescriben los valores base.",
         "properties": {
           "id": {
             "type": "string",
@@ -6498,7 +6672,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Nombre personalizado del objeto. Obligatorio si no se indica id."
+            "description": "Nombre personalizado del objeto."
           },
           "quantity": {
             "type": "number",
@@ -6542,6 +6716,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "materials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentMaterial"
+            },
+            "description": "Materiales que sobrescriben los del catálogo."
           },
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
@@ -13333,7 +13514,7 @@
                   "equipment": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/BackgroundEquipmentInput"
+                      "$ref": "#/components/schemas/GrantedEquipmentEntry"
                     },
                     "description": "Equipamiento fijo otorgado. Cada ítem requiere id o name; el resto de campos personalizan el objeto base."
                   },
@@ -13581,7 +13762,7 @@
                   "equipment": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/BackgroundEquipmentInput"
+                      "$ref": "#/components/schemas/GrantedEquipmentEntry"
                     },
                     "description": "Equipamiento fijo otorgado. Cada ítem requiere id o name; el resto de campos personalizan el objeto base."
                   },

@@ -73,6 +73,72 @@ describe("EquipmentChoiceMongoSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts mixed options of catalog ids and partials", () => {
+    const result = EquipmentChoiceMongoSchema.safeParse({
+      choose: 1,
+      options: [
+        "507f1f77bcf86cd799439012",
+        {
+          id: "507f1f77bcf86cd799439011",
+          materials: ["wood"],
+          description: "Oscuras"
+        }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.options).toEqual([
+        "507f1f77bcf86cd799439012",
+        {
+          id: "507f1f77bcf86cd799439011",
+          materials: ["wood"],
+          description: "Oscuras"
+        }
+      ]);
+    }
+  });
+
+  it("rejects an option object without id", () => {
+    const result = EquipmentChoiceMongoSchema.safeParse({
+      choose: 1,
+      options: [{ materials: ["wood"] }]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an option object with an unknown material", () => {
+    const result = EquipmentChoiceMongoSchema.safeParse({
+      choose: 1,
+      options: [{ id: "507f1f77bcf86cd799439011", materials: ["crystal"] }]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts materials on an item leaf together with quantity", () => {
+    const result = EquipmentChoiceMongoSchema.safeParse({
+      choose: 1,
+      alternatives: [
+        { type: "item", id: "507f1f77bcf86cd799439011", quantity: 1, materials: ["wood"] }
+      ]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a partial inside a nested choice", () => {
+    const result = EquipmentChoiceMongoSchema.safeParse({
+      choose: 1,
+      alternatives: [
+        {
+          type: "choice",
+          choose: 1,
+          options: [{ id: "507f1f77bcf86cd799439011", name: "Ropas oscuras" }]
+        }
+      ]
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects nested bundle inside bundle items", () => {
     const result = EquipmentChoiceMongoSchema.safeParse({
       choose: 1,

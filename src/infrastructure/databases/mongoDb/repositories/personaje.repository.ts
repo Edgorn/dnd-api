@@ -20,7 +20,8 @@ import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
 import { FeatApi } from '../../../../domain/types/feat.types';
 import { EstadoApi } from '../../../../domain/types/estados.types';
-import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipSlot } from '../../../../domain/types/equipment.types';
+import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipmentInstanceApi, EquipSlot } from '../../../../domain/types/equipment.types';
+import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRestriction';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
@@ -350,8 +351,24 @@ export default class PersonajeRepository implements IPersonajeRepository {
     this.requireInventoryInstance(inventory, instanceId);
 
     if (equipped) {
-      const slotOf = await this.buildSlotLookup(inventory);
+      const formatted = await this.equipmentRepository.getCharacterEquipmentsByIds(
+        this.toHydrationRows(inventory)
+      ) ?? [];
+      const slotOf = this.slotLookupFrom(formatted);
       const { inventory: next, instance } = splitOne(inventory, instanceId);
+      const catalogItem = formatted.find(item => item.instanceId === instanceId);
+      const traits = await this.traitRepository.getTraitsByIndexes(
+        personaje.traits ?? [],
+        personaje.traits_data
+      );
+      const blocked = catalogItem
+        ? findBlockedEquipmentRestriction(catalogItem, traits)
+        : undefined;
+      if (blocked) {
+        throw new ConflictError(
+          "Un rasgo del personaje impide equipar armadura o escudo de este material"
+        );
+      }
       inventory = this.applyEquipOrThrow(next, instance.instanceId, true, slotOf);
     } else {
       inventory = applyEquip(inventory, instanceId, false, () => null);
@@ -1772,15 +1789,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
       isMagic: item.isMagic,
       isBond: item.isBond,
       isFavorite: item.isFavorite,
+      ...(item.customization ?? {}),
     }));
   }
 
-  private async buildSlotLookup(
-    inventory: PersonajeEquipmentMongo[]
-  ): Promise<(item: PersonajeEquipmentMongo) => EquipSlot | null> {
-    const formatted = await this.equipmentRepository.getCharacterEquipmentsByIds(
-      this.toHydrationRows(inventory)
-    ) ?? [];
+  private slotLookupFrom(
+    formatted: EquipmentInstanceApi[]
+  ): (item: PersonajeEquipmentMongo) => EquipSlot | null {
     const slotByInstanceId = new Map(
       formatted.map(item => [item.instanceId, item.equipSlot ?? null] as const)
     );

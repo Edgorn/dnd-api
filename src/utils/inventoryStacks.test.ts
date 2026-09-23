@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addToInventory,
   canStackWith,
+  cloneInventory,
   createInventoryInstance,
   removeOrDecrement,
   splitOne,
@@ -53,6 +54,37 @@ describe("canStackWith", () => {
       row({ instanceId: "a", equipmentId: "eq1", isMagic: true }),
       row({ instanceId: "b", equipmentId: "eq1", isMagic: false })
     )).toBe(false);
+  });
+
+  it("does not stack rows with different customization", () => {
+    expect(canStackWith(
+      row({ instanceId: "a", equipmentId: "eq1", customization: { materials: ["wood"] } }),
+      row({ instanceId: "b", equipmentId: "eq1", customization: { materials: ["metal"] } })
+    )).toBe(false);
+  });
+
+  it("stacks rows with the same customization", () => {
+    expect(canStackWith(
+      row({ instanceId: "a", equipmentId: "eq1", customization: { materials: ["wood"] } }),
+      row({ instanceId: "b", equipmentId: "eq1", customization: { materials: ["wood"] } })
+    )).toBe(true);
+  });
+});
+
+describe("cloneInventory", () => {
+  it("preserves customization on each row", () => {
+    const inventory = [
+      row({
+        instanceId: "a",
+        equipmentId: "eq1",
+        customization: { materials: ["wood"], description: "Escudo de madera" },
+      }),
+    ];
+    const cloned = cloneInventory(inventory);
+    expect(cloned[0].customization).toEqual({
+      materials: ["wood"],
+      description: "Escudo de madera",
+    });
   });
 });
 

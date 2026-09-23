@@ -290,7 +290,7 @@ const router = Router();
  *         equipment:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/BackgroundCharacterEquipment'
+ *             $ref: '#/components/schemas/GrantedEquipmentEntry'
  *           description: Equipamiento fijo inicial.
  *         equipment_choices:
  *           type: array
@@ -377,7 +377,7 @@ const router = Router();
  *         equipment:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/BackgroundCharacterEquipment'
+ *             $ref: '#/components/schemas/GrantedEquipmentEntry'
  *           description: Equipamiento fijo inicial.
  *         equipment_choices:
  *           type: array

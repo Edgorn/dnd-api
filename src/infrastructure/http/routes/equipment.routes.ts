@@ -90,6 +90,10 @@ const router = Router();
  *       enum: [head, neck, cloak, armor, hands, waist, feet, ring, main_hand, off_hand, two_handed]
  *       description: Ranura de equipamiento del personaje donde se coloca el objeto.
  *       example: "head"
+ *     EquipmentMaterial:
+ *       type: string
+ *       enum: [metal, wood, leather, hide, cloth, bone, mithral]
+ *       description: Material del objeto. Un array vacío o ausente significa material desconocido.
  *     WeaponDamage:
  *       type: object
  *       required:
@@ -289,6 +293,14 @@ const router = Router();
  *             type: string
  *           description: Etiquetas de almacenaje que definen qué es este objeto a la hora de guardarse.
  *           example: ["ammunition", "arrow"]
+ *         materials:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentMaterial'
+ *           description: >
+ *             Materiales del objeto en el catálogo. Vacío o ausente significa material
+ *             desconocido y no activa restricciones de rasgos.
+ *           example: ["metal"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
  *         proficiencies:
@@ -401,6 +413,12 @@ const router = Router();
  *           nullable: true
  *           description: Etiquetas de almacenaje del equipamiento.
  *           example: ["ammunition", "arrow"]
+ *         materials:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentMaterial'
+ *           description: Materiales del objeto. Vacío o ausente significa material desconocido.
+ *           example: ["leather"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
  *         proficiencies:
@@ -461,6 +479,13 @@ const router = Router();
  *           nullable: true
  *           description: Etiquetas de almacenaje del equipamiento (puede ser null para vaciar).
  *           example: ["ammunition", "arrow"]
+ *         materials:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentMaterial'
+ *           description: Materiales del objeto. null vacía el campo. Vacío o ausente significa material desconocido.
+ *           example: ["metal", "mithral"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
  *         proficiencies:

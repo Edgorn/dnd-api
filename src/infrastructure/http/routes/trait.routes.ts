@@ -65,6 +65,12 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         equipmentRestriction:
+ *           allOf:
+ *             - $ref: '#/components/schemas/EquipmentRestriction'
+ *           description: >
+ *             Restricción de material al equipar. block rechaza el equipado; warn lo
+ *             permite para que el cliente avise.
  *         companionRoster:
  *           $ref: '#/components/schemas/TraitCompanionRoster'
  *           description: >
@@ -98,6 +104,43 @@ const router = Router();
  *           description: >
  *             Bono de puntos de golpe por nivel. scope class suma por nivel de la clase
  *             que otorga el rasgo; scope character suma por nivel total del personaje.
+ *     EquipmentRestriction:
+ *       type: object
+ *       required:
+ *         - forbiddenMaterials
+ *         - scopes
+ *         - enforcement
+ *       properties:
+ *         forbiddenMaterials:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentMaterial'
+ *           description: Materiales que el rasgo prohíbe equipar.
+ *           example: ["metal"]
+ *         unlessMaterials:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentMaterial'
+ *           description: Materiales que excepcionan la prohibición, como el mithral.
+ *           example: ["mithral"]
+ *         scopes:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             type: string
+ *             enum: [armor, shield]
+ *           description: >
+ *             Ámbitos afectados. armor es la ranura armor. shield es la ranura off_hand
+ *             cuando el objeto tiene clase de armadura.
+ *           example: ["armor", "shield"]
+ *         enforcement:
+ *           type: string
+ *           enum: [block, warn]
+ *           description: >
+ *             block impide equipar el objeto. warn lo permite y el cliente puede avisar
+ *             con el rasgo y los materiales.
+ *           example: "block"
  *     TraitHitPoints:
  *       type: object
  *       required:
@@ -367,6 +410,13 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         equipmentRestriction:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/EquipmentRestriction'
+ *           description: >
+ *             Restricción de material al equipar. null borra el campo. block rechaza el
+ *             equipado; warn lo permite para que el cliente avise.
  *         companionRoster:
  *           $ref: '#/components/schemas/TraitCompanionRoster'
  *           description: Pista de UI. count no se exige al crear o actualizar el personaje.
@@ -479,6 +529,13 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         equipmentRestriction:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/EquipmentRestriction'
+ *           description: >
+ *             Restricción de material al equipar. null borra el campo. block rechaza el
+ *             equipado; warn lo permite para que el cliente avise.
  *         companionRoster:
  *           $ref: '#/components/schemas/TraitCompanionRoster'
  *           description: Pista de UI. count no se exige al crear o actualizar el personaje.

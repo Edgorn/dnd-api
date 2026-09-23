@@ -15,6 +15,7 @@ const equipmentSchema: Schema = new Schema<EquipmentMongo>(
     },
     weight: { type: Number, default: 0 },
     storageTags: { type: [String], default: [] },
+    materials: { type: [String], default: [] },
     containerStats: {
       maxWeight: { type: Number },
       maxItems: { type: Number },

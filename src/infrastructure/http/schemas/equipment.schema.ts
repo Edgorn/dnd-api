@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CharacterEquipmentMongo, EQUIPMENT_MATERIALS } from "../../../domain/types/equipment.types";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -9,6 +10,8 @@ export const CostSchema = z.object({
 
 export const LiquidUnitSchema = z.enum(["gallon", "pint", "ounce"]);
 export const SolidUnitSchema = z.enum(["cubic_foot"]);
+
+export const EquipmentMaterialSchema = z.enum(EQUIPMENT_MATERIALS);
 
 export const EquipSlotSchema = z.enum([
   "head",
@@ -89,31 +92,56 @@ export const EquipmentBonusesSchema = z.object({
   saving_throws: z.number().optional()
 });
 
+const equipmentCustomizationFields = {
+  quantity: z.number().min(1, "La cantidad debe ser al menos 1").optional(),
+  name: z.string().min(1, "El nombre no puede estar vacío").optional(),
+  description: z.union([z.string(), z.array(z.string())]).optional(),
+  cost: CostSchema.optional(),
+  weight: z.number().min(0, "El peso no puede ser negativo").optional(),
+  category: z.string().optional(),
+  subcategory: z.string().optional(),
+  equipSlot: EquipSlotSchema.nullable().optional(),
+  storageTags: z.array(z.string()).nullable().optional(),
+  materials: z.array(EquipmentMaterialSchema).nullable().optional(),
+  containerStats: ContainerRulesSchema.nullable().optional(),
+  proficiencies: z.array(z.string()).optional(),
+  weapon: WeaponSchema.optional(),
+  armor: ArmorSchema.optional(),
+  isMagic: z.boolean().optional(),
+  isBond: z.boolean().optional(),
+  equipped: z.boolean().optional(),
+  bonuses: EquipmentBonusesSchema.optional()
+};
+
 export const CharacterEquipmentSchema: z.ZodType<any> = z.lazy(() =>
   z.object({
     id: z.string().regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB").optional(),
-    quantity: z.number().min(1, "La cantidad debe ser al menos 1").optional(),
-    name: z.string().min(1, "El nombre no puede estar vacío").optional(),
-    description: z.union([z.string(), z.array(z.string())]).optional(),
-    cost: CostSchema.optional(),
-    weight: z.number().min(0, "El peso no puede ser negativo").optional(),
-    category: z.string().optional(),
-    subcategory: z.string().optional(),
-    equipSlot: EquipSlotSchema.nullable().optional(),
-    storageTags: z.array(z.string()).nullable().optional(),
-    containerStats: ContainerRulesSchema.nullable().optional(),
-    proficiencies: z.array(z.string()).optional(),
-    weapon: WeaponSchema.optional(),
-    armor: ArmorSchema.optional(),
-    isMagic: z.boolean().optional(),
-    isBond: z.boolean().optional(),
-    equipped: z.boolean().optional(),
-    bonuses: EquipmentBonusesSchema.optional(),
+    ...equipmentCustomizationFields,
     content: z.array(CharacterEquipmentSchema).optional()
   }).refine(item => !!(item.id || item.name), {
     message: "Debe indicar id o name"
   })
 );
+
+const GrantedEquipmentEntryInputSchema = z.union([
+  z.string().regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB"),
+  CharacterEquipmentSchema
+]);
+
+export const GrantedEquipmentEntrySchema = GrantedEquipmentEntryInputSchema
+  .superRefine((entry, ctx) => {
+    if (typeof entry !== "string" && !entry.id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El equipamiento concedido debe incluir id"
+      });
+    }
+  })
+  .transform((entry): CharacterEquipmentMongo =>
+    typeof entry === "string" ? { id: entry, quantity: 1 } : entry
+  );
+
+export const GrantedEquipmentListSchema = z.array(GrantedEquipmentEntrySchema);
 
 export const CreateEquipmentSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
@@ -125,6 +153,7 @@ export const CreateEquipmentSchema = z.object({
   subcategory: z.string().min(1, "La subcategoría no puede estar vacía"),
   equipSlot: EquipSlotSchema.nullable().optional(),
   storageTags: z.array(z.string()).nullable().optional(),
+  materials: z.array(EquipmentMaterialSchema).optional(),
   containerStats: ContainerRulesSchema.nullable().optional(),
   proficiencies: z.array(z.string()).optional(),
   weapon: WeaponSchema.nullable().optional(),
@@ -142,6 +171,7 @@ export const UpdateEquipmentSchema = z.object({
   subcategory: z.string().min(1, "La subcategoría no puede estar vacía").optional(),
   equipSlot: EquipSlotSchema.nullable().optional(),
   storageTags: z.array(z.string()).nullable().optional(),
+  materials: z.array(EquipmentMaterialSchema).nullable().optional(),
   containerStats: ContainerRulesSchema.nullable().optional(),
   proficiencies: z.array(z.string()).optional(),
   weapon: WeaponSchema.nullable().optional(),
@@ -160,16 +190,29 @@ const EquipmentChoiceFilterSchema = z.record(
   z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])
 );
 
+const EquipmentChoiceOptionObjectSchema = z.object({
+  id: z.string().regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB"),
+  ...equipmentCustomizationFields,
+  content: z.array(CharacterEquipmentSchema).optional()
+});
+
+const EquipmentChoiceOptionSchema = z.union([
+  z.string(),
+  EquipmentChoiceOptionObjectSchema
+]);
+
 const EquipmentChoiceItemSchema = z.object({
   type: z.literal("item"),
   id: z.string().min(1, "El id del equipamiento no puede estar vacío"),
-  quantity: z.number().int().min(1).optional()
+  ...equipmentCustomizationFields,
+  quantity: z.number().int().min(1).optional(),
+  content: z.array(CharacterEquipmentSchema).optional()
 });
 
 const EquipmentChoiceNestedSchema = z.object({
   type: z.literal("choice"),
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
-  options: z.array(z.string()).optional(),
+  options: z.array(EquipmentChoiceOptionSchema).optional(),
   filter: EquipmentChoiceFilterSchema.optional()
 });
 
@@ -193,7 +236,7 @@ const EquipmentChoiceBranchSchema = z.discriminatedUnion("type", [
 export const EquipmentChoiceMongoSchema = z
   .object({
     choose: z.number().int().min(1, "Debe elegir al menos 1"),
-    options: z.array(z.string()).optional(),
+    options: z.array(EquipmentChoiceOptionSchema).optional(),
     filter: EquipmentChoiceFilterSchema.optional(),
     alternatives: z.array(EquipmentChoiceBranchSchema).min(1).optional()
   })

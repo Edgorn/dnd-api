@@ -243,6 +243,7 @@ describe("EquipmentRepository lookup batching", () => {
         subcategory: "Simple",
         equipSlot: null,
         storageTags: undefined,
+        materials: undefined,
         containerStats: undefined,
         isMagic: false,
         proficiencies: [simpleWeapons],
@@ -274,6 +275,7 @@ describe("EquipmentRepository lookup batching", () => {
         subcategory: "Light",
         equipSlot: "armor",
         storageTags: undefined,
+        materials: undefined,
         containerStats: undefined,
         isMagic: false,
         proficiencies: [],
@@ -300,6 +302,7 @@ describe("EquipmentRepository lookup batching", () => {
         subcategory: "Standard",
         equipSlot: null,
         storageTags: undefined,
+        materials: undefined,
         containerStats: undefined,
         isMagic: false,
         proficiencies: [],
@@ -352,6 +355,26 @@ describe("EquipmentRepository lookup batching", () => {
       expect(armorTypeRepository.getByIds).toHaveBeenCalledTimes(1);
     });
 
+    it("applies grant overrides such as materials over the catalog item", async () => {
+      mockFindLean([leather]);
+
+      const result = await repository.getCharacterEquipmentsByIds([
+        { id: LEATHER_ID, quantity: 1, materials: ["wood"] }
+      ]);
+
+      expect(result?.[0].materials).toEqual(["wood"]);
+      expect(result?.[0].name).toBe("Leather Armor");
+    });
+
+    it("accepts a catalog id string in grant rows", async () => {
+      mockFindLean([dagger]);
+
+      const result = await repository.getCharacterEquipmentsByIds([DAGGER_ID]);
+
+      expect(result?.[0].id).toBe(DAGGER_ID);
+      expect(result?.[0].name).toBe("Dagger");
+    });
+
     it("hydrates starting equipment when the lean subdocument has a mongoose _id", async () => {
       const subdocId = "507f1f77bcf86cd799439099";
       mockFindLean([dagger]);
@@ -364,6 +387,66 @@ describe("EquipmentRepository lookup batching", () => {
       expect(EquipmentModel.find).toHaveBeenCalledWith({ _id: { $in: [DAGGER_ID] } });
       expect(result?.[0].name).toBe("Dagger");
       expect(result?.[0].id).toBe(DAGGER_ID);
+    });
+  });
+
+  describe("equipment choice hydration", () => {
+    it("applies a manual option partial over the catalog and leaves id-only options unchanged", async () => {
+      mockFindLean([leather, dagger]);
+
+      const result = await repository.formatEquipmentItemChoices([
+        {
+          choose: 1,
+          options: [
+            { id: LEATHER_ID, materials: ["wood"] },
+            DAGGER_ID
+          ]
+        }
+      ]);
+
+      expect(result?.[0].query_type).toBe("options");
+      if (result?.[0].query_type !== "options") return;
+
+      expect(result[0].options.map(option => option.id)).toEqual([LEATHER_ID, DAGGER_ID]);
+      expect(result[0].options[0].materials).toEqual(["wood"]);
+      expect(result[0].options[0].name).toBe("Leather Armor");
+      expect(result[0].options[1].materials).toBeUndefined();
+      expect(result[0].options[1].name).toBe("Dagger");
+      expect(result[0].options[0]).not.toHaveProperty("equipped");
+      expect(result[0].options[0]).not.toHaveProperty("instanceId");
+    });
+
+    it("applies materials on an item leaf without turning quantity into inventory state", async () => {
+      mockFindLean([leather]);
+
+      const result = await repository.formatEquipmentItemChoices([
+        {
+          choose: 1,
+          alternatives: [
+            { type: "item", id: LEATHER_ID, quantity: 2, materials: ["wood"] }
+          ]
+        }
+      ]);
+
+      expect(result?.[0]).toMatchObject({
+        choose: 1,
+        query_type: "mixed",
+        options: [
+          {
+            type: "item",
+            quantity: 2,
+            value: {
+              id: LEATHER_ID,
+              name: "Leather Armor",
+              materials: ["wood"]
+            }
+          }
+        ]
+      });
+
+      const branch = result?.[0].query_type === "mixed" ? result[0].options[0] : undefined;
+      expect(branch && "value" in branch ? branch.value : undefined).not.toHaveProperty("equipped");
+      expect(branch && "value" in branch ? branch.value : undefined).not.toHaveProperty("instanceId");
     });
   });
 

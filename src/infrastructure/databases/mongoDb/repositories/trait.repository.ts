@@ -249,6 +249,7 @@ export default class TraitRepository implements ITraitRepository {
         bonuses: trait?.bonuses ?? undefined,
         acFormula: trait?.acFormula,
         suppressedByArmorTypeIds: trait?.suppressedByArmorTypeIds,
+        ...(trait.equipmentRestriction ? { equipmentRestriction: trait.equipmentRestriction } : {}),
         ...(Array.isArray(trait.spellPrivileges) && trait.spellPrivileges.length
           ? { spellPrivileges: trait.spellPrivileges }
           : {}),
@@ -267,11 +268,12 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, languages, damageChoices, damageChoiceRef, hitPoints, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, equipmentRestriction, languages, damageChoices, damageChoiceRef, hitPoints, ...rest } = trait;
     return {
       ...rest,
       ...(typeof acFormula === "string" ? { acFormula } : {}),
       ...(Array.isArray(suppressedByArmorTypeIds) ? { suppressedByArmorTypeIds } : {}),
+      ...(equipmentRestriction ? { equipmentRestriction } : {}),
       ...(languages ? { languages } : {}),
       ...(Array.isArray(damageChoices) ? { damageChoices } : {}),
       ...(damageChoiceRef ? { damageChoiceRef } : {}),
@@ -286,6 +288,7 @@ export default class TraitRepository implements ITraitRepository {
     const {
       acFormula,
       suppressedByArmorTypeIds,
+      equipmentRestriction,
       languages,
       damageChoices,
       damageChoiceRef,
@@ -307,6 +310,7 @@ export default class TraitRepository implements ITraitRepository {
       $unset.suppressedByArmorTypeIds = 1;
     }
 
+    this.assignNullable($set, $unset, "equipmentRestriction", equipmentRestriction);
     this.assignNullable($set, $unset, "languages", languages);
     this.assignNullable($set, $unset, "damageChoices", damageChoices);
     this.assignNullable($set, $unset, "damageChoiceRef", damageChoiceRef);

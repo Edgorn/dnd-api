@@ -6,6 +6,7 @@ import { FeatApi } from "./feat.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi, CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { TraitApi, TraitDataMongo } from "./traits.types"
+import { CharacterEquipmentMongo, EquipmentInstanceApi } from "./equipment.types"
 import { AttributeApi, AttributeBonus, AttributeBonusCreate } from "./attribute.types"
 
 export interface RaceMongo {
@@ -43,6 +44,7 @@ export interface RaceMongo {
   levels: RaceLevelMongo[],
   spell_choices?: ChoiceMongo[],
   spellcasting?: ObjectId | string | null,
+  equipment?: CharacterEquipmentMongo[],
   deletedAt?: Date | null
 }
 
@@ -98,7 +100,8 @@ export interface RaceApi {
   variants: VarianteApi[],
   inherited?: boolean,
   overriddenFields?: Array<"name" | "description" | "img" | "alignment">,
-  overrideRuleset?: string
+  overrideRuleset?: string,
+  equipment?: EquipmentInstanceApi[]
 }
 
 export interface SubracesApi {
@@ -145,7 +148,8 @@ export interface CreateRace {
   parentId?: string | null;
   subraces_name?: string | null;
   spell_choices?: ChoiceMongo[] | null;
-  spellcasting?: string | null
+  spellcasting?: string | null,
+  equipment?: CharacterEquipmentMongo[] | null
 }
 
 export interface UpdateRace extends Partial<CreateRace> {

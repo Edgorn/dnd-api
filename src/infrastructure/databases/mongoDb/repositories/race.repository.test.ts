@@ -9,6 +9,7 @@ import IFeatRepository from "../../../../domain/repositories/IFeatRepository";
 import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
 import AttributeService from "../../../../domain/services/attribute.service";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
+import IEquipmentRepository from "../../../../domain/repositories/IEquipmentRepository";
 
 vi.mock("../schemas/Race", () => ({
   default: {
@@ -46,6 +47,9 @@ function stubFormatDependencies() {
       formatAbilityBonusChoices: vi.fn().mockResolvedValue(undefined),
       formatSpellcastingAttribute: vi.fn().mockResolvedValue(undefined),
     } as unknown as AttributeService,
+    equipmentRepository: {
+      getCharacterEquipmentsByIds: vi.fn().mockResolvedValue([]),
+    } as unknown as IEquipmentRepository,
   };
 }
 
@@ -82,6 +86,7 @@ describe("RaceRepository.obtenerPorSistema subrace ancestry filter", () => {
       deps.featRepository,
       deps.traitRepository,
       deps.attributeService,
+      deps.equipmentRepository,
       systemRepository as unknown as ISystemRepository
     );
   });

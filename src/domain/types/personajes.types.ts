@@ -4,7 +4,7 @@ import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceApi, Damage, Speed } from "."
-import { CharacterEquipmentApi } from "./equipment.types"
+import { CharacterEquipmentApi, CharacterEquipmentMongo } from "./equipment.types"
 import { FeatApi } from "./feat.types"
 import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
@@ -15,6 +15,19 @@ import { CharacterAttributeApi, AttributeApi } from "./attribute.types"
 import { Ideal } from "./background.types"
 import { CoinApi } from "./coin.types"
 
+export type PersonajeEquipmentCustomization = Omit<
+  CharacterEquipmentMongo,
+  | "instanceId"
+  | "equipmentId"
+  | "id"
+  | "quantity"
+  | "equipped"
+  | "isFavorite"
+  | "isBond"
+  | "isMagic"
+  | "content"
+>;
+
 export interface PersonajeEquipmentMongo {
   instanceId: string;
   equipmentId: string;
@@ -23,12 +36,10 @@ export interface PersonajeEquipmentMongo {
   isMagic: boolean;
   isBond: boolean;
   isFavorite: boolean;
+  customization?: PersonajeEquipmentCustomization;
 }
 
-export interface CharacterStartingEquipmentInput {
-  id: string;
-  quantity: number;
-}
+export type CharacterStartingEquipmentInput = CharacterEquipmentMongo;
 
 export interface CharacterCompanion {
   id: string;

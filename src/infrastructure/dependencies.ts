@@ -269,6 +269,7 @@ const raceRepository = new RaceRepository(
   featRepository,
   traitRepository,
   attributeService,
+  equipmentRepository,
   systemRepository
 )
 

@@ -178,7 +178,7 @@ const router = Router();
  *           description: Cantidad de objetos de equipamiento a seleccionar.
  *         options:
  *           type: array
- *           description: Si query_type es options/filter/all, lista de Equipment. Si es mixed, lista de ramas (item, choice anidada o bundle AND).
+ *           description: Si query_type es options, lista de Equipment en el orden guardado; un parcial manual pisa nombre, descripción y materiales del catálogo. Si es filter, el catálogo sin personalización. Si es mixed, lista de ramas (item, choice anidada o bundle AND).
  *           items:
  *             oneOf:
  *               - $ref: '#/components/schemas/Equipment'
@@ -206,7 +206,10 @@ const router = Router();
  *             - $ref: '#/components/schemas/EquipmentChoiceApi'
  *         quantity:
  *           type: number
- *           description: Cantidad cuando type=item (por defecto 1).
+ *           description: Cantidad de la elección cuando type=item (por defecto 1). No es la cantidad del inventario.
+ *         name:
+ *           type: string
+ *           description: Nombre personalizado cuando type=item. También se aceptan los demás campos opcionales de BackgroundEquipmentInput (description, materials, weight, etc.). La respuesta no incluye instanceId ni equipped.
  *         items:
  *           type: array
  *           description: Hojas hidratadas del paquete AND cuando type=bundle (solo item o choice; no hay bundles anidados).
@@ -244,9 +247,16 @@ const router = Router();
  *           description: Cantidad de opciones que el jugador debe elegir.
  *         options:
  *           type: array
+ *           description: >
+ *             Opciones elegidas a mano, en el orden que debe conservarse al hidratar.
+ *             Cada elemento es un ID de catálogo o un objeto parcial con id obligatorio
+ *             (nombre, descripción, materiales y el resto de campos de BackgroundEquipmentInput).
+ *             Mutuamente excluyente con filter y alternatives. filter sigue devolviendo el catálogo sin personalización.
  *           items:
- *             type: string
- *           description: Lista explícita de IDs de MongoDB. Mutuamente excluyente con filter y alternatives.
+ *             oneOf:
+ *               - type: string
+ *                 description: ID de MongoDB del equipamiento en catálogo.
+ *               - $ref: '#/components/schemas/BackgroundEquipmentInput'
  *         filter:
  *           $ref: '#/components/schemas/EquipmentChoiceFilter'
  *           description: Criterios de filtrado dinámico. Mutuamente excluyente con options y alternatives.
@@ -275,9 +285,12 @@ const router = Router();
  *           description: Cantidad a elegir cuando type=choice.
  *         options:
  *           type: array
+ *           description: Cuando type=choice, cada elemento es un ID de catálogo o un parcial con id (igual que options de la elección simple).
  *           items:
- *             type: string
- *           description: IDs cuando type=choice (modo options).
+ *             oneOf:
+ *               - type: string
+ *                 description: ID de MongoDB del equipamiento en catálogo.
+ *               - $ref: '#/components/schemas/BackgroundEquipmentInput'
  *         filter:
  *           $ref: '#/components/schemas/EquipmentChoiceFilter'
  *           description: Filtro cuando type=choice (modo filter).
@@ -305,16 +318,24 @@ const router = Router();
  *             isBond:
  *               type: boolean
  *               description: Indica si el objeto tiene un vínculo especial.
+ *     GrantedEquipmentEntry:
+ *       oneOf:
+ *         - type: string
+ *           description: ID de MongoDB del equipamiento en catálogo.
+ *         - $ref: '#/components/schemas/BackgroundEquipmentInput'
+ *       description: >
+ *         Equipamiento concedido como id de catálogo o como objeto parcial con id obligatorio.
+ *         Los campos opcionales del objeto sobrescriben el catálogo al hidratar o al crear el personaje.
  *     BackgroundEquipmentInput:
  *       type: object
- *       description: Equipamiento fijo del trasfondo. Debe incluir id (referencia a equipamiento base) o name (objeto personalizado). Todos los demás campos son opcionales y sobrescriben los valores base.
+ *       description: Equipamiento parcial concedido. El id del catálogo es obligatorio. El resto de campos son opcionales y sobrescriben los valores base.
  *       properties:
  *         id:
  *           type: string
  *           description: ID de MongoDB del equipamiento base a referenciar.
  *         name:
  *           type: string
- *           description: Nombre personalizado del objeto. Obligatorio si no se indica id.
+ *           description: Nombre personalizado del objeto.
  *         quantity:
  *           type: number
  *           description: Cantidad de unidades. Por defecto 1.
@@ -343,6 +364,11 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
+ *         materials:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/EquipmentMaterial'
+ *           description: Materiales que sobrescriben los del catálogo.
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
  *         weapon:
@@ -549,7 +575,7 @@ router.get('/backgrounds/:id', authMiddleware, backgroundController.getById);
  *               equipment:
  *                 type: array
  *                 items:
- *                   $ref: '#/components/schemas/BackgroundEquipmentInput'
+ *                   $ref: '#/components/schemas/GrantedEquipmentEntry'
  *                 description: Equipamiento fijo otorgado. Cada ítem requiere id o name; el resto de campos personalizan el objeto base.
  *               personality_traits:
  *                 type: array
@@ -692,7 +718,7 @@ router.post('/backgrounds', authMiddleware, validateSchema(CreateBackgroundSchem
  *               equipment:
  *                 type: array
  *                 items:
- *                   $ref: '#/components/schemas/BackgroundEquipmentInput'
+ *                   $ref: '#/components/schemas/GrantedEquipmentEntry'
  *                 description: Equipamiento fijo otorgado. Cada ítem requiere id o name; el resto de campos personalizan el objeto base.
  *               personality_traits:
  *                 type: array

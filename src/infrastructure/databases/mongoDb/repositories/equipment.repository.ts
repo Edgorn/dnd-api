@@ -103,6 +103,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       subcategory: data.subcategory,
       equipSlot: data.equipSlot ?? null,
       storageTags: data.storageTags,
+      materials: data.materials,
       containerStats: data.containerStats,
       proficiencies: data.proficiencies,
       weapon: data.weapon,
@@ -168,13 +169,18 @@ export default class EquipmentRepository implements IEquipmentRepository {
     await EquipmentModel.updateMany({ ruleset, deletedAt }, { $set: { deletedAt: null } });
   }
 
-  async getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<EquipmentInstanceApi[] | undefined> {
+  async getCharacterEquipmentsByIds(
+    equipments: CharacterEquipmentMongo[] | Array<string | CharacterEquipmentMongo> | undefined
+  ): Promise<EquipmentInstanceApi[] | undefined> {
     if (!equipments) return undefined;
     if (!equipments.length) return [];
 
-    const lookups = await this.buildLookups(equipments);
+    const normalized = equipments.map(item =>
+      typeof item === "string" ? { id: item, quantity: 1 } : item
+    );
+    const lookups = await this.buildLookups(normalized);
     return ordenarPorFavoritoYNombre(
-      equipments.map(item => this.formatCharacterEquipmentSync(item, lookups, new Set()))
+      normalized.map(item => this.formatCharacterEquipmentSync(item, lookups, new Set()))
     );
   }
 
@@ -410,6 +416,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       subcategory: equipment.subcategory || "",
       equipSlot: equipment.equipSlot ?? null,
       storageTags: equipment.storageTags,
+      materials: equipment.materials,
       containerStats: equipment.containerStats,
       isMagic: equipment.isMagic ?? false,
       proficiencies: this.resolveProficiencies(equipment.proficiencies ?? [], lookups),
@@ -555,6 +562,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
         subcategory: charEquipment.subcategory ?? "",
         equipSlot: charEquipment.equipSlot ?? null,
         storageTags: charEquipment.storageTags ?? undefined,
+        materials: charEquipment.materials ?? undefined,
         containerStats: charEquipment.containerStats ?? undefined,
         bonuses: charEquipment.bonuses,
         proficiencies: this.resolveProficiencies(charEquipment.proficiencies ?? [], lookups),
@@ -588,6 +596,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       weight: charEquipment.weight ?? formattedEq.weight,
       equipSlot: charEquipment.equipSlot !== undefined ? charEquipment.equipSlot : formattedEq.equipSlot,
       storageTags: charEquipment.storageTags ?? formattedEq.storageTags,
+      materials: charEquipment.materials ?? formattedEq.materials,
       containerStats: charEquipment.containerStats ?? formattedEq.containerStats,
       bonuses: charEquipment.bonuses ?? formattedEq.bonuses,
       content: charEquipment.content !== undefined
@@ -762,7 +771,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     ruleset?: string
   ): Promise<EquipmentChoiceLeafApi | null> {
     if (leaf.type === "item") {
-      const equipment = await this.getById(leaf.id);
+      const [equipment] = await this.hydrateManualChoiceOptions([leaf]);
       if (!equipment) return null;
       return {
         type: "item",
@@ -789,13 +798,13 @@ export default class EquipmentRepository implements IEquipmentRepository {
   private async formatFlatEquipmentChoice(
     choice: {
       choose: number;
-      options?: string[];
+      options?: Array<string | CharacterEquipmentMongo>;
       filter?: EquipmentChoiceFilter;
     },
     ruleset?: string
   ): Promise<Extract<ResolvedEquipmentChoiceApi, { query_type: "options" | "filter" | "all" }>> {
     if (choice.options && Array.isArray(choice.options) && choice.options.length > 0) {
-      const equipments = await this.getEquipmentsByIds(choice.options);
+      const equipments = await this.hydrateManualChoiceOptions(choice.options);
       return {
         choose: choice.choose,
         options: equipments,
@@ -820,26 +829,93 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
-  private async getEquipmentsByIds(ids: string[]): Promise<EquipmentApi[]> {
-    if (!ids.length) return [];
+  private isCatalogObjectId(id: string): boolean {
+    return /^[0-9a-fA-F]{24}$/.test(id);
+  }
 
-    const objectIds = ids.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
-    const invalidIds = ids.filter(id => !id.match(/^[0-9a-fA-F]{24}$/));
+  private async hydrateManualChoiceOptions(
+    options: Array<string | CharacterEquipmentMongo>
+  ): Promise<EquipmentApi[]> {
+    const entries = options.map(option =>
+      typeof option === "string"
+        ? { id: option, override: undefined as CharacterEquipmentMongo | undefined }
+        : { id: option.id ?? "", override: option }
+    );
+
+    const invalidIds = entries
+      .map(entry => entry.id)
+      .filter(id => id && !this.isCatalogObjectId(id));
 
     if (invalidIds.length > 0) {
       console.error(`[EquipmentRepository] Equipamiento ignorado por tener IDs inválidos (índices antiguos): ${invalidIds.join(", ")}`);
     }
 
+    const objectIds = [...new Set(entries.map(entry => entry.id).filter(id => this.isCatalogObjectId(id)))];
     if (objectIds.length === 0) return [];
 
-    const equipments = await EquipmentModel.find({
+    const docs = await EquipmentModel.find({
       _id: { $in: objectIds },
       deletedAt: null
     } as any).lean();
 
-    if (!equipments.length) return [];
-    const lookups = await this.buildLookups(equipments);
-    return ordenarPorNombre(equipments.map(e => this.formatEquipmentSync(e, lookups)));
+    if (!docs.length) return [];
+
+    const overrides = entries.flatMap(entry => entry.override ? [entry.override] : []);
+    const lookups = await this.buildLookups([...docs, ...overrides]);
+    const byId = new Map(docs.map(doc => [String(doc._id), doc]));
+    const hydrated: EquipmentApi[] = [];
+
+    for (const entry of entries) {
+      if (!this.isCatalogObjectId(entry.id)) continue;
+      const doc = byId.get(entry.id);
+      if (!doc) continue;
+      const formatted = this.formatEquipmentSync(doc, lookups);
+      hydrated.push(
+        entry.override ? this.applyChoiceOverride(formatted, doc, entry.override, lookups) : formatted
+      );
+    }
+
+    return hydrated;
+  }
+
+  private applyChoiceOverride(
+    base: EquipmentApi,
+    catalog: EquipmentMongo,
+    override: CharacterEquipmentMongo,
+    lookups: EquipmentLookups
+  ): EquipmentApi {
+    return {
+      ...base,
+      name: override.name ?? base.name,
+      description: override.description
+        ? this.formatCharacterDescription(override.description)
+        : base.description,
+      category: override.category ?? base.category,
+      subcategory: override.subcategory ?? base.subcategory,
+      weight: override.weight ?? base.weight,
+      equipSlot: override.equipSlot !== undefined ? override.equipSlot : base.equipSlot,
+      storageTags: override.storageTags ?? base.storageTags,
+      materials: override.materials ?? base.materials,
+      containerStats: override.containerStats ?? base.containerStats,
+      bonuses: override.bonuses ?? base.bonuses,
+      content: override.content !== undefined
+        ? this.formatContentSync(override.content, lookups, new Set(base.id ? [base.id] : []))
+        : base.content,
+      proficiencies: override.proficiencies !== undefined
+        ? this.resolveProficiencies(override.proficiencies, lookups)
+        : base.proficiencies,
+      weapon: override.weapon
+        ? this.formatWeaponSync(this.mergeWeapon(catalog.weapon, override.weapon), lookups)
+        : base.weapon,
+      armor: override.armor
+        ? this.formatArmorSync(this.mergeArmor(catalog.armor, override.armor), lookups)
+        : base.armor,
+      isMagic: override.isMagic ?? base.isMagic,
+      isBond: override.isBond !== undefined ? override.isBond : base.isBond,
+      cost: override.cost
+        ? this.formatEquipmentCostSync(override.cost, lookups)
+        : base.cost
+    };
   }
 
   private async getEquipmentsByFilter(

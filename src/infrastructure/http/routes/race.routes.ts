@@ -116,6 +116,11 @@ const router = Router();
  *         spellcasting:
  *           $ref: '#/components/schemas/AttributeApi'
  *           description: Característica principal para lanzar conjuros de la raza. En una subraza se hereda de la raza padre si el hijo no la define.
+ *         equipment:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterEquipmentApi'
+ *           description: Equipamiento fijo concedido por la raza, con personalizaciones aplicadas.
  *         parentId:
  *           type: string
  *           description: ID de la raza padre si esta raza es una subraza (Opcional).
@@ -262,6 +267,12 @@ const router = Router();
  *         spellcasting:
  *           type: string
  *           description: Identificador único (ObjectId) del atributo usado como característica principal para lanzar conjuros (Opcional).
+ *         equipment:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/GrantedEquipmentEntry'
+ *           description: Equipamiento fijo concedido por la raza.
  *     InputUpdateRace:
  *       type: object
  *       properties:
@@ -316,6 +327,12 @@ const router = Router();
  *         spellcasting:
  *           type: string
  *           description: Identificador único (ObjectId) del atributo usado como característica principal para lanzar conjuros (Opcional).
+ *         equipment:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/GrantedEquipmentEntry'
+ *           description: Equipamiento fijo concedido por la raza.
  *     ChoiceMongo:
  *       type: object
  *       properties:

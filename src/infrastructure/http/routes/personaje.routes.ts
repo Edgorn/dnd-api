@@ -711,13 +711,10 @@ const router = Router();
  *         equipment:
  *           type: array
  *           items:
- *             type: object
- *             properties:
- *               id:
- *                 type: string
- *                 description: ID de MongoDB del equipamiento base.
- *               quantity:
- *                 type: number
+ *             $ref: '#/components/schemas/GrantedEquipmentEntry'
+ *           description: >
+ *             Equipamiento inicial del personaje. Cada entrada puede ser un id de catálogo
+ *             o un objeto parcial con id obligatorio y campos que personalizan la instancia.
  *         traits:
  *           type: array
  *           items:

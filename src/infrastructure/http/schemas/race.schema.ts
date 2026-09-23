@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GrantedEquipmentListSchema } from "./equipment.schema";
 
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
@@ -40,7 +41,8 @@ export const CreateRaceSchema = z.object({
   parentId: z.string().nullable().optional(),
   subraces_name: z.string().nullable().optional(),
   spell_choices: z.array(ChoiceMongoSchema).nullable().optional(),
-  spellcasting: z.string().nullable().optional()
+  spellcasting: z.string().nullable().optional(),
+  equipment: GrantedEquipmentListSchema.nullable().optional()
 });
 
 export const UpdateRaceSchema = CreateRaceSchema.partial().refine(data => Object.keys(data).length > 0, {

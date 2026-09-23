@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { Types } from "mongoose";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
+import { EquipmentMaterialSchema } from "./equipment.schema";
+import {
+  EQUIPMENT_RESTRICTION_ENFORCEMENTS,
+  EQUIPMENT_RESTRICTION_SCOPES
+} from "../../../domain/types/traits.types";
 
 const SpellPrivilegeLevelFilterSchema = z.union([
   z.number().int().min(0).max(9),
@@ -69,6 +74,13 @@ const acFormulaSchema = z.string().min(1, "La fórmula de CA no puede estar vac�
 const suppressedByArmorTypeIdsSchema = z
   .array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada tipo de armadura debe ser un ID de Mongo válido" }))
   .nullish();
+
+export const EquipmentRestrictionSchema = z.object({
+  forbiddenMaterials: z.array(EquipmentMaterialSchema).min(1, "Debe indicar al menos un material prohibido"),
+  unlessMaterials: z.array(EquipmentMaterialSchema).optional(),
+  scopes: z.array(z.enum(EQUIPMENT_RESTRICTION_SCOPES)).min(1, "Debe indicar al menos un ámbito"),
+  enforcement: z.enum(EQUIPMENT_RESTRICTION_ENFORCEMENTS)
+}).strict();
 
 export const TraitLanguagesSchema = z.object({
   speaks: z.array(z.string().min(1, "El idioma no puede estar vacío")),
@@ -162,6 +174,7 @@ export const CreateTraitSchema = z.object({
   speed: TraitSpeedSchema.optional(),
   acFormula: acFormulaSchema,
   suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema,
+  equipmentRestriction: EquipmentRestrictionSchema.nullish(),
   languages: TraitLanguagesSchema.nullish(),
   damageChoices: TraitDamageChoicesSchema.nullish(),
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
@@ -181,6 +194,7 @@ export const UpdateTraitSchema = z.object({
   speed: TraitSpeedSchema.optional(),
   acFormula: acFormulaSchema,
   suppressedByArmorTypeIds: suppressedByArmorTypeIdsSchema,
+  equipmentRestriction: EquipmentRestrictionSchema.nullish(),
   languages: TraitLanguagesSchema.nullish(),
   damageChoices: TraitDamageChoicesSchema.nullish(),
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),

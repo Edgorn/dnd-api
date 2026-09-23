@@ -12,6 +12,7 @@ import RaceModel from '../schemas/Race';
 import IFeatRepository from '../../../../domain/repositories/IFeatRepository';
 import { TraitDataMongo } from '../../../../domain/types/traits.types';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
+import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 
 export default class RaceRepository implements IRaceRepository {
   constructor(
@@ -22,6 +23,7 @@ export default class RaceRepository implements IRaceRepository {
     private readonly featRepository: IFeatRepository,
     private readonly traitRepository: ITraitRepository,
     private readonly attributeService: AttributeService,
+    private readonly equipmentRepository: IEquipmentRepository,
     private readonly systemRepository?: ISystemRepository
   ) { }
 
@@ -86,7 +88,8 @@ export default class RaceRepository implements IRaceRepository {
       parentId: raza.parentId || null,
       subraces_name: raza.subraces_name,
       spell_choices: raza.spell_choices,
-      spellcasting: raza.spellcasting || null
+      spellcasting: raza.spellcasting || null,
+      equipment: raza.equipment ?? []
     })
 
     await nuevaRaza.save()
@@ -119,7 +122,8 @@ export default class RaceRepository implements IRaceRepository {
         parentId: raza.parentId,
         subraces_name: raza.subraces_name,
         spell_choices: raza.spell_choices === null ? [] : raza.spell_choices,
-        spellcasting: raza.spellcasting
+        spellcasting: raza.spellcasting,
+        ...(raza.equipment !== undefined ? { equipment: raza.equipment === null ? [] : raza.equipment } : {})
       }
 
       const razaActualizada = await RaceModel.findByIdAndUpdate(
@@ -166,7 +170,7 @@ export default class RaceRepository implements IRaceRepository {
     const [
       traits, ability_bonuses, ability_bonus_choices, skill_choices, languages, 
       proficiencies_choices, subraces, variants, spell_choices,
-      speaksLanguages, formattedLanguageChoices, spellcasting
+      speaksLanguages, formattedLanguageChoices, spellcasting, equipment
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.attributeService.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
@@ -179,7 +183,8 @@ export default class RaceRepository implements IRaceRepository {
       this.spellRepository.formatSpellChoices(raza?.spell_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
       this.languageRepository.formatLanguageChoices(raza.language_choices, ruleset),
-      this.formatRaceSpellcasting(raza)
+      this.formatRaceSpellcasting(raza),
+      this.equipmentRepository.getCharacterEquipmentsByIds(raza.equipment ?? [])
     ])
 
     return {
@@ -210,7 +215,8 @@ export default class RaceRepository implements IRaceRepository {
       parentId: raza.parentId ? raza.parentId.toString() : null,
       variants,
       spell_choices,
-      spellcasting: spellcasting ?? undefined
+      spellcasting: spellcasting ?? undefined,
+      equipment: equipment ?? []
     };
   }
 

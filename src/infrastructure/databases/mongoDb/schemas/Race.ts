@@ -47,6 +47,7 @@ const raceSchema: Schema = new Schema<RaceMongo>({
   variants: [varianteSchema],
   spell_choices: [],
   spellcasting: { type: Schema.Types.ObjectId, ref: 'attributes', default: null },
+  equipment: { type: [], default: [] },
   deletedAt: { type: Date, default: null }
 }, { collection: 'races' });
 

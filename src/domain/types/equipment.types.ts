@@ -77,6 +77,18 @@ export interface ArmorApi {
   disadvantageSkillKeys?: string[];
 }
 
+export const EQUIPMENT_MATERIALS = [
+  "metal",
+  "wood",
+  "leather",
+  "hide",
+  "cloth",
+  "bone",
+  "mithral"
+] as const;
+
+export type EquipmentMaterial = typeof EQUIPMENT_MATERIALS[number];
+
 export type LiquidUnit = 'gallon' | 'pint' | 'ounce';
 export type SolidUnit = 'cubic_foot';
 
@@ -143,6 +155,7 @@ export interface CharacterEquipmentMongo {
   subcategory?: string;
   equipSlot?: EquipSlot | null;
   storageTags?: string[] | null;
+  materials?: EquipmentMaterial[] | null;
   containerStats?: ContainerRules | null;
   proficiencies?: string[];
   weapon?: WeaponMongo;
@@ -170,6 +183,7 @@ export interface EquipmentMongo {
   category?: string;
   subcategory?: string;
   storageTags?: string[] | null;
+  materials?: EquipmentMaterial[] | null;
   containerStats?: ContainerRules | null;
   proficiencies?: string[];
   weapon?: WeaponMongo;
@@ -194,6 +208,7 @@ export interface EquipmentApi {
   subcategory: string;
   equipSlot?: EquipSlot | null;
   storageTags?: string[];
+  materials?: EquipmentMaterial[];
   containerStats?: ContainerRules;
   proficiencies?: ProficiencyApi[];
   content?: EquipmentInstanceApi[];
@@ -238,10 +253,19 @@ export interface EquipmentChoiceApi {
 
 export type EquipmentChoiceFilter = Record<string, string | number | (string | number)[]>;
 
+/** Manual choice entry: catalog id, or the same partial used by granted equipment. */
+export type EquipmentChoiceOptionMongo = string | CharacterEquipmentMongo;
+
+/** Concrete item inside a choice, including the granted-equipment partial. */
+export type EquipmentChoiceItemMongo = {
+  type: "item";
+  id: string;
+} & Omit<CharacterEquipmentMongo, "id" | "instanceId" | "equipmentId">;
+
 /** Leaf of an equipment choice: concrete item or a nested flat choice (options/filter). */
 export type EquipmentChoiceLeafMongo =
-  | { type: "item"; id: string; quantity?: number }
-  | { type: "choice"; choose: number; options?: string[]; filter?: EquipmentChoiceFilter };
+  | EquipmentChoiceItemMongo
+  | { type: "choice"; choose: number; options?: EquipmentChoiceOptionMongo[]; filter?: EquipmentChoiceFilter };
 
 /** Nested branch: leaf or AND bundle of leaves (non-recursive). */
 export type EquipmentChoiceBranchMongo =
@@ -255,7 +279,7 @@ export type EquipmentChoiceBranchMongo =
  */
 export interface EquipmentChoiceMongo {
   choose: number;
-  options?: string[];
+  options?: EquipmentChoiceOptionMongo[];
   filter?: EquipmentChoiceFilter;
   alternatives?: EquipmentChoiceBranchMongo[];
 }
@@ -312,6 +336,7 @@ export interface InputCreateEquipment {
   subcategory: string;
   equipSlot?: EquipSlot | null;
   storageTags?: string[] | null;
+  materials?: EquipmentMaterial[] | null;
   containerStats?: ContainerRules | null;
   proficiencies?: string[] | null;
   weapon?: WeaponMongo | null;
@@ -330,6 +355,7 @@ export interface InputUpdateEquipment {
   subcategory?: string;
   equipSlot?: EquipSlot | null;
   storageTags?: string[] | null;
+  materials?: EquipmentMaterial[] | null;
   containerStats?: ContainerRules | null;
   proficiencies?: string[] | null;
   weapon?: WeaponMongo | null;
