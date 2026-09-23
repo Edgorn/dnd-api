@@ -164,3 +164,69 @@ describe("BackgroundRepository.getBySystems variant ancestry filter", () => {
     });
   });
 });
+
+describe("BackgroundRepository.getById tables hydration", () => {
+  const backgroundId = "507f1f77bcf86cd799439020";
+
+  let repository: BackgroundRepository;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const deps = stubFormatDependencies();
+    repository = new BackgroundRepository(
+      { getSystemsAndAncestors: vi.fn() } as unknown as ISystemRepository,
+      deps.skillRepository,
+      deps.proficiencyRepository,
+      deps.languageRepository,
+      deps.equipmentRepository,
+      deps.traitRepository,
+      deps.coinRepository
+    );
+  });
+
+  it("returns stored tables when present", async () => {
+    const tables = [{
+      name: "Origen",
+      choose: { min: 1, max: 1 },
+      options: [{ label: "Bosque" }]
+    }];
+    vi.mocked(BackgroundModel.findById).mockReturnValueOnce({
+      lean: vi.fn().mockResolvedValue({
+        _id: backgroundId,
+        name: "Salvaje",
+        ruleset: PARENT_SYSTEM_ID,
+        parentId: null,
+        tables
+      })
+    } as never);
+    mockChildFind([]);
+
+    const result = await repository.getById(backgroundId);
+
+    expect(result?.tables).toEqual(tables);
+    expect(result).not.toHaveProperty("options_name");
+    expect(result).not.toHaveProperty("personalized_equipment");
+  });
+
+  it("returns empty tables when only legacy options_name is stored", async () => {
+    vi.mocked(BackgroundModel.findById).mockReturnValueOnce({
+      lean: vi.fn().mockResolvedValue({
+        _id: backgroundId,
+        name: "Salvaje",
+        ruleset: PARENT_SYSTEM_ID,
+        parentId: null,
+        tables: [],
+        options_name: {
+          name: "Origen",
+          choose: 2,
+          options: ["Bosque", "Montaña"]
+        }
+      })
+    } as never);
+    mockChildFind([]);
+
+    const result = await repository.getById(backgroundId);
+
+    expect(result?.tables).toEqual([]);
+  });
+});

@@ -11,10 +11,9 @@ import BackgroundModel from '../schemas/Background';
 import {
   BackgroundApi,
   BackgroundMongo,
+  BackgroundTable,
   InputCreateBackground,
-  InputUpdateBackground,
-  OptionsNameApi,
-  OptionsNameMongo
+  InputUpdateBackground
 } from '../../../../domain/types/background.types';
 import { CoinApi } from '../../../../domain/types/coin.types';
 import { EquipmentApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from '../../../../domain/types/equipment.types';
@@ -142,6 +141,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
       proficiencies: data.proficiencies ?? [],
       proficiencies_choices: data.proficiencies_choices ?? undefined,
       personality_traits: data.personality_traits ?? [],
+      tables: data.tables ?? [],
       ideals: data.ideals ?? [],
       bonds: data.bonds ?? [],
       flaws: data.flaws ?? [],
@@ -195,6 +195,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
     if (fields.proficiencies === null) fields.proficiencies = [];
     if (fields.proficiencies_choices === null) fields.proficiencies_choices = [];
     if (fields.traits_choices === null) fields.traits_choices = [];
+    if (fields.tables === null) fields.tables = [];
     if (fields.parentId === undefined) {
       delete fields.parentId;
     } else {
@@ -327,7 +328,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
   }
 
   private async hydrateBackground(background: BackgroundMongo): Promise<BackgroundApi> {
-    const options_name = this.formatearOptionsName(background?.options_name);
+    const tables = this.resolveTables(background);
 
     let rawMoney: { quantity?: number; unit?: string }[] = [];
     if (Array.isArray(background?.money)) {
@@ -388,10 +389,9 @@ export default class BackgroundRepository implements IBackgroundRepository {
       proficiencies_choices,
       equipment,
       equipment_choices,
-      personalized_equipment: background.personalized_equipment ?? [],
       money,
       god: background?.god ?? false,
-      options_name,
+      tables,
       personality_traits: background?.personality_traits ?? [],
       ideals: background?.ideals ?? [],
       bonds: background?.bonds ?? [],
@@ -400,12 +400,12 @@ export default class BackgroundRepository implements IBackgroundRepository {
     };
   }
 
-  private formatearOptionsName(options_name: OptionsNameMongo | undefined): OptionsNameApi | undefined {
-    return options_name ? {
-      name: options_name.name ?? '',
-      choose: options_name.choose ?? 1,
-      options: options_name.options ?? []
-    } : undefined;
+  private resolveTables(background: BackgroundMongo): BackgroundTable[] {
+    const stored = background.tables;
+    if (Array.isArray(stored) && stored.length > 0) {
+      return stored;
+    }
+    return [];
   }
 
   private async formatBackgroundEquipmentChoices(

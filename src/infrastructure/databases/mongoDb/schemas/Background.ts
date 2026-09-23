@@ -26,8 +26,27 @@ const backgroundSchema: Schema = new Schema<BackgroundMongo>({
     default: []
   },
   god: { type: Boolean, default: false },
-  personalized_equipment: { type: [String], default: [] },
-  options_name: { type: Schema.Types.Mixed, default: {} },
+  tables: {
+    type: [{
+      _id: false,
+      name: { type: String, required: true },
+      description: { type: String },
+      choose: {
+        _id: false,
+        min: { type: Number, required: true },
+        max: { type: Number, required: true }
+      },
+      options: {
+        type: [{
+          _id: false,
+          label: { type: String, required: true },
+          description: { type: String }
+        }],
+        default: []
+      }
+    }],
+    default: []
+  },
   personality_traits: { type: [String], default: [] },
   ideals: {
     type: [{

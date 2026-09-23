@@ -159,3 +159,71 @@ describe("UpdateBackgroundSchema parentId", () => {
     expect(result.success).toBe(true);
   });
 });
+
+const validTable = {
+  name: "Origen",
+  description: "Elige tu origen salvaje.",
+  choose: { min: 1, max: 1 },
+  options: [
+    { label: "Bosque" },
+    { label: "Montaña", description: "Cumbres heladas." }
+  ]
+};
+
+describe("CreateBackgroundSchema tables", () => {
+  it("accepts valid tables", () => {
+    const result = CreateBackgroundSchema.safeParse({
+      ruleset: "sys1",
+      name: "Salvaje",
+      tables: [validTable]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts tables as null", () => {
+    const result = CreateBackgroundSchema.safeParse({
+      ruleset: "sys1",
+      name: "Salvaje",
+      tables: null
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects when max choose exceeds options length", () => {
+    const result = CreateBackgroundSchema.safeParse({
+      ruleset: "sys1",
+      name: "Salvaje",
+      tables: [{
+        ...validTable,
+        choose: { min: 1, max: 3 }
+      }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty option label", () => {
+    const result = CreateBackgroundSchema.safeParse({
+      ruleset: "sys1",
+      name: "Salvaje",
+      tables: [{
+        ...validTable,
+        options: [{ label: "" }]
+      }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateBackgroundSchema tables", () => {
+  it("accepts tables on update", () => {
+    const result = UpdateBackgroundSchema.safeParse({
+      tables: [validTable]
+    });
+
+    expect(result.success).toBe(true);
+  });
+});

@@ -69,4 +69,35 @@ describe("mergeBackgroundVariant", () => {
     expect(merged.traits_choices).toEqual([]);
     expect(overlayFieldsPresent(overlay)).toEqual(["traits_choices"]);
   });
+
+  it("inherits parent tables when the variant omits tables", () => {
+    const parentTables = [{
+      name: "Origen",
+      choose: { min: 1, max: 1 },
+      options: [{ label: "Bosque" }]
+    }];
+    const parent = { ...noble, tables: parentTables };
+    const { merged, overriddenFields } = mergeBackgroundVariant(parent, { name: "Caballero" });
+
+    expect(merged.tables).toEqual(parentTables);
+    expect(overriddenFields).toEqual(["name"]);
+  });
+
+  it("replaces parent tables when the variant sends tables", () => {
+    const parentTables = [{
+      name: "Origen",
+      choose: { min: 1, max: 1 },
+      options: [{ label: "Bosque" }]
+    }];
+    const variantTables = [{
+      name: "Especialidad",
+      choose: { min: 1, max: 2 },
+      options: [{ label: "Artista" }, { label: "Músico" }]
+    }];
+    const parent = { ...noble, tables: parentTables };
+    const { merged, overriddenFields } = mergeBackgroundVariant(parent, { tables: variantTables });
+
+    expect(merged.tables).toEqual(variantTables);
+    expect(overriddenFields).toEqual(["tables"]);
+  });
 });

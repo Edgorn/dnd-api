@@ -23,6 +23,38 @@ const MoneySchema = z.object({
   unit: z.string().min(1, "El identificador de la moneda no puede estar vacío")
 });
 
+const BackgroundTableOptionSchema = z.object({
+  label: z.string().min(1, "La etiqueta de la opción no puede estar vacía"),
+  description: z.string().optional()
+});
+
+const BackgroundTableSchema = z.object({
+  name: z.string().min(1, "El nombre de la tabla no puede estar vacío"),
+  description: z.string().optional(),
+  choose: z.object({
+    min: z.number().int().min(1, "El mínimo de elecciones debe ser al menos 1"),
+    max: z.number().int().min(1, "El máximo de elecciones debe ser al menos 1")
+  }),
+  options: z.array(BackgroundTableOptionSchema).min(1, "Debe incluir al menos una opción")
+}).superRefine((table, ctx) => {
+  if (table.choose.max < table.choose.min) {
+    ctx.addIssue({
+      code: "custom",
+      message: "El máximo de elecciones no puede ser menor que el mínimo",
+      path: ["choose", "max"]
+    });
+  }
+  if (table.choose.max > table.options.length) {
+    ctx.addIssue({
+      code: "custom",
+      message: "El máximo de elecciones no puede superar el número de opciones",
+      path: ["choose", "max"]
+    });
+  }
+});
+
+const BackgroundTablesSchema = z.array(BackgroundTableSchema).nullable().optional();
+
 export const CreateBackgroundSchema = z.object({
   ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -38,6 +70,7 @@ export const CreateBackgroundSchema = z.object({
   proficiencies: z.array(z.string()).nullable().optional(),
   proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   personality_traits: z.array(z.string()).nullable().optional(),
+  tables: BackgroundTablesSchema,
   ideals: z.array(IdealSchema).nullable().optional(),
   bonds: z.array(z.string()).nullable().optional(),
   flaws: z.array(z.string()).nullable().optional(),
@@ -61,6 +94,7 @@ export const UpdateBackgroundSchema = z.object({
   proficiencies: z.array(z.string()).nullable().optional(),
   proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   personality_traits: z.array(z.string()).nullable().optional(),
+  tables: BackgroundTablesSchema,
   ideals: z.array(IdealSchema).nullable().optional(),
   bonds: z.array(z.string()).nullable().optional(),
   flaws: z.array(z.string()).nullable().optional(),

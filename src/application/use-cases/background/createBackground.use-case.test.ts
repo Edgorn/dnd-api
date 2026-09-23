@@ -22,7 +22,6 @@ function nobleApi(overrides: Partial<BackgroundApi> = {}): BackgroundApi {
     img: "",
     traits: [],
     proficiencies: [],
-    personalized_equipment: [],
     money: [],
     god: false,
     personality_traits: [],

@@ -9,6 +9,50 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
+ *     BackgroundTableOption:
+ *       type: object
+ *       required:
+ *         - label
+ *       properties:
+ *         label:
+ *           type: string
+ *           description: Texto de la opción (cara del dado).
+ *         description:
+ *           type: string
+ *           description: Detalle opcional para opciones largas.
+ *     BackgroundTable:
+ *       type: object
+ *       required:
+ *         - name
+ *         - choose
+ *         - options
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre de la tabla (por ejemplo Origen).
+ *         description:
+ *           type: string
+ *           description: Párrafo introductorio de la tabla.
+ *         choose:
+ *           type: object
+ *           required:
+ *             - min
+ *             - max
+ *           properties:
+ *             min:
+ *               type: integer
+ *               minimum: 1
+ *               description: Mínimo de opciones a elegir.
+ *             max:
+ *               type: integer
+ *               minimum: 1
+ *               description: Máximo de opciones a elegir (no puede superar el número de options).
+ *         options:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             $ref: '#/components/schemas/BackgroundTableOption'
+ *           description: Opciones en orden (índice 1 = cara 1 del dado).
  *     Background:
  *       type: object
  *       properties:
@@ -111,6 +155,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Opciones de rasgos de personalidad.
+ *         tables:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/BackgroundTable'
+ *           description: Tablas de creación de personaje (origen, especialidad, etc.). El orden de options es la cara del dado.
  *         ideals:
  *           type: array
  *           items:
@@ -581,6 +630,12 @@ router.get('/backgrounds/:id', authMiddleware, backgroundController.getById);
  *                 type: array
  *                 items:
  *                   type: string
+ *               tables:
+ *                 type: array
+ *                 nullable: true
+ *                 items:
+ *                   $ref: '#/components/schemas/BackgroundTable'
+ *                 description: Tablas de creación. null en variante hereda del padre; en raíz null se guarda como array vacío.
  *               ideals:
  *                 type: array
  *                 items:
@@ -724,6 +779,12 @@ router.post('/backgrounds', authMiddleware, validateSchema(CreateBackgroundSchem
  *                 type: array
  *                 items:
  *                   type: string
+ *               tables:
+ *                 type: array
+ *                 nullable: true
+ *                 items:
+ *                   $ref: '#/components/schemas/BackgroundTable'
+ *                 description: Tablas de creación. null en variante hereda del padre; en raíz null se guarda como array vacío.
  *               ideals:
  *                 type: array
  *                 items:

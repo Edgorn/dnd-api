@@ -13,6 +13,7 @@ export const BACKGROUND_OVERLAY_FIELDS: readonly BackgroundOverlayField[] = [
   "proficiencies",
   "proficiencies_choices",
   "personality_traits",
+  "tables",
   "ideals",
   "bonds",
   "flaws",

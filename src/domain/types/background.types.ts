@@ -19,6 +19,7 @@ export type BackgroundOverlayField =
   | "proficiencies"
   | "proficiencies_choices"
   | "personality_traits"
+  | "tables"
   | "ideals"
   | "bonds"
   | "flaws"
@@ -30,6 +31,18 @@ export interface Ideal {
   title: string;
   description: string;
   alignment: string;
+}
+
+export interface BackgroundTableOption {
+  label: string;
+  description?: string;
+}
+
+export interface BackgroundTable {
+  name: string;
+  description?: string;
+  choose: { min: number; max: number };
+  options: BackgroundTableOption[];
 }
 
 export interface InputCreateBackground {
@@ -47,6 +60,7 @@ export interface InputCreateBackground {
   proficiencies?: string[] | null;
   proficiencies_choices?: ChoiceMongo[] | null;
   personality_traits?: string[] | null;
+  tables?: BackgroundTable[] | null;
   ideals?: Ideal[] | null;
   bonds?: string[] | null;
   flaws?: string[] | null;
@@ -74,6 +88,7 @@ export interface InputUpdateBackground {
   proficiencies?: string[] | null;
   proficiencies_choices?: ChoiceMongo[] | null;
   personality_traits?: string[] | null;
+  tables?: BackgroundTable[] | null;
   ideals?: Ideal[] | null;
   bonds?: string[] | null;
   flaws?: string[] | null;
@@ -102,23 +117,16 @@ export interface BackgroundMongo {
   proficiencies_choices?: ChoiceMongo[];
   equipment: CharacterEquipmentMongo[];
   equipment_choices?: EquipmentChoiceMongo[];
-  personalized_equipment: string[];
   money: {
     quantity: number;
     unit: string;
   }[];
-  options_name?: OptionsNameMongo;
   god: boolean;
   personality_traits: string[];
+  tables?: BackgroundTable[];
   ideals: Ideal[];
   bonds: string[];
   flaws: string[];
-}
-
-export interface OptionsNameMongo {
-  name: string;
-  options: string[];
-  choose: number;
 }
 
 export interface BackgroundApi {
@@ -138,11 +146,10 @@ export interface BackgroundApi {
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
   equipment?: EquipmentInstanceApi[];
   equipment_choices?: ResolvedEquipmentChoiceApi[];
-  personalized_equipment: string[];
   money: ({
     quantity: number;
   } & CoinApi)[];
-  options_name?: OptionsNameApi;
+  tables: BackgroundTable[];
   god: boolean;
   personality_traits: string[];
   ideals: Ideal[];
@@ -152,8 +159,3 @@ export interface BackgroundApi {
   overriddenFields?: BackgroundOverlayField[];
 }
 
-export interface OptionsNameApi {
-  name: string;
-  options: string[];
-  choose: number;
-}
