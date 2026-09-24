@@ -9,7 +9,7 @@ import ILanguageRepository from '../../../../domain/repositories/ILanguageReposi
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitApi, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitApi, TraitCatalogChoice, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { SpellApi } from "../../../../domain/types/spell.types";
@@ -256,6 +256,7 @@ export default class TraitRepository implements ITraitRepository {
         ...(trait.companionRoster ? { companionRoster: trait.companionRoster } : {}),
         ...this.formatLanguages(trait.languages, languageMap),
         ...this.formatDamageChoices(trait, choiceDamageMap),
+        ...this.formatCatalogChoices(trait),
         ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {}),
         ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {})
       };
@@ -268,7 +269,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, equipmentRestriction, languages, damageChoices, damageChoiceRef, hitPoints, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, ...rest } = trait;
     return {
       ...rest,
       ...(typeof acFormula === "string" ? { acFormula } : {}),
@@ -276,6 +277,7 @@ export default class TraitRepository implements ITraitRepository {
       ...(equipmentRestriction ? { equipmentRestriction } : {}),
       ...(languages ? { languages } : {}),
       ...(Array.isArray(damageChoices) ? { damageChoices } : {}),
+      ...(Array.isArray(catalogChoices) ? { catalogChoices } : {}),
       ...(damageChoiceRef ? { damageChoiceRef } : {}),
       ...(hitPoints ? { hitPoints } : {})
     };
@@ -291,6 +293,7 @@ export default class TraitRepository implements ITraitRepository {
       equipmentRestriction,
       languages,
       damageChoices,
+      catalogChoices,
       damageChoiceRef,
       hitPoints,
       ...rest
@@ -313,6 +316,7 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "equipmentRestriction", equipmentRestriction);
     this.assignNullable($set, $unset, "languages", languages);
     this.assignNullable($set, $unset, "damageChoices", damageChoices);
+    this.assignNullable($set, $unset, "catalogChoices", catalogChoices);
     this.assignNullable($set, $unset, "damageChoiceRef", damageChoiceRef);
     this.assignNullable($set, $unset, "hitPoints", hitPoints);
 
@@ -365,6 +369,24 @@ export default class TraitRepository implements ITraitRepository {
         speaks: hydrate(languages.speaks),
         understands: hydrate(languages.understands)
       }
+    };
+  }
+
+  private formatCatalogChoices(
+    trait: TraitMongo
+  ): { catalogChoices: TraitCatalogChoice[] } | Record<string, never> {
+    if (!Array.isArray(trait.catalogChoices)) return {};
+
+    return {
+      catalogChoices: trait.catalogChoices.map(choice => ({
+        key: choice.key,
+        options: (choice.options ?? [])
+          .filter(option => typeof option?.name === "string" && option.name.length > 0)
+          .map(option => ({ name: option.name })),
+        grants: (choice.grants ?? [])
+          .filter(grant => Number.isInteger(grant?.atLevel) && Number.isInteger(grant?.choose))
+          .map(grant => ({ atLevel: grant.atLevel, choose: grant.choose }))
+      }))
     };
   }
 

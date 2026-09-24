@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
+import { PendingCatalogChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
 import { SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
@@ -410,4 +410,5 @@ export interface LevelUpData {
   subclassChoice?: SubclassChoiceMenuApi | null;
   ability_score: boolean;
   feats?: ChoiceApi<FeatApi>;
+  catalogChoices?: PendingCatalogChoice[];
 }

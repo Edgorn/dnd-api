@@ -1,7 +1,9 @@
 import { Damage } from "../domain/types";
 import {
+  PendingCatalogChoice,
   ResolvedDamageChoice,
   TraitApi,
+  TraitCatalogChoice,
   TraitChoices,
   TraitDamageChoiceApi,
   TraitLanguagesApi
@@ -64,6 +66,80 @@ export function applyEnteringTraitChoices(input: {
   return { traitChoices };
 }
 
+type CatalogTrait = Pick<TraitApi, "id" | "catalogChoices">;
+
+export function listPendingCatalogChoices(input: {
+  existing?: TraitChoices | null;
+  classLevel: number;
+  grantedTraits: CatalogTrait[];
+}): PendingCatalogChoice[] {
+  const stored = cloneChoices(input.existing);
+  const pending: PendingCatalogChoice[] = [];
+
+  for (const trait of input.grantedTraits) {
+    if (!trait.id || !trait.catalogChoices?.length) continue;
+
+    for (const choice of trait.catalogChoices) {
+      const chosen = stored[trait.id]?.[choice.key] ?? [];
+      const required = catalogRequired(choice, input.classLevel);
+      const add = required - chosen.length;
+      if (add <= 0) continue;
+
+      const chosenNames = new Set(chosen);
+      pending.push({
+        traitId: trait.id,
+        key: choice.key,
+        add,
+        options: choice.options.filter(option => !chosenNames.has(option.name)),
+        chosen: [...chosen]
+      });
+    }
+  }
+
+  return pending;
+}
+
+export function applyCatalogTraitChoices(input: {
+  existing?: TraitChoices | null;
+  incoming?: TraitChoices | null;
+  classLevel: number;
+  grantedTraits: CatalogTrait[];
+}): { traitChoices: TraitChoices } | { error: string } {
+  const traitChoices = cloneChoices(input.existing);
+
+  for (const trait of input.grantedTraits) {
+    if (!trait.id || !trait.catalogChoices?.length) continue;
+
+    for (const choice of trait.catalogChoices) {
+      const stored = traitChoices[trait.id]?.[choice.key] ?? [];
+      const required = catalogRequired(choice, input.classLevel);
+      const sent = readSelection(input.incoming, trait.id, choice.key);
+      if ("error" in sent) return sent;
+
+      if (stored.length >= required) {
+        if (sent.ids && !sameSequence(stored, sent.ids)) {
+          return { error: `La elección ${choice.key} del rasgo ${trait.id} ya está guardada` };
+        }
+        continue;
+      }
+
+      if (!sent.ids) {
+        return {
+          error: `Debe elegir las opciones de catálogo (${choice.key}) del rasgo ${trait.id}`
+        };
+      }
+
+      const invalid = validateCatalogGrowth(trait.id, choice, stored, required, sent.ids);
+      if (invalid) return { error: invalid };
+
+      if (!traitChoices[trait.id]) traitChoices[trait.id] = {};
+      traitChoices[trait.id][choice.key] = [...sent.ids];
+    }
+  }
+
+  return { traitChoices };
+}
+
 export function resolveCharacterTraitChoices(
   traits: TraitApi[],
   traitChoices?: TraitChoices | null
@@ -110,13 +186,23 @@ export function resolveCharacterTraitChoices(
       }
     }
 
-    if (!rows.length) return trait;
+    if (rows.length) {
+      return {
+        ...trait,
+        description: replaceDamageChoiceTokens(trait.description ?? [], rows),
+        summary: replaceDamageChoiceTokens(trait.summary ?? [], rows),
+        damageChoice: rows
+      };
+    }
+
+    const catalogNames = resolveCatalogNames(trait, stored);
+    if (!catalogNames.length) return trait;
 
     return {
       ...trait,
-      description: replaceDamageChoiceTokens(trait.description ?? [], rows),
-      summary: replaceDamageChoiceTokens(trait.summary ?? [], rows),
-      damageChoice: rows
+      description: replaceNameToken(trait.description ?? [], catalogNames),
+      summary: replaceNameToken(trait.summary ?? [], catalogNames),
+      catalogChoice: catalogNames
     };
   });
 
@@ -203,6 +289,65 @@ function validateSelection(
   }
 
   return null;
+}
+
+function catalogRequired(choice: TraitCatalogChoice, classLevel: number): number {
+  return choice.grants.reduce(
+    (sum, grant) => (grant.atLevel <= classLevel ? sum + grant.choose : sum),
+    0
+  );
+}
+
+function validateCatalogGrowth(
+  traitId: string,
+  choice: TraitCatalogChoice,
+  stored: string[],
+  required: number,
+  sent: string[]
+): string | null {
+  const add = required - stored.length;
+  if (sent.length !== required || !sameSequence(stored, sent.slice(0, stored.length))) {
+    return `La elección ${choice.key} del rasgo ${traitId} debe conservar las opciones ya elegidas y añadir ${add}`;
+  }
+
+  const added = sent.slice(stored.length);
+  if (new Set(sent).size !== sent.length) {
+    return `La elección ${choice.key} del rasgo ${traitId} contiene opciones repetidas`;
+  }
+
+  const allowed = new Set(choice.options.map(option => option.name));
+  for (const name of added) {
+    if (!allowed.has(name)) {
+      return `La opción ${name} no pertenece a la elección ${choice.key} del rasgo ${traitId}`;
+    }
+  }
+
+  return null;
+}
+
+function sameSequence(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((item, index) => item === right[index]);
+}
+
+function resolveCatalogNames(trait: TraitApi, stored: TraitChoices): string[] {
+  if (!trait.catalogChoices?.length) return [];
+  const names: string[] = [];
+
+  for (const choice of trait.catalogChoices) {
+    const selected = stored[trait.id]?.[choice.key];
+    if (!selected?.length) continue;
+    const allowed = new Set(choice.options.map(option => option.name));
+    for (const name of selected) {
+      if (allowed.has(name)) names.push(name);
+    }
+  }
+
+  return names;
+}
+
+function replaceNameToken(texts: string[], names: string[]): string[] {
+  const name = names.join(", ");
+  return texts.map(text => text.replaceAll("{name}", name));
 }
 
 function sameIds(left: string[], right: string[]): boolean {

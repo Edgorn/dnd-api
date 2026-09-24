@@ -334,9 +334,93 @@ describe("CreateTraitSchema languages and damage choices", () => {
   });
 });
 
+const favoredTerrain = {
+  key: "favoredTerrain",
+  options: ["Ártico", "Bosque", "Costa", "Desierto", "Montaña", "Pantano", "Pradera"].map(name => ({ name })),
+  grants: [
+    { atLevel: 1, choose: 1 },
+    { atLevel: 6, choose: 1 },
+    { atLevel: 10, choose: 1 },
+  ],
+};
+
+describe("CreateTraitSchema catalog choices", () => {
+  it("accepts a favored terrain catalog", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Explorador nato",
+      catalogChoices: [favoredTerrain],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects duplicated option names", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Explorador nato",
+      catalogChoices: [{
+        ...favoredTerrain,
+        options: [{ name: "Bosque" }, { name: "Bosque" }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a grant that chooses zero", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Explorador nato",
+      catalogChoices: [{
+        ...favoredTerrain,
+        grants: [{ atLevel: 1, choose: 0 }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicated grant levels", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Explorador nato",
+      catalogChoices: [{
+        ...favoredTerrain,
+        grants: [
+          { atLevel: 1, choose: 1 },
+          { atLevel: 1, choose: 1 },
+        ],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a choose sum larger than the options", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Explorador nato",
+      catalogChoices: [{
+        key: "favoredTerrain",
+        options: [{ name: "Bosque" }, { name: "Costa" }],
+        grants: [
+          { atLevel: 1, choose: 1 },
+          { atLevel: 6, choose: 1 },
+          { atLevel: 10, choose: 1 },
+        ],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("UpdateTraitSchema languages and damage choices", () => {
   it("accepts null to clear the damage table", () => {
     const result = UpdateTraitSchema.safeParse({ damageChoices: null });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("UpdateTraitSchema catalog choices", () => {
+  it("accepts null to clear the catalog", () => {
+    const result = UpdateTraitSchema.safeParse({ catalogChoices: null });
     expect(result.success).toBe(true);
   });
 });

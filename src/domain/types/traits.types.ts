@@ -90,6 +90,20 @@ export interface TraitDamageChoiceOptionApi extends TraitDamageChoiceOption {
   damage?: Damage;
 }
 
+export interface TraitCatalogChoice {
+  key: string;
+  options: { name: string }[];
+  grants: { atLevel: number; choose: number }[];
+}
+
+export interface PendingCatalogChoice {
+  traitId: string;
+  key: string;
+  add: number;
+  options: { name: string }[];
+  chosen: string[];
+}
+
 export interface TraitDamageChoice {
   key: string;
   choose: number;
@@ -149,6 +163,7 @@ export interface TraitMongo {
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguages,
   damageChoices?: TraitDamageChoice[],
+  catalogChoices?: TraitCatalogChoice[],
   damageChoiceRef?: TraitDamageChoiceRef,
   hitPoints?: TraitHitPoints,
   deletedAt?: Date | null
@@ -191,8 +206,10 @@ export interface TraitApi {
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguagesApi,
   damageChoices?: TraitDamageChoiceApi[],
+  catalogChoices?: TraitCatalogChoice[],
   damageChoiceRef?: TraitDamageChoiceRef,
   damageChoice?: ResolvedDamageChoice[],
+  catalogChoice?: string[],
   hitPoints?: TraitHitPoints
 }
 
@@ -217,6 +234,7 @@ export interface CreateTrait {
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguages | null,
   damageChoices?: TraitDamageChoice[] | null,
+  catalogChoices?: TraitCatalogChoice[] | null,
   damageChoiceRef?: TraitDamageChoiceRef | null,
   hitPoints?: TraitHitPoints | null
 }
@@ -238,6 +256,7 @@ export interface UpdateTrait {
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguages | null,
   damageChoices?: TraitDamageChoice[] | null,
+  catalogChoices?: TraitCatalogChoice[] | null,
   damageChoiceRef?: TraitDamageChoiceRef | null,
   hitPoints?: TraitHitPoints | null
 }

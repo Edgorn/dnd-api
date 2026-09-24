@@ -27,6 +27,7 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   companionRoster: { type: Schema.Types.Mixed, default: undefined },
   languages: { type: Schema.Types.Mixed, default: undefined },
   damageChoices: { type: Schema.Types.Mixed, default: undefined },
+  catalogChoices: { type: Schema.Types.Mixed, default: undefined },
   damageChoiceRef: { type: Schema.Types.Mixed, default: undefined },
   hitPoints: { type: Schema.Types.Mixed, default: undefined },
   deletedAt: { type: Date, default: null }

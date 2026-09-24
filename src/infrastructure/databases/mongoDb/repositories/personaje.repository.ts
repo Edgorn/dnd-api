@@ -24,14 +24,16 @@ import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipmentInstanceApi, E
 import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRestriction';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
-import { TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
+import { PendingCatalogChoice, TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
 import {
   collectClassGrantedTraitIds,
   traitHitPointBonus
 } from '../../../../utils/traitHitPoints';
 import {
+  applyCatalogTraitChoices,
   applyEnteringTraitChoices,
+  listPendingCatalogChoices,
   mergeTraitLanguageIds,
   resolveCharacterTraitChoices
 } from '../../../../utils/traitDamageChoices';
@@ -240,8 +242,17 @@ export default class PersonajeRepository implements IPersonajeRepository {
       characterLevel: 1,
       previouslyOwnedIds: []
     });
-    const choiceResult = applyEnteringTraitChoices({
+    const catalogResult = applyCatalogTraitChoices({
       existing: undefined,
+      incoming: data.traitChoices,
+      classLevel: 1,
+      grantedTraits: loadedTraits.filter(trait => trait.id && classGrantedTraitIds.has(trait.id))
+    });
+    if ("error" in catalogResult) {
+      throw new ValidationError(catalogResult.error);
+    }
+    const choiceResult = applyEnteringTraitChoices({
+      existing: catalogResult.traitChoices,
       incoming: data.traitChoices,
       enteringTraits: loadedTraits
     });
@@ -486,6 +497,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
     const { hit_die, spell_choices, traits, traits_data, subclassChoice, ability_score, feats } =
       await this.resolveLevelUpClassData(personaje, classId, nextLevel);
+    const catalogChoices = await this.pendingClassCatalogChoices(
+      personaje,
+      classId,
+      nextLevel,
+      traits
+    );
 
     return {
       class: classId,
@@ -499,6 +516,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       subclassChoice: subclassChoice ?? null,
       ability_score,
       feats,
+      catalogChoices,
     };
   }
 
@@ -607,13 +625,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const levelUpClassDoc = await this.claseRepository.getById(classId);
     const levelUpSubclasses = await this.getAssignedSubclassesForClass(nextSubclassIds, classId);
     const levelUpTraitIds = await this.traitRepository.getTraitsByIndexes(nextTraits);
+    const levelUpGrantedIds = collectClassGrantedTraitIds(
+      levelUpClassDoc?.levels ?? [],
+      levelUpSubclasses.flatMap(item => item.levels),
+      nextLevel
+    );
     HP += traitHitPointBonus({
       traits: levelUpTraitIds,
-      classGrantedTraitIds: collectClassGrantedTraitIds(
-        levelUpClassDoc?.levels ?? [],
-        levelUpSubclasses.flatMap(item => item.levels),
-        nextLevel
-      ),
+      classGrantedTraitIds: levelUpGrantedIds,
       classLevel: nextLevel,
       characterLevel: newTotalLevels,
       previouslyOwnedIds: previouslyOwnedTraitIds
@@ -621,8 +640,17 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const ownedTraitIds = new Set(previouslyOwnedTraitIds);
     const enteringTraits = (levelTraits ?? []).filter(trait => trait.id && !ownedTraitIds.has(trait.id));
-    const choiceResult = applyEnteringTraitChoices({
+    const catalogResult = applyCatalogTraitChoices({
       existing: personaje.traitChoices,
+      incoming: traitChoices,
+      classLevel: nextLevel,
+      grantedTraits: levelUpTraitIds.filter(trait => trait.id && levelUpGrantedIds.has(trait.id))
+    });
+    if ("error" in catalogResult) {
+      throw new ValidationError(catalogResult.error);
+    }
+    const choiceResult = applyEnteringTraitChoices({
+      existing: catalogResult.traitChoices,
       incoming: traitChoices,
       enteringTraits
     });
@@ -1047,6 +1075,34 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     current[classId] = [...this.getClassSpellIds(personaje, classId), ...newIds];
     return current;
+  }
+
+  private async pendingClassCatalogChoices(
+    personaje: PersonajeMongo,
+    classId: string,
+    classLevel: number,
+    enteringTraits: TraitApi[]
+  ): Promise<PendingCatalogChoice[]> {
+    const classDoc = await this.claseRepository.getById(classId);
+    const subclasses = await this.getAssignedSubclassesForClass(personaje.subclasses ?? [], classId);
+    const grantedIds = collectClassGrantedTraitIds(
+      classDoc?.levels ?? [],
+      subclasses.flatMap(item => item.levels),
+      classLevel
+    );
+    const visible = new Set([
+      ...(personaje.traits ?? []),
+      ...enteringTraits.map(trait => trait.id).filter((id): id is string => Boolean(id))
+    ]);
+    const ids = [...grantedIds].filter(id => visible.has(id));
+    if (!ids.length) return [];
+
+    const traits = await this.traitRepository.getTraitsByIndexes(ids);
+    return listPendingCatalogChoices({
+      existing: personaje.traitChoices,
+      classLevel,
+      grantedTraits: traits
+    });
   }
 
   private async resolveLevelUpClassData(

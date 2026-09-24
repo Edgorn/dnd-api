@@ -99,6 +99,22 @@ const router = Router();
  *             descripción se sustituyen uniéndolos con coma.
  *           items:
  *             $ref: '#/components/schemas/ResolvedDamageChoice'
+ *         catalogChoices:
+ *           type: array
+ *           description: >
+ *             Catálogo de elecciones por nombre. El personaje guarda la lista creciente
+ *             en traitChoices. Las concesiones dependen del nivel de la clase que otorga
+ *             el rasgo, no del nivel total.
+ *           items:
+ *             $ref: '#/components/schemas/TraitCatalogChoice'
+ *         catalogChoice:
+ *           type: array
+ *           description: >
+ *             Nombres elegidos, resueltos en la ficha. No aparece en el catálogo.
+ *             Si el rasgo no tiene filas de daño, {name} de la descripción y del resumen
+ *             se sustituye uniéndolos con coma.
+ *           items:
+ *             type: string
  *         hitPoints:
  *           $ref: '#/components/schemas/TraitHitPoints'
  *           description: >
@@ -205,6 +221,51 @@ const router = Router();
  *         damage:
  *           $ref: '#/components/schemas/Damage'
  *           description: Tipo de daño hidratado. Sustituye {damage} en la ficha.
+ *     TraitCatalogChoice:
+ *       type: object
+ *       required:
+ *         - key
+ *         - options
+ *         - grants
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Clave única de la elección dentro del rasgo. El personaje la usa en traitChoices.
+ *           example: favoredTerrain
+ *         options:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nombre único de la opción. Es el valor que se guarda y sustituye {name}.
+ *                 example: Bosque
+ *         grants:
+ *           type: array
+ *           minItems: 1
+ *           description: >
+ *             Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase.
+ *             Los niveles no se repiten y la suma de choose no puede superar las opciones.
+ *           items:
+ *             type: object
+ *             required:
+ *               - atLevel
+ *               - choose
+ *             properties:
+ *               atLevel:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Nivel de clase en el que se concede la elección.
+ *                 example: 1
+ *               choose:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Opciones nuevas que hay que añadir en ese nivel.
+ *                 example: 1
  *     TraitDamageChoiceRef:
  *       type: object
  *       required:
@@ -431,6 +492,15 @@ const router = Router();
  *           description: Tabla de elecciones de daño. null borra el campo.
  *           items:
  *             $ref: '#/components/schemas/TraitDamageChoiceInput'
+ *         catalogChoices:
+ *           nullable: true
+ *           type: array
+ *           description: >
+ *             Elecciones de catálogo por nombre, con concesiones por nivel de clase.
+ *             null borra el campo. Los nombres son únicos, choose es al menos 1,
+ *             los niveles de grants no se repiten y la suma de choose no supera las opciones.
+ *           items:
+ *             $ref: '#/components/schemas/TraitCatalogChoice'
  *         damageChoiceRef:
  *           nullable: true
  *           allOf:
@@ -550,6 +620,14 @@ const router = Router();
  *           description: Tabla de elecciones de daño. null borra el campo.
  *           items:
  *             $ref: '#/components/schemas/TraitDamageChoiceInput'
+ *         catalogChoices:
+ *           nullable: true
+ *           type: array
+ *           description: >
+ *             Elecciones de catálogo por nombre, con concesiones por nivel de clase.
+ *             null borra el campo.
+ *           items:
+ *             $ref: '#/components/schemas/TraitCatalogChoice'
  *         damageChoiceRef:
  *           nullable: true
  *           allOf:

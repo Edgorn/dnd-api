@@ -147,6 +147,67 @@ export const TraitDamageChoicesSchema = z.array(TraitDamageChoiceSchema).superRe
   });
 });
 
+const TraitCatalogGrantSchema = z.object({
+  atLevel: z.number().int().min(1, "El nivel de la concesión debe ser al menos 1"),
+  choose: z.number().int().min(1, "Debe elegir al menos 1 opción")
+}).strict();
+
+const TraitCatalogChoiceSchema = z.object({
+  key: z.string().min(1, "La clave de la elección no puede estar vacía"),
+  options: z.array(z.object({
+    name: z.string().min(1, "El nombre de la opción no puede estar vacío")
+  }).strict()).min(1, "La elección debe tener al menos una opción"),
+  grants: z.array(TraitCatalogGrantSchema).min(1, "La elección debe indicar al menos una concesión")
+}).strict().superRefine((choice, ctx) => {
+  const names = new Set<string>();
+  choice.options.forEach((option, index) => {
+    if (names.has(option.name)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `El nombre ${option.name} está repetido`,
+        path: ["options", index, "name"]
+      });
+    }
+    names.add(option.name);
+  });
+
+  const levels = new Set<number>();
+  let total = 0;
+  choice.grants.forEach((grant, index) => {
+    if (levels.has(grant.atLevel)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `El nivel ${grant.atLevel} está repetido`,
+        path: ["grants", index, "atLevel"]
+      });
+    }
+    levels.add(grant.atLevel);
+    total += grant.choose;
+  });
+
+  if (total > choice.options.length) {
+    ctx.addIssue({
+      code: "custom",
+      message: "La suma de choose no puede superar el número de opciones",
+      path: ["grants"]
+    });
+  }
+});
+
+export const TraitCatalogChoicesSchema = z.array(TraitCatalogChoiceSchema).superRefine((choices, ctx) => {
+  const keys = new Set<string>();
+  choices.forEach((choice, index) => {
+    if (keys.has(choice.key)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `La clave ${choice.key} está repetida`,
+        path: [index, "key"]
+      });
+    }
+    keys.add(choice.key);
+  });
+});
+
 export const TraitDamageChoiceRefSchema = z.object({
   traitId: z.string().min(1, "El rasgo referenciado no puede estar vacío"),
   choiceKey: z.string().min(1, "La clave de la elección no puede estar vacía"),
@@ -177,6 +238,7 @@ export const CreateTraitSchema = z.object({
   equipmentRestriction: EquipmentRestrictionSchema.nullish(),
   languages: TraitLanguagesSchema.nullish(),
   damageChoices: TraitDamageChoicesSchema.nullish(),
+  catalogChoices: TraitCatalogChoicesSchema.nullish(),
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
   hitPoints: TraitHitPointsSchema.nullish()
 });
@@ -197,6 +259,7 @@ export const UpdateTraitSchema = z.object({
   equipmentRestriction: EquipmentRestrictionSchema.nullish(),
   languages: TraitLanguagesSchema.nullish(),
   damageChoices: TraitDamageChoicesSchema.nullish(),
+  catalogChoices: TraitCatalogChoicesSchema.nullish(),
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
   hitPoints: TraitHitPointsSchema.nullish()
 }).refine(data => Object.keys(data).length > 0, {

@@ -288,6 +288,20 @@
               "$ref": "#/components/schemas/ResolvedDamageChoice"
             }
           },
+          "catalogChoices": {
+            "type": "array",
+            "description": "Catálogo de elecciones por nombre. El personaje guarda la lista creciente en traitChoices. Las concesiones dependen del nivel de la clase que otorga el rasgo, no del nivel total.\n",
+            "items": {
+              "$ref": "#/components/schemas/TraitCatalogChoice"
+            }
+          },
+          "catalogChoice": {
+            "type": "array",
+            "description": "Nombres elegidos, resueltos en la ficha. No aparece en el catálogo. Si el rasgo no tiene filas de daño, {name} de la descripción y del resumen se sustituye uniéndolos con coma.\n",
+            "items": {
+              "type": "string"
+            }
+          },
           "hitPoints": {
             "$ref": "#/components/schemas/TraitHitPoints",
             "description": "Bono de puntos de golpe por nivel. scope class suma por nivel de la clase que otorga el rasgo; scope character suma por nivel total del personaje.\n"
@@ -434,6 +448,64 @@
           "damage": {
             "$ref": "#/components/schemas/Damage",
             "description": "Tipo de daño hidratado. Sustituye {damage} en la ficha."
+          }
+        }
+      },
+      "TraitCatalogChoice": {
+        "type": "object",
+        "required": [
+          "key",
+          "options",
+          "grants"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave única de la elección dentro del rasgo. El personaje la usa en traitChoices.",
+            "example": "favoredTerrain"
+          },
+          "options": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Nombre único de la opción. Es el valor que se guarda y sustituye {name}.",
+                  "example": "Bosque"
+                }
+              }
+            }
+          },
+          "grants": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase. Los niveles no se repiten y la suma de choose no puede superar las opciones.\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "atLevel",
+                "choose"
+              ],
+              "properties": {
+                "atLevel": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Nivel de clase en el que se concede la elección.",
+                  "example": 1
+                },
+                "choose": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Opciones nuevas que hay que añadir en ese nivel.",
+                  "example": 1
+                }
+              }
+            }
           }
         }
       },
@@ -762,6 +834,14 @@
               "$ref": "#/components/schemas/TraitDamageChoiceInput"
             }
           },
+          "catalogChoices": {
+            "nullable": true,
+            "type": "array",
+            "description": "Elecciones de catálogo por nombre, con concesiones por nivel de clase. null borra el campo. Los nombres son únicos, choose es al menos 1, los niveles de grants no se repiten y la suma de choose no supera las opciones.\n",
+            "items": {
+              "$ref": "#/components/schemas/TraitCatalogChoice"
+            }
+          },
           "damageChoiceRef": {
             "nullable": true,
             "allOf": [
@@ -932,6 +1012,14 @@
             "description": "Tabla de elecciones de daño. null borra el campo.",
             "items": {
               "$ref": "#/components/schemas/TraitDamageChoiceInput"
+            }
+          },
+          "catalogChoices": {
+            "nullable": true,
+            "type": "array",
+            "description": "Elecciones de catálogo por nombre, con concesiones por nivel de clase. null borra el campo.\n",
+            "items": {
+              "$ref": "#/components/schemas/TraitCatalogChoice"
             }
           },
           "damageChoiceRef": {
@@ -3007,6 +3095,56 @@
           }
         }
       },
+      "PendingCatalogChoice": {
+        "type": "object",
+        "required": [
+          "traitId",
+          "key",
+          "add",
+          "options",
+          "chosen"
+        ],
+        "properties": {
+          "traitId": {
+            "type": "string",
+            "description": "ID del rasgo que ya posee el personaje o que recibe en este nivel."
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave de la elección de catálogo dentro del rasgo.",
+            "example": "favoredTerrain"
+          },
+          "add": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nombres nuevos que hay que añadir en este nivel de clase."
+          },
+          "options": {
+            "type": "array",
+            "description": "Opciones que aún no se han elegido.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Costa"
+                }
+              }
+            }
+          },
+          "chosen": {
+            "type": "array",
+            "description": "Nombres ya guardados. La lista enviada debe empezar por estos, en el mismo orden.",
+            "items": {
+              "type": "string",
+              "example": "Bosque"
+            }
+          }
+        }
+      },
       "AtributoPersonajeApi": {
         "type": "object",
         "properties": {
@@ -4006,7 +4144,7 @@
           },
           "traitChoices": {
             "type": "object",
-            "description": "Elecciones de daño al recibir un rasgo con damageChoices. La clave exterior es el id del rasgo y la interior la clave de la elección. Cada lista debe tener tantos nombres de fila como indique choose, sin repetir.\n",
+            "description": "Elecciones al crear el personaje. La clave exterior es el id del rasgo y la interior la clave de la elección. Con damageChoices, la lista tiene tantos nombres de fila como indique choose. Con catalogChoices, la lista incluye los nombres que conceden los grants con atLevel menor o igual al nivel 1 de la clase.\n",
             "additionalProperties": {
               "type": "object",
               "additionalProperties": {
@@ -10704,6 +10842,13 @@
                         }
                       }
                     },
+                    "catalogChoices": {
+                      "type": "array",
+                      "description": "Elecciones de catálogo pendientes en rasgos que el personaje ya posee o recibe en este nivel, si pertenecen a la clase o subclase que sube y su concesión llega en este nivel de clase o antes. add es cuántos nombres hay que añadir. options son los que quedan. chosen son los ya guardados y deben conservarse al frente de la lista.\n",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingCatalogChoice"
+                      }
+                    },
                     "ability_score": {
                       "type": "boolean",
                       "description": "True si este nivel de clase otorga Mejora de característica. En ese caso el POST debe enviar `abilityScore` (repartir 2 puntos) o `feat`.\n"
@@ -10742,7 +10887,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: los nombres ya elegidos, en el mismo orden, y exactamente `add` nombres\nnuevos tomados de las opciones restantes, sin repetir. Si no hay nada pendiente,\nse omite o se repite la misma lista. Quitar o cambiar un nombre ya elegido se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
         "tags": [
           "Personajes"
         ],
@@ -10838,7 +10983,7 @@
                   },
                   "traitChoices": {
                     "type": "object",
-                    "description": "Elecciones de daño de los rasgos que entran en este nivel. Clave exterior: id del rasgo. Clave interior: choiceKey. El valor es la lista de nombres de fila, con longitud igual a choose. Obligatorio si el rasgo es nuevo y define damageChoices.\n",
+                    "description": "Elecciones de los rasgos de esta subida. Clave exterior: id del rasgo. Clave interior: choiceKey. Con damageChoices, la lista de nombres tiene longitud igual a choose y es obligatoria si el rasgo es nuevo. Con catalogChoices, la lista completa es obligatoria cuando level-up-data devuelve esa elección en catalogChoices: conserva chosen y añade `add` nombres de options. Si no falta ninguna, se puede omitir o repetir la lista guardada.\n",
                     "additionalProperties": {
                       "type": "object",
                       "additionalProperties": {

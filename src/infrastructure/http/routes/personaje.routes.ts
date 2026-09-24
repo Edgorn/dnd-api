@@ -9,6 +9,43 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
+ *     PendingCatalogChoice:
+ *       type: object
+ *       required:
+ *         - traitId
+ *         - key
+ *         - add
+ *         - options
+ *         - chosen
+ *       properties:
+ *         traitId:
+ *           type: string
+ *           description: ID del rasgo que ya posee el personaje o que recibe en este nivel.
+ *         key:
+ *           type: string
+ *           description: Clave de la elección de catálogo dentro del rasgo.
+ *           example: favoredTerrain
+ *         add:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nombres nuevos que hay que añadir en este nivel de clase.
+ *         options:
+ *           type: array
+ *           description: Opciones que aún no se han elegido.
+ *           items:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Costa
+ *         chosen:
+ *           type: array
+ *           description: Nombres ya guardados. La lista enviada debe empezar por estos, en el mismo orden.
+ *           items:
+ *             type: string
+ *             example: Bosque
  *     AtributoPersonajeApi:
  *       type: object
  *       properties:
@@ -724,9 +761,11 @@ const router = Router();
  *         traitChoices:
  *           type: object
  *           description: >
- *             Elecciones de daño al recibir un rasgo con damageChoices.
- *             La clave exterior es el id del rasgo y la interior la clave de la elección.
- *             Cada lista debe tener tantos nombres de fila como indique choose, sin repetir.
+ *             Elecciones al crear el personaje. La clave exterior es el id del rasgo y la
+ *             interior la clave de la elección.
+ *             Con damageChoices, la lista tiene tantos nombres de fila como indique choose.
+ *             Con catalogChoices, la lista incluye los nombres que conceden los grants
+ *             con atLevel menor o igual al nivel 1 de la clase.
  *           additionalProperties:
  *             type: object
  *             additionalProperties:
@@ -1484,6 +1523,16 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/Subclass'
+ *                 catalogChoices:
+ *                   type: array
+ *                   description: >
+ *                     Elecciones de catálogo pendientes en rasgos que el personaje ya posee
+ *                     o recibe en este nivel, si pertenecen a la clase o subclase que sube
+ *                     y su concesión llega en este nivel de clase o antes.
+ *                     add es cuántos nombres hay que añadir. options son los que quedan.
+ *                     chosen son los ya guardados y deben conservarse al frente de la lista.
+ *                   items:
+ *                     $ref: '#/components/schemas/PendingCatalogChoice'
  *                 ability_score:
  *                   type: boolean
  *                   description: >
@@ -1525,6 +1574,11 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       `traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).
  *       Si un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con
  *       esa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.
+ *       Si `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista
+ *       completa: los nombres ya elegidos, en el mismo orden, y exactamente `add` nombres
+ *       nuevos tomados de las opciones restantes, sin repetir. Si no hay nada pendiente,
+ *       se omite o se repite la misma lista. Quitar o cambiar un nombre ya elegido se rechaza.
+ *       El nivel que abre la concesión es el de esa clase, no el nivel total del personaje.
  *       Si el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de
  *       `abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)
  *       o `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos
@@ -1609,10 +1663,14 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *               traitChoices:
  *                 type: object
  *                 description: >
- *                   Elecciones de daño de los rasgos que entran en este nivel.
+ *                   Elecciones de los rasgos de esta subida.
  *                   Clave exterior: id del rasgo. Clave interior: choiceKey.
- *                   El valor es la lista de nombres de fila, con longitud igual a choose.
- *                   Obligatorio si el rasgo es nuevo y define damageChoices.
+ *                   Con damageChoices, la lista de nombres tiene longitud igual a choose
+ *                   y es obligatoria si el rasgo es nuevo.
+ *                   Con catalogChoices, la lista completa es obligatoria cuando
+ *                   level-up-data devuelve esa elección en catalogChoices: conserva chosen
+ *                   y añade `add` nombres de options. Si no falta ninguna, se puede omitir
+ *                   o repetir la lista guardada.
  *                 additionalProperties:
  *                   type: object
  *                   additionalProperties:
