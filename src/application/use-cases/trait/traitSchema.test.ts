@@ -425,6 +425,42 @@ describe("UpdateTraitSchema catalog choices", () => {
   });
 });
 
+describe("CreateTraitSchema repeatable catalog choices", () => {
+  it("accepts grants that exceed the options when one option is repeatable", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        language: "optional",
+        options: [
+          { name: "Dragones" },
+          { name: "Humanoides", inputs: 2, repeatable: true, label: "{0} y {1}" },
+        ],
+        grants: [
+          { atLevel: 1, choose: 1 },
+          { atLevel: 6, choose: 1 },
+          { atLevel: 14, choose: 1 },
+        ],
+      }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects free-text options without a label", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        options: [{ name: "Humanoides", inputs: 2, repeatable: true }],
+        grants: [{ atLevel: 1, choose: 1 }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("UpdateTraitSchema companionRoster", () => {
   it("accepts updating only companionRoster", () => {
     const result = UpdateTraitSchema.safeParse({

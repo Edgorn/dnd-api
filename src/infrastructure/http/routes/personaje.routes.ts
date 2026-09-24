@@ -31,21 +31,46 @@ const router = Router();
  *           description: Nombres nuevos que hay que añadir en este nivel de clase.
  *         options:
  *           type: array
- *           description: Opciones que aún no se han elegido.
+ *           description: >
+ *             Opciones que aún se pueden elegir. Las no repetibles ya elegidas desaparecen;
+ *             las repetibles se quedan.
  *           items:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 example: Costa
+ *             $ref: '#/components/schemas/TraitCatalogOption'
  *         chosen:
  *           type: array
- *           description: Nombres ya guardados. La lista enviada debe empezar por estos, en el mismo orden.
+ *           description: >
+ *             Elección ya guardada. La lista enviada debe empezar por estos valores,
+ *             en el mismo orden, con los mismos textos e idioma.
+ *             Si la elección es simple, cada elemento es un string.
+ *             Si tiene textos libres o idioma, cada elemento es un objeto.
+ *           items:
+ *             oneOf:
+ *               - type: string
+ *                 example: Bosque
+ *               - $ref: '#/components/schemas/CatalogChoiceEntry'
+ *     CatalogChoiceEntry:
+ *       type: object
+ *       required:
+ *         - name
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre de una opción del catálogo.
+ *           example: Humanoides
+ *         inputs:
+ *           type: array
+ *           description: Textos libres de esa opción. Cada uno tiene entre 1 y 80 caracteres y no se repite en la elección.
  *           items:
  *             type: string
- *             example: Bosque
+ *             minLength: 1
+ *             maxLength: 80
+ *           example: ["Orcos", "Trasgos"]
+ *         languageId:
+ *           type: string
+ *           nullable: true
+ *           description: >
+ *             Idioma del catálogo de los sistemas del personaje. Nulo si no hablan
+ *             y la elección es optional. Se rechaza si la elección no admite idioma.
  *     AtributoPersonajeApi:
  *       type: object
  *       properties:
@@ -764,14 +789,18 @@ const router = Router();
  *             Elecciones al crear el personaje. La clave exterior es el id del rasgo y la
  *             interior la clave de la elección.
  *             Con damageChoices, la lista tiene tantos nombres de fila como indique choose.
- *             Con catalogChoices, la lista incluye los nombres que conceden los grants
- *             con atLevel menor o igual al nivel 1 de la clase.
+ *             Con catalogChoices, la lista incluye las opciones que conceden los grants
+ *             con atLevel menor o igual al nivel 1 de la clase. Una opción simple es un
+ *             string. Si la opción pide textos o la elección admite idioma, es un objeto
+ *             con name, inputs y languageId.
  *           additionalProperties:
  *             type: object
  *             additionalProperties:
  *               type: array
  *               items:
- *                 type: string
+ *                 oneOf:
+ *                   - type: string
+ *                   - $ref: '#/components/schemas/CatalogChoiceEntry'
  *         money:
  *           type: array
  *           items:
@@ -1529,8 +1558,9 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                     Elecciones de catálogo pendientes en rasgos que el personaje ya posee
  *                     o recibe en este nivel, si pertenecen a la clase o subclase que sube
  *                     y su concesión llega en este nivel de clase o antes.
- *                     add es cuántos nombres hay que añadir. options son los que quedan.
- *                     chosen son los ya guardados y deben conservarse al frente de la lista.
+ *                     add es cuántas opciones hay que añadir. options son las que quedan,
+ *                     incluidas las repetibles ya elegidas. chosen son las ya guardadas
+ *                     y deben conservarse al frente, con sus textos e idioma.
  *                   items:
  *                     $ref: '#/components/schemas/PendingCatalogChoice'
  *                 ability_score:
@@ -1575,9 +1605,12 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       Si un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con
  *       esa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.
  *       Si `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista
- *       completa: los nombres ya elegidos, en el mismo orden, y exactamente `add` nombres
- *       nuevos tomados de las opciones restantes, sin repetir. Si no hay nada pendiente,
- *       se omite o se repite la misma lista. Quitar o cambiar un nombre ya elegido se rechaza.
+ *       completa: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente
+ *       `add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre
+ *       tiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,
+ *       `languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es
+ *       optional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar
+ *       una opción ya elegida se rechaza.
  *       El nivel que abre la concesión es el de esa clase, no el nivel total del personaje.
  *       Si el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de
  *       `abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)
@@ -1669,14 +1702,17 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                   y es obligatoria si el rasgo es nuevo.
  *                   Con catalogChoices, la lista completa es obligatoria cuando
  *                   level-up-data devuelve esa elección en catalogChoices: conserva chosen
- *                   y añade `add` nombres de options. Si no falta ninguna, se puede omitir
- *                   o repetir la lista guardada.
+ *                   y añade `add` opciones. Una opción simple es un string; si pide textos
+ *                   o idioma, es un objeto. Si no falta ninguna, se puede omitir o repetir
+ *                   la lista guardada.
  *                 additionalProperties:
  *                   type: object
  *                   additionalProperties:
  *                     type: array
  *                     items:
- *                       type: string
+ *                       oneOf:
+ *                         - type: string
+ *                         - $ref: '#/components/schemas/CatalogChoiceEntry'
  *     responses:
  *       200:
  *         description: Personaje actualizado tras la subida de nivel.

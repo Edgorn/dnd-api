@@ -132,6 +132,19 @@ describe("LevelUpSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts a catalog option with free text and a null language", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      traitChoices: {
+        "enemigo-predilecto": {
+          favoredEnemy: [{ name: "Humanoides", inputs: ["Orcos", "Trasgos"], languageId: null }],
+        },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects an invalid feat id", () => {
     const result = LevelUpSchema.safeParse({
       class: "class1",

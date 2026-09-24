@@ -297,9 +297,9 @@
           },
           "catalogChoice": {
             "type": "array",
-            "description": "Nombres elegidos, resueltos en la ficha. No aparece en el catálogo. Si el rasgo no tiene filas de daño, {name} de la descripción y del resumen se sustituye uniéndolos con coma.\n",
+            "description": "Opciones elegidas, resueltas en la ficha. No aparece en el catálogo. Si el rasgo no tiene filas de daño, {name} de la descripción y del resumen se sustituye por las etiquetas unidas con coma. La etiqueta de una opción con label es esa plantilla; la de una opción simple es su nombre. language solo aparece si la elección admite idioma.\n",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ResolvedCatalogChoice"
             }
           },
           "hitPoints": {
@@ -464,27 +464,25 @@
             "description": "Clave única de la elección dentro del rasgo. El personaje la usa en traitChoices.",
             "example": "favoredTerrain"
           },
+          "language": {
+            "type": "string",
+            "enum": [
+              "optional",
+              "required"
+            ],
+            "description": "Si se omite, la elección no admite idioma. optional permite languageId nulo. required exige un idioma del catálogo de los sistemas del personaje.\n"
+          },
           "options": {
             "type": "array",
             "minItems": 1,
             "items": {
-              "type": "object",
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "Nombre único de la opción. Es el valor que se guarda y sustituye {name}.",
-                  "example": "Bosque"
-                }
-              }
+              "$ref": "#/components/schemas/TraitCatalogOption"
             }
           },
           "grants": {
             "type": "array",
             "minItems": 1,
-            "description": "Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase. Los niveles no se repiten y la suma de choose no puede superar las opciones.\n",
+            "description": "Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase. Los niveles no se repiten. Si ninguna opción es repeatable, la suma de choose no puede superar las opciones.\n",
             "items": {
               "type": "object",
               "required": [
@@ -506,6 +504,56 @@
                 }
               }
             }
+          }
+        }
+      },
+      "TraitCatalogOption": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre único de la opción. En una opción simple es el valor que se guarda y la etiqueta de la ficha.",
+            "example": "Bosque"
+          },
+          "inputs": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Cuántos textos libres pide esta opción. Si existe, label es obligatorio y usa {0}, {1}, y así sucesivamente.\n",
+            "example": 2
+          },
+          "repeatable": {
+            "type": "boolean",
+            "description": "Si es true, la misma opción puede elegirse varias veces. Si se omite, no se repite."
+          },
+          "label": {
+            "type": "string",
+            "description": "Plantilla de la ficha. Sustituye {0}, {1}, … por los textos libres.",
+            "example": "{0} y {1}"
+          }
+        }
+      },
+      "ResolvedCatalogChoice": {
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Nombre de la opción, o la plantilla label con los textos ya sustituidos.",
+            "example": "Orcos y Trasgos"
+          },
+          "language": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Language"
+              }
+            ],
+            "description": "Idioma hidratado. Solo aparece si la elección admite idioma. Nulo si no hablan o el idioma no está en el catálogo.\n"
           }
         }
       },
@@ -837,7 +885,7 @@
           "catalogChoices": {
             "nullable": true,
             "type": "array",
-            "description": "Elecciones de catálogo por nombre, con concesiones por nivel de clase. null borra el campo. Los nombres son únicos, choose es al menos 1, los niveles de grants no se repiten y la suma de choose no supera las opciones.\n",
+            "description": "Elecciones de catálogo por nombre, con concesiones por nivel de clase. null borra el campo. Los nombres son únicos, choose es al menos 1 y los niveles de grants no se repiten. Si ninguna opción es repeatable, la suma de choose no supera las opciones. Una opción con inputs exige label.\n",
             "items": {
               "$ref": "#/components/schemas/TraitCatalogChoice"
             }
@@ -3121,27 +3169,56 @@
           },
           "options": {
             "type": "array",
-            "description": "Opciones que aún no se han elegido.",
+            "description": "Opciones que aún se pueden elegir. Las no repetibles ya elegidas desaparecen; las repetibles se quedan.\n",
             "items": {
-              "type": "object",
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Costa"
-                }
-              }
+              "$ref": "#/components/schemas/TraitCatalogOption"
             }
           },
           "chosen": {
             "type": "array",
-            "description": "Nombres ya guardados. La lista enviada debe empezar por estos, en el mismo orden.",
+            "description": "Elección ya guardada. La lista enviada debe empezar por estos valores, en el mismo orden, con los mismos textos e idioma. Si la elección es simple, cada elemento es un string. Si tiene textos libres o idioma, cada elemento es un objeto.\n",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "example": "Bosque"
+                },
+                {
+                  "$ref": "#/components/schemas/CatalogChoiceEntry"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "CatalogChoiceEntry": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de una opción del catálogo.",
+            "example": "Humanoides"
+          },
+          "inputs": {
+            "type": "array",
+            "description": "Textos libres de esa opción. Cada uno tiene entre 1 y 80 caracteres y no se repite en la elección.",
             "items": {
               "type": "string",
-              "example": "Bosque"
-            }
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "example": [
+              "Orcos",
+              "Trasgos"
+            ]
+          },
+          "languageId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Idioma del catálogo de los sistemas del personaje. Nulo si no hablan y la elección es optional. Se rechaza si la elección no admite idioma.\n"
           }
         }
       },
@@ -4144,13 +4221,20 @@
           },
           "traitChoices": {
             "type": "object",
-            "description": "Elecciones al crear el personaje. La clave exterior es el id del rasgo y la interior la clave de la elección. Con damageChoices, la lista tiene tantos nombres de fila como indique choose. Con catalogChoices, la lista incluye los nombres que conceden los grants con atLevel menor o igual al nivel 1 de la clase.\n",
+            "description": "Elecciones al crear el personaje. La clave exterior es el id del rasgo y la interior la clave de la elección. Con damageChoices, la lista tiene tantos nombres de fila como indique choose. Con catalogChoices, la lista incluye las opciones que conceden los grants con atLevel menor o igual al nivel 1 de la clase. Una opción simple es un string. Si la opción pide textos o la elección admite idioma, es un objeto con name, inputs y languageId.\n",
             "additionalProperties": {
               "type": "object",
               "additionalProperties": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CatalogChoiceEntry"
+                    }
+                  ]
                 }
               }
             }
@@ -10844,7 +10928,7 @@
                     },
                     "catalogChoices": {
                       "type": "array",
-                      "description": "Elecciones de catálogo pendientes en rasgos que el personaje ya posee o recibe en este nivel, si pertenecen a la clase o subclase que sube y su concesión llega en este nivel de clase o antes. add es cuántos nombres hay que añadir. options son los que quedan. chosen son los ya guardados y deben conservarse al frente de la lista.\n",
+                      "description": "Elecciones de catálogo pendientes en rasgos que el personaje ya posee o recibe en este nivel, si pertenecen a la clase o subclase que sube y su concesión llega en este nivel de clase o antes. add es cuántas opciones hay que añadir. options son las que quedan, incluidas las repetibles ya elegidas. chosen son las ya guardadas y deben conservarse al frente, con sus textos e idioma.\n",
                       "items": {
                         "$ref": "#/components/schemas/PendingCatalogChoice"
                       }
@@ -10887,7 +10971,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: los nombres ya elegidos, en el mismo orden, y exactamente `add` nombres\nnuevos tomados de las opciones restantes, sin repetir. Si no hay nada pendiente,\nse omite o se repite la misma lista. Quitar o cambiar un nombre ya elegido se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
         "tags": [
           "Personajes"
         ],
@@ -10983,13 +11067,20 @@
                   },
                   "traitChoices": {
                     "type": "object",
-                    "description": "Elecciones de los rasgos de esta subida. Clave exterior: id del rasgo. Clave interior: choiceKey. Con damageChoices, la lista de nombres tiene longitud igual a choose y es obligatoria si el rasgo es nuevo. Con catalogChoices, la lista completa es obligatoria cuando level-up-data devuelve esa elección en catalogChoices: conserva chosen y añade `add` nombres de options. Si no falta ninguna, se puede omitir o repetir la lista guardada.\n",
+                    "description": "Elecciones de los rasgos de esta subida. Clave exterior: id del rasgo. Clave interior: choiceKey. Con damageChoices, la lista de nombres tiene longitud igual a choose y es obligatoria si el rasgo es nuevo. Con catalogChoices, la lista completa es obligatoria cuando level-up-data devuelve esa elección en catalogChoices: conserva chosen y añade `add` opciones. Una opción simple es un string; si pide textos o idioma, es un objeto. Si no falta ninguna, se puede omitir o repetir la lista guardada.\n",
                     "additionalProperties": {
                       "type": "object",
                       "additionalProperties": {
                         "type": "array",
                         "items": {
-                          "type": "string"
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "$ref": "#/components/schemas/CatalogChoiceEntry"
+                            }
+                          ]
                         }
                       }
                     }

@@ -24,7 +24,7 @@ import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipmentInstanceApi, E
 import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRestriction';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
-import { PendingCatalogChoice, TraitApi, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
+import { PendingCatalogChoice, TraitApi, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
 import {
   collectClassGrantedTraitIds,
@@ -33,6 +33,8 @@ import {
 import {
   applyCatalogTraitChoices,
   applyEnteringTraitChoices,
+  catalogSpeakIds,
+  hydrateCatalogChoiceLanguages,
   listPendingCatalogChoices,
   mergeTraitLanguageIds,
   resolveCharacterTraitChoices
@@ -242,17 +244,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
       characterLevel: 1,
       previouslyOwnedIds: []
     });
-    const catalogResult = applyCatalogTraitChoices({
+    const grantedTraits = loadedTraits.filter(trait => trait.id && classGrantedTraitIds.has(trait.id));
+    const catalogChoices = await this.applyGrantedCatalogChoices({
       existing: undefined,
       incoming: data.traitChoices,
       classLevel: 1,
-      grantedTraits: loadedTraits.filter(trait => trait.id && classGrantedTraitIds.has(trait.id))
+      systems,
+      grantedTraits
     });
-    if ("error" in catalogResult) {
-      throw new ValidationError(catalogResult.error);
-    }
     const choiceResult = applyEnteringTraitChoices({
-      existing: catalogResult.traitChoices,
+      existing: catalogChoices,
       incoming: data.traitChoices,
       enteringTraits: loadedTraits
     });
@@ -640,17 +641,15 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const ownedTraitIds = new Set(previouslyOwnedTraitIds);
     const enteringTraits = (levelTraits ?? []).filter(trait => trait.id && !ownedTraitIds.has(trait.id));
-    const catalogResult = applyCatalogTraitChoices({
+    const catalogChoices = await this.applyGrantedCatalogChoices({
       existing: personaje.traitChoices,
       incoming: traitChoices,
       classLevel: nextLevel,
+      systems: personaje.systems,
       grantedTraits: levelUpTraitIds.filter(trait => trait.id && levelUpGrantedIds.has(trait.id))
     });
-    if ("error" in catalogResult) {
-      throw new ValidationError(catalogResult.error);
-    }
     const choiceResult = applyEnteringTraitChoices({
-      existing: catalogResult.traitChoices,
+      existing: catalogChoices,
       incoming: traitChoices,
       enteringTraits
     });
@@ -1105,6 +1104,38 @@ export default class PersonajeRepository implements IPersonajeRepository {
     });
   }
 
+  private async applyGrantedCatalogChoices(input: {
+    existing?: TraitChoices | null;
+    incoming?: TraitChoices | null;
+    classLevel: number;
+    systems?: string[];
+    grantedTraits: TraitApi[];
+  }): Promise<TraitChoices> {
+    const needsLanguages = input.grantedTraits.some(trait =>
+      trait.catalogChoices?.some(choice => Boolean(choice.language))
+    );
+    const allowedLanguageIds = needsLanguages
+      ? await this.languageIdsForSystems(input.systems)
+      : new Set<string>();
+    const result = applyCatalogTraitChoices({
+      existing: input.existing,
+      incoming: input.incoming,
+      classLevel: input.classLevel,
+      grantedTraits: input.grantedTraits,
+      allowedLanguageIds
+    });
+    if ("error" in result) {
+      throw new ValidationError(result.error);
+    }
+    return result.traitChoices;
+  }
+
+  private async languageIdsForSystems(systems: string[] | undefined): Promise<Set<string>> {
+    const expanded = await this.systemRepository.getSystemsAndAncestors(systems ?? []);
+    const languages = await this.languageRepository.getBySystems(expanded);
+    return new Set(languages.map(language => language.id).filter((id): id is string => Boolean(id)));
+  }
+
   private async resolveLevelUpClassData(
     personaje: PersonajeMongo,
     classId: string,
@@ -1550,7 +1581,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
         speaks: personaje.languages?.speaks ?? [],
         understands: personaje.languages?.understands ?? []
       },
-      traits
+      traits,
+      catalogSpeakIds(traits, personaje.traitChoices)
     )
     const idiomas_understands = await this.languageRepository.getLanguagesByIndex(mergedLanguageIds.understands)
     const idiomas_speaks = await this.languageRepository.getLanguagesByIndex(mergedLanguageIds.speaks)
@@ -1799,7 +1831,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
         notes: idiomasId.notes
       },
       proficiencies: proficienciesUnicos,
-      traits,
+      traits: hydrateCatalogChoiceLanguages(
+        traits,
+        personaje.traitChoices,
+        new Map(idiomas_speaks.map(language => [language.id, language]))
+      ),
       traits_data: personaje.traits_data,
       resistances,
       conditional_resistances,

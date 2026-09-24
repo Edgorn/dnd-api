@@ -90,18 +90,41 @@ export interface TraitDamageChoiceOptionApi extends TraitDamageChoiceOption {
   damage?: Damage;
 }
 
+export type TraitCatalogLanguage = "optional" | "required";
+
+export interface TraitCatalogOption {
+  name: string;
+  inputs?: number;
+  repeatable?: boolean;
+  label?: string;
+}
+
 export interface TraitCatalogChoice {
   key: string;
-  options: { name: string }[];
+  options: TraitCatalogOption[];
   grants: { atLevel: number; choose: number }[];
+  language?: TraitCatalogLanguage;
 }
+
+export interface CatalogChoiceEntry {
+  name: string;
+  inputs?: string[];
+  languageId?: string | null;
+}
+
+export type TraitChoiceValue = string | CatalogChoiceEntry;
 
 export interface PendingCatalogChoice {
   traitId: string;
   key: string;
   add: number;
-  options: { name: string }[];
-  chosen: string[];
+  options: TraitCatalogOption[];
+  chosen: TraitChoiceValue[];
+}
+
+export interface ResolvedCatalogChoice {
+  label: string;
+  language?: LanguageApi | null;
 }
 
 export interface TraitDamageChoice {
@@ -134,7 +157,7 @@ export interface ResolvedDamageChoice {
   damage: Damage;
 }
 
-export type TraitChoices = Record<string, Record<string, string[]>>;
+export type TraitChoices = Record<string, Record<string, TraitChoiceValue[]>>;
 
 export interface TraitMongo {
   _id: ObjectId,
@@ -209,7 +232,7 @@ export interface TraitApi {
   catalogChoices?: TraitCatalogChoice[],
   damageChoiceRef?: TraitDamageChoiceRef,
   damageChoice?: ResolvedDamageChoice[],
-  catalogChoice?: string[],
+  catalogChoice?: ResolvedCatalogChoice[],
   hitPoints?: TraitHitPoints
 }
 

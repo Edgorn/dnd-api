@@ -9,7 +9,7 @@ import ILanguageRepository from '../../../../domain/repositories/ILanguageReposi
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitApi, TraitCatalogChoice, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitApi, TraitCatalogChoice, TraitCatalogOption, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { SpellApi } from "../../../../domain/types/spell.types";
@@ -382,12 +382,23 @@ export default class TraitRepository implements ITraitRepository {
         key: choice.key,
         options: (choice.options ?? [])
           .filter(option => typeof option?.name === "string" && option.name.length > 0)
-          .map(option => ({ name: option.name })),
+          .map(option => this.formatCatalogOption(option)),
         grants: (choice.grants ?? [])
           .filter(grant => Number.isInteger(grant?.atLevel) && Number.isInteger(grant?.choose))
-          .map(grant => ({ atLevel: grant.atLevel, choose: grant.choose }))
+          .map(grant => ({ atLevel: grant.atLevel, choose: grant.choose })),
+        ...(choice.language === "optional" || choice.language === "required"
+          ? { language: choice.language }
+          : {})
       }))
     };
+  }
+
+  private formatCatalogOption(option: TraitCatalogOption): TraitCatalogOption {
+    const formatted: TraitCatalogOption = { name: option.name };
+    if (Number.isInteger(option.inputs) && (option.inputs ?? 0) > 0) formatted.inputs = option.inputs;
+    if (option.repeatable === true) formatted.repeatable = true;
+    if (typeof option.label === "string" && option.label.length > 0) formatted.label = option.label;
+    return formatted;
   }
 
   private formatDamageChoices(

@@ -44,11 +44,22 @@ const AbilityScoreIncreaseSchema = z.object({
   }),
 });
 
+const CatalogChoiceEntrySchema = z.object({
+  name: z.string().min(1, "El nombre de la opción no puede estar vacío"),
+  inputs: z.array(
+    z.string().trim().min(1, "Cada texto debe tener entre 1 y 80 caracteres").max(80, "Cada texto debe tener entre 1 y 80 caracteres")
+  ).optional(),
+  languageId: z.string().min(1, "El idioma no puede estar vacío").nullable().optional()
+}).strict();
+
 export const TraitChoicesSchema = z.record(
   z.string().min(1, "El id del rasgo no puede estar vacío"),
   z.record(
     z.string().min(1, "La clave de la elección no puede estar vacía"),
-    z.array(z.string().min(1, "El nombre de la fila no puede estar vacío"))
+    z.array(z.union([
+      z.string().min(1, "El nombre de la fila no puede estar vacío"),
+      CatalogChoiceEntrySchema
+    ]))
   )
 );
 

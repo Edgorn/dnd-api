@@ -152,12 +152,37 @@ const TraitCatalogGrantSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1 opción")
 }).strict();
 
+const TraitCatalogOptionSchema = z.object({
+  name: z.string().min(1, "El nombre de la opción no puede estar vacío"),
+  inputs: z.number().int().min(1, "Los textos libres deben ser al menos 1").optional(),
+  repeatable: z.boolean().optional(),
+  label: z.string().min(1, "La etiqueta no puede estar vacía").optional()
+}).strict().superRefine((option, ctx) => {
+  if (option.inputs === undefined) return;
+  if (!option.label) {
+    ctx.addIssue({
+      code: "custom",
+      message: "La opción con textos libres debe incluir label",
+      path: ["label"]
+    });
+    return;
+  }
+  for (let index = 0; index < option.inputs; index++) {
+    if (!option.label.includes(`{${index}}`)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `La etiqueta debe incluir {${index}}`,
+        path: ["label"]
+      });
+    }
+  }
+});
+
 const TraitCatalogChoiceSchema = z.object({
   key: z.string().min(1, "La clave de la elección no puede estar vacía"),
-  options: z.array(z.object({
-    name: z.string().min(1, "El nombre de la opción no puede estar vacío")
-  }).strict()).min(1, "La elección debe tener al menos una opción"),
-  grants: z.array(TraitCatalogGrantSchema).min(1, "La elección debe indicar al menos una concesión")
+  options: z.array(TraitCatalogOptionSchema).min(1, "La elección debe tener al menos una opción"),
+  grants: z.array(TraitCatalogGrantSchema).min(1, "La elección debe indicar al menos una concesión"),
+  language: z.enum(["optional", "required"]).optional()
 }).strict().superRefine((choice, ctx) => {
   const names = new Set<string>();
   choice.options.forEach((option, index) => {
@@ -185,7 +210,8 @@ const TraitCatalogChoiceSchema = z.object({
     total += grant.choose;
   });
 
-  if (total > choice.options.length) {
+  const repeatable = choice.options.some(option => option.repeatable);
+  if (!repeatable && total > choice.options.length) {
     ctx.addIssue({
       code: "custom",
       message: "La suma de choose no puede superar el número de opciones",

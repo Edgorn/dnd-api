@@ -110,11 +110,13 @@ const router = Router();
  *         catalogChoice:
  *           type: array
  *           description: >
- *             Nombres elegidos, resueltos en la ficha. No aparece en el catálogo.
+ *             Opciones elegidas, resueltas en la ficha. No aparece en el catálogo.
  *             Si el rasgo no tiene filas de daño, {name} de la descripción y del resumen
- *             se sustituye uniéndolos con coma.
+ *             se sustituye por las etiquetas unidas con coma. La etiqueta de una opción
+ *             con label es esa plantilla; la de una opción simple es su nombre.
+ *             language solo aparece si la elección admite idioma.
  *           items:
- *             type: string
+ *             $ref: '#/components/schemas/ResolvedCatalogChoice'
  *         hitPoints:
  *           $ref: '#/components/schemas/TraitHitPoints'
  *           description: >
@@ -232,24 +234,24 @@ const router = Router();
  *           type: string
  *           description: Clave única de la elección dentro del rasgo. El personaje la usa en traitChoices.
  *           example: favoredTerrain
+ *         language:
+ *           type: string
+ *           enum: [optional, required]
+ *           description: >
+ *             Si se omite, la elección no admite idioma. optional permite languageId nulo.
+ *             required exige un idioma del catálogo de los sistemas del personaje.
  *         options:
  *           type: array
  *           minItems: 1
  *           items:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 description: Nombre único de la opción. Es el valor que se guarda y sustituye {name}.
- *                 example: Bosque
+ *             $ref: '#/components/schemas/TraitCatalogOption'
  *         grants:
  *           type: array
  *           minItems: 1
  *           description: >
  *             Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase.
- *             Los niveles no se repiten y la suma de choose no puede superar las opciones.
+ *             Los niveles no se repiten. Si ninguna opción es repeatable, la suma de
+ *             choose no puede superar las opciones.
  *           items:
  *             type: object
  *             required:
@@ -266,6 +268,45 @@ const router = Router();
  *                 minimum: 1
  *                 description: Opciones nuevas que hay que añadir en ese nivel.
  *                 example: 1
+ *     TraitCatalogOption:
+ *       type: object
+ *       required:
+ *         - name
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre único de la opción. En una opción simple es el valor que se guarda y la etiqueta de la ficha.
+ *           example: Bosque
+ *         inputs:
+ *           type: integer
+ *           minimum: 1
+ *           description: >
+ *             Cuántos textos libres pide esta opción. Si existe, label es obligatorio
+ *             y usa {0}, {1}, y así sucesivamente.
+ *           example: 2
+ *         repeatable:
+ *           type: boolean
+ *           description: Si es true, la misma opción puede elegirse varias veces. Si se omite, no se repite.
+ *         label:
+ *           type: string
+ *           description: Plantilla de la ficha. Sustituye {0}, {1}, … por los textos libres.
+ *           example: "{0} y {1}"
+ *     ResolvedCatalogChoice:
+ *       type: object
+ *       required:
+ *         - label
+ *       properties:
+ *         label:
+ *           type: string
+ *           description: Nombre de la opción, o la plantilla label con los textos ya sustituidos.
+ *           example: Orcos y Trasgos
+ *         language:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/Language'
+ *           description: >
+ *             Idioma hidratado. Solo aparece si la elección admite idioma.
+ *             Nulo si no hablan o el idioma no está en el catálogo.
  *     TraitDamageChoiceRef:
  *       type: object
  *       required:
@@ -497,8 +538,9 @@ const router = Router();
  *           type: array
  *           description: >
  *             Elecciones de catálogo por nombre, con concesiones por nivel de clase.
- *             null borra el campo. Los nombres son únicos, choose es al menos 1,
- *             los niveles de grants no se repiten y la suma de choose no supera las opciones.
+ *             null borra el campo. Los nombres son únicos, choose es al menos 1
+ *             y los niveles de grants no se repiten. Si ninguna opción es repeatable,
+ *             la suma de choose no supera las opciones. Una opción con inputs exige label.
  *           items:
  *             $ref: '#/components/schemas/TraitCatalogChoice'
  *         damageChoiceRef:
