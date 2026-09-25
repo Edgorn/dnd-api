@@ -123,6 +123,33 @@ describe("CreateTraitSchema speed", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("accepts ignoresArmorSpeedPenaltyForTypeIds with valid ids", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Velocidad",
+      ignoresArmorSpeedPenaltyForTypeIds: ["507f1f77bcf86cd799439011"],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid ignoresArmorSpeedPenaltyForTypeIds value", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Velocidad",
+      ignoresArmorSpeedPenaltyForTypeIds: ["not-an-id"],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts null ignoresArmorSpeedPenaltyForTypeIds", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Velocidad",
+      ignoresArmorSpeedPenaltyForTypeIds: null,
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("UpdateTraitSchema spellPrivileges", () => {
@@ -515,5 +542,41 @@ describe("UpdateTraitSchema hitPoints", () => {
   it("accepts null to clear hitPoints", () => {
     const result = UpdateTraitSchema.safeParse({ hitPoints: null });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("CreateTraitSchema resistances", () => {
+  it("accepts valid damage type ids and defaults to an empty array", () => {
+    const withIds = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Resistencia",
+      resistances: [damageTypeId],
+    });
+    const omitted = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Resistencia",
+    });
+
+    expect(withIds.success).toBe(true);
+    expect(omitted.success).toBe(true);
+    if (withIds.success) expect(withIds.data.resistances).toEqual([damageTypeId]);
+    if (omitted.success) expect(omitted.data.resistances).toEqual([]);
+  });
+
+  it("rejects an invalid damage type id", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Resistencia",
+      resistances: ["not-an-id"],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema resistances", () => {
+  it("accepts an empty array to clear resistances", () => {
+    const result = UpdateTraitSchema.safeParse({ resistances: [] });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.resistances).toEqual([]);
   });
 });

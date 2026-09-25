@@ -249,6 +249,7 @@ export default class TraitRepository implements ITraitRepository {
         bonuses: trait?.bonuses ?? undefined,
         acFormula: trait?.acFormula,
         suppressedByArmorTypeIds: trait?.suppressedByArmorTypeIds,
+        ignoresArmorSpeedPenaltyForTypeIds: trait?.ignoresArmorSpeedPenaltyForTypeIds,
         ...(trait.equipmentRestriction ? { equipmentRestriction: trait.equipmentRestriction } : {}),
         ...(Array.isArray(trait.spellPrivileges) && trait.spellPrivileges.length
           ? { spellPrivileges: trait.spellPrivileges }
@@ -269,11 +270,12 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, ...rest } = trait;
     return {
       ...rest,
       ...(typeof acFormula === "string" ? { acFormula } : {}),
       ...(Array.isArray(suppressedByArmorTypeIds) ? { suppressedByArmorTypeIds } : {}),
+      ...(Array.isArray(ignoresArmorSpeedPenaltyForTypeIds) ? { ignoresArmorSpeedPenaltyForTypeIds } : {}),
       ...(equipmentRestriction ? { equipmentRestriction } : {}),
       ...(languages ? { languages } : {}),
       ...(Array.isArray(damageChoices) ? { damageChoices } : {}),
@@ -290,6 +292,7 @@ export default class TraitRepository implements ITraitRepository {
     const {
       acFormula,
       suppressedByArmorTypeIds,
+      ignoresArmorSpeedPenaltyForTypeIds,
       equipmentRestriction,
       languages,
       damageChoices,
@@ -311,6 +314,12 @@ export default class TraitRepository implements ITraitRepository {
       $set.suppressedByArmorTypeIds = suppressedByArmorTypeIds;
     } else if (suppressedByArmorTypeIds === null) {
       $unset.suppressedByArmorTypeIds = 1;
+    }
+
+    if (Array.isArray(ignoresArmorSpeedPenaltyForTypeIds)) {
+      $set.ignoresArmorSpeedPenaltyForTypeIds = ignoresArmorSpeedPenaltyForTypeIds;
+    } else if (ignoresArmorSpeedPenaltyForTypeIds === null) {
+      $unset.ignoresArmorSpeedPenaltyForTypeIds = 1;
     }
 
     this.assignNullable($set, $unset, "equipmentRestriction", equipmentRestriction);

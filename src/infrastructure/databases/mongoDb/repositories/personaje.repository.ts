@@ -1763,7 +1763,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const equippedArmor = collectEquippedArmorSuppression(equipmentWithCombatBonuses);
     const speedWithTraits = applyTraitSpeed(speed, traits, equippedArmor);
     const bodyArmor = findBodyArmor(equipmentWithCombatBonuses);
-    const finalSpeed = applyArmorStrengthSpeedPenalty(speedWithTraits, bodyArmor, apiAttributes);
+    const finalSpeed = applyArmorStrengthSpeedPenalty(speedWithTraits, bodyArmor, apiAttributes, traits);
     const stealthKeys = collectStealthDisadvantageSkillKeys(equipmentWithCombatBonuses);
     const skillsWithArmor = skillsWithPassive.map(skill =>
       stealthKeys.includes(skill.key) ? { ...skill, disadvantage: true } : skill

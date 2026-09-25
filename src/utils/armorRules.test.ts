@@ -294,6 +294,34 @@ describe("type ids and side effects", () => {
     )).toEqual({ walk: 30 });
   });
 
+  it("keeps walk speed when a trait ignores the body armor type", () => {
+    const body = findBodyArmor([{
+      equipped: true,
+      equipSlot: "armor",
+      armor: {
+        class: { base: 16 },
+        type: { id: "heavy-type" },
+        attributeMinimum: { key: "str", value: 13, unmetSpeedPenalty: 10 }
+      }
+    }]);
+    const traits = [{ id: "dwarf-speed", ignoresArmorSpeedPenaltyForTypeIds: ["heavy-type"] }];
+    expect(applyArmorStrengthSpeedPenalty({ walk: 25 }, body, attributes, traits)).toEqual({ walk: 25 });
+  });
+
+  it("still cuts walk speed for an armor type the trait does not ignore", () => {
+    const body = findBodyArmor([{
+      equipped: true,
+      equipSlot: "armor",
+      armor: {
+        class: { base: 16 },
+        type: { id: "medium-type" },
+        attributeMinimum: { key: "str", value: 13, unmetSpeedPenalty: 10 }
+      }
+    }]);
+    const traits = [{ id: "dwarf-speed", ignoresArmorSpeedPenaltyForTypeIds: ["heavy-type"] }];
+    expect(applyArmorStrengthSpeedPenalty({ walk: 25 }, body, attributes, traits)).toEqual({ walk: 15 });
+  });
+
   it("collects disadvantage skill keys from the piece", () => {
     expect(collectStealthDisadvantageSkillKeys([{
       equipped: true,

@@ -40,6 +40,7 @@ export const CreateRaceSchema = z.object({
   language_choices: ChoiceMongoSchema.nullable().optional(),
   parentId: z.string().nullable().optional(),
   subraces_name: z.string().nullable().optional(),
+  proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   spell_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   spellcasting: z.string().nullable().optional(),
   equipment: GrantedEquipmentListSchema.nullable().optional()

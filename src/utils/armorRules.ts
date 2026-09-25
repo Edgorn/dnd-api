@@ -35,6 +35,7 @@ export interface ArmorRulesTrait {
   id: string;
   acFormula?: string;
   suppressedByArmorTypeIds?: string[];
+  ignoresArmorSpeedPenaltyForTypeIds?: string[];
   bonuses?: { armor_class?: number };
 }
 
@@ -174,7 +175,8 @@ export function computeArmorClass(input: ComputeArmorClassInput): number {
 export function applyArmorStrengthSpeedPenalty(
   speed: Speed,
   bodyArmor: ArmorRulesEquipment | undefined,
-  attributes: CharacterAttributeApi[]
+  attributes: CharacterAttributeApi[],
+  traits: ArmorRulesTrait[] = []
 ): Speed {
   const minimum = bodyArmor?.armor?.attributeMinimum;
   const penalty = minimum?.unmetSpeedPenalty;
@@ -182,6 +184,14 @@ export function applyArmorStrengthSpeedPenalty(
     return speed;
   }
   if (attributeValue(attributes, minimum.key) >= minimum.value) {
+    return speed;
+  }
+
+  const armorTypeId = bodyArmor?.armor?.type?.id;
+  if (
+    armorTypeId &&
+    traits.some(trait => (trait.ignoresArmorSpeedPenaltyForTypeIds ?? []).includes(armorTypeId))
+  ) {
     return speed;
   }
 

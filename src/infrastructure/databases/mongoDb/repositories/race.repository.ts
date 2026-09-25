@@ -87,6 +87,7 @@ export default class RaceRepository implements IRaceRepository {
       language_choices: raza.language_choices,
       parentId: raza.parentId || null,
       subraces_name: raza.subraces_name,
+      proficiencies_choices: raza.proficiencies_choices,
       spell_choices: raza.spell_choices,
       spellcasting: raza.spellcasting || null,
       equipment: raza.equipment ?? []
@@ -121,6 +122,7 @@ export default class RaceRepository implements IRaceRepository {
         language_choices: raza.language_choices,
         parentId: raza.parentId,
         subraces_name: raza.subraces_name,
+        proficiencies_choices: raza.proficiencies_choices === null ? [] : raza.proficiencies_choices,
         spell_choices: raza.spell_choices === null ? [] : raza.spell_choices,
         spellcasting: raza.spellcasting,
         ...(raza.equipment !== undefined ? { equipment: raza.equipment === null ? [] : raza.equipment } : {})

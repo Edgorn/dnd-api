@@ -44,6 +44,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de IDs de habilidades (skills) que otorga el rasgo.
+ *         resistances:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Damage'
+ *           description: Resistencias fijas a tipos de daño que otorga el rasgo.
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -65,6 +70,12 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         ignoresArmorSpeedPenaltyForTypeIds:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de armadura (del sistema o sus ancestros) para los que no se resta la penalización de velocidad al no cumplir el atributo mínimo.
  *         equipmentRestriction:
  *           allOf:
  *             - $ref: '#/components/schemas/EquipmentRestriction'
@@ -494,6 +505,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de IDs de habilidades (skills) que otorga el rasgo.
+ *         resistances:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de daño del sistema o de sus ancestros. Si se omite, queda vacío.
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -512,6 +528,12 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         ignoresArmorSpeedPenaltyForTypeIds:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de armadura (del sistema o sus ancestros) para los que no se resta la penalización de velocidad al no cumplir el atributo mínimo. null borra el campo.
  *         equipmentRestriction:
  *           nullable: true
  *           allOf:
@@ -623,6 +645,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de IDs de habilidades (skills) que otorga el rasgo.
+ *         resistances:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de daño del sistema o de sus ancestros. Omitirlo no modifica el valor guardado. Un array vacío borra la lista.
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -641,6 +668,12 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo.
+ *         ignoresArmorSpeedPenaltyForTypeIds:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de armadura (del sistema o sus ancestros) para los que no se resta la penalización de velocidad al no cumplir el atributo mínimo. null borra el campo.
  *         equipmentRestriction:
  *           nullable: true
  *           allOf:

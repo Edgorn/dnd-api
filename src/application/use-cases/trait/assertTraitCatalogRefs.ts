@@ -12,6 +12,7 @@ import {
 export async function assertTraitCatalogRefs(input: {
   ruleset: string;
   languages?: TraitLanguages | null;
+  resistances?: string[] | null;
   damageChoices?: TraitDamageChoice[] | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
   languageService: LanguageService;
@@ -26,9 +27,10 @@ export async function assertTraitCatalogRefs(input: {
     ...(input.languages?.speaks ?? []),
     ...(input.languages?.understands ?? [])
   ]);
-  const damageIds = uniqueIds(
-    (input.damageChoices ?? []).flatMap(choice => choice.options.map(option => option.damageTypeId))
-  );
+  const damageIds = uniqueIds([
+    ...(input.resistances ?? []),
+    ...(input.damageChoices ?? []).flatMap(choice => choice.options.map(option => option.damageTypeId))
+  ]);
   const publicLanguageIds = new Map<string, string>();
 
   if (languageIds.length || damageIds.length) {

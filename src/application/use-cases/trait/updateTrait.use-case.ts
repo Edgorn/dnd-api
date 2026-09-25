@@ -40,10 +40,17 @@ export default class UpdateTraitUseCase {
       this.armorTypeService,
       this.systemService
     );
+    await assertArmorTypesForRuleset(
+      trait.ignoresArmorSpeedPenaltyForTypeIds,
+      existingTrait.ruleset,
+      this.armorTypeService,
+      this.systemService
+    );
 
     const normalized = await assertTraitCatalogRefs({
       ruleset,
       languages: trait.languages,
+      resistances: trait.resistances,
       damageChoices: trait.damageChoices,
       damageChoiceRef: trait.damageChoiceRef,
       languageService: this.languageService,

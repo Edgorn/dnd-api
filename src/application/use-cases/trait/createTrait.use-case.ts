@@ -33,10 +33,17 @@ export default class CreateTraitUseCase {
       this.armorTypeService,
       this.systemService
     );
+    await assertArmorTypesForRuleset(
+      trait.ignoresArmorSpeedPenaltyForTypeIds,
+      trait.ruleset,
+      this.armorTypeService,
+      this.systemService
+    );
 
     const normalized = await assertTraitCatalogRefs({
       ruleset: trait.ruleset,
       languages: trait.languages,
+      resistances: trait.resistances,
       damageChoices: trait.damageChoices,
       damageChoiceRef: trait.damageChoiceRef,
       languageService: this.languageService,

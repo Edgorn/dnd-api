@@ -147,6 +147,7 @@ export interface CreateRace {
   language_choices?: ChoiceMongo | null;
   parentId?: string | null;
   subraces_name?: string | null;
+  proficiencies_choices?: ChoiceMongo[] | null;
   spell_choices?: ChoiceMongo[] | null;
   spellcasting?: string | null,
   equipment?: CharacterEquipmentMongo[] | null

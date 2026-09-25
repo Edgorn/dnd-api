@@ -80,6 +80,27 @@ describe("Trait Use Cases armor type suppression", () => {
       expect(armorTypeServiceMock.getById).toHaveBeenCalledWith(typeId);
     });
 
+    it("forwards ignoresArmorSpeedPenaltyForTypeIds after validating the armor type", async () => {
+      const useCase = createUseCase();
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getSystemsAndAncestors.mockResolvedValue(["sys1", "parent"]);
+      armorTypeServiceMock.getById.mockResolvedValue({ id: typeId, ruleset: "parent" });
+      traitServiceMock.create.mockResolvedValue({ id: "trait1" });
+
+      const input = {
+        name: "Velocidad",
+        description: [],
+        summary: [],
+        ruleset: "sys1",
+        incompatible_traits: [],
+        ignoresArmorSpeedPenaltyForTypeIds: [typeId]
+      };
+      await useCase.execute(input, "user1");
+
+      expect(traitServiceMock.create).toHaveBeenCalledWith(input);
+      expect(armorTypeServiceMock.getById).toHaveBeenCalledWith(typeId);
+    });
+
     it("throws if an armor type does not belong to the system or its ancestors", async () => {
       const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
@@ -109,6 +130,21 @@ describe("Trait Use Cases armor type suppression", () => {
 
       await useCase.execute({ id: "trait1", suppressedByArmorTypeIds: [typeId] }, "user1");
       expect(traitServiceMock.update).toHaveBeenCalled();
+    });
+
+    it("forwards ignoresArmorSpeedPenaltyForTypeIds after validating the armor type", async () => {
+      const useCase = updateUseCase();
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getSystemsAndAncestors.mockResolvedValue(["sys1"]);
+      armorTypeServiceMock.getById.mockResolvedValue({ id: typeId, ruleset: "sys1" });
+      traitServiceMock.update.mockResolvedValue({ id: "trait1" });
+
+      const input = { id: "trait1", ignoresArmorSpeedPenaltyForTypeIds: [typeId] };
+      await useCase.execute(input, "user1");
+
+      expect(armorTypeServiceMock.getById).toHaveBeenCalledWith(typeId);
+      expect(traitServiceMock.update).toHaveBeenCalledWith(input);
     });
   });
 
@@ -147,6 +183,47 @@ describe("Trait Use Cases armor type suppression", () => {
         statusCode: 400
       });
       expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("persists resistances when the damage type belongs to the system or an ancestor", async () => {
+      damageServiceMock.getById.mockResolvedValue({ id: damageId, ruleset: "parent" });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        resistances: [damageId]
+      }, "user1");
+
+      expect(damageServiceMock.getById).toHaveBeenCalledWith(damageId);
+      expect(traitServiceMock.create).toHaveBeenCalledWith(expect.objectContaining({
+        resistances: [damageId]
+      }));
+    });
+
+    it("rejects resistances when the damage type is outside the system and its ancestors", async () => {
+      damageServiceMock.getById.mockResolvedValue({ id: damageId, ruleset: "other" });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        resistances: [damageId]
+      }, "user1")).rejects.toMatchObject({
+        message: "El tipo de daño no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("updates resistances when the damage type belongs to the trait system", async () => {
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      damageServiceMock.getById.mockResolvedValue({ id: damageId, ruleset: "sys1" });
+
+      await updateUseCase().execute({
+        id: "trait1",
+        resistances: [damageId]
+      }, "user1");
+
+      expect(traitServiceMock.update).toHaveBeenCalledWith(expect.objectContaining({
+        resistances: [damageId]
+      }));
     });
 
     it("rejects a damage type outside the system and its ancestors", async () => {

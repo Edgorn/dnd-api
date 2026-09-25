@@ -229,6 +229,13 @@
             },
             "description": "Lista de IDs de habilidades (skills) que otorga el rasgo."
           },
+          "resistances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Damage"
+            },
+            "description": "Resistencias fijas a tipos de daño que otorga el rasgo."
+          },
           "spellPrivileges": {
             "type": "array",
             "items": {
@@ -253,6 +260,14 @@
               "type": "string"
             },
             "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
+          },
+          "ignoresArmorSpeedPenaltyForTypeIds": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) para los que no se resta la penalización de velocidad al no cumplir el atributo mínimo."
           },
           "equipmentRestriction": {
             "allOf": [
@@ -828,6 +843,13 @@
             },
             "description": "Lista de IDs de habilidades (skills) que otorga el rasgo."
           },
+          "resistances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de daño del sistema o de sus ancestros. Si se omite, queda vacío."
+          },
           "spellPrivileges": {
             "type": "array",
             "items": {
@@ -851,6 +873,14 @@
               "type": "string"
             },
             "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
+          },
+          "ignoresArmorSpeedPenaltyForTypeIds": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) para los que no se resta la penalización de velocidad al no cumplir el atributo mínimo. null borra el campo."
           },
           "equipmentRestriction": {
             "nullable": true,
@@ -1008,6 +1038,13 @@
             },
             "description": "Lista de IDs de habilidades (skills) que otorga el rasgo."
           },
+          "resistances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de daño del sistema o de sus ancestros. Omitirlo no modifica el valor guardado. Un array vacío borra la lista."
+          },
           "spellPrivileges": {
             "type": "array",
             "items": {
@@ -1031,6 +1068,14 @@
               "type": "string"
             },
             "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
+          },
+          "ignoresArmorSpeedPenaltyForTypeIds": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) para los que no se resta la penalización de velocidad al no cumplir el atributo mínimo. null borra el campo."
           },
           "equipmentRestriction": {
             "nullable": true,
@@ -2654,8 +2699,35 @@
           "proficiencies_choices": {
             "type": "array",
             "items": {
-              "type": "object"
-            }
+              "type": "object",
+              "properties": {
+                "choose": {
+                  "type": "number",
+                  "description": "Cantidad de competencias a seleccionar."
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Proficiency"
+                  },
+                  "description": "Competencias disponibles para esta elección, hidratadas."
+                },
+                "query_type": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "options",
+                    "filter"
+                  ],
+                  "description": "Tipo de consulta usada para obtener las opciones."
+                },
+                "query_filter": {
+                  "type": "object",
+                  "description": "Filtro aplicado si query_type es filter."
+                }
+              }
+            },
+            "description": "Elecciones independientes de competencias (por ejemplo instrumento y herramienta)."
           },
           "spell_choices": {
             "type": "array",
@@ -2877,6 +2949,14 @@
             "type": "string",
             "description": "Nombre de la agrupación de subrazas (ej. \"Subrazas\" o \"Variantes\")"
           },
+          "proficiencies_choices": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ChoiceMongo"
+            },
+            "description": "Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type). Envíe null para borrar la lista."
+          },
           "spell_choices": {
             "type": "array",
             "items": {
@@ -2963,6 +3043,14 @@
           "subraces_name": {
             "type": "string",
             "description": "Nombre de la agrupación de subrazas (ej. \"Subrazas\" o \"Variantes\")"
+          },
+          "proficiencies_choices": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ChoiceMongo"
+            },
+            "description": "Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type). Envíe null para borrar la lista."
           },
           "spell_choices": {
             "type": "array",
