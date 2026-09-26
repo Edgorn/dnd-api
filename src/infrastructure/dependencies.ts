@@ -181,6 +181,14 @@ import UpdateRaceUseCase from "../application/use-cases/race/updateRace.use-case
 import SoftDeleteRace from "../application/use-cases/race/softDeleteRace.use-case";
 import RestoreRace from "../application/use-cases/race/restoreRace.use-case";
 import { LanguageController } from "./http/controllers/language.controller";
+import CreatureTypeRepository from "./databases/mongoDb/repositories/creatureType.repository";
+import CreatureTypeService from "../domain/services/creatureType.service";
+import GetCreatureTypesBySystem from "../application/use-cases/creatureType/getCreatureTypesBySystem.use-case";
+import CreateCreatureType from "../application/use-cases/creatureType/createCreatureType.use-case";
+import UpdateCreatureType from "../application/use-cases/creatureType/updateCreatureType.use-case";
+import SoftDeleteCreatureType from "../application/use-cases/creatureType/softDeleteCreatureType.use-case";
+import RestoreCreatureType from "../application/use-cases/creatureType/restoreCreatureType.use-case";
+import { CreatureTypeController } from "./http/controllers/creatureType.controller";
 import GetLanguagesBySystem from "../application/use-cases/language/getLanguagesBySystem.use-case";
 import CreateLanguage from "../application/use-cases/language/createLanguage.use-case";
 import UpdateLanguage from "../application/use-cases/language/updateLanguage.use-case";
@@ -240,7 +248,9 @@ const armorTypeService = new ArmorTypeService(armorTypeRepository)
 const coinRepository = new CoinRepository(systemRepository)
 const equipmentRepository = new EquipmentRepository(systemRepository, damageRepository, propertyRepository, proficiencyRepository, coinRepository, armorTypeRepository)
 const languageRepository = new LanguageRepository(systemRepository)
-const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository, languageRepository)
+const creatureTypeRepository = new CreatureTypeRepository(systemRepository)
+const creatureTypeService = new CreatureTypeService(creatureTypeRepository)
+const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository, languageRepository, creatureTypeRepository)
 const subclassRepository = new SubclassRepository(systemRepository, traitRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
@@ -270,6 +280,7 @@ const raceRepository = new RaceRepository(
   traitRepository,
   attributeService,
   equipmentRepository,
+  creatureTypeRepository,
   systemRepository
 )
 
@@ -309,7 +320,8 @@ const personajeRepository = new PersonajeRepository(
   attributeService,
   systemRepository,
   coinRepository,
-  campaignReaderRepository
+  campaignReaderRepository,
+  creatureTypeRepository
 )
 
 const campaignRepository = new CampaignRepository(
@@ -367,8 +379,8 @@ const denyJoinCampaign = new DenyJoinCampaign(campaignService)
 const addCharacterToCampaign = new AddCharacterToCampaign(campaignService, personajeService)
 
 const getAllRaces = new GetAllRacesUseCase(raceService, systemService, entityOverrideService);
-const createRace = new CreateRaceUseCase(raceService);
-const updateRace = new UpdateRaceUseCase(raceService);
+const createRace = new CreateRaceUseCase(raceService, creatureTypeService, systemService);
+const updateRace = new UpdateRaceUseCase(raceService, creatureTypeService, systemService);
 const upsertRaceOverride = new UpsertRaceOverride(raceService, systemService, entityOverrideService);
 const deleteRaceOverride = new DeleteRaceOverride(raceService, systemService, entityOverrideService);
 const getRaceOverride = new GetRaceOverride(raceService, systemService, entityOverrideService);
@@ -440,8 +452,8 @@ const languageService = new LanguageService(languageRepository)
 const damageService = new DamageService(damageRepository)
 
 const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService, systemService)
-const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService)
-const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService)
+const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService)
+const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService)
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 
@@ -473,8 +485,8 @@ export const magicSchoolController = new MagicSchoolController(
   getMagicSchoolsBySystems
 );
 
-const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository);
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -618,6 +630,20 @@ export const languageController = new LanguageController(
   updateLanguage,
   softDeleteLanguage,
   restoreLanguage
+)
+
+const getCreatureTypesBySystem = new GetCreatureTypesBySystem(creatureTypeService);
+const createCreatureType = new CreateCreatureType(creatureTypeService, systemService);
+const updateCreatureType = new UpdateCreatureType(creatureTypeService, systemService);
+const softDeleteCreatureType = new SoftDeleteCreatureType(creatureTypeService, systemService);
+const restoreCreatureType = new RestoreCreatureType(creatureTypeService, systemService);
+
+export const creatureTypeController = new CreatureTypeController(
+  getCreatureTypesBySystem,
+  createCreatureType,
+  updateCreatureType,
+  softDeleteCreatureType,
+  restoreCreatureType
 )
 
 const featService = new FeatService(featRepository, attributeService)

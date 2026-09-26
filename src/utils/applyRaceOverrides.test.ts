@@ -18,6 +18,7 @@ function makeRace(partial: Partial<RaceApi> & Pick<RaceApi, "id" | "name" | "rul
     traits_data: {},
     languages: { understands: [], speaks: [], notes: "" },
     variants: [],
+    playable: true,
     ...partial
   };
 }

@@ -238,7 +238,6 @@ const router = Router();
  *       type: object
  *       required:
  *         - key
- *         - options
  *         - grants
  *       properties:
  *         key:
@@ -251,9 +250,47 @@ const router = Router();
  *           description: >
  *             Si se omite, la elección no admite idioma. optional permite languageId nulo.
  *             required exige un idioma del catálogo de los sistemas del personaje.
+ *         source:
+ *           type: string
+ *           enum: [creatureTypes]
+ *           description: >
+ *             Origen dinámico de las opciones. Con creatureTypes se genera una opción
+ *             por cada tipo de criatura del sistema del personaje y de sus ancestros.
+ *             El nombre guardado es el id del tipo. Las options manuales, si se envían,
+ *             se añaden a las generadas. Si se omite, options es obligatorio.
+ *         creatureTypeRaces:
+ *           type: array
+ *           description: >
+ *             Solo con source creatureTypes. Marca qué tipos exigen elegir N razas
+ *             de ese tipo. El resto de tipos se elige sin razas. Los ids no se repiten.
+ *           items:
+ *             type: object
+ *             required:
+ *               - creatureTypeId
+ *               - races
+ *               - label
+ *             properties:
+ *               creatureTypeId:
+ *                 type: string
+ *                 description: ID de MongoDB del tipo de criatura que exige razas.
+ *               races:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Cuántas razas de ese tipo hay que elegir.
+ *                 example: 2
+ *               label:
+ *                 type: string
+ *                 description: >
+ *                   Plantilla de la ficha. Debe incluir {0}, {1}, y así hasta races - 1.
+ *                 example: "{0} y {1}"
+ *               creatureType:
+ *                 $ref: '#/components/schemas/CreatureType'
+ *                 description: Tipo de criatura hidratado.
  *         options:
  *           type: array
- *           minItems: 1
+ *           description: >
+ *             Opciones escritas a mano. Obligatorias si no hay source.
+ *             Con source son opcionales y se suman a las generadas.
  *           items:
  *             $ref: '#/components/schemas/TraitCatalogOption'
  *         grants:
@@ -261,8 +298,8 @@ const router = Router();
  *           minItems: 1
  *           description: >
  *             Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase.
- *             Los niveles no se repiten. Si ninguna opción es repeatable, la suma de
- *             choose no puede superar las opciones.
+ *             Los niveles no se repiten. Si no hay source y ninguna opción es repeatable,
+ *             la suma de choose no puede superar las opciones.
  *           items:
  *             type: object
  *             required:
@@ -300,8 +337,43 @@ const router = Router();
  *           description: Si es true, la misma opción puede elegirse varias veces. Si se omite, no se repite.
  *         label:
  *           type: string
- *           description: Plantilla de la ficha. Sustituye {0}, {1}, … por los textos libres.
+ *           description: >
+ *             Plantilla de la ficha. Sustituye {0}, {1}, … por los textos libres
+ *             o por los nombres de las razas elegidas.
  *           example: "{0} y {1}"
+ *         creatureTypeId:
+ *           type: string
+ *           description: >
+ *             ID de MongoDB del tipo de criatura. El nombre de la opción sigue siendo
+ *             la clave que el personaje guarda en traitChoices.
+ *         races:
+ *           type: integer
+ *           minimum: 1
+ *           description: >
+ *             Cuántas razas de ese tipo de criatura pide esta opción. Es excluyente
+ *             con inputs. Si existe, label es obligatorio y usa {0}, {1}, y así sucesivamente.
+ *           example: 2
+ *         creatureType:
+ *           $ref: '#/components/schemas/CreatureType'
+ *           description: Tipo de criatura hidratado.
+ *         eligibleRaces:
+ *           type: array
+ *           description: >
+ *             Razas del sistema que pertenecen a este tipo. Solo aparece en las opciones
+ *             generadas por source creatureTypes cuando ese tipo exige razas.
+ *           items:
+ *             type: object
+ *             required:
+ *               - id
+ *               - name
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: ID de MongoDB de la raza.
+ *               name:
+ *                 type: string
+ *                 description: Nombre de la raza.
+ *                 example: Orco
  *     ResolvedCatalogChoice:
  *       type: object
  *       required:
@@ -318,6 +390,25 @@ const router = Router();
  *           description: >
  *             Idioma hidratado. Solo aparece si la elección admite idioma.
  *             Nulo si no hablan o el idioma no está en el catálogo.
+ *         creatureType:
+ *           $ref: '#/components/schemas/CreatureType'
+ *           description: Tipo de criatura de la opción elegida, si la opción lo referencia.
+ *         races:
+ *           type: array
+ *           description: Razas elegidas para esa opción, con su id y su nombre.
+ *           items:
+ *             type: object
+ *             required:
+ *               - id
+ *               - name
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: ID de MongoDB de la raza.
+ *               name:
+ *                 type: string
+ *                 description: Nombre de la raza, usado para sustituir la plantilla.
+ *                 example: Orcos
  *     TraitDamageChoiceRef:
  *       type: object
  *       required:

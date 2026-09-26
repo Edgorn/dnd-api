@@ -1,9 +1,11 @@
 import LanguageService from "../../../domain/services/language.service";
 import DamageService from "../../../domain/services/damage.service";
+import CreatureTypeService from "../../../domain/services/creatureType.service";
 import SystemService from "../../../domain/services/system.service";
 import TraitService from "../../../domain/services/trait.service";
 import { AppError } from "../../../domain/errors/AppError";
 import {
+  TraitCatalogChoice,
   TraitDamageChoice,
   TraitDamageChoiceRef,
   TraitLanguages
@@ -14,9 +16,11 @@ export async function assertTraitCatalogRefs(input: {
   languages?: TraitLanguages | null;
   resistances?: string[] | null;
   damageChoices?: TraitDamageChoice[] | null;
+  catalogChoices?: TraitCatalogChoice[] | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
   languageService: LanguageService;
   damageService: DamageService;
+  creatureTypeService: CreatureTypeService;
   systemService: SystemService;
   traitService: TraitService;
 }): Promise<{
@@ -31,9 +35,15 @@ export async function assertTraitCatalogRefs(input: {
     ...(input.resistances ?? []),
     ...(input.damageChoices ?? []).flatMap(choice => choice.options.map(option => option.damageTypeId))
   ]);
+  const creatureTypeIds = uniqueIds(
+    (input.catalogChoices ?? []).flatMap(choice => [
+      ...(choice.options ?? []).flatMap(option => option.creatureTypeId ? [option.creatureTypeId] : []),
+      ...(choice.creatureTypeRaces ?? []).map(item => item.creatureTypeId)
+    ])
+  );
   const publicLanguageIds = new Map<string, string>();
 
-  if (languageIds.length || damageIds.length) {
+  if (languageIds.length || damageIds.length || creatureTypeIds.length) {
     const allowedRulesets = await input.systemService.getSystemsAndAncestors([input.ruleset]);
 
     for (const languageId of languageIds) {
@@ -54,6 +64,16 @@ export async function assertTraitCatalogRefs(input: {
       }
       if (!allowedRulesets.includes(damage.ruleset)) {
         throw new AppError("El tipo de daño no pertenece a este sistema ni a sus ancestros", 400);
+      }
+    }
+
+    for (const creatureTypeId of creatureTypeIds) {
+      const creatureType = await input.creatureTypeService.getById(creatureTypeId);
+      if (!creatureType || creatureType.deletedAt) {
+        throw new AppError("Tipo de criatura no encontrado", 404);
+      }
+      if (!allowedRulesets.includes(creatureType.ruleset)) {
+        throw new AppError("El tipo de criatura no pertenece a este sistema ni a sus ancestros", 400);
       }
     }
   }

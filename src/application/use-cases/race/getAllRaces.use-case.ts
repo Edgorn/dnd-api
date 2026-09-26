@@ -15,12 +15,12 @@ export default class GetAllRacesUseCase {
     private readonly entityOverrideService: EntityOverrideService
   ) { }
 
-  async execute(ruleset?: string): Promise<RaceApi[]> {
+  async execute(ruleset?: string, playable?: boolean): Promise<RaceApi[]> {
     if (!ruleset) {
-      return this.raceService.obtenerTodas();
+      return this.raceService.obtenerTodas(playable);
     }
 
-    const races = await this.raceService.obtenerPorSistema(ruleset);
+    const races = await this.raceService.obtenerPorSistema(ruleset, playable);
     const ancestry = await this.systemService.getAncestry(ruleset);
     if (ancestry.length === 0) {
       return races;

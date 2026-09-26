@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { raceController, authMiddleware } from "../../dependencies";
-import { CreateRaceSchema, UpdateRaceSchema, UpsertRaceOverrideSchema, RaceOverrideQuerySchema } from "../schemas/race.schema";
+import { CreateRaceSchema, UpdateRaceSchema, UpsertRaceOverrideSchema, RaceOverrideQuerySchema, GetRacesQuerySchema } from "../schemas/race.schema";
 import { validateSchema, validateQuery } from "../middlewares/validateSchema";
 
 const router = Router();
@@ -133,6 +133,12 @@ const router = Router();
  *         spellcasting:
  *           $ref: '#/components/schemas/AttributeApi'
  *           description: Característica principal para lanzar conjuros de la raza. En una subraza se hereda de la raza padre si el hijo no la define.
+ *         creatureType:
+ *           $ref: '#/components/schemas/CreatureType'
+ *           description: Tipo de criatura de la raza. En una subraza se hereda de la raza padre si el hijo no lo define.
+ *         playable:
+ *           type: boolean
+ *           description: Indica si la raza puede usarse para crear personajes. Las razas antiguas sin este campo se consideran jugables.
  *         equipment:
  *           type: array
  *           items:
@@ -296,6 +302,13 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/GrantedEquipmentEntry'
  *           description: Equipamiento fijo concedido por la raza.
+ *         creatureTypeId:
+ *           type: string
+ *           nullable: true
+ *           description: ID del tipo de criatura. Debe existir, no estar borrado y pertenecer al sistema de la raza o a un ancestro.
+ *         playable:
+ *           type: boolean
+ *           description: Si se omite, la raza se guarda como jugable. Una subraza no puede ser jugable si su padre no lo es.
  *     InputUpdateRace:
  *       type: object
  *       properties:
@@ -362,6 +375,13 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/GrantedEquipmentEntry'
  *           description: Equipamiento fijo concedido por la raza.
+ *         creatureTypeId:
+ *           type: string
+ *           nullable: true
+ *           description: ID del tipo de criatura. Solo se actualiza si se envía. Debe existir, no estar borrado y pertenecer al sistema de la raza o a un ancestro.
+ *         playable:
+ *           type: boolean
+ *           description: Solo se actualiza si se envía. Una subraza no puede ser jugable si su padre no lo es.
  *     ChoiceMongo:
  *       type: object
  *       properties:
@@ -401,7 +421,7 @@ const router = Router();
  * /races:
  *   get:
  *     summary: Obtener el listado de razas (con soporte para herencia del sistema)
- *     description: Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor del sistema consultado (el más cercano gana).
+ *     description: Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor del sistema consultado (el más cercano gana). El parámetro playable filtra razas raíz y subrazas; si se omite, se devuelven todas.
  *     tags:
  *       - Razas
  *     security:
@@ -412,6 +432,12 @@ const router = Router();
  *         schema:
  *           type: string
  *         description: Filtra por el ID o nombre del sistema del reglamento.
+ *       - in: query
+ *         name: playable
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Si es true, solo razas jugables (incluye las que no tienen el campo). Si es false, solo las no jugables. Si se omite, se devuelven todas.
  *     responses:
  *       200:
  *         description: Listado de razas obtenido exitosamente (ensamblado de forma recursiva).
@@ -426,7 +452,7 @@ const router = Router();
  *       500:
  *         description: Error del servidor.
  */
-router.get('/races', authMiddleware, raceController.getRaces);
+router.get('/races', authMiddleware, validateQuery(GetRacesQuerySchema), raceController.getRaces);
 
 /**
  * @openapi

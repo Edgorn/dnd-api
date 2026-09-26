@@ -33,7 +33,9 @@ const router = Router();
  *           type: array
  *           description: >
  *             Opciones que aún se pueden elegir. Las no repetibles ya elegidas desaparecen;
- *             las repetibles se quedan.
+ *             las repetibles se quedan. Si el rasgo usa source creatureTypes, aquí llegan
+ *             una opción por tipo de criatura del sistema (el name es el id del tipo)
+ *             más las opciones manuales. Las que exigen razas incluyen eligibleRaces.
  *           items:
  *             $ref: '#/components/schemas/TraitCatalogOption'
  *         chosen:
@@ -42,7 +44,7 @@ const router = Router();
  *             Elección ya guardada. La lista enviada debe empezar por estos valores,
  *             en el mismo orden, con los mismos textos e idioma.
  *             Si la elección es simple, cada elemento es un string.
- *             Si tiene textos libres o idioma, cada elemento es un objeto.
+ *             Si tiene textos libres, razas o idioma, cada elemento es un objeto.
  *           items:
  *             oneOf:
  *               - type: string
@@ -65,6 +67,15 @@ const router = Router();
  *             minLength: 1
  *             maxLength: 80
  *           example: ["Orcos", "Trasgos"]
+ *         raceIds:
+ *           type: array
+ *           description: >
+ *             IDs de razas del tipo de criatura de la opción. Cada una debe existir,
+ *             no estar borrada y pertenecer a los sistemas del personaje o a sus ancestros.
+ *             Es excluyente con inputs: las entradas antiguas con textos libres se siguen leyendo.
+ *           items:
+ *             type: string
+ *           example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
  *         languageId:
  *           type: string
  *           nullable: true

@@ -48,6 +48,8 @@ const raceSchema: Schema = new Schema<RaceMongo>({
   spell_choices: [],
   spellcasting: { type: Schema.Types.ObjectId, ref: 'attributes', default: null },
   equipment: { type: [], default: [] },
+  creatureTypeId: { type: Schema.Types.ObjectId, ref: 'CreatureType', default: null },
+  playable: { type: Boolean },
   deletedAt: { type: Date, default: null }
 }, { collection: 'races' });
 

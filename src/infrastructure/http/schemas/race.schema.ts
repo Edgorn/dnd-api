@@ -43,7 +43,9 @@ export const CreateRaceSchema = z.object({
   proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   spell_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   spellcasting: z.string().nullable().optional(),
-  equipment: GrantedEquipmentListSchema.nullable().optional()
+  equipment: GrantedEquipmentListSchema.nullable().optional(),
+  creatureTypeId: z.string().nullable().optional(),
+  playable: z.boolean().optional()
 });
 
 export const UpdateRaceSchema = CreateRaceSchema.partial().refine(data => Object.keys(data).length > 0, {
@@ -67,6 +69,12 @@ export const UpsertRaceOverrideSchema = z.object({
 
 export const RaceOverrideQuerySchema = z.object({
   ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío")
+});
+
+export const GetRacesQuerySchema = z.object({
+  playable: z.enum(["true", "false"], {
+    error: "playable debe ser true o false"
+  }).optional()
 });
 
 export type UpsertRaceOverrideBody = z.infer<typeof UpsertRaceOverrideSchema>;

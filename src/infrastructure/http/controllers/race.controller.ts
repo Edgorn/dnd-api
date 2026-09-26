@@ -29,7 +29,9 @@ export class RaceController {
       const parsedRuleset = Array.isArray(ruleset)
         ? String(ruleset[0])
         : (ruleset ? String(ruleset) : undefined);
-      const data = await this.getAllRaces.execute(parsedRuleset as string)
+      const playableQuery = Array.isArray(req.query.playable) ? req.query.playable[0] : req.query.playable;
+      const playable = playableQuery === "true" ? true : playableQuery === "false" ? false : undefined;
+      const data = await this.getAllRaces.execute(parsedRuleset as string, playable)
       res.status(200).json(data);
     } catch (e) {
       next(e);

@@ -8,6 +8,7 @@ import { LanguageApi, CreatureLanguages, CreatureLanguagesCreate } from "./langu
 import { TraitApi, TraitDataMongo } from "./traits.types"
 import { CharacterEquipmentMongo, EquipmentInstanceApi } from "./equipment.types"
 import { AttributeApi, AttributeBonus, AttributeBonusCreate } from "./attribute.types"
+import { CreatureTypeApi } from "./creatureType.types"
 
 export interface RaceMongo {
   _id: ObjectId,
@@ -45,6 +46,8 @@ export interface RaceMongo {
   spell_choices?: ChoiceMongo[],
   spellcasting?: ObjectId | string | null,
   equipment?: CharacterEquipmentMongo[],
+  creatureTypeId?: ObjectId | string | null,
+  playable?: boolean,
   deletedAt?: Date | null
 }
 
@@ -95,6 +98,8 @@ export interface RaceApi {
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[],
   spell_choices?: ChoiceApi<SpellApi>[],
   spellcasting?: AttributeApi,
+  creatureType?: CreatureTypeApi,
+  playable: boolean,
   subraces?: SubracesApi,
   parentId?: string | null,
   variants: VarianteApi[],
@@ -115,6 +120,13 @@ export interface VarianteApi {
   skill_choices?: ChoiceApi<SkillApi>,
   ability_bonus_choices?: ChoiceApi<AttributeBonus>,
   feats?: ChoiceApi<FeatApi>
+}
+
+export interface RaceRef {
+  id: string;
+  name: string;
+  ruleset: string;
+  creatureTypeId: string | null;
 }
 
 export interface CreateRace {
@@ -150,7 +162,9 @@ export interface CreateRace {
   proficiencies_choices?: ChoiceMongo[] | null;
   spell_choices?: ChoiceMongo[] | null;
   spellcasting?: string | null,
-  equipment?: CharacterEquipmentMongo[] | null
+  equipment?: CharacterEquipmentMongo[] | null,
+  creatureTypeId?: string | null,
+  playable?: boolean
 }
 
 export interface UpdateRace extends Partial<CreateRace> {

@@ -5,6 +5,7 @@ import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 import { LanguageApi } from "./language.types"
 import { EquipmentMaterial } from "./equipment.types"
+import { CreatureTypeApi } from "./creatureType.types"
 
 export const EQUIPMENT_RESTRICTION_SCOPES = ["armor", "shield"] as const;
 export type EquipmentRestrictionScope = typeof EQUIPMENT_RESTRICTION_SCOPES[number];
@@ -97,6 +98,25 @@ export interface TraitCatalogOption {
   inputs?: number;
   repeatable?: boolean;
   label?: string;
+  creatureTypeId?: string;
+  races?: number;
+}
+
+export interface TraitCatalogOptionApi extends TraitCatalogOption {
+  creatureType?: CreatureTypeApi;
+  eligibleRaces?: { id: string; name: string }[];
+}
+
+export type TraitCatalogSource = "creatureTypes";
+
+export interface TraitCatalogCreatureTypeRaces {
+  creatureTypeId: string;
+  races: number;
+  label: string;
+}
+
+export interface TraitCatalogCreatureTypeRacesApi extends TraitCatalogCreatureTypeRaces {
+  creatureType?: CreatureTypeApi;
 }
 
 export interface TraitCatalogChoice {
@@ -104,11 +124,23 @@ export interface TraitCatalogChoice {
   options: TraitCatalogOption[];
   grants: { atLevel: number; choose: number }[];
   language?: TraitCatalogLanguage;
+  source?: TraitCatalogSource;
+  creatureTypeRaces?: TraitCatalogCreatureTypeRaces[];
+}
+
+export interface TraitCatalogChoiceApi {
+  key: string;
+  options: TraitCatalogOptionApi[];
+  grants: { atLevel: number; choose: number }[];
+  language?: TraitCatalogLanguage;
+  source?: TraitCatalogSource;
+  creatureTypeRaces?: TraitCatalogCreatureTypeRacesApi[];
 }
 
 export interface CatalogChoiceEntry {
   name: string;
   inputs?: string[];
+  raceIds?: string[];
   languageId?: string | null;
 }
 
@@ -118,13 +150,15 @@ export interface PendingCatalogChoice {
   traitId: string;
   key: string;
   add: number;
-  options: TraitCatalogOption[];
+  options: TraitCatalogOptionApi[];
   chosen: TraitChoiceValue[];
 }
 
 export interface ResolvedCatalogChoice {
   label: string;
   language?: LanguageApi | null;
+  creatureType?: CreatureTypeApi;
+  races?: { id: string; name: string }[];
 }
 
 export interface TraitDamageChoice {
@@ -231,7 +265,7 @@ export interface TraitApi {
   companionRoster?: TraitCompanionRoster,
   languages?: TraitLanguagesApi,
   damageChoices?: TraitDamageChoiceApi[],
-  catalogChoices?: TraitCatalogChoice[],
+  catalogChoices?: TraitCatalogChoiceApi[],
   damageChoiceRef?: TraitDamageChoiceRef,
   damageChoice?: ResolvedDamageChoice[],
   catalogChoice?: ResolvedCatalogChoice[],

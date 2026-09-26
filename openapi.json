@@ -470,7 +470,6 @@
         "type": "object",
         "required": [
           "key",
-          "options",
           "grants"
         ],
         "properties": {
@@ -487,9 +486,49 @@
             ],
             "description": "Si se omite, la elección no admite idioma. optional permite languageId nulo. required exige un idioma del catálogo de los sistemas del personaje.\n"
           },
+          "source": {
+            "type": "string",
+            "enum": [
+              "creatureTypes"
+            ],
+            "description": "Origen dinámico de las opciones. Con creatureTypes se genera una opción por cada tipo de criatura del sistema del personaje y de sus ancestros. El nombre guardado es el id del tipo. Las options manuales, si se envían, se añaden a las generadas. Si se omite, options es obligatorio.\n"
+          },
+          "creatureTypeRaces": {
+            "type": "array",
+            "description": "Solo con source creatureTypes. Marca qué tipos exigen elegir N razas de ese tipo. El resto de tipos se elige sin razas. Los ids no se repiten.\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "creatureTypeId",
+                "races",
+                "label"
+              ],
+              "properties": {
+                "creatureTypeId": {
+                  "type": "string",
+                  "description": "ID de MongoDB del tipo de criatura que exige razas."
+                },
+                "races": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Cuántas razas de ese tipo hay que elegir.",
+                  "example": 2
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Plantilla de la ficha. Debe incluir {0}, {1}, y así hasta races - 1.\n",
+                  "example": "{0} y {1}"
+                },
+                "creatureType": {
+                  "$ref": "#/components/schemas/CreatureType",
+                  "description": "Tipo de criatura hidratado."
+                }
+              }
+            }
+          },
           "options": {
             "type": "array",
-            "minItems": 1,
+            "description": "Opciones escritas a mano. Obligatorias si no hay source. Con source son opcionales y se suman a las generadas.\n",
             "items": {
               "$ref": "#/components/schemas/TraitCatalogOption"
             }
@@ -497,7 +536,7 @@
           "grants": {
             "type": "array",
             "minItems": 1,
-            "description": "Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase. Los niveles no se repiten. Si ninguna opción es repeatable, la suma de choose no puede superar las opciones.\n",
+            "description": "Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase. Los niveles no se repiten. Si no hay source y ninguna opción es repeatable, la suma de choose no puede superar las opciones.\n",
             "items": {
               "type": "object",
               "required": [
@@ -545,8 +584,44 @@
           },
           "label": {
             "type": "string",
-            "description": "Plantilla de la ficha. Sustituye {0}, {1}, … por los textos libres.",
+            "description": "Plantilla de la ficha. Sustituye {0}, {1}, … por los textos libres o por los nombres de las razas elegidas.\n",
             "example": "{0} y {1}"
+          },
+          "creatureTypeId": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de criatura. El nombre de la opción sigue siendo la clave que el personaje guarda en traitChoices.\n"
+          },
+          "races": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Cuántas razas de ese tipo de criatura pide esta opción. Es excluyente con inputs. Si existe, label es obligatorio y usa {0}, {1}, y así sucesivamente.\n",
+            "example": 2
+          },
+          "creatureType": {
+            "$ref": "#/components/schemas/CreatureType",
+            "description": "Tipo de criatura hidratado."
+          },
+          "eligibleRaces": {
+            "type": "array",
+            "description": "Razas del sistema que pertenecen a este tipo. Solo aparece en las opciones generadas por source creatureTypes cuando ese tipo exige razas.\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID de MongoDB de la raza."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nombre de la raza.",
+                  "example": "Orco"
+                }
+              }
+            }
           }
         }
       },
@@ -569,6 +644,32 @@
               }
             ],
             "description": "Idioma hidratado. Solo aparece si la elección admite idioma. Nulo si no hablan o el idioma no está en el catálogo.\n"
+          },
+          "creatureType": {
+            "$ref": "#/components/schemas/CreatureType",
+            "description": "Tipo de criatura de la opción elegida, si la opción lo referencia."
+          },
+          "races": {
+            "type": "array",
+            "description": "Razas elegidas para esa opción, con su id y su nombre.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID de MongoDB de la raza."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nombre de la raza, usado para sustituir la plantilla.",
+                  "example": "Orcos"
+                }
+              }
+            }
           }
         }
       },
@@ -2740,6 +2841,14 @@
             "$ref": "#/components/schemas/AttributeApi",
             "description": "Característica principal para lanzar conjuros de la raza. En una subraza se hereda de la raza padre si el hijo no la define."
           },
+          "creatureType": {
+            "$ref": "#/components/schemas/CreatureType",
+            "description": "Tipo de criatura de la raza. En una subraza se hereda de la raza padre si el hijo no lo define."
+          },
+          "playable": {
+            "type": "boolean",
+            "description": "Indica si la raza puede usarse para crear personajes. Las razas antiguas sin este campo se consideran jugables."
+          },
           "equipment": {
             "type": "array",
             "items": {
@@ -2975,6 +3084,15 @@
               "$ref": "#/components/schemas/GrantedEquipmentEntry"
             },
             "description": "Equipamiento fijo concedido por la raza."
+          },
+          "creatureTypeId": {
+            "type": "string",
+            "nullable": true,
+            "description": "ID del tipo de criatura. Debe existir, no estar borrado y pertenecer al sistema de la raza o a un ancestro."
+          },
+          "playable": {
+            "type": "boolean",
+            "description": "Si se omite, la raza se guarda como jugable. Una subraza no puede ser jugable si su padre no lo es."
           }
         }
       },
@@ -3070,6 +3188,15 @@
               "$ref": "#/components/schemas/GrantedEquipmentEntry"
             },
             "description": "Equipamiento fijo concedido por la raza."
+          },
+          "creatureTypeId": {
+            "type": "string",
+            "nullable": true,
+            "description": "ID del tipo de criatura. Solo se actualiza si se envía. Debe existir, no estar borrado y pertenecer al sistema de la raza o a un ancestro."
+          },
+          "playable": {
+            "type": "boolean",
+            "description": "Solo se actualiza si se envía. Una subraza no puede ser jugable si su padre no lo es."
           }
         }
       },
@@ -3257,14 +3384,14 @@
           },
           "options": {
             "type": "array",
-            "description": "Opciones que aún se pueden elegir. Las no repetibles ya elegidas desaparecen; las repetibles se quedan.\n",
+            "description": "Opciones que aún se pueden elegir. Las no repetibles ya elegidas desaparecen; las repetibles se quedan. Si el rasgo usa source creatureTypes, aquí llegan una opción por tipo de criatura del sistema (el name es el id del tipo) más las opciones manuales. Las que exigen razas incluyen eligibleRaces.\n",
             "items": {
               "$ref": "#/components/schemas/TraitCatalogOption"
             }
           },
           "chosen": {
             "type": "array",
-            "description": "Elección ya guardada. La lista enviada debe empezar por estos valores, en el mismo orden, con los mismos textos e idioma. Si la elección es simple, cada elemento es un string. Si tiene textos libres o idioma, cada elemento es un objeto.\n",
+            "description": "Elección ya guardada. La lista enviada debe empezar por estos valores, en el mismo orden, con los mismos textos e idioma. Si la elección es simple, cada elemento es un string. Si tiene textos libres, razas o idioma, cada elemento es un objeto.\n",
             "items": {
               "oneOf": [
                 {
@@ -3301,6 +3428,17 @@
             "example": [
               "Orcos",
               "Trasgos"
+            ]
+          },
+          "raceIds": {
+            "type": "array",
+            "description": "IDs de razas del tipo de criatura de la opción. Cada una debe existir, no estar borrada y pertenecer a los sistemas del personaje o a sus ancestros. Es excluyente con inputs: las entradas antiguas con textos libres se siguen leyendo.\n",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "507f1f77bcf86cd799439011",
+              "507f1f77bcf86cd799439012"
             ]
           },
           "languageId": {
@@ -5609,6 +5747,71 @@
           },
           "color": {
             "type": "string"
+          }
+        }
+      },
+      "CreatureType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de criatura."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo (ej. Humanoide, Bestia)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del tipo de criatura."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema al que pertenece."
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Fecha de borrado lógico. Solo visible para el publicador del sistema."
+          }
+        }
+      },
+      "InputCreateCreatureType": {
+        "type": "object",
+        "required": [
+          "name",
+          "ruleset"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo de criatura."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción opcional."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema de reglas."
+          }
+        }
+      },
+      "InputUpdateCreatureType": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre del tipo de criatura."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "ID del sistema de reglas."
           }
         }
       },
@@ -9187,7 +9390,7 @@
     "/races": {
       "get": {
         "summary": "Obtener el listado de razas (con soporte para herencia del sistema)",
-        "description": "Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor del sistema consultado (el más cercano gana).",
+        "description": "Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor del sistema consultado (el más cercano gana). El parámetro playable filtra razas raíz y subrazas; si se omite, se devuelven todas.",
         "tags": [
           "Razas"
         ],
@@ -9204,6 +9407,18 @@
               "type": "string"
             },
             "description": "Filtra por el ID o nombre del sistema del reglamento."
+          },
+          {
+            "in": "query",
+            "name": "playable",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Si es true, solo razas jugables (incluye las que no tienen el campo). Si es false, solo las no jugables. Si se omite, se devuelven todas."
           }
         ],
         "responses": {
@@ -12878,6 +13093,250 @@
           },
           "500": {
             "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/creature-types": {
+      "get": {
+        "summary": "Obtener los tipos de criatura asociados a ciertos sistemas",
+        "tags": [
+          "Tipos de criatura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "description": "Sistema o sistemas para filtrar los tipos. Incluye los sistemas ancestros."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de tipos de criatura obtenida con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CreatureType"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un nuevo tipo de criatura",
+        "tags": [
+          "Tipos de criatura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateCreatureType"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tipo de criatura creado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatureType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para crear tipos en este sistema."
+          },
+          "404": {
+            "description": "Sistema asociado no encontrado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/creature-types/{id}": {
+      "put": {
+        "summary": "Actualizar un tipo de criatura existente",
+        "tags": [
+          "Tipos de criatura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de criatura a actualizar."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateCreatureType"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tipo de criatura actualizado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatureType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para editar este tipo de criatura."
+          },
+          "404": {
+            "description": "Tipo de criatura o sistema no encontrado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Realizar un borrado lógico de un tipo de criatura",
+        "tags": [
+          "Tipos de criatura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de criatura a borrar."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Tipo de criatura borrado exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para borrar este tipo de criatura."
+          },
+          "404": {
+            "description": "Tipo de criatura o sistema no encontrado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/creature-types/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar un tipo de criatura borrado lógicamente",
+        "tags": [
+          "Tipos de criatura"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del tipo de criatura a restaurar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tipo de criatura restaurado exitosamente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permisos para restaurar este tipo de criatura."
+          },
+          "404": {
+            "description": "Tipo de criatura o sistema no encontrado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
           }
         }
       }

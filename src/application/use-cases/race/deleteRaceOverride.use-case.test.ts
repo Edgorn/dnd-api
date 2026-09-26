@@ -42,7 +42,8 @@ const parentRace: RaceApi = {
   traits: [],
   traits_data: {},
   languages: { understands: [], speaks: [], notes: "" },
-  variants: []
+  variants: [],
+  playable: true
 };
 
 describe("DeleteRaceOverride UseCase", () => {

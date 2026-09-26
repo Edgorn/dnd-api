@@ -42,7 +42,8 @@ const parentRace: RaceApi = {
   traits: [],
   traits_data: {},
   languages: { understands: [], speaks: [], notes: "" },
-  variants: []
+  variants: [],
+  playable: true
 };
 
 describe("GetAllRacesUseCase", () => {
@@ -62,8 +63,26 @@ describe("GetAllRacesUseCase", () => {
     const result = await useCase.execute();
 
     expect(result).toEqual([parentRace]);
+    expect(raceService.obtenerTodas).toHaveBeenCalledWith(undefined);
     expect(raceService.obtenerPorSistema).not.toHaveBeenCalled();
     expect(entityOverrideService.getBySystems).not.toHaveBeenCalled();
+  });
+
+  it("forwards the playable filter to the race listing", async () => {
+    const raceService = {
+      obtenerPorSistema: vi.fn().mockResolvedValue([parentRace])
+    } as unknown as RaceService;
+    const systemService = {
+      getAncestry: vi.fn().mockResolvedValue([])
+    } as unknown as SystemService;
+    const entityOverrideService = {
+      getBySystems: vi.fn()
+    } as unknown as EntityOverrideService;
+
+    const useCase = new GetAllRacesUseCase(raceService, systemService, entityOverrideService);
+    await useCase.execute(childId.toString(), true);
+
+    expect(raceService.obtenerPorSistema).toHaveBeenCalledWith(childId.toString(), true);
   });
 
   it("returns the parent race id with the child description", async () => {

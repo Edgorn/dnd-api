@@ -5,6 +5,7 @@ import { LanguageApi } from "../domain/types/language.types";
 import {
   applyCatalogTraitChoices,
   applyEnteringTraitChoices,
+  expandCatalogChoices,
   hydrateCatalogChoiceLanguages,
   listPendingCatalogChoices,
   mergeTraitLanguageIds,
@@ -582,6 +583,342 @@ describe("resolveCharacterTraitChoices", () => {
     ]);
     expect(result[0].description).toEqual(["Tus enemigos predilectos son Dragones, Orcos y Trasgos."]);
     expect(result[0].summary).toEqual(["Dragones, Orcos y Trasgos"]);
+  });
+});
+
+const HUMANOID_TYPE_ID = "507f1f77bcf86cd799439031";
+const DRAGON_TYPE_ID = "507f1f77bcf86cd799439032";
+const BEAST_TYPE_ID = "507f1f77bcf86cd799439036";
+const ORC_ID = "507f1f77bcf86cd799439033";
+const GOBLIN_ID = "507f1f77bcf86cd799439034";
+const WOLF_ID = "507f1f77bcf86cd799439035";
+const humanoidType = { id: HUMANOID_TYPE_ID, name: "Humanoide", ruleset: "dnd5e" };
+const humanoidsByRace = {
+  name: "Humanoides",
+  creatureTypeId: HUMANOID_TYPE_ID,
+  creatureType: humanoidType,
+  races: 2,
+  repeatable: true,
+  label: "{0} y {1}"
+};
+const favoredEnemyRaces = trait("enemigo-predilecto", {
+  description: ["Tus enemigos predilectos son {name}."],
+  summary: ["{name}"],
+  catalogChoices: [{
+    key: "favoredEnemy",
+    language: "optional",
+    options: [
+      { name: "Dragones", creatureTypeId: DRAGON_TYPE_ID },
+      humanoidsByRace
+    ],
+    grants: [
+      { atLevel: 1, choose: 1 },
+      { atLevel: 6, choose: 1 }
+    ]
+  }]
+});
+const raceCatalog = new Map([
+  [ORC_ID, { id: ORC_ID, name: "Orcos", ruleset: "dnd5e", creatureTypeId: HUMANOID_TYPE_ID }],
+  [GOBLIN_ID, { id: GOBLIN_ID, name: "Trasgos", ruleset: "dnd5e", creatureTypeId: HUMANOID_TYPE_ID }],
+  [WOLF_ID, { id: WOLF_ID, name: "Lobo", ruleset: "dnd5e", creatureTypeId: BEAST_TYPE_ID }]
+]);
+const orcsAndGoblins = {
+  name: "Humanoides",
+  raceIds: [ORC_ID, GOBLIN_ID],
+  languageId: null as string | null
+};
+
+describe("applyCatalogTraitChoices favored enemy races", () => {
+  it("stores race ids for the humanoid option", () => {
+    const result = applyCatalogTraitChoices({
+      classLevel: 1,
+      grantedTraits: [favoredEnemyRaces],
+      allowedLanguageIds: languages,
+      racesById: raceCatalog,
+      incoming: { "enemigo-predilecto": { favoredEnemy: [orcsAndGoblins] } }
+    });
+
+    expect(result).toEqual({
+      traitChoices: { "enemigo-predilecto": { favoredEnemy: [orcsAndGoblins] } }
+    });
+  });
+
+  it("rejects the wrong number of races", () => {
+    const result = applyCatalogTraitChoices({
+      classLevel: 1,
+      grantedTraits: [favoredEnemyRaces],
+      allowedLanguageIds: languages,
+      racesById: raceCatalog,
+      incoming: {
+        "enemigo-predilecto": {
+          favoredEnemy: [{ name: "Humanoides", raceIds: [ORC_ID], languageId: null }]
+        }
+      }
+    });
+
+    expect(result).toEqual({
+      error: "La opción Humanoides de la elección favoredEnemy del rasgo enemigo-predilecto exige 2 razas"
+    });
+  });
+
+  it("rejects a race of another creature type", () => {
+    const result = applyCatalogTraitChoices({
+      classLevel: 1,
+      grantedTraits: [favoredEnemyRaces],
+      allowedLanguageIds: languages,
+      racesById: raceCatalog,
+      incoming: {
+        "enemigo-predilecto": {
+          favoredEnemy: [{ name: "Humanoides", raceIds: [ORC_ID, WOLF_ID], languageId: null }]
+        }
+      }
+    });
+
+    expect(result).toEqual({
+      error: "La raza Lobo no pertenece al tipo de criatura de la opción Humanoides"
+    });
+  });
+
+  it("rejects an unknown race", () => {
+    const missing = "507f1f77bcf86cd799439099";
+    const result = applyCatalogTraitChoices({
+      classLevel: 1,
+      grantedTraits: [favoredEnemyRaces],
+      allowedLanguageIds: languages,
+      racesById: raceCatalog,
+      incoming: {
+        "enemigo-predilecto": {
+          favoredEnemy: [{ name: "Humanoides", raceIds: [ORC_ID, missing], languageId: null }]
+        }
+      }
+    });
+
+    expect(result).toEqual({
+      error: `La raza ${missing} no pertenece a este sistema`
+    });
+  });
+
+  it("rejects a repeated race", () => {
+    const result = applyCatalogTraitChoices({
+      classLevel: 6,
+      grantedTraits: [favoredEnemyRaces],
+      allowedLanguageIds: languages,
+      racesById: raceCatalog,
+      incoming: {
+        "enemigo-predilecto": {
+          favoredEnemy: [
+            orcsAndGoblins,
+            { name: "Humanoides", raceIds: [ORC_ID, WOLF_ID], languageId: null }
+          ]
+        }
+      }
+    });
+
+    expect(result).toEqual({
+      error: `La raza ${ORC_ID} está repetida en la elección favoredEnemy del rasgo enemigo-predilecto`
+    });
+  });
+
+  it("rejects race ids on an option that does not ask for races", () => {
+    const result = applyCatalogTraitChoices({
+      classLevel: 1,
+      grantedTraits: [favoredEnemyRaces],
+      allowedLanguageIds: languages,
+      racesById: raceCatalog,
+      incoming: {
+        "enemigo-predilecto": {
+          favoredEnemy: [{ name: "Dragones", raceIds: [ORC_ID], languageId: null }]
+        }
+      }
+    });
+
+    expect(result).toEqual({
+      error: "La opción Dragones de la elección favoredEnemy del rasgo enemigo-predilecto no admite razas"
+    });
+  });
+
+  it("keeps a legacy free-text entry", () => {
+    const existing = { "enemigo-predilecto": { favoredEnemy: [orcs] } };
+    const kept = applyCatalogTraitChoices({
+      existing,
+      classLevel: 1,
+      grantedTraits: [favoredEnemyRaces],
+      allowedLanguageIds: languages,
+      racesById: raceCatalog
+    });
+    const grown = applyCatalogTraitChoices({
+      existing,
+      classLevel: 6,
+      grantedTraits: [favoredEnemyRaces],
+      allowedLanguageIds: languages,
+      racesById: raceCatalog,
+      incoming: {
+        "enemigo-predilecto": { favoredEnemy: [orcs, orcsAndGoblins] }
+      }
+    });
+
+    expect(kept).toEqual({ traitChoices: existing });
+    expect(grown).toEqual({
+      traitChoices: {
+        "enemigo-predilecto": { favoredEnemy: [orcs, orcsAndGoblins] }
+      }
+    });
+  });
+
+  it("labels the sheet from race names", () => {
+    const stored = { "enemigo-predilecto": { favoredEnemy: [orcsAndGoblins] } };
+    const resolved = resolveCharacterTraitChoices([favoredEnemyRaces], stored, raceCatalog);
+    const result = hydrateCatalogChoiceLanguages(
+      resolved.traits,
+      stored,
+      new Map(),
+      raceCatalog
+    );
+
+    expect(result[0].catalogChoice).toEqual([{
+      label: "Orcos y Trasgos",
+      language: null,
+      creatureType: humanoidType,
+      races: [
+        { id: ORC_ID, name: "Orcos" },
+        { id: GOBLIN_ID, name: "Trasgos" }
+      ]
+    }]);
+    expect(result[0].description).toEqual(["Tus enemigos predilectos son Orcos y Trasgos."]);
+  });
+});
+
+const GNOLL_ID = "507f1f77bcf86cd799439037";
+const beastType = { id: BEAST_TYPE_ID, name: "Bestia", ruleset: "dnd5e" };
+const dynamicRaces = [
+  { id: ORC_ID, name: "Orco", ruleset: "dnd5e", creatureTypeId: HUMANOID_TYPE_ID },
+  { id: GNOLL_ID, name: "Gnoll", ruleset: "dnd5e", creatureTypeId: HUMANOID_TYPE_ID },
+  { id: WOLF_ID, name: "Lobo", ruleset: "dnd5e", creatureTypeId: BEAST_TYPE_ID }
+];
+const dynamicEnemy = trait("enemigo-predilecto", {
+  description: ["Tus enemigos predilectos son {name}."],
+  summary: ["{name}"],
+  catalogChoices: [{
+    key: "favoredEnemy",
+    source: "creatureTypes" as const,
+    creatureTypeRaces: [{
+      creatureTypeId: HUMANOID_TYPE_ID,
+      races: 2,
+      label: "{0} y {1}"
+    }],
+    options: [{ name: "Terreno predilecto" }],
+    grants: [{ atLevel: 1, choose: 1 }]
+  }]
+});
+const orcAndGnoll = {
+  name: HUMANOID_TYPE_ID,
+  raceIds: [ORC_ID, GNOLL_ID]
+};
+
+describe("expandCatalogChoices creature types", () => {
+  const expanded = expandCatalogChoices(
+    [dynamicEnemy, naturalExplorer],
+    [humanoidType, beastType],
+    dynamicRaces
+  );
+  const racesById = new Map(dynamicRaces.map(race => [race.id, race]));
+
+  it("appends manual options after one option per creature type", () => {
+    expect(expanded[0].catalogChoices?.[0].options).toEqual([
+      {
+        name: HUMANOID_TYPE_ID,
+        creatureTypeId: HUMANOID_TYPE_ID,
+        creatureType: humanoidType,
+        races: 2,
+        label: "{0} y {1}",
+        eligibleRaces: [
+          { id: ORC_ID, name: "Orco" },
+          { id: GNOLL_ID, name: "Gnoll" }
+        ]
+      },
+      {
+        name: BEAST_TYPE_ID,
+        creatureTypeId: BEAST_TYPE_ID,
+        creatureType: beastType
+      },
+      { name: "Terreno predilecto" }
+    ]);
+    expect(expanded[1]).toBe(naturalExplorer);
+  });
+
+  it("lists eligible races on the pending humanoid option", () => {
+    const pending = listPendingCatalogChoices({
+      classLevel: 1,
+      grantedTraits: [expanded[0]]
+    });
+
+    expect(pending).toHaveLength(1);
+    expect(pending[0].options.find(option => option.name === HUMANOID_TYPE_ID)?.eligibleRaces).toEqual([
+      { id: ORC_ID, name: "Orco" },
+      { id: GNOLL_ID, name: "Gnoll" }
+    ]);
+    expect(pending[0].options.find(option => option.name === BEAST_TYPE_ID)?.eligibleRaces).toBeUndefined();
+  });
+
+  it("accepts two races of the humanoid type", () => {
+    const result = applyCatalogTraitChoices({
+      classLevel: 1,
+      grantedTraits: [expanded[0]],
+      racesById,
+      incoming: { "enemigo-predilecto": { favoredEnemy: [orcAndGnoll] } }
+    });
+
+    expect(result).toEqual({
+      traitChoices: { "enemigo-predilecto": { favoredEnemy: [orcAndGnoll] } }
+    });
+  });
+
+  it("rejects a race of another creature type", () => {
+    const result = applyCatalogTraitChoices({
+      classLevel: 1,
+      grantedTraits: [expanded[0]],
+      racesById,
+      incoming: {
+        "enemigo-predilecto": {
+          favoredEnemy: [{ name: HUMANOID_TYPE_ID, raceIds: [ORC_ID, WOLF_ID] }]
+        }
+      }
+    });
+
+    expect(result).toEqual({
+      error: `La raza Lobo no pertenece al tipo de criatura de la opción ${HUMANOID_TYPE_ID}`
+    });
+  });
+
+  it("rejects race ids on a creature type that does not ask for races", () => {
+    const result = applyCatalogTraitChoices({
+      classLevel: 1,
+      grantedTraits: [expanded[0]],
+      racesById,
+      incoming: {
+        "enemigo-predilecto": {
+          favoredEnemy: [{ name: BEAST_TYPE_ID, raceIds: [WOLF_ID] }]
+        }
+      }
+    });
+
+    expect(result).toEqual({
+      error: `La opción ${BEAST_TYPE_ID} de la elección favoredEnemy del rasgo enemigo-predilecto no admite razas`
+    });
+  });
+
+  it("labels the sheet from the creature type race template", () => {
+    const stored = { "enemigo-predilecto": { favoredEnemy: [orcAndGnoll] } };
+    const resolved = resolveCharacterTraitChoices([expanded[0]], stored, racesById);
+
+    expect(resolved.traits[0].catalogChoice).toEqual([{
+      label: "Orco y Gnoll",
+      creatureType: humanoidType,
+      races: [
+        { id: ORC_ID, name: "Orco" },
+        { id: GNOLL_ID, name: "Gnoll" }
+      ]
+    }]);
   });
 });
 

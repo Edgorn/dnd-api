@@ -5,7 +5,7 @@ import ILanguageRepository from '../../../../domain/repositories/ILanguageReposi
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import AttributeService from '../../../../domain/services/attribute.service';
-import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, SubracesApi, UpdateRace, VarianteApi, VarianteMongo } from '../../../../domain/types/race.types';
+import { CreateRace, RaceApi, RaceLevelMongo, RaceMongo, RaceRef, SubracesApi, UpdateRace, VarianteApi, VarianteMongo } from '../../../../domain/types/race.types';
 import { AttributeApi } from '../../../../domain/types/attribute.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import RaceModel from '../schemas/Race';
@@ -13,6 +13,9 @@ import IFeatRepository from '../../../../domain/repositories/IFeatRepository';
 import { TraitDataMongo } from '../../../../domain/types/traits.types';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
+import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
+import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
+import { Types } from 'mongoose';
 
 export default class RaceRepository implements IRaceRepository {
   constructor(
@@ -24,32 +27,38 @@ export default class RaceRepository implements IRaceRepository {
     private readonly traitRepository: ITraitRepository,
     private readonly attributeService: AttributeService,
     private readonly equipmentRepository: IEquipmentRepository,
+    private readonly creatureTypeRepository: ICreatureTypeRepository,
     private readonly systemRepository?: ISystemRepository
   ) { }
 
-  async obtenerTodas(): Promise<RaceApi[]> {
+  async obtenerTodas(playable?: boolean): Promise<RaceApi[]> {
     try {
-      const razas = await RaceModel.find({ parentId: null, deletedAt: null })
+      const razas = await RaceModel.find({ parentId: null, deletedAt: null, ...this.playableCondition(playable) })
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
 
-      return this.formatearRazas(razas);
+      return this.formatearRazas(razas, undefined, playable);
     } catch (error) {
       console.error("Error obteniendo razas:", error);
       throw new Error("No se pudieron obtener los razas");
     }
   }
 
-  async obtenerPorSistema(ruleset: string): Promise<RaceApi[]> {
+  async obtenerPorSistema(ruleset: string, playable?: boolean): Promise<RaceApi[]> {
     try {
       const expandedRulesets = this.systemRepository
         ? await this.systemRepository.getSystemsAndAncestors([ruleset])
         : [ruleset];
-      const razas = await RaceModel.find({ ruleset: { $in: expandedRulesets }, parentId: null, deletedAt: null })
+      const razas = await RaceModel.find({
+        ruleset: { $in: expandedRulesets },
+        parentId: null,
+        deletedAt: null,
+        ...this.playableCondition(playable)
+      })
         .collation({ locale: 'es', strength: 1 })
         .sort({ name: 1 });
 
-      return this.formatearRazas(razas, expandedRulesets);
+      return this.formatearRazas(razas, expandedRulesets, playable);
     } catch (error) {
       console.error("Error obteniendo razas:", error);
       throw new Error("No se pudieron obtener los razas");
@@ -90,7 +99,9 @@ export default class RaceRepository implements IRaceRepository {
       proficiencies_choices: raza.proficiencies_choices,
       spell_choices: raza.spell_choices,
       spellcasting: raza.spellcasting || null,
-      equipment: raza.equipment ?? []
+      equipment: raza.equipment ?? [],
+      creatureTypeId: raza.creatureTypeId || null,
+      playable: raza.playable ?? true
     })
 
     await nuevaRaza.save()
@@ -125,7 +136,9 @@ export default class RaceRepository implements IRaceRepository {
         proficiencies_choices: raza.proficiencies_choices === null ? [] : raza.proficiencies_choices,
         spell_choices: raza.spell_choices === null ? [] : raza.spell_choices,
         spellcasting: raza.spellcasting,
-        ...(raza.equipment !== undefined ? { equipment: raza.equipment === null ? [] : raza.equipment } : {})
+        ...(raza.equipment !== undefined ? { equipment: raza.equipment === null ? [] : raza.equipment } : {}),
+        ...(raza.creatureTypeId !== undefined ? { creatureTypeId: raza.creatureTypeId || null } : {}),
+        ...(raza.playable !== undefined ? { playable: raza.playable } : {})
       }
 
       const razaActualizada = await RaceModel.findByIdAndUpdate(
@@ -161,18 +174,18 @@ export default class RaceRepository implements IRaceRepository {
     }
   }
 
-  formatearRazas(razas: RaceMongo[], allowedRulesets?: string[]): Promise<RaceApi[]> {
-    return Promise.all(razas.map(raza => this.formatearRaza(raza, allowedRulesets)));
+  formatearRazas(razas: RaceMongo[], allowedRulesets?: string[], playable?: boolean): Promise<RaceApi[]> {
+    return Promise.all(razas.map(raza => this.formatearRaza(raza, allowedRulesets, playable)));
   }
 
-  async formatearRaza(raza: RaceMongo, allowedRulesets?: string[]): Promise<RaceApi> {
+  async formatearRaza(raza: RaceMongo, allowedRulesets?: string[], playable?: boolean): Promise<RaceApi> {
     const dataLevel = raza?.levels?.find(level => level.level === 1)
     const ruleset = raza.ruleset;
 
     const [
       traits, ability_bonuses, ability_bonus_choices, skill_choices, languages, 
       proficiencies_choices, subraces, variants, spell_choices,
-      speaksLanguages, formattedLanguageChoices, spellcasting, equipment
+      speaksLanguages, formattedLanguageChoices, spellcasting, equipment, creatureType
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.attributeService.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
@@ -180,13 +193,14 @@ export default class RaceRepository implements IRaceRepository {
       this.skillService.formatSkillChoices(raza.skill_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.understands ?? []),
       this.proficiencyRepository.formatProficiencyChoices(raza?.proficiencies_choices),
-      this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, allowedRulesets),
+      this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, allowedRulesets, playable),
       this.formatearVariantes(raza?.variants ?? [], ruleset),
       this.spellRepository.formatSpellChoices(raza?.spell_choices),
       this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
       this.languageRepository.formatLanguageChoices(raza.language_choices, ruleset),
       this.formatRaceSpellcasting(raza),
-      this.equipmentRepository.getCharacterEquipmentsByIds(raza.equipment ?? [])
+      this.equipmentRepository.getCharacterEquipmentsByIds(raza.equipment ?? []),
+      this.formatRaceCreatureType(raza)
     ])
 
     return {
@@ -218,14 +232,27 @@ export default class RaceRepository implements IRaceRepository {
       variants,
       spell_choices,
       spellcasting: spellcasting ?? undefined,
+      creatureType: creatureType ?? undefined,
+      playable: raza.playable !== false,
       equipment: equipment ?? []
     };
   }
 
-  async formatearSubrazas(raza: RaceMongo, traitsData?: TraitDataMongo, allowedRulesets?: string[]): Promise<SubracesApi | undefined> {
-    const childQuery: { parentId: RaceMongo["_id"]; deletedAt: null; ruleset?: { $in: string[] } } = {
+  async formatearSubrazas(
+    raza: RaceMongo,
+    traitsData?: TraitDataMongo,
+    allowedRulesets?: string[],
+    playable?: boolean
+  ): Promise<SubracesApi | undefined> {
+    const childQuery: {
+      parentId: RaceMongo["_id"];
+      deletedAt: null;
+      ruleset?: { $in: string[] };
+      playable?: false | { $ne: false };
+    } = {
       parentId: raza._id,
       deletedAt: null,
+      ...this.playableCondition(playable),
     };
     if (allowedRulesets) {
       childQuery.ruleset = { $in: allowedRulesets };
@@ -234,7 +261,7 @@ export default class RaceRepository implements IRaceRepository {
     const childRaces = await RaceModel.find(childQuery);
     if (childRaces.length === 0) return undefined;
 
-    const formateadas = await Promise.all(childRaces.map(child => this.formatearRaza(child, allowedRulesets)));
+    const formateadas = await Promise.all(childRaces.map(child => this.formatearRaza(child, allowedRulesets, playable)));
 
     return {
       name: raza.subraces_name ?? 'Subrazas',
@@ -281,6 +308,55 @@ export default class RaceRepository implements IRaceRepository {
     return this.formatRaceSpellcasting(raza);
   }
 
+  async getRaceRefsByIds(ids: string[]): Promise<RaceRef[]> {
+    const validIds = [...new Set(ids.filter(id => Types.ObjectId.isValid(id)))]
+      .map(id => new Types.ObjectId(id));
+    if (!validIds.length) return [];
+
+    const races = await RaceModel.find({
+      _id: { $in: validIds as any },
+      deletedAt: null
+    })
+      .select("_id name ruleset creatureTypeId parentId")
+      .lean<Array<Pick<RaceMongo, "_id" | "name" | "ruleset" | "creatureTypeId" | "parentId">>>();
+
+    const refs: RaceRef[] = [];
+    for (const race of races) {
+      const creatureTypeId = await this.resolveInheritedCreatureTypeId(race);
+      refs.push({
+        id: race._id.toString(),
+        name: race.name,
+        ruleset: race.ruleset,
+        creatureTypeId: creatureTypeId ?? null
+      });
+    }
+    return refs;
+  }
+
+  async getRaceRefsBySystems(rulesets: string[]): Promise<RaceRef[]> {
+    const uniqueRulesets = [...new Set(rulesets.filter(id => typeof id === "string" && id.length > 0))];
+    if (!uniqueRulesets.length) return [];
+
+    const races = await RaceModel.find({
+      ruleset: { $in: uniqueRulesets },
+      deletedAt: null
+    })
+      .select("_id name ruleset creatureTypeId parentId")
+      .lean<Array<Pick<RaceMongo, "_id" | "name" | "ruleset" | "creatureTypeId" | "parentId">>>();
+
+    const refs: RaceRef[] = [];
+    for (const race of races) {
+      const creatureTypeId = await this.resolveInheritedCreatureTypeId(race);
+      refs.push({
+        id: race._id.toString(),
+        name: race.name,
+        ruleset: race.ruleset,
+        creatureTypeId: creatureTypeId ?? null
+      });
+    }
+    return refs;
+  }
+
   private async formatRaceSpellcasting(
     raza: Pick<RaceMongo, "_id" | "spellcasting" | "parentId" | "ruleset">
   ): Promise<AttributeApi | undefined> {
@@ -311,5 +387,46 @@ export default class RaceRepository implements IRaceRepository {
 
     if (!parent) return undefined;
     return this.resolveInheritedSpellcastingSource(parent, visited);
+  }
+
+  private playableCondition(playable?: boolean): { playable?: false | { $ne: false } } {
+    if (playable === true) return { playable: { $ne: false } };
+    if (playable === false) return { playable: false };
+    return {};
+  }
+
+  private async formatRaceCreatureType(
+    raza: Pick<RaceMongo, "_id" | "creatureTypeId" | "parentId">
+  ): Promise<CreatureTypeApi | undefined> {
+    const typeId = await this.resolveInheritedCreatureTypeId(raza);
+    if (!typeId) return undefined;
+
+    const creatureType = await this.creatureTypeRepository.getById(typeId);
+    if (!creatureType || creatureType.deletedAt) return undefined;
+    return creatureType;
+  }
+
+  private async resolveInheritedCreatureTypeId(
+    raza: Pick<RaceMongo, "_id" | "creatureTypeId" | "parentId">,
+    visited = new Set<string>()
+  ): Promise<string | undefined> {
+    const id = raza._id?.toString();
+    if (id) {
+      if (visited.has(id)) return undefined;
+      visited.add(id);
+    }
+
+    if (raza.creatureTypeId) {
+      return raza.creatureTypeId.toString();
+    }
+
+    if (!raza.parentId) return undefined;
+
+    const parent = await RaceModel.findOne({ _id: raza.parentId as any, deletedAt: null })
+      .select("_id creatureTypeId parentId")
+      .lean<Pick<RaceMongo, "_id" | "creatureTypeId" | "parentId">>();
+
+    if (!parent) return undefined;
+    return this.resolveInheritedCreatureTypeId(parent, visited);
   }
 }

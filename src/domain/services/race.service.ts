@@ -1,15 +1,15 @@
 import IRaceRepository from "../repositories/IRaceRepository";
-import { CreateRace, RaceApi, UpdateRace } from "../types/race.types";
+import { CreateRace, RaceApi, RaceRef, UpdateRace } from "../types/race.types";
 
 export default class RaceService {
   constructor(private readonly raceRepository: IRaceRepository) { }
 
-  obtenerTodas(): Promise<RaceApi[]> {
-    return this.raceRepository.obtenerTodas();
+  obtenerTodas(playable?: boolean): Promise<RaceApi[]> {
+    return this.raceRepository.obtenerTodas(playable);
   }
 
-  obtenerPorSistema(ruleset: string): Promise<RaceApi[]> {
-    return this.raceRepository.obtenerPorSistema(ruleset);
+  obtenerPorSistema(ruleset: string, playable?: boolean): Promise<RaceApi[]> {
+    return this.raceRepository.obtenerPorSistema(ruleset, playable);
   }
 
   obtenerPorId(id: string): Promise<RaceApi | undefined> {
@@ -30,5 +30,9 @@ export default class RaceService {
 
   restore(id: string): Promise<boolean> {
     return this.raceRepository.restore(id);
+  }
+
+  getRaceRefsByIds(ids: string[]): Promise<RaceRef[]> {
+    return this.raceRepository.getRaceRefsByIds(ids);
   }
 }

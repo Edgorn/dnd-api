@@ -24,7 +24,10 @@ import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipmentInstanceApi, E
 import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRestriction';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
-import { PendingCatalogChoice, TraitApi, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
+import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
+import { PendingCatalogChoice, TraitApi, TraitChoiceValue, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
+import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
+import { RaceRef } from '../../../../domain/types/race.types';
 import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
 import {
   collectClassGrantedTraitIds,
@@ -34,6 +37,7 @@ import {
   applyCatalogTraitChoices,
   applyEnteringTraitChoices,
   catalogSpeakIds,
+  expandCatalogChoices,
   hydrateCatalogChoiceLanguages,
   listPendingCatalogChoices,
   mergeTraitLanguageIds,
@@ -109,6 +113,12 @@ const nameTraits: any = {
   "totemic-spirit-bear": "Furia"
 }
 
+function choiceEntryName(value: TraitChoiceValue): string | null {
+  if (typeof value === "string") return value.length > 0 ? value : null;
+  if (value && typeof value.name === "string" && value.name.length > 0) return value.name;
+  return null;
+}
+
 export default class PersonajeRepository implements IPersonajeRepository {
   constructor(
     private readonly userRepository: IUserRepository,
@@ -127,7 +137,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly attributeService: AttributeService,
     private readonly systemRepository: ISystemRepository,
     private readonly coinRepository: ICoinRepository,
-    private readonly campaignReader: ICampaignReader
+    private readonly campaignReader: ICampaignReader,
+    private readonly creatureTypeRepository: ICreatureTypeRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -1097,10 +1108,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
     if (!ids.length) return [];
 
     const traits = await this.traitRepository.getTraitsByIndexes(ids);
+    const expanded = await this.expandTraitsForSystems(traits, personaje.systems);
     return listPendingCatalogChoices({
       existing: personaje.traitChoices,
       classLevel,
-      grantedTraits: traits
+      grantedTraits: expanded
     });
   }
 
@@ -1111,23 +1123,124 @@ export default class PersonajeRepository implements IPersonajeRepository {
     systems?: string[];
     grantedTraits: TraitApi[];
   }): Promise<TraitChoices> {
-    const needsLanguages = input.grantedTraits.some(trait =>
+    const grantedTraits = await this.expandTraitsForSystems(input.grantedTraits, input.systems);
+    const needsLanguages = grantedTraits.some(trait =>
       trait.catalogChoices?.some(choice => Boolean(choice.language))
     );
     const allowedLanguageIds = needsLanguages
       ? await this.languageIdsForSystems(input.systems)
       : new Set<string>();
+    const racesById = await this.raceRefsForSystems(this.collectRaceIds(input.incoming), input.systems);
     const result = applyCatalogTraitChoices({
       existing: input.existing,
       incoming: input.incoming,
       classLevel: input.classLevel,
-      grantedTraits: input.grantedTraits,
-      allowedLanguageIds
+      grantedTraits,
+      allowedLanguageIds,
+      racesById
     });
     if ("error" in result) {
       throw new ValidationError(result.error);
     }
     return result.traitChoices;
+  }
+
+  private collectRaceIds(choices?: TraitChoices | null): string[] {
+    const ids = new Set<string>();
+    if (!choices || typeof choices !== "object") return [];
+
+    for (const traitChoices of Object.values(choices)) {
+      if (!traitChoices || typeof traitChoices !== "object") continue;
+      for (const values of Object.values(traitChoices)) {
+        if (!Array.isArray(values)) continue;
+        for (const value of values) {
+          if (!value || typeof value !== "object" || !("raceIds" in value) || !Array.isArray(value.raceIds)) continue;
+          for (const raceId of value.raceIds) {
+            if (typeof raceId === "string" && raceId.length > 0) ids.add(raceId);
+          }
+        }
+      }
+    }
+
+    return [...ids];
+  }
+
+  private async expandTraitsForSystems(
+    traits: TraitApi[],
+    systems?: string[],
+    chosenTypeIds: string[] = []
+  ): Promise<TraitApi[]> {
+    const needsSource = traits.some(trait =>
+      trait.catalogChoices?.some(choice => choice.source === "creatureTypes")
+    );
+    if (!needsSource) return traits;
+
+    const expanded = await this.systemRepository.getSystemsAndAncestors(systems ?? []);
+    const [creatureTypes, raceRefs, chosenTypes] = await Promise.all([
+      this.creatureTypeRepository.getBySystems(expanded),
+      this.raceRepository.getRaceRefsBySystems(expanded),
+      chosenTypeIds.length
+        ? this.creatureTypeRepository.getByIds(chosenTypeIds)
+        : Promise.resolve([] as CreatureTypeApi[])
+    ]);
+
+    const byId = new Map<string, CreatureTypeApi>();
+    for (const creatureType of creatureTypes) {
+      if (creatureType.deletedAt) continue;
+      byId.set(creatureType.id, creatureType);
+    }
+    for (const creatureType of chosenTypes) {
+      byId.set(creatureType.id, creatureType);
+    }
+
+    const missing = chosenTypeIds.filter(id => !byId.has(id));
+    if (missing.length) {
+      const recovered = await Promise.all(missing.map(id => this.creatureTypeRepository.getById(id)));
+      for (const creatureType of recovered) {
+        if (creatureType) byId.set(creatureType.id, creatureType);
+      }
+    }
+
+    return expandCatalogChoices(traits, [...byId.values()], raceRefs);
+  }
+
+  private chosenCreatureTypeIds(traits: TraitApi[], choices?: TraitChoices | null): string[] {
+    const ids = new Set<string>();
+    for (const trait of traits) {
+      if (!trait.id) continue;
+      const sourced = trait.catalogChoices?.filter(choice => choice.source === "creatureTypes") ?? [];
+      if (!sourced.length) continue;
+      const stored = choices?.[trait.id];
+      if (!stored) continue;
+      for (const choice of sourced) {
+        for (const value of stored[choice.key] ?? []) {
+          const name = choiceEntryName(value);
+          if (name) ids.add(name);
+        }
+      }
+    }
+    return [...ids];
+  }
+
+  private async raceRefsForSystems(ids: string[], systems?: string[]): Promise<Map<string, RaceRef>> {
+    if (!ids.length) return new Map();
+    const [refs, allowed] = await Promise.all([
+      this.raceRepository.getRaceRefsByIds(ids),
+      this.systemRepository.getSystemsAndAncestors(systems ?? [])
+    ]);
+    const allowedRulesets = new Set(allowed);
+    return new Map(
+      refs
+        .filter(race => allowedRulesets.has(race.ruleset))
+        .map(race => [race.id, race])
+    );
+  }
+
+  private async raceRefsForLabels(choices?: TraitChoices | null): Promise<Map<string, RaceRef>> {
+    const ids = this.collectRaceIds(choices);
+    if (!ids.length) return new Map();
+    const refs = await this.raceRepository.getRaceRefsByIds(ids);
+    return new Map(refs.map(race => [race.id, race]));
   }
 
   private async languageIdsForSystems(systems: string[] | undefined): Promise<Set<string>> {
@@ -1499,7 +1612,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const level = personaje.classes.map(cl => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0)
 
     const loadedTraits = await this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traits_data)
-    const resolvedSheet = resolveCharacterTraitChoices(loadedTraits, personaje.traitChoices)
+    const expandedTraits = await this.expandTraitsForSystems(
+      loadedTraits,
+      personaje.systems,
+      this.chosenCreatureTypeIds(loadedTraits, personaje.traitChoices)
+    )
+    const raceRefs = await this.raceRefsForLabels(personaje.traitChoices)
+    const resolvedSheet = resolveCharacterTraitChoices(expandedTraits, personaje.traitChoices, raceRefs)
     const traits = resolvedSheet.traits
     const invocations = await this.invocacionRepository.obtenerPorIndices(personaje.invocations)
     const skills = [...(personaje?.skills ?? [])]
@@ -1834,7 +1953,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       traits: hydrateCatalogChoiceLanguages(
         traits,
         personaje.traitChoices,
-        new Map(idiomas_speaks.map(language => [language.id, language]))
+        new Map(idiomas_speaks.map(language => [language.id, language])),
+        raceRefs
       ),
       traits_data: personaje.traits_data,
       resistances,

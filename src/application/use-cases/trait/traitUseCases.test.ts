@@ -11,6 +11,7 @@ describe("Trait Use Cases armor type suppression", () => {
   let armorTypeServiceMock: any;
   let languageServiceMock: any;
   let damageServiceMock: any;
+  let creatureTypeServiceMock: any;
 
   beforeEach(() => {
     traitServiceMock = {
@@ -32,6 +33,9 @@ describe("Trait Use Cases armor type suppression", () => {
     damageServiceMock = {
       getById: vi.fn()
     };
+    creatureTypeServiceMock = {
+      getById: vi.fn()
+    };
   });
 
   const createUseCase = () => new CreateTraitUseCase(
@@ -39,7 +43,8 @@ describe("Trait Use Cases armor type suppression", () => {
     systemServiceMock,
     armorTypeServiceMock,
     languageServiceMock,
-    damageServiceMock
+    damageServiceMock,
+    creatureTypeServiceMock
   );
 
   const updateUseCase = () => new UpdateTraitUseCase(
@@ -47,7 +52,8 @@ describe("Trait Use Cases armor type suppression", () => {
     systemServiceMock,
     armorTypeServiceMock,
     languageServiceMock,
-    damageServiceMock
+    damageServiceMock,
+    creatureTypeServiceMock
   );
 
   const baseTrait = {
@@ -279,6 +285,80 @@ describe("Trait Use Cases armor type suppression", () => {
         damageChoiceRef: { traitId: "draconic-ancestry", choiceKey: "missing" }
       }, "user1")).rejects.toMatchObject({ statusCode: 400 });
       expect(traitServiceMock.update).not.toHaveBeenCalled();
+    });
+
+    const favoredEnemy = {
+      catalogChoices: [{
+        key: "favoredEnemy",
+        options: [{ name: "Dragones", creatureTypeId: typeId }],
+        grants: [{ atLevel: 1, choose: 1 }]
+      }]
+    };
+
+    it("rejects a missing creature type", async () => {
+      creatureTypeServiceMock.getById.mockResolvedValue(null);
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        ...favoredEnemy
+      }, "user1")).rejects.toMatchObject({
+        message: "Tipo de criatura no encontrado",
+        statusCode: 404
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a deleted creature type", async () => {
+      creatureTypeServiceMock.getById.mockResolvedValue({
+        id: typeId,
+        ruleset: "sys1",
+        deletedAt: new Date()
+      });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        ...favoredEnemy
+      }, "user1")).rejects.toMatchObject({
+        message: "Tipo de criatura no encontrado",
+        statusCode: 404
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a creature type outside the system and its ancestors", async () => {
+      creatureTypeServiceMock.getById.mockResolvedValue({ id: typeId, ruleset: "other" });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        ...favoredEnemy
+      }, "user1")).rejects.toMatchObject({
+        message: "El tipo de criatura no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects creatureTypeRaces from another system", async () => {
+      creatureTypeServiceMock.getById.mockResolvedValue({ id: typeId, ruleset: "other" });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        catalogChoices: [{
+          key: "favoredEnemy",
+          source: "creatureTypes",
+          options: [],
+          creatureTypeRaces: [{
+            creatureTypeId: typeId,
+            races: 2,
+            label: "{0} y {1}"
+          }],
+          grants: [{ atLevel: 1, choose: 1 }]
+        }]
+      }, "user1")).rejects.toMatchObject({
+        message: "El tipo de criatura no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
     });
   });
 });

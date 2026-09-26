@@ -1,5 +1,7 @@
 import { Damage } from "../domain/types";
 import { LanguageApi } from "../domain/types/language.types";
+import { RaceRef } from "../domain/types/race.types";
+import { CreatureTypeApi } from "../domain/types/creatureType.types";
 import {
   CatalogChoiceEntry,
   PendingCatalogChoice,
@@ -7,7 +9,9 @@ import {
   ResolvedDamageChoice,
   TraitApi,
   TraitCatalogChoice,
+  TraitCatalogChoiceApi,
   TraitCatalogOption,
+  TraitCatalogOptionApi,
   TraitChoiceValue,
   TraitChoices,
   TraitDamageChoiceApi,
@@ -75,6 +79,60 @@ export function applyEnteringTraitChoices(input: {
 
 type CatalogTrait = Pick<TraitApi, "id" | "catalogChoices">;
 
+export function expandCatalogChoices<T extends CatalogTrait>(
+  traits: T[],
+  creatureTypes: CreatureTypeApi[],
+  raceRefs: RaceRef[]
+): T[] {
+  return traits.map(trait => {
+    if (!trait.catalogChoices?.some(choice => choice.source === "creatureTypes")) return trait;
+    return {
+      ...trait,
+      catalogChoices: trait.catalogChoices.map(choice =>
+        expandCatalogChoice(choice, creatureTypes, raceRefs)
+      )
+    };
+  });
+}
+
+function expandCatalogChoice(
+  choice: TraitCatalogChoiceApi,
+  creatureTypes: CreatureTypeApi[],
+  raceRefs: RaceRef[]
+): TraitCatalogChoiceApi {
+  if (choice.source !== "creatureTypes") return choice;
+
+  const raceRules = new Map(
+    (choice.creatureTypeRaces ?? []).map(item => [item.creatureTypeId, item])
+  );
+  const seen = new Set<string>();
+  const generated: TraitCatalogOptionApi[] = [];
+
+  for (const creatureType of creatureTypes) {
+    if (!creatureType.id || seen.has(creatureType.id)) continue;
+    seen.add(creatureType.id);
+    const rule = raceRules.get(creatureType.id);
+    const option: TraitCatalogOptionApi = {
+      name: creatureType.id,
+      creatureTypeId: creatureType.id,
+      creatureType
+    };
+    if (rule) {
+      option.races = rule.races;
+      option.label = rule.label;
+      option.eligibleRaces = raceRefs
+        .filter(race => race.creatureTypeId === creatureType.id)
+        .map(race => ({ id: race.id, name: race.name }));
+    }
+    generated.push(option);
+  }
+
+  return {
+    ...choice,
+    options: [...generated, ...(choice.options ?? [])]
+  };
+}
+
 export function listPendingCatalogChoices(input: {
   existing?: TraitChoices | null;
   classLevel: number;
@@ -112,9 +170,11 @@ export function applyCatalogTraitChoices(input: {
   classLevel: number;
   grantedTraits: CatalogTrait[];
   allowedLanguageIds?: ReadonlySet<string>;
+  racesById?: ReadonlyMap<string, RaceRef>;
 }): { traitChoices: TraitChoices } | { error: string } {
   const traitChoices = cloneChoices(input.existing);
   const allowedLanguageIds = input.allowedLanguageIds ?? new Set<string>();
+  const racesById = input.racesById ?? new Map<string, RaceRef>();
 
   for (const trait of input.grantedTraits) {
     if (!trait.id || !trait.catalogChoices?.length) continue;
@@ -144,7 +204,8 @@ export function applyCatalogTraitChoices(input: {
         stored,
         required,
         sent.entries,
-        allowedLanguageIds
+        allowedLanguageIds,
+        racesById
       );
       if (invalid) return { error: invalid };
 
@@ -158,7 +219,8 @@ export function applyCatalogTraitChoices(input: {
 
 export function resolveCharacterTraitChoices(
   traits: TraitApi[],
-  traitChoices?: TraitChoices | null
+  traitChoices?: TraitChoices | null,
+  racesById: ReadonlyMap<string, RaceRef> = new Map()
 ): { traits: TraitApi[]; grantedResistances: Damage[] } {
   const stored = cloneChoices(traitChoices);
   const byId = new Map(traits.map(trait => [trait.id, trait]));
@@ -213,7 +275,7 @@ export function resolveCharacterTraitChoices(
       };
     }
 
-    const items = resolveCatalogSheetItems(trait, stored);
+    const items = resolveCatalogSheetItems(trait, stored, racesById);
     if (!items.length) return trait;
     const labels = items.map(item => item.label);
 
@@ -221,7 +283,7 @@ export function resolveCharacterTraitChoices(
       ...trait,
       description: replaceNameToken(trait.description ?? [], labels),
       summary: replaceNameToken(trait.summary ?? [], labels),
-      catalogChoice: items.map(item => ({ label: item.label }))
+      catalogChoice: items.map(item => toResolvedCatalogChoice(item))
     };
   });
 
@@ -231,21 +293,20 @@ export function resolveCharacterTraitChoices(
 export function hydrateCatalogChoiceLanguages(
   traits: TraitApi[],
   traitChoices: TraitChoices | null | undefined,
-  languagesById: ReadonlyMap<string, LanguageApi>
+  languagesById: ReadonlyMap<string, LanguageApi>,
+  racesById: ReadonlyMap<string, RaceRef> = new Map()
 ): TraitApi[] {
   const stored = cloneChoices(traitChoices);
 
   return traits.map(trait => {
     if (!trait.catalogChoices?.some(choice => choice.language)) return trait;
 
-    const items = resolveCatalogSheetItems(trait, stored);
+    const items = resolveCatalogSheetItems(trait, stored, racesById);
     if (!items.length) return trait;
 
-    const catalogChoice: ResolvedCatalogChoice[] = items.map(item => {
-      if (item.languageId === undefined) return { label: item.label };
-      const language = item.languageId ? languagesById.get(item.languageId) ?? null : null;
-      return { label: item.label, language };
-    });
+    const catalogChoice: ResolvedCatalogChoice[] = items.map(item =>
+      toResolvedCatalogChoice(item, languagesById)
+    );
 
     return { ...trait, catalogChoice };
   });
@@ -346,6 +407,10 @@ function readEntry(value: unknown): CatalogChoiceEntry | null {
     if (!Array.isArray(row.inputs) || row.inputs.some(item => typeof item !== "string")) return null;
     entry.inputs = [...row.inputs];
   }
+  if (row.raceIds !== undefined) {
+    if (!Array.isArray(row.raceIds) || row.raceIds.some(item => typeof item !== "string")) return null;
+    entry.raceIds = [...row.raceIds];
+  }
   if ("languageId" in row) {
     if (row.languageId === null) entry.languageId = null;
     else if (typeof row.languageId === "string" && row.languageId.length > 0) entry.languageId = row.languageId;
@@ -356,11 +421,13 @@ function readEntry(value: unknown): CatalogChoiceEntry | null {
 
 function persistEntry(entry: CatalogChoiceEntry): TraitChoiceValue {
   const inputs = entry.inputs?.length ? [...entry.inputs] : undefined;
+  const raceIds = entry.raceIds?.length ? [...entry.raceIds] : undefined;
   const hasLanguage = entry.languageId !== undefined;
-  if (!inputs && !hasLanguage) return entry.name;
+  if (!inputs && !raceIds && !hasLanguage) return entry.name;
 
   const stored: CatalogChoiceEntry = { name: entry.name };
   if (inputs) stored.inputs = inputs;
+  if (raceIds) stored.raceIds = raceIds;
   if (hasLanguage) stored.languageId = entry.languageId ?? null;
   return stored;
 }
@@ -370,6 +437,7 @@ function toEntry(value: TraitChoiceValue): CatalogChoiceEntry {
   return {
     name: value.name,
     ...(value.inputs?.length ? { inputs: [...value.inputs] } : {}),
+    ...(value.raceIds?.length ? { raceIds: [...value.raceIds] } : {}),
     ...(value.languageId !== undefined ? { languageId: value.languageId } : {})
   };
 }
@@ -479,7 +547,8 @@ function validateCatalogGrowth(
   stored: TraitChoiceValue[],
   required: number,
   sent: CatalogChoiceEntry[],
-  allowedLanguageIds: ReadonlySet<string>
+  allowedLanguageIds: ReadonlySet<string>,
+  racesById: ReadonlyMap<string, RaceRef>
 ): string | null {
   const add = required - stored.length;
   if (sent.length !== required || !sameSequence(stored, sent.slice(0, stored.length))) {
@@ -492,8 +561,11 @@ function validateCatalogGrowth(
   }
 
   const repeatedText = repeatedInput(sent);
-  if (repeatedText) {
-    return `El texto ${repeatedText} está repetido en la elección ${choice.key} del rasgo ${traitId}`;
+  if (repeatedText?.kind === "text") {
+    return `El texto ${repeatedText.value} está repetido en la elección ${choice.key} del rasgo ${traitId}`;
+  }
+  if (repeatedText?.kind === "race") {
+    return `La raza ${repeatedText.value} está repetida en la elección ${choice.key} del rasgo ${traitId}`;
   }
 
   const byName = new Map(choice.options.map(option => [option.name, option]));
@@ -505,6 +577,9 @@ function validateCatalogGrowth(
 
     const textError = validateInputs(traitId, choice.key, option, entry);
     if (textError) return textError;
+
+    const raceError = validateRaces(traitId, choice.key, option, entry, racesById);
+    if (raceError) return raceError;
 
     const languageError = validateLanguage(traitId, choice, entry, allowedLanguageIds);
     if (languageError) return languageError;
@@ -526,6 +601,36 @@ function validateInputs(
     return `La opción ${option.name} de la elección ${key} del rasgo ${traitId} no admite textos`;
   }
   return `La opción ${option.name} de la elección ${key} del rasgo ${traitId} exige ${expected} textos`;
+}
+
+function validateRaces(
+  traitId: string,
+  key: string,
+  option: TraitCatalogOption,
+  entry: CatalogChoiceEntry,
+  racesById: ReadonlyMap<string, RaceRef>
+): string | null {
+  const expected = option.races ?? 0;
+  const raceIds = entry.raceIds ?? [];
+  if (expected === 0) {
+    if (raceIds.length === 0) return null;
+    return `La opción ${option.name} de la elección ${key} del rasgo ${traitId} no admite razas`;
+  }
+  if (raceIds.length !== expected) {
+    return `La opción ${option.name} de la elección ${key} del rasgo ${traitId} exige ${expected} razas`;
+  }
+
+  for (const raceId of raceIds) {
+    const race = racesById.get(raceId);
+    if (!race) {
+      return `La raza ${raceId} no pertenece a este sistema`;
+    }
+    if (option.creatureTypeId && race.creatureTypeId !== option.creatureTypeId) {
+      return `La raza ${race.name} no pertenece al tipo de criatura de la opción ${option.name}`;
+    }
+  }
+
+  return null;
 }
 
 function validateLanguage(
@@ -567,28 +672,39 @@ function repeatedOption(choice: TraitCatalogChoice, entries: CatalogChoiceEntry[
   return null;
 }
 
-function repeatedInput(entries: CatalogChoiceEntry[]): string | null {
+function repeatedInput(entries: CatalogChoiceEntry[]): { kind: "text" | "race"; value: string } | null {
   const seen = new Map<string, string>();
+  const seenRaceIds = new Set<string>();
   for (const entry of entries) {
     const local = new Set<string>();
     for (const text of entry.inputs ?? []) {
       const folded = foldName(text);
-      if (local.has(folded) || seen.has(folded)) return text;
+      if (local.has(folded) || seen.has(folded)) return { kind: "text", value: text };
       local.add(folded);
       seen.set(folded, text);
+    }
+
+    const localRaces = new Set<string>();
+    for (const raceId of entry.raceIds ?? []) {
+      if (localRaces.has(raceId) || seenRaceIds.has(raceId)) return { kind: "race", value: raceId };
+      localRaces.add(raceId);
+      seenRaceIds.add(raceId);
     }
   }
   return null;
 }
 
 function presentChosen(choice: TraitCatalogChoice, stored: TraitChoiceValue[]): TraitChoiceValue[] {
-  const complex = Boolean(choice.language) || choice.options.some(option => typeof option.inputs === "number");
+  const complex = Boolean(choice.language) || choice.options.some(option =>
+    typeof option.inputs === "number" || typeof option.races === "number"
+  );
   if (!complex) return stored.map(entryName);
 
   return stored.map(value => {
     const entry = toEntry(value);
     const object: CatalogChoiceEntry = { name: entry.name };
     if (entry.inputs?.length) object.inputs = [...entry.inputs];
+    if (entry.raceIds?.length) object.raceIds = [...entry.raceIds];
     if (choice.language) object.languageId = entry.languageId ?? null;
     return object;
   });
@@ -605,6 +721,10 @@ function sameEntry(left: TraitChoiceValue, right: CatalogChoiceEntry): boolean {
   const sentInputs = right.inputs ?? [];
   if (storedInputs.length !== sentInputs.length) return false;
   if (storedInputs.some((text, index) => text !== sentInputs[index])) return false;
+  const storedRaces = stored.raceIds ?? [];
+  const sentRaces = right.raceIds ?? [];
+  if (storedRaces.length !== sentRaces.length) return false;
+  if (storedRaces.some((id, index) => id !== sentRaces[index])) return false;
   return stored.languageId === right.languageId;
 }
 
@@ -630,17 +750,26 @@ function canonical(value: TraitChoiceValue): string {
   return JSON.stringify({
     name: entry.name,
     inputs: entry.inputs ?? [],
+    raceIds: entry.raceIds ?? [],
     languageId: entry.languageId === undefined ? null : entry.languageId,
     hasLanguage: entry.languageId !== undefined
   });
 }
 
+interface CatalogSheetItem {
+  label: string;
+  languageId?: string | null;
+  creatureType?: CreatureTypeApi;
+  races?: { id: string; name: string }[];
+}
+
 function resolveCatalogSheetItems(
   trait: TraitApi,
-  stored: TraitChoices
-): { label: string; languageId?: string | null }[] {
+  stored: TraitChoices,
+  racesById: ReadonlyMap<string, RaceRef>
+): CatalogSheetItem[] {
   if (!trait.catalogChoices?.length) return [];
-  const items: { label: string; languageId?: string | null }[] = [];
+  const items: CatalogSheetItem[] = [];
 
   for (const choice of trait.catalogChoices) {
     const selected = stored[trait.id]?.[choice.key];
@@ -651,10 +780,16 @@ function resolveCatalogSheetItems(
       const entry = toEntry(value);
       const option = byName.get(entry.name);
       if (!option) continue;
-      const item: { label: string; languageId?: string | null } = {
-        label: optionLabel(option, entry.inputs)
+      const races = (entry.raceIds ?? []).flatMap(id => {
+        const race = racesById.get(id);
+        return race ? [{ id: race.id, name: race.name }] : [];
+      });
+      const item: CatalogSheetItem = {
+        label: optionLabel(option, entry.inputs, races.map(race => race.name))
       };
       if (choice.language) item.languageId = entry.languageId ?? null;
+      if (option.creatureType) item.creatureType = option.creatureType;
+      if (races.length) item.races = races;
       items.push(item);
     }
   }
@@ -662,9 +797,23 @@ function resolveCatalogSheetItems(
   return items;
 }
 
-function optionLabel(option: TraitCatalogOption, inputs?: string[]): string {
-  if (!option.label || !inputs?.length) return option.name;
-  return inputs.reduce(
+function toResolvedCatalogChoice(
+  item: CatalogSheetItem,
+  languagesById?: ReadonlyMap<string, LanguageApi>
+): ResolvedCatalogChoice {
+  const resolved: ResolvedCatalogChoice = { label: item.label };
+  if (item.creatureType) resolved.creatureType = item.creatureType;
+  if (item.races?.length) resolved.races = item.races;
+  if (languagesById && item.languageId !== undefined) {
+    resolved.language = item.languageId ? languagesById.get(item.languageId) ?? null : null;
+  }
+  return resolved;
+}
+
+function optionLabel(option: TraitCatalogOption, inputs?: string[], raceNames?: string[]): string {
+  const values = raceNames?.length ? raceNames : inputs;
+  if (!option.label || !values?.length) return option.name;
+  return values.reduce(
     (text, value, index) => text.replaceAll(`{${index}}`, value),
     option.label
   );

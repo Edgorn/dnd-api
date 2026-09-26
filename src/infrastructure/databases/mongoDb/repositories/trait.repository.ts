@@ -6,10 +6,12 @@ import IProficiencyRepository from "../../../../domain/repositories/IProficiency
 import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
+import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitApi, TraitCatalogChoice, TraitCatalogOption, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitApi, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
+import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { SpellApi } from "../../../../domain/types/spell.types";
@@ -26,7 +28,8 @@ export default class TraitRepository implements ITraitRepository {
     private readonly spellRepository: ISpellRepository,
     private readonly estadoRepository: IEstadoRepository,
     private readonly skillRepository: ISkillRepository,
-    private readonly languageRepository: ILanguageRepository
+    private readonly languageRepository: ILanguageRepository,
+    private readonly creatureTypeRepository: ICreatureTypeRepository
   ) {}
 
   async getBySystems(ruleset: string[]): Promise<TraitApi[]> {
@@ -128,6 +131,7 @@ export default class TraitRepository implements ITraitRepository {
     const allIncompatibleTraits = new Set<string>();
     const allLanguages = new Set<string>();
     const allChoiceDamages = new Set<string>();
+    const allCreatureTypes = new Set<string>();
 
     for (const trait of traits) {
       (trait.resistances ?? []).forEach(r => allResistances.add(r));
@@ -139,6 +143,7 @@ export default class TraitRepository implements ITraitRepository {
       (trait.incompatible_traits ?? []).forEach(it => allIncompatibleTraits.add(it));
       this.languageIds(trait.languages).forEach(id => allLanguages.add(id));
       this.damageChoiceTypeIds(trait).forEach(id => allChoiceDamages.add(id));
+      this.catalogCreatureTypeIds(trait).forEach(id => allCreatureTypes.add(id));
     }
 
     const [
@@ -150,7 +155,8 @@ export default class TraitRepository implements ITraitRepository {
       fetchedConditionInmunities,
       fetchedIncompatibleTraits,
       fetchedLanguages,
-      fetchedChoiceDamages
+      fetchedChoiceDamages,
+      fetchedCreatureTypes
     ] = await Promise.all([
       allResistances.size ? this.damageRepository.getByIds(Array.from(allResistances)) : [],
       allConditionalResistances.size ? this.damageRepository.getByIds(Array.from(allConditionalResistances)) : [],
@@ -160,7 +166,8 @@ export default class TraitRepository implements ITraitRepository {
       allConditionInmunities.size ? this.estadoRepository.obtenerEstadosPorIndices(Array.from(allConditionInmunities)) : [],
       allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : [],
       allLanguages.size ? this.languageRepository.getLanguagesByIndex(Array.from(allLanguages)) : [],
-      allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : []
+      allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : [],
+      allCreatureTypes.size ? this.creatureTypeRepository.getByIds(Array.from(allCreatureTypes)) : []
     ]);
 
     const resistanceMap = new Map<string, Damage>(fetchedResistances.map(item => [item.id!, item]));
@@ -178,6 +185,7 @@ export default class TraitRepository implements ITraitRepository {
     const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
     const languageMap = new Map<string, LanguageApi>(fetchedLanguages.map(item => [item.id, item]));
     const choiceDamageMap = new Map<string, Damage>(fetchedChoiceDamages.map(item => [item.id!, item]));
+    const creatureTypeMap = new Map<string, CreatureTypeApi>(fetchedCreatureTypes.map(item => [item.id, item]));
 
     return traits.map(trait => {
       const resistances = (trait.resistances ?? [])
@@ -257,7 +265,7 @@ export default class TraitRepository implements ITraitRepository {
         ...(trait.companionRoster ? { companionRoster: trait.companionRoster } : {}),
         ...this.formatLanguages(trait.languages, languageMap),
         ...this.formatDamageChoices(trait, choiceDamageMap),
-        ...this.formatCatalogChoices(trait),
+        ...this.formatCatalogChoices(trait, creatureTypeMap),
         ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {}),
         ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {})
       };
@@ -381,9 +389,23 @@ export default class TraitRepository implements ITraitRepository {
     };
   }
 
+  private catalogCreatureTypeIds(trait: TraitMongo): string[] {
+    if (!Array.isArray(trait.catalogChoices)) return [];
+    return trait.catalogChoices.flatMap(choice => {
+      const fromOptions = (choice.options ?? [])
+        .map(option => option?.creatureTypeId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      const fromRules = (choice.creatureTypeRaces ?? [])
+        .map(item => item?.creatureTypeId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+      return [...fromOptions, ...fromRules];
+    });
+  }
+
   private formatCatalogChoices(
-    trait: TraitMongo
-  ): { catalogChoices: TraitCatalogChoice[] } | Record<string, never> {
+    trait: TraitMongo,
+    creatureTypes: Map<string, CreatureTypeApi>
+  ): { catalogChoices: TraitCatalogChoiceApi[] } | Record<string, never> {
     if (!Array.isArray(trait.catalogChoices)) return {};
 
     return {
@@ -391,22 +413,54 @@ export default class TraitRepository implements ITraitRepository {
         key: choice.key,
         options: (choice.options ?? [])
           .filter(option => typeof option?.name === "string" && option.name.length > 0)
-          .map(option => this.formatCatalogOption(option)),
+          .map(option => this.formatCatalogOption(option, creatureTypes)),
         grants: (choice.grants ?? [])
           .filter(grant => Number.isInteger(grant?.atLevel) && Number.isInteger(grant?.choose))
           .map(grant => ({ atLevel: grant.atLevel, choose: grant.choose })),
         ...(choice.language === "optional" || choice.language === "required"
           ? { language: choice.language }
+          : {}),
+        ...(choice.source === "creatureTypes" ? { source: choice.source } : {}),
+        ...(Array.isArray(choice.creatureTypeRaces)
+          ? { creatureTypeRaces: this.formatCreatureTypeRaces(choice.creatureTypeRaces, creatureTypes) }
           : {})
       }))
     };
   }
 
-  private formatCatalogOption(option: TraitCatalogOption): TraitCatalogOption {
-    const formatted: TraitCatalogOption = { name: option.name };
+  private formatCreatureTypeRaces(
+    items: TraitCatalogCreatureTypeRaces[],
+    creatureTypes: Map<string, CreatureTypeApi>
+  ): TraitCatalogCreatureTypeRacesApi[] {
+    return items.flatMap(item => {
+      if (typeof item?.creatureTypeId !== "string" || item.creatureTypeId.length === 0) return [];
+      if (!Number.isInteger(item.races) || item.races < 1) return [];
+      if (typeof item.label !== "string" || item.label.length === 0) return [];
+      const formatted: TraitCatalogCreatureTypeRacesApi = {
+        creatureTypeId: item.creatureTypeId,
+        races: item.races,
+        label: item.label
+      };
+      const creatureType = creatureTypes.get(item.creatureTypeId);
+      if (creatureType) formatted.creatureType = creatureType;
+      return [formatted];
+    });
+  }
+
+  private formatCatalogOption(
+    option: TraitCatalogOption,
+    creatureTypes: Map<string, CreatureTypeApi>
+  ): TraitCatalogOptionApi {
+    const formatted: TraitCatalogOptionApi = { name: option.name };
     if (Number.isInteger(option.inputs) && (option.inputs ?? 0) > 0) formatted.inputs = option.inputs;
     if (option.repeatable === true) formatted.repeatable = true;
     if (typeof option.label === "string" && option.label.length > 0) formatted.label = option.label;
+    if (typeof option.creatureTypeId === "string" && option.creatureTypeId.length > 0) {
+      formatted.creatureTypeId = option.creatureTypeId;
+      const creatureType = creatureTypes.get(option.creatureTypeId);
+      if (creatureType) formatted.creatureType = creatureType;
+    }
+    if (Number.isInteger(option.races) && (option.races ?? 0) > 0) formatted.races = option.races;
     return formatted;
   }
 

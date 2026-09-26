@@ -474,6 +474,142 @@ describe("CreateTraitSchema repeatable catalog choices", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts a creature type and a race count", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        options: [
+          { name: "Dragones", creatureTypeId: "507f1f77bcf86cd799439011" },
+          {
+            name: "Humanoides",
+            creatureTypeId: "507f1f77bcf86cd799439012",
+            races: 2,
+            repeatable: true,
+            label: "{0} y {1}",
+          },
+        ],
+        grants: [{ atLevel: 1, choose: 1 }],
+      }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects races together with free text", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        options: [{
+          name: "Humanoides",
+          inputs: 2,
+          races: 2,
+          label: "{0} y {1}",
+        }],
+        grants: [{ atLevel: 1, choose: 1 }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects race options without a label or without every placeholder", () => {
+    const missingLabel = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        options: [{ name: "Humanoides", races: 2 }],
+        grants: [{ atLevel: 1, choose: 1 }],
+      }],
+    });
+    const missingMarker = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        options: [{ name: "Humanoides", races: 2, label: "{0}" }],
+        grants: [{ atLevel: 1, choose: 1 }],
+      }],
+    });
+    expect(missingLabel.success).toBe(false);
+    expect(missingMarker.success).toBe(false);
+  });
+
+  it("rejects an invalid creature type id", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        options: [{ name: "Dragones", creatureTypeId: "dragones" }],
+        grants: [{ atLevel: 1, choose: 1 }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts creatureTypes without manual options", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        source: "creatureTypes",
+        creatureTypeRaces: [{
+          creatureTypeId: "507f1f77bcf86cd799439012",
+          races: 2,
+          label: "{0} y {1}",
+        }],
+        grants: [
+          { atLevel: 1, choose: 1 },
+          { atLevel: 6, choose: 1 },
+        ],
+      }],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.catalogChoices?.[0].options).toEqual([]);
+    }
+  });
+
+  it("rejects creatureTypeRaces without source", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        options: [{ name: "Bosque" }],
+        creatureTypeRaces: [{
+          creatureTypeId: "507f1f77bcf86cd799439012",
+          races: 2,
+          label: "{0} y {1}",
+        }],
+        grants: [{ atLevel: 1, choose: 1 }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a creature type race label that misses a placeholder", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Enemigo predilecto",
+      catalogChoices: [{
+        key: "favoredEnemy",
+        source: "creatureTypes",
+        creatureTypeRaces: [{
+          creatureTypeId: "507f1f77bcf86cd799439012",
+          races: 2,
+          label: "{0}",
+        }],
+        grants: [{ atLevel: 1, choose: 1 }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects free-text options without a label", () => {
     const result = CreateTraitSchema.safeParse({
       ruleset: "sys1",

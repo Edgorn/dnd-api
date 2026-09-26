@@ -156,19 +156,52 @@ const TraitCatalogOptionSchema = z.object({
   name: z.string().min(1, "El nombre de la opción no puede estar vacío"),
   inputs: z.number().int().min(1, "Los textos libres deben ser al menos 1").optional(),
   repeatable: z.boolean().optional(),
-  label: z.string().min(1, "La etiqueta no puede estar vacía").optional()
+  label: z.string().min(1, "La etiqueta no puede estar vacía").optional(),
+  creatureTypeId: z.string().refine(val => Types.ObjectId.isValid(val), {
+    message: "El tipo de criatura debe ser un ID de Mongo válido"
+  }).optional(),
+  races: z.number().int().min(1, "Las razas a elegir deben ser al menos 1").optional()
 }).strict().superRefine((option, ctx) => {
-  if (option.inputs === undefined) return;
+  if (option.inputs !== undefined && option.races !== undefined) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Una opción no puede pedir textos libres y razas a la vez",
+      path: ["races"]
+    });
+  }
+
+  const slots = option.races ?? option.inputs;
+  if (slots === undefined) return;
   if (!option.label) {
     ctx.addIssue({
       code: "custom",
-      message: "La opción con textos libres debe incluir label",
+      message: option.races !== undefined
+        ? "La opción con razas debe incluir label"
+        : "La opción con textos libres debe incluir label",
       path: ["label"]
     });
     return;
   }
-  for (let index = 0; index < option.inputs; index++) {
+  for (let index = 0; index < slots; index++) {
     if (!option.label.includes(`{${index}}`)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `La etiqueta debe incluir {${index}}`,
+        path: ["label"]
+      });
+    }
+  }
+});
+
+const TraitCatalogCreatureTypeRacesSchema = z.object({
+  creatureTypeId: z.string().refine(val => Types.ObjectId.isValid(val), {
+    message: "El tipo de criatura debe ser un ID de Mongo válido"
+  }),
+  races: z.number().int().min(1, "Las razas a elegir deben ser al menos 1"),
+  label: z.string().min(1, "La etiqueta no puede estar vacía")
+}).strict().superRefine((item, ctx) => {
+  for (let index = 0; index < item.races; index++) {
+    if (!item.label.includes(`{${index}}`)) {
       ctx.addIssue({
         code: "custom",
         message: `La etiqueta debe incluir {${index}}`,
@@ -180,10 +213,40 @@ const TraitCatalogOptionSchema = z.object({
 
 const TraitCatalogChoiceSchema = z.object({
   key: z.string().min(1, "La clave de la elección no puede estar vacía"),
-  options: z.array(TraitCatalogOptionSchema).min(1, "La elección debe tener al menos una opción"),
+  options: z.array(TraitCatalogOptionSchema).default([]),
   grants: z.array(TraitCatalogGrantSchema).min(1, "La elección debe indicar al menos una concesión"),
-  language: z.enum(["optional", "required"]).optional()
+  language: z.enum(["optional", "required"]).optional(),
+  source: z.enum(["creatureTypes"]).optional(),
+  creatureTypeRaces: z.array(TraitCatalogCreatureTypeRacesSchema).optional()
 }).strict().superRefine((choice, ctx) => {
+  if (!choice.source && choice.options.length < 1) {
+    ctx.addIssue({
+      code: "custom",
+      message: "La elección debe tener al menos una opción",
+      path: ["options"]
+    });
+  }
+
+  if (choice.creatureTypeRaces !== undefined && choice.source !== "creatureTypes") {
+    ctx.addIssue({
+      code: "custom",
+      message: "Las razas por tipo de criatura solo se admiten con el origen creatureTypes",
+      path: ["creatureTypeRaces"]
+    });
+  }
+
+  const typeIds = new Set<string>();
+  (choice.creatureTypeRaces ?? []).forEach((item, index) => {
+    if (typeIds.has(item.creatureTypeId)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `El tipo de criatura ${item.creatureTypeId} está repetido`,
+        path: ["creatureTypeRaces", index, "creatureTypeId"]
+      });
+    }
+    typeIds.add(item.creatureTypeId);
+  });
+
   const names = new Set<string>();
   choice.options.forEach((option, index) => {
     if (names.has(option.name)) {
@@ -211,7 +274,7 @@ const TraitCatalogChoiceSchema = z.object({
   });
 
   const repeatable = choice.options.some(option => option.repeatable);
-  if (!repeatable && total > choice.options.length) {
+  if (!choice.source && !repeatable && total > choice.options.length) {
     ctx.addIssue({
       code: "custom",
       message: "La suma de choose no puede superar el número de opciones",

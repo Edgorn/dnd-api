@@ -49,6 +49,9 @@ const CatalogChoiceEntrySchema = z.object({
   inputs: z.array(
     z.string().trim().min(1, "Cada texto debe tener entre 1 y 80 caracteres").max(80, "Cada texto debe tener entre 1 y 80 caracteres")
   ).optional(),
+  raceIds: z.array(
+    z.string().regex(objectIdRegex, "Cada raza debe ser un ObjectId válido de MongoDB")
+  ).optional(),
   languageId: z.string().min(1, "El idioma no puede estar vacío").nullable().optional()
 }).strict();
 
