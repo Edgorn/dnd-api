@@ -42,10 +42,13 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
     const originalPdf = await PDFDocument.load(existingPdfBytes);
     const form = originalPdf.getForm();
 
-    const backgroundTypeName =
-      typeof character?.background?.type === "string"
-        ? character?.background?.type
-        : character?.background?.type?.name;
+    let name: string | null = character?.background?.type?.values.join(', ')
+
+    if (name.length > 25) {
+      name = null;
+    }
+
+    const backgroundTypeName = name ?? null;
 
     const background = character?.background?.type
       ? `${character?.background?.name ?? ""}${backgroundTypeName ? ` (${backgroundTypeName})` : ""}`
@@ -114,7 +117,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
       form.getTextField(fields[1]).setText(this.formatNumber(skill?.modifier) + "");
     });
 
-    if (character?.equipment?.find((equi) => equi.name === "Escudo" && equi.equipped)) {
+    if(character?.equipment?.find((equi) => equi.equipped && equi.equipSlot === "off_hand")){
       form.getCheckBox("shieldyes").check();
     }
 

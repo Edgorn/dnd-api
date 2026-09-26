@@ -920,6 +920,18 @@ describe("expandCatalogChoices creature types", () => {
       ]
     }]);
   });
+
+  it("labels a creature type without races using its name", () => {
+    const stored = { "enemigo-predilecto": { favoredEnemy: [BEAST_TYPE_ID] } };
+    const resolved = resolveCharacterTraitChoices([expanded[0]], stored, racesById);
+
+    expect(resolved.traits[0].catalogChoice).toEqual([{
+      label: "Bestia",
+      creatureType: beastType
+    }]);
+    expect(resolved.traits[0].description).toEqual(["Tus enemigos predilectos son Bestia."]);
+    expect(resolved.traits[0].summary).toEqual(["Bestia"]);
+  });
 });
 
 describe("mergeTraitLanguageIds", () => {

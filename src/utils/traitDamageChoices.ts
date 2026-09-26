@@ -810,9 +810,18 @@ function toResolvedCatalogChoice(
   return resolved;
 }
 
-function optionLabel(option: TraitCatalogOption, inputs?: string[], raceNames?: string[]): string {
+function optionLabel(option: TraitCatalogOptionApi, inputs?: string[], raceNames?: string[]): string {
   const values = raceNames?.length ? raceNames : inputs;
-  if (!option.label || !values?.length) return option.name;
+  if (!option.label || !values?.length) {
+    if (
+      option.creatureTypeId &&
+      option.name === option.creatureTypeId &&
+      option.creatureType?.name
+    ) {
+      return option.creatureType.name;
+    }
+    return option.name;
+  }
   return values.reduce(
     (text, value, index) => text.replaceAll(`{${index}}`, value),
     option.label
