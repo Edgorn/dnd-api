@@ -10,7 +10,7 @@ import { SpellApi } from "./spell.types"
 import { EstadoApi } from "./estados.types"
 import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
 import { InvocacionApi } from "./invocaciones.types"
-import { CriaturaApi } from "./criaturas.types"
+import { CreatureApi } from "./creature.types"
 import { CharacterAttributeApi, AttributeApi } from "./attribute.types"
 import { Ideal } from "./background.types"
 import { CoinApi } from "./coin.types"
@@ -392,7 +392,7 @@ export interface PersonajeApi {
   maxCarryingCapacity: number,
   spellcasting?: SpellcastingLevel[],
   invocations?: InvocacionApi[],
-  forms?: CriaturaApi[],
+  forms?: CreatureApi[],
   spellPrivileges?: CharacterSpellPrivilegeApi[],
   companions: CharacterCompanion[]
 }

@@ -1,5 +1,5 @@
-import { CriaturaApi } from "../types/criaturas.types";
+import { LegacyCreatureApi } from "../types/npc.types";
 
 export default interface INpcRepository {
-  obtenerTodos(): Promise<CriaturaApi[]>
+  obtenerTodos(): Promise<LegacyCreatureApi[]>
 }

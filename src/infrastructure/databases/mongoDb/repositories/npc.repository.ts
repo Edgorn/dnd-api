@@ -4,7 +4,7 @@ import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import INpcRepository from '../../../../domain/repositories/INpcRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
-import { CriaturaApi, CriaturaMongo } from '../../../../domain/types/criaturas.types';
+import { LegacyCreatureApi, LegacyCreatureMongo } from '../../../../domain/types/npc.types';
 import NpcSchema from '../schemas/Npc';
 
 export default class NpcRepository implements INpcRepository {
@@ -15,7 +15,7 @@ export default class NpcRepository implements INpcRepository {
     private readonly spellsRepository: ISpellRepository,
   ) { }
 
-  async obtenerTodos(): Promise<CriaturaApi[]> {
+  async obtenerTodos(): Promise<LegacyCreatureApi[]> {
     try {
       const npcs = await NpcSchema.find()
         .collation({ locale: 'es', strength: 1 })
@@ -27,11 +27,11 @@ export default class NpcRepository implements INpcRepository {
     }
   }
 
-  private formatearNpcs(npcs: CriaturaMongo[]): Promise<CriaturaApi[]>  {
+  private formatearNpcs(npcs: LegacyCreatureMongo[]): Promise<LegacyCreatureApi[]>  {
     return Promise.all(npcs.map(npc => this.formatearNpc(npc)));
   }
 
-  private async formatearNpc(npc: CriaturaMongo): Promise<CriaturaApi> {
+  private async formatearNpc(npc: LegacyCreatureMongo): Promise<LegacyCreatureApi> {
     const [
       damage_vulnerabilities,
       damage_immunities,

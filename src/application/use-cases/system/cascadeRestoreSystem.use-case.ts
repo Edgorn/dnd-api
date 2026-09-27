@@ -7,6 +7,7 @@ import IFeatRepository from "../../../domain/repositories/IFeatRepository";
 import IEntityOverrideRepository from "../../../domain/repositories/IEntityOverrideRepository";
 import IArmorTypeRepository from "../../../domain/repositories/IArmorTypeRepository";
 import ICreatureTypeRepository from "../../../domain/repositories/ICreatureTypeRepository";
+import ICreatureRepository from "../../../domain/repositories/ICreatureRepository";
 import { AppError } from "../../../domain/errors/AppError";
 
 export default class CascadeRestoreSystem {
@@ -19,7 +20,8 @@ export default class CascadeRestoreSystem {
     private readonly featRepository?: IFeatRepository,
     private readonly entityOverrideRepository?: IEntityOverrideRepository,
     private readonly armorTypeRepository?: IArmorTypeRepository,
-    private readonly creatureTypeRepository?: ICreatureTypeRepository
+    private readonly creatureTypeRepository?: ICreatureTypeRepository,
+    private readonly creatureRepository?: ICreatureRepository
   ) {}
 
   async execute(id: string, userId: string): Promise<void> {
@@ -65,6 +67,10 @@ export default class CascadeRestoreSystem {
 
     if (this.creatureTypeRepository) {
       cascadePromises.push(this.creatureTypeRepository.restoreByRuleset(id, deletedAt));
+    }
+
+    if (this.creatureRepository) {
+      cascadePromises.push(this.creatureRepository.restoreByRuleset(id, deletedAt));
     }
 
     await Promise.all(cascadePromises);

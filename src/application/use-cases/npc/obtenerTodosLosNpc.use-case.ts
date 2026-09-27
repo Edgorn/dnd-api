@@ -1,10 +1,10 @@
 import NpcService from "../../../domain/services/npc.service";
-import { CriaturaApi } from "../../../domain/types/criaturas.types";
+import { LegacyCreatureApi } from "../../../domain/types/npc.types";
 
 export default class ObtenerTodosLosNpc {
   constructor(private readonly npcService: NpcService) { }
 
-  execute(): Promise<CriaturaApi[]> {
+  execute(): Promise<LegacyCreatureApi[]> {
     return this.npcService.obtenerTodos()
   }
 }

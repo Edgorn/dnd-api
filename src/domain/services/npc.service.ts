@@ -1,10 +1,10 @@
 import INpcRepository from "../repositories/INpcRepository";
-import { CriaturaApi } from "../types/criaturas.types";
+import { LegacyCreatureApi } from "../types/npc.types";
 
 export default class NpcsService {
   constructor(private readonly npcRepository: INpcRepository) { }
 
-  obtenerTodos(): Promise<CriaturaApi[]> {
+  obtenerTodos(): Promise<LegacyCreatureApi[]> {
     return this.npcRepository.obtenerTodos();
   }
 }

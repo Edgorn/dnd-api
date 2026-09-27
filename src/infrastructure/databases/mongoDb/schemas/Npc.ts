@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
-import { CriaturaMongo } from "../../../../domain/types/criaturas.types";
+import { LegacyCreatureMongo } from "../../../../domain/types/npc.types";
 
-const npcSchema: Schema = new Schema<CriaturaMongo>({
+const npcSchema: Schema = new Schema<LegacyCreatureMongo>({
   index: String,
   name: String,
   type: String,
@@ -31,5 +31,5 @@ const npcSchema: Schema = new Schema<CriaturaMongo>({
   spell_slots: {}
 }, { collection: 'NPCs' });
 
-const NpcModel = mongoose.model<CriaturaMongo>("NPCs", npcSchema);
+const NpcModel = mongoose.model<LegacyCreatureMongo>("NPCs", npcSchema);
 export default NpcModel;

@@ -58,7 +58,7 @@ import {
   getOwnedFeatIds,
   validateLevelUpAbilityScorePick
 } from '../../../../utils/characterLevelUpAbilityScore';
-import ICriaturaRepository from '../../../../domain/repositories/ICriaturaRepository';
+import ICreatureRepository from '../../../../domain/repositories/ICreatureRepository';
 import { CharacterAttributeApi, AttributeApi } from '../../../../domain/types/attribute.types';
 import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
 import {
@@ -133,7 +133,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly subclassRepository: ISubclassRepository,
     private readonly invocacionRepository: IInvocacionRepository,
     private readonly raceRepository: IRaceRepository,
-    private readonly criaturaRepository: ICriaturaRepository,
+    private readonly creatureRepository: ICreatureRepository,
     private readonly attributeService: AttributeService,
     private readonly systemRepository: ISystemRepository,
     private readonly coinRepository: ICoinRepository,
@@ -1889,7 +1889,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
     const wearingArmorWithoutProficiency = isWearingArmorWithoutProficiency(equipmentWithCombatBonuses);
 
-    const forms = await this.criaturaRepository.obtenerPorIndices(personaje?.forms ?? [])
+    const forms = await this.creatureRepository.getByIds(personaje?.forms ?? [])
     const money = await this.normalizeAndFormatMoney(personaje);
 
     const privilegeSpellIds = [...new Set(privilegeInstances.flatMap(item => item.selections.flat()))]

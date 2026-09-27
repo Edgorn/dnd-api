@@ -155,7 +155,15 @@ import { CharacterClassController } from "./http/controllers/characterClass.cont
 import { PersonajeController } from "./http/controllers/personaje.controller";
 import { SpellController } from "./http/controllers/spell.controller";
 import { SystemController } from "./http/controllers/system.controller";
-import CriaturaRepository from "./databases/mongoDb/repositories/criaturas.repository";
+import CreatureRepository from "./databases/mongoDb/repositories/creature.repository";
+import { CreatureController } from "./http/controllers/creature.controller";
+import CreatureService from "../domain/services/creature.service";
+import GetCreaturesBySystems from "../application/use-cases/creature/getCreaturesBySystems.use-case";
+import GetCreatureById from "../application/use-cases/creature/getCreatureById.use-case";
+import CreateCreatureUseCase from "../application/use-cases/creature/createCreature.use-case";
+import UpdateCreatureUseCase from "../application/use-cases/creature/updateCreature.use-case";
+import SoftDeleteCreature from "../application/use-cases/creature/softDeleteCreature.use-case";
+import RestoreCreature from "../application/use-cases/creature/restoreCreature.use-case";
 import { TraitController } from "./http/controllers/trait.controller";
 import { SubclassController } from "./http/controllers/subclass.controller";
 import GetTraitsBySystemsUseCase from "../application/use-cases/trait/getTraitsBySystems.use-case";
@@ -294,11 +302,17 @@ const backgroundRepository = new BackgroundRepository(
   coinRepository
 );
 
-const criaturaRepository = new CriaturaRepository(
+const creatureRepository = new CreatureRepository(
+  systemRepository,
   damageRepository,
   estadoRepository,
   languageRepository,
-  spellRepository
+  spellRepository,
+  skillRepository,
+  attributeRepository,
+  creatureTypeRepository,
+  equipmentRepository,
+  raceRepository
 )
 
 const campaignReaderRepository = new CampaignReaderRepository();
@@ -316,7 +330,7 @@ const personajeRepository = new PersonajeRepository(
   subclassRepository,
   invocacionRepository,
   raceRepository,
-  criaturaRepository,
+  creatureRepository,
   attributeService,
   systemRepository,
   coinRepository,
@@ -485,8 +499,8 @@ export const magicSchoolController = new MagicSchoolController(
   getMagicSchoolsBySystems
 );
 
-const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository);
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -637,6 +651,47 @@ const createCreatureType = new CreateCreatureType(creatureTypeService, systemSer
 const updateCreatureType = new UpdateCreatureType(creatureTypeService, systemService);
 const softDeleteCreatureType = new SoftDeleteCreatureType(creatureTypeService, systemService);
 const restoreCreatureType = new RestoreCreatureType(creatureTypeService, systemService);
+
+const creatureService = new CreatureService(creatureRepository);
+const getCreaturesBySystems = new GetCreaturesBySystems(creatureService);
+const getCreatureById = new GetCreatureById(creatureService);
+const createCreature = new CreateCreatureUseCase(
+  creatureService,
+  systemService,
+  creatureTypeService,
+  raceService,
+  attributeService,
+  skillService,
+  spellService,
+  damageService,
+  languageService,
+  equipmentService,
+  estadoRepository
+);
+const updateCreature = new UpdateCreatureUseCase(
+  creatureService,
+  systemService,
+  creatureTypeService,
+  raceService,
+  attributeService,
+  skillService,
+  spellService,
+  damageService,
+  languageService,
+  equipmentService,
+  estadoRepository
+);
+const softDeleteCreature = new SoftDeleteCreature(creatureService, systemService);
+const restoreCreature = new RestoreCreature(creatureService, systemService);
+
+export const creatureController = new CreatureController(
+  getCreaturesBySystems,
+  getCreatureById,
+  createCreature,
+  updateCreature,
+  softDeleteCreature,
+  restoreCreature
+);
 
 export const creatureTypeController = new CreatureTypeController(
   getCreatureTypesBySystem,

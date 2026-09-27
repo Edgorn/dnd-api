@@ -1,0 +1,195 @@
+import { describe, expect, it } from "vitest";
+import { CreateCreatureSchema, UpdateCreatureSchema } from "./creature.schema";
+
+const priest = {
+  name: "Sacerdote",
+  ruleset: "sys1",
+  creatureTypeId: "humanoide",
+  race: "any",
+  size: "Mediano",
+  alignment: "cualquier alineamiento",
+  armor_class: { value: 13, notes: "camisa de malla" },
+  HPMax: 27,
+  hit_dice: "5d8 + 5",
+  speed: { walk: 25 },
+  attributes: [
+    { key: "str", value: 10 },
+    { key: "dex", value: 10 },
+    { key: "con", value: 12 },
+    { key: "int", value: 13 },
+    { key: "wis", value: 16 },
+    { key: "cha", value: 13 }
+  ],
+  skill_bonuses: [
+    { skillId: "medicine", bonus: 7 },
+    { skillId: "persuasion", bonus: 3 },
+    { skillId: "religion", bonus: 4 }
+  ],
+  languages: { speaks: [], understands: [], notes: "dos cualesquiera" },
+  language_choices: { choose: 2 },
+  challenge_rating: 2,
+  xp: 450,
+  prof_bonus: 2,
+  spellcasting: {
+    slots: { "1": 4, "2": 3, "3": 2 },
+    spells: ["sacred-flame", "cure-wounds"]
+  },
+  special_abilities: [{
+    name: "Prerrogativa Divina",
+    description: ["Como acción adicional, el sacerdote puede gastar un espacio de conjuro."]
+  }],
+  actions: [{
+    name: "Maza",
+    description: [],
+    attack: {
+      kind: "melee_weapon",
+      attributeKey: "str",
+      reach: 5,
+      targets: "un objetivo",
+      damage: [{ dice: "1d6", damageTypeId: "bludgeoning" }]
+    }
+  }]
+};
+
+describe("CreateCreatureSchema", () => {
+  it("acepta al sacerdote con velocidad y alcance en pies", () => {
+    const result = CreateCreatureSchema.safeParse(priest);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.speed.walk).toBe(25);
+      expect(result.data.actions?.[0]?.attack?.reach).toBe(5);
+      expect(result.data.race).toBe("any");
+    }
+  });
+
+  it("acepta raza nula o un id de catálogo", () => {
+    expect(CreateCreatureSchema.safeParse({ ...priest, race: null }).success).toBe(true);
+    expect(CreateCreatureSchema.safeParse({ ...priest, race: "507f1f77bcf86cd799439011" }).success).toBe(true);
+  });
+
+  it("acepta los tres modos de language_choices y descarta claves ajenas", () => {
+    const chooseOnly = CreateCreatureSchema.safeParse({
+      ...priest,
+      language_choices: { choose: 2 }
+    });
+    expect(chooseOnly.success).toBe(true);
+    if (chooseOnly.success) {
+      expect(chooseOnly.data.language_choices).toEqual({ choose: 2 });
+    }
+
+    const withOptions = CreateCreatureSchema.safeParse({
+      ...priest,
+      language_choices: { choose: 1, options: ["507f1f77bcf86cd799439011"] }
+    });
+    expect(withOptions.success).toBe(true);
+    if (withOptions.success) {
+      expect(withOptions.data.language_choices).toEqual({
+        choose: 1,
+        options: ["507f1f77bcf86cd799439011"]
+      });
+    }
+
+    const withFilter = CreateCreatureSchema.safeParse({
+      ...priest,
+      language_choices: { choose: 1, filter: { type: "standard" } }
+    });
+    expect(withFilter.success).toBe(true);
+    if (withFilter.success) {
+      expect(withFilter.data.language_choices).toEqual({
+        choose: 1,
+        filter: { type: "standard" }
+      });
+    }
+
+    const withResponseKeys = CreateCreatureSchema.safeParse({
+      ...priest,
+      language_choices: { choose: 2, query_type: "all", query_filter: { type: "exotic" } }
+    });
+    expect(withResponseKeys.success).toBe(true);
+    if (withResponseKeys.success) {
+      expect(withResponseKeys.data.language_choices).toEqual({ choose: 2 });
+    }
+  });
+
+  it("rechaza una raza vacía", () => {
+    expect(CreateCreatureSchema.safeParse({ ...priest, race: "" }).success).toBe(false);
+  });
+
+  it("rechaza un alta sin nombre, sistema o tipo", () => {
+    expect(CreateCreatureSchema.safeParse({ ...priest, name: "" }).success).toBe(false);
+    expect(CreateCreatureSchema.safeParse({ ...priest, ruleset: "" }).success).toBe(false);
+    expect(CreateCreatureSchema.safeParse({ ...priest, creatureTypeId: "" }).success).toBe(false);
+  });
+
+  it("rechaza claves desconocidas", () => {
+    const result = CreateCreatureSchema.safeParse({ ...priest, index: "priest" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rechaza listas de competencia y competencia doble", () => {
+    expect(CreateCreatureSchema.safeParse({ ...priest, skills: ["medicine"] }).success).toBe(false);
+    expect(CreateCreatureSchema.safeParse({ ...priest, double_skills: ["medicine"] }).success).toBe(false);
+  });
+
+  it("acepta nivel de lanzador, aptitud mágica, CD y bonificador de ataque", () => {
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      spellcasting: {
+        casterLevel: 5,
+        abilityId: "attr-wis",
+        spellSaveDc: 13,
+        spellAttackBonus: 5,
+        slots: { "1": 4 },
+        spells: ["sacred-flame"]
+      }
+    }).success).toBe(true);
+  });
+
+  it("rechaza nivel de lanzador 0, CD no entera y aptitud vacía", () => {
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      spellcasting: { casterLevel: 0, slots: {}, spells: [] }
+    }).success).toBe(false);
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      spellcasting: { spellSaveDc: 13.5, slots: {}, spells: [] }
+    }).success).toBe(false);
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      spellcasting: { abilityId: "", slots: {}, spells: [] }
+    }).success).toBe(false);
+  });
+
+  it("acepta el lanzamiento nulo y rechaza bloques o ids vacíos", () => {
+    expect(CreateCreatureSchema.safeParse({ ...priest, spellcasting: null }).success).toBe(true);
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      spellcasting: [{ name: "Lanzamiento", attributeKey: "wis", slots: {}, spells: {} }]
+    }).success).toBe(false);
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      spellcasting: { slots: { "1": 4 }, spells: [""] }
+    }).success).toBe(false);
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      spellcasting: { slots: { "1": -1 }, spells: ["sacred-flame"] }
+    }).success).toBe(false);
+  });
+});
+
+describe("UpdateCreatureSchema", () => {
+  it("acepta un cambio parcial sin identificador en el cuerpo", () => {
+    const result = UpdateCreatureSchema.safeParse({ name: "Sacerdote mayor" });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect("id" in result.data).toBe(false);
+    }
+  });
+
+  it("rechaza un cuerpo vacío", () => {
+    const result = UpdateCreatureSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+});
