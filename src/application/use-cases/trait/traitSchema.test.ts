@@ -716,3 +716,95 @@ describe("UpdateTraitSchema resistances", () => {
     if (result.success) expect(result.data.resistances).toEqual([]);
   });
 });
+
+const lineageOption = {
+  name: "Rojo",
+  damageTypeId,
+  area: { shape: "cone", length: 4.5, unit: "m" },
+  saveAttributeId: damageTypeId
+};
+
+describe("CreateTraitSchema area, save and action", () => {
+  it("accepts a lineage option with area and save attribute", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje",
+      damageChoices: [{ key: "ancestor", choose: 1, options: [lineageOption] }]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("requires width on a line and accepts it", () => {
+    const missing = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje",
+      damageChoices: [{
+        key: "ancestor",
+        choose: 1,
+        options: [{
+          name: "Bronce",
+          damageTypeId,
+          area: { shape: "line", length: 9, unit: "m" }
+        }]
+      }]
+    });
+    const present = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje",
+      damageChoices: [{
+        key: "ancestor",
+        choose: 1,
+        options: [{
+          name: "Bronce",
+          damageTypeId,
+          area: { shape: "line", length: 9, width: 1.5, unit: "m" }
+        }]
+      }]
+    });
+
+    expect(missing.success).toBe(false);
+    expect(present.success).toBe(true);
+  });
+
+  it("rejects an invalid save attribute id", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje",
+      damageChoices: [{
+        key: "ancestor",
+        choose: 1,
+        options: [{ name: "Rojo", damageTypeId, saveAttributeId: "destreza" }]
+      }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a breath action and null to clear it", () => {
+    const action = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Aliento",
+      action: {
+        activation: "action",
+        saveDcFormula: "8 + @attributes.con.modifier + @proficiencyBonus",
+        uses: 1,
+        recharge: "shortOrLongRest"
+      }
+    });
+    const cleared = UpdateTraitSchema.safeParse({ action: null });
+
+    expect(action.success).toBe(true);
+    expect(cleared.success).toBe(true);
+  });
+
+  it("rejects a save DC formula with unknown tokens", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Aliento",
+      action: { activation: "action", saveDcFormula: "@unknown.token" }
+    });
+
+    expect(result.success).toBe(false);
+  });
+});

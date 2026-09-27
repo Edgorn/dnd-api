@@ -103,6 +103,7 @@ export interface RaceApi {
   subraces?: SubracesApi,
   parentId?: string | null,
   variants: VarianteApi[],
+  levels?: RaceLevelMongo[],
   inherited?: boolean,
   overriddenFields?: Array<"name" | "description" | "img" | "alignment">,
   overrideRuleset?: string,
@@ -164,7 +165,8 @@ export interface CreateRace {
   spellcasting?: string | null,
   equipment?: CharacterEquipmentMongo[] | null,
   creatureTypeId?: string | null,
-  playable?: boolean
+  playable?: boolean,
+  levels?: RaceLevelMongo[] | null
 }
 
 export interface UpdateRace extends Partial<CreateRace> {

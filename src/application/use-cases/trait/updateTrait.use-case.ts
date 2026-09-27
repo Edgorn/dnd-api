@@ -4,6 +4,7 @@ import ArmorTypeService from "../../../domain/services/armorType.service";
 import LanguageService from "../../../domain/services/language.service";
 import DamageService from "../../../domain/services/damage.service";
 import CreatureTypeService from "../../../domain/services/creatureType.service";
+import AttributeService from "../../../domain/services/attribute.service";
 import { AppError } from "../../../domain/errors/AppError";
 import { TraitApi, UpdateTrait } from "../../../domain/types/traits.types";
 import { assertArmorTypesForRuleset } from "../equipment/assertArmorTypeForRuleset";
@@ -16,7 +17,8 @@ export default class UpdateTraitUseCase {
     private readonly armorTypeService: ArmorTypeService,
     private readonly languageService: LanguageService,
     private readonly damageService: DamageService,
-    private readonly creatureTypeService: CreatureTypeService
+    private readonly creatureTypeService: CreatureTypeService,
+    private readonly attributeService: AttributeService
   ) { }
 
   async execute(trait: UpdateTrait, userId: string): Promise<TraitApi> {
@@ -59,6 +61,7 @@ export default class UpdateTraitUseCase {
       languageService: this.languageService,
       damageService: this.damageService,
       creatureTypeService: this.creatureTypeService,
+      attributeService: this.attributeService,
       systemService: this.systemService,
       traitService: this.traitService
     });

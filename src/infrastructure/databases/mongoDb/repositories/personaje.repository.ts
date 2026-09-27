@@ -28,7 +28,8 @@ import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTy
 import { PendingCatalogChoice, TraitApi, TraitChoiceValue, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { RaceRef } from '../../../../domain/types/race.types';
-import { mergeLevelUpTraits } from '../../../../utils/characterLevelUpTraits';
+import { closeLevelUpTraitText, damageChoiceSourceIdsToLoad, levelUpTraitIds, mergeClassAndRaceLevelUp, mergeLevelUpTraits, mergeTraitDataMaps, orderTraitsByIds, traitIdsWithChangedData } from '../../../../utils/characterLevelUpTraits';
+import { resolveTraitActions } from '../../../../utils/resolveTraitActions';
 import {
   collectClassGrantedTraitIds,
   traitHitPointBonus
@@ -507,8 +508,25 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const nextLevel = level + 1;
     const totalLevels = personaje.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
-    const { hit_die, spell_choices, traits, traits_data, subclassChoice, ability_score, feats } =
-      await this.resolveLevelUpClassData(personaje, classId, nextLevel);
+    const classLevel = await this.resolveLevelUpClassData(personaje, classId, nextLevel);
+    const raceMerged = await this.withRaceLevel(
+      personaje,
+      classLevel.traits,
+      classLevel.traits_data,
+      totalLevels + 1
+    );
+    const prof_bonus = rulesConfig.proficiencyProgression?.[totalLevels]
+      ?? DEFAULT_PROFICIENCY_PROGRESSION[totalLevels]
+      ?? 0;
+    const traits = await this.translateLevelUpTraits(
+      personaje,
+      raceMerged.traits,
+      mergeTraitDataMaps(personaje.traits_data, raceMerged.traits_data),
+      totalLevels + 1,
+      prof_bonus
+    );
+    const traits_data = raceMerged.traits_data;
+    const { hit_die, spell_choices, subclassChoice, ability_score, feats } = classLevel;
     const catalogChoices = await this.pendingClassCatalogChoices(
       personaje,
       classId,
@@ -519,9 +537,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return {
       class: classId,
       hit_die,
-      prof_bonus: rulesConfig.proficiencyProgression?.[totalLevels]
-        ?? DEFAULT_PROFICIENCY_PROGRESSION[totalLevels]
-        ?? 0,
+      prof_bonus,
       spell_choices,
       traits,
       traits_data,
@@ -577,8 +593,16 @@ export default class PersonajeRepository implements IPersonajeRepository {
       subclass
     );
     const knownSpellIds = this.getClassSpellIds(personaje, classId);
-    const { spell_choices, traits: levelTraits, traits_data: levelTraitsData, ability_score, feats } =
-      await this.resolveLevelUpClassData(personaje, classId, nextLevel, nextSubclassIds);
+    const classLevel = await this.resolveLevelUpClassData(personaje, classId, nextLevel, nextSubclassIds);
+    const mergedLevel = await this.withRaceLevel(
+      personaje,
+      classLevel.traits,
+      classLevel.traits_data,
+      totalLevels + 1
+    );
+    const { spell_choices, ability_score, feats } = classLevel;
+    const levelTraits = mergedLevel.traits;
+    const levelTraitsData = mergedLevel.traits_data;
     const pickResult = validateLevelUpSpellPicks(spell_choices, spells, knownSpellIds);
     if ("error" in pickResult) {
       throw new ValidationError(pickResult.error);
@@ -1310,6 +1334,78 @@ export default class PersonajeRepository implements IPersonajeRepository {
     };
   }
 
+  private async withRaceLevel(
+    personaje: PersonajeMongo,
+    classTraits: TraitApi[],
+    classTraitsData: TraitDataMongo,
+    characterLevel: number
+  ): Promise<{ traits: TraitApi[]; traits_data: TraitDataMongo }> {
+    if (!personaje.raceId) {
+      return mergeClassAndRaceLevelUp(classTraits, classTraitsData, [], undefined);
+    }
+
+    const raceLevel = await this.raceRepository.dataLevelUp(personaje.raceId, characterLevel);
+
+    return mergeClassAndRaceLevelUp(classTraits, classTraitsData, [], raceLevel?.traits_data);
+  }
+
+  private async translateLevelUpTraits(
+    personaje: PersonajeMongo,
+    traits: TraitApi[],
+    traitsData: TraitDataMongo,
+    characterLevel: number,
+    proficiencyBonus: number
+  ): Promise<TraitApi[]> {
+    const changedIds = await this.raceChangedTraitIds(personaje, characterLevel);
+    const ids = levelUpTraitIds(traits, changedIds);
+    if (!ids.length) return [];
+
+    const translated = orderTraitsByIds(
+      await this.traitRepository.getTraitsByIndexes(ids, traitsData),
+      ids
+    );
+    const sourceIds = damageChoiceSourceIdsToLoad(translated);
+    const sources = sourceIds.length
+      ? await this.traitRepository.getTraitsByIndexes(sourceIds, traitsData)
+      : [];
+    const pool = [...translated, ...sources];
+    const expanded = await this.expandTraitsForSystems(
+      pool,
+      personaje.systems,
+      this.chosenCreatureTypeIds(pool, personaje.traitChoices)
+    );
+    const visibleIds = new Set(ids);
+    const visible = orderTraitsByIds(
+      expanded.filter(trait => trait.id && visibleIds.has(trait.id)),
+      ids
+    );
+    const extraSources = expanded.filter(trait => trait.id && !visibleIds.has(trait.id));
+    const attributes = await this.attributeService.formatAttributes(
+      this.calcularAttributes(personaje),
+      personaje.systems ?? []
+    );
+    const raceRefs = await this.raceRefsForLabels(personaje.traitChoices);
+
+    return closeLevelUpTraitText(
+      visible,
+      extraSources,
+      personaje.traitChoices,
+      raceRefs,
+      attributes,
+      proficiencyBonus
+    );
+  }
+
+  private async raceChangedTraitIds(personaje: PersonajeMongo, characterLevel: number): Promise<string[]> {
+    if (!personaje.raceId) return [];
+
+    const [raceLevel, previousRaceLevel] = await Promise.all([
+      this.raceRepository.dataLevelUp(personaje.raceId, characterLevel),
+      this.raceRepository.dataLevelUp(personaje.raceId, characterLevel - 1)
+    ]);
+    return traitIdsWithChangedData(raceLevel?.traits_data, previousRaceLevel?.traits_data);
+  }
+
   private async resolveLevelUpSubclassIds(
     personaje: PersonajeMongo,
     classId: string,
@@ -1950,11 +2046,15 @@ export default class PersonajeRepository implements IPersonajeRepository {
         notes: idiomasId.notes
       },
       proficiencies: proficienciesUnicos,
-      traits: hydrateCatalogChoiceLanguages(
-        traits,
-        personaje.traitChoices,
-        new Map(idiomas_speaks.map(language => [language.id, language])),
-        raceRefs
+      traits: resolveTraitActions(
+        hydrateCatalogChoiceLanguages(
+          traits,
+          personaje.traitChoices,
+          new Map(idiomas_speaks.map(language => [language.id, language])),
+          raceRefs
+        ),
+        apiAttributes,
+        personaje.prof_bonus ?? 0
       ),
       traits_data: personaje.traits_data,
       resistances,

@@ -7,10 +7,12 @@ import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
+import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitApi, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES } from "../../../../domain/types/traits.types";
+import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
@@ -29,7 +31,8 @@ export default class TraitRepository implements ITraitRepository {
     private readonly estadoRepository: IEstadoRepository,
     private readonly skillRepository: ISkillRepository,
     private readonly languageRepository: ILanguageRepository,
-    private readonly creatureTypeRepository: ICreatureTypeRepository
+    private readonly creatureTypeRepository: ICreatureTypeRepository,
+    private readonly attributeRepository: IAttributeRepository
   ) {}
 
   async getBySystems(ruleset: string[]): Promise<TraitApi[]> {
@@ -131,6 +134,7 @@ export default class TraitRepository implements ITraitRepository {
     const allIncompatibleTraits = new Set<string>();
     const allLanguages = new Set<string>();
     const allChoiceDamages = new Set<string>();
+    const allSaveAttributes = new Set<string>();
     const allCreatureTypes = new Set<string>();
 
     for (const trait of traits) {
@@ -143,6 +147,7 @@ export default class TraitRepository implements ITraitRepository {
       (trait.incompatible_traits ?? []).forEach(it => allIncompatibleTraits.add(it));
       this.languageIds(trait.languages).forEach(id => allLanguages.add(id));
       this.damageChoiceTypeIds(trait).forEach(id => allChoiceDamages.add(id));
+      this.saveAttributeIds(trait).forEach(id => allSaveAttributes.add(id));
       this.catalogCreatureTypeIds(trait).forEach(id => allCreatureTypes.add(id));
     }
 
@@ -156,6 +161,7 @@ export default class TraitRepository implements ITraitRepository {
       fetchedIncompatibleTraits,
       fetchedLanguages,
       fetchedChoiceDamages,
+      fetchedSaveAttributes,
       fetchedCreatureTypes
     ] = await Promise.all([
       allResistances.size ? this.damageRepository.getByIds(Array.from(allResistances)) : [],
@@ -167,6 +173,7 @@ export default class TraitRepository implements ITraitRepository {
       allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : [],
       allLanguages.size ? this.languageRepository.getLanguagesByIndex(Array.from(allLanguages)) : [],
       allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : [],
+      allSaveAttributes.size ? this.attributeRepository.getByIds(Array.from(allSaveAttributes)) : [],
       allCreatureTypes.size ? this.creatureTypeRepository.getByIds(Array.from(allCreatureTypes)) : []
     ]);
 
@@ -185,6 +192,7 @@ export default class TraitRepository implements ITraitRepository {
     const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
     const languageMap = new Map<string, LanguageApi>(fetchedLanguages.map(item => [item.id, item]));
     const choiceDamageMap = new Map<string, Damage>(fetchedChoiceDamages.map(item => [item.id!, item]));
+    const saveAttributeMap = new Map<string, AttributeApi>(fetchedSaveAttributes.map(item => [item.id, item]));
     const creatureTypeMap = new Map<string, CreatureTypeApi>(fetchedCreatureTypes.map(item => [item.id, item]));
 
     return traits.map(trait => {
@@ -264,10 +272,11 @@ export default class TraitRepository implements ITraitRepository {
           : {}),
         ...(trait.companionRoster ? { companionRoster: trait.companionRoster } : {}),
         ...this.formatLanguages(trait.languages, languageMap),
-        ...this.formatDamageChoices(trait, choiceDamageMap),
+        ...this.formatDamageChoices(trait, choiceDamageMap, saveAttributeMap),
         ...this.formatCatalogChoices(trait, creatureTypeMap),
         ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {}),
-        ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {})
+        ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {}),
+        ...this.formatAction(trait.action)
       };
     });
   }
@@ -278,7 +287,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, ...rest } = trait;
     return {
       ...rest,
       ...(typeof acFormula === "string" ? { acFormula } : {}),
@@ -289,7 +298,8 @@ export default class TraitRepository implements ITraitRepository {
       ...(Array.isArray(damageChoices) ? { damageChoices } : {}),
       ...(Array.isArray(catalogChoices) ? { catalogChoices } : {}),
       ...(damageChoiceRef ? { damageChoiceRef } : {}),
-      ...(hitPoints ? { hitPoints } : {})
+      ...(hitPoints ? { hitPoints } : {}),
+      ...(action ? { action } : {})
     };
   }
 
@@ -307,6 +317,7 @@ export default class TraitRepository implements ITraitRepository {
       catalogChoices,
       damageChoiceRef,
       hitPoints,
+      action,
       ...rest
     } = updateFields;
     const $set: Record<string, unknown> = { ...rest };
@@ -336,6 +347,7 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "catalogChoices", catalogChoices);
     this.assignNullable($set, $unset, "damageChoiceRef", damageChoiceRef);
     this.assignNullable($set, $unset, "hitPoints", hitPoints);
+    this.assignNullable($set, $unset, "action", action);
 
     return { $set, $unset };
   }
@@ -366,6 +378,15 @@ export default class TraitRepository implements ITraitRepository {
     return trait.damageChoices.flatMap(choice =>
       (choice.options ?? [])
         .map(option => option.damageTypeId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    );
+  }
+
+  private saveAttributeIds(trait: TraitMongo): string[] {
+    if (!Array.isArray(trait.damageChoices)) return [];
+    return trait.damageChoices.flatMap(choice =>
+      (choice.options ?? [])
+        .map(option => option.saveAttributeId)
         .filter((id): id is string => typeof id === "string" && id.length > 0)
     );
   }
@@ -466,7 +487,8 @@ export default class TraitRepository implements ITraitRepository {
 
   private formatDamageChoices(
     trait: TraitMongo,
-    damageMap: Map<string, Damage>
+    damageMap: Map<string, Damage>,
+    attributeMap: Map<string, AttributeApi>
   ): { damageChoices: TraitDamageChoiceApi[] } | Record<string, never> {
     if (!Array.isArray(trait.damageChoices)) return {};
 
@@ -476,13 +498,57 @@ export default class TraitRepository implements ITraitRepository {
         choose: choice.choose,
         options: (choice.options ?? []).map(option => {
           const damage = damageMap.get(option.damageTypeId);
+          const area = this.formatStoredArea(option.area);
+          const saveAttribute = option.saveAttributeId
+            ? attributeMap.get(option.saveAttributeId)
+            : undefined;
           return {
             name: option.name,
             damageTypeId: option.damageTypeId,
-            ...(damage ? { damage } : {})
+            ...(option.saveAttributeId ? { saveAttributeId: option.saveAttributeId } : {}),
+            ...(damage ? { damage } : {}),
+            ...(area ? { area } : {}),
+            ...(saveAttribute ? { saveAttribute } : {})
           };
         })
       }))
+    };
+  }
+
+  private formatStoredArea(area: TraitArea | undefined): TraitArea | undefined {
+    if (!area || typeof area !== "object") return undefined;
+    if (!TRAIT_AREA_SHAPES.includes(area.shape)) return undefined;
+    if (typeof area.length !== "number") return undefined;
+    if (area.unit !== "m" && area.unit !== "ft") return undefined;
+
+    const formatted: TraitArea = {
+      shape: area.shape,
+      length: area.length,
+      unit: area.unit
+    };
+    if (typeof area.width === "number") formatted.width = area.width;
+    return formatted;
+  }
+
+  private formatAction(action: TraitAction | undefined): { action: TraitAction } | Record<string, never> {
+    if (!action || typeof action !== "object") return {};
+    if (!TRAIT_ACTIVATIONS.includes(action.activation)) return {};
+
+    const recharge = action.recharge;
+    const validRecharge = recharge === null
+      || recharge === "shortRest"
+      || recharge === "longRest"
+      || recharge === "shortOrLongRest";
+
+    return {
+      action: {
+        activation: action.activation,
+        ...(typeof action.saveDcFormula === "string" && action.saveDcFormula.length > 0
+          ? { saveDcFormula: action.saveDcFormula }
+          : {}),
+        ...(typeof action.uses === "number" ? { uses: action.uses } : {}),
+        ...(validRecharge ? { recharge } : {})
+      }
     };
   }
 

@@ -2,15 +2,18 @@ import { describe, it, expect } from "vitest";
 import { Damage } from "../domain/types";
 import { TraitApi } from "../domain/types/traits.types";
 import { LanguageApi } from "../domain/types/language.types";
+import { AttributeApi, CharacterAttributeApi } from "../domain/types/attribute.types";
 import {
   applyCatalogTraitChoices,
   applyEnteringTraitChoices,
   expandCatalogChoices,
+  formatTraitArea,
   hydrateCatalogChoiceLanguages,
   listPendingCatalogChoices,
   mergeTraitLanguageIds,
   resolveCharacterTraitChoices
 } from "./traitDamageChoices";
+import { resolveTraitActions } from "./resolveTraitActions";
 
 const fire: Damage = {
   id: "fire",
@@ -966,5 +969,83 @@ describe("mergeTraitLanguageIds", () => {
       speaks: ["common", "giant"],
       understands: []
     });
+  });
+});
+
+const dexterity: AttributeApi = {
+  id: "dex-id",
+  name: "Destreza",
+  key: "dex",
+  ruleset: "dnd5e"
+};
+
+describe("formatTraitArea", () => {
+  it("formats a line as width by length and a cone by length, with a decimal comma", () => {
+    expect(formatTraitArea({ shape: "line", length: 9, width: 1.5, unit: "m" })).toBe("línea de 1,5 por 9 m");
+    expect(formatTraitArea({ shape: "cone", length: 4.5, unit: "m" })).toBe("cono de 4,5 m");
+    expect(formatTraitArea({ shape: "sphere", length: 6, unit: "ft" })).toBe("esfera de 6 ft");
+    expect(formatTraitArea({ shape: "cube", length: 3, unit: "m" })).toBe("cubo de 3 m");
+  });
+});
+
+describe("dragonborn lineage tokens", () => {
+  const lineage = trait("draconic-ancestry", {
+    description: ["Linaje {name}. Aliento en {area}. Salvación de {save}."],
+    summary: ["{damage}"],
+    damageChoices: [{
+      key: "ancestor",
+      choose: 1,
+      options: [
+        {
+          name: "Rojo",
+          damageTypeId: "fire",
+          damage: fire,
+          area: { shape: "cone", length: 4.5, unit: "m" },
+          saveAttribute: dexterity
+        },
+        {
+          name: "Bronce",
+          damageTypeId: "fire",
+          damage: fire,
+          area: { shape: "line", length: 9, width: 1.5, unit: "m" },
+          saveAttribute: dexterity
+        }
+      ]
+    }]
+  });
+
+  const breath = trait("draconic-breath", {
+    description: ["Infliges 2d6 de daño de {damage} en {area}. Salvación de {save} CD {dc}."],
+    summary: ["CD {dc}"],
+    damageChoiceRef: { traitId: "draconic-ancestry", choiceKey: "ancestor" },
+    action: {
+      activation: "action",
+      saveDcFormula: "8 + @attributes.con.modifier + @proficiencyBonus",
+      uses: 1,
+      recharge: "shortOrLongRest"
+    }
+  });
+
+  const constitution: CharacterAttributeApi = {
+    id: "con-id",
+    name: "Constitución",
+    key: "con",
+    value: 16,
+    modifier: 3
+  };
+
+  it("substitutes area and save on the lineage and the breath, then the save DC", () => {
+    const resolved = resolveCharacterTraitChoices(
+      [lineage, breath],
+      { "draconic-ancestry": { ancestor: ["Rojo"] } }
+    );
+    const sheet = resolveTraitActions(resolved.traits, [constitution], 2);
+
+    expect(sheet[0].description).toEqual(["Linaje Rojo. Aliento en cono de 4,5 m. Salvación de Destreza."]);
+    expect(sheet[0].damageChoice?.[0].area).toEqual({ shape: "cone", length: 4.5, unit: "m" });
+    expect(sheet[0].damageChoice?.[0].saveAttribute?.name).toBe("Destreza");
+    expect(sheet[1].description).toEqual(["Infliges 2d6 de daño de Fuego en cono de 4,5 m. Salvación de Destreza CD 13."]);
+    expect(sheet[1].summary).toEqual(["CD 13"]);
+    expect(sheet[1].action?.saveDc).toBe(13);
   });
 });

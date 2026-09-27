@@ -1,6 +1,7 @@
 import LanguageService from "../../../domain/services/language.service";
 import DamageService from "../../../domain/services/damage.service";
 import CreatureTypeService from "../../../domain/services/creatureType.service";
+import AttributeService from "../../../domain/services/attribute.service";
 import SystemService from "../../../domain/services/system.service";
 import TraitService from "../../../domain/services/trait.service";
 import { AppError } from "../../../domain/errors/AppError";
@@ -21,6 +22,7 @@ export async function assertTraitCatalogRefs(input: {
   languageService: LanguageService;
   damageService: DamageService;
   creatureTypeService: CreatureTypeService;
+  attributeService: AttributeService;
   systemService: SystemService;
   traitService: TraitService;
 }): Promise<{
@@ -41,9 +43,14 @@ export async function assertTraitCatalogRefs(input: {
       ...(choice.creatureTypeRaces ?? []).map(item => item.creatureTypeId)
     ])
   );
+  const attributeIds = uniqueIds(
+    (input.damageChoices ?? []).flatMap(choice =>
+      choice.options.flatMap(option => option.saveAttributeId ? [option.saveAttributeId] : [])
+    )
+  );
   const publicLanguageIds = new Map<string, string>();
 
-  if (languageIds.length || damageIds.length || creatureTypeIds.length) {
+  if (languageIds.length || damageIds.length || creatureTypeIds.length || attributeIds.length) {
     const allowedRulesets = await input.systemService.getSystemsAndAncestors([input.ruleset]);
 
     for (const languageId of languageIds) {
@@ -74,6 +81,16 @@ export async function assertTraitCatalogRefs(input: {
       }
       if (!allowedRulesets.includes(creatureType.ruleset)) {
         throw new AppError("El tipo de criatura no pertenece a este sistema ni a sus ancestros", 400);
+      }
+    }
+
+    for (const attributeId of attributeIds) {
+      const attribute = await input.attributeService.getById(attributeId);
+      if (!attribute || attribute.deletedAt) {
+        throw new AppError("Atributo no encontrado", 404);
+      }
+      if (!allowedRulesets.includes(attribute.ruleset)) {
+        throw new AppError("El atributo no pertenece a este sistema ni a sus ancestros", 400);
       }
     }
   }

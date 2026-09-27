@@ -100,6 +100,13 @@ const router = Router();
  *             type: object
  *         traits_data:
  *           type: object
+ *         levels:
+ *           type: array
+ *           description: >
+ *             Filas guardadas en esta raza. Al subir de nivel se fusionan con las de la raza padre;
+ *             la subraza sobrescribe las claves.
+ *           items:
+ *             $ref: '#/components/schemas/RaceLevel'
  *         languages:
  *           type: object
  *         language_choices:
@@ -309,6 +316,15 @@ const router = Router();
  *         playable:
  *           type: boolean
  *           description: Si se omite, la raza se guarda como jugable. Una subraza no puede ser jugable si su padre no lo es.
+ *         levels:
+ *           type: array
+ *           nullable: true
+ *           description: >
+ *             Niveles de raza, del 1 al 20 y sin repetir. Cada fila puede conceder rasgos
+ *             y sustituir tokens (por ejemplo {dice}) al subir el nivel total del personaje.
+ *             null borra la lista.
+ *           items:
+ *             $ref: '#/components/schemas/RaceLevel'
  *     InputUpdateRace:
  *       type: object
  *       properties:
@@ -382,6 +398,33 @@ const router = Router();
  *         playable:
  *           type: boolean
  *           description: Solo se actualiza si se envía. Una subraza no puede ser jugable si su padre no lo es.
+ *         levels:
+ *           type: array
+ *           nullable: true
+ *           description: >
+ *             Niveles de raza, del 1 al 20 y sin repetir. null borra la lista.
+ *             Se aplican según el nivel total del personaje.
+ *           items:
+ *             $ref: '#/components/schemas/RaceLevel'
+ *     RaceLevel:
+ *       type: object
+ *       required:
+ *         - level
+ *       properties:
+ *         level:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 20
+ *           description: Nivel total del personaje en el que se aplica la fila.
+ *         traits_data:
+ *           type: object
+ *           additionalProperties:
+ *             type: object
+ *             additionalProperties:
+ *               type: string
+ *           description: >
+ *             Sustituciones por rasgo. La clave exterior es el id del rasgo y la interior
+ *             el token, por ejemplo "{dice}".
  *     ChoiceMongo:
  *       type: object
  *       properties:

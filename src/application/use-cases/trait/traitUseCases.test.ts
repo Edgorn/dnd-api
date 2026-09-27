@@ -12,6 +12,7 @@ describe("Trait Use Cases armor type suppression", () => {
   let languageServiceMock: any;
   let damageServiceMock: any;
   let creatureTypeServiceMock: any;
+  let attributeServiceMock: any;
 
   beforeEach(() => {
     traitServiceMock = {
@@ -36,6 +37,9 @@ describe("Trait Use Cases armor type suppression", () => {
     creatureTypeServiceMock = {
       getById: vi.fn()
     };
+    attributeServiceMock = {
+      getById: vi.fn()
+    };
   });
 
   const createUseCase = () => new CreateTraitUseCase(
@@ -44,7 +48,8 @@ describe("Trait Use Cases armor type suppression", () => {
     armorTypeServiceMock,
     languageServiceMock,
     damageServiceMock,
-    creatureTypeServiceMock
+    creatureTypeServiceMock,
+    attributeServiceMock
   );
 
   const updateUseCase = () => new UpdateTraitUseCase(
@@ -53,7 +58,8 @@ describe("Trait Use Cases armor type suppression", () => {
     armorTypeServiceMock,
     languageServiceMock,
     damageServiceMock,
-    creatureTypeServiceMock
+    creatureTypeServiceMock,
+    attributeServiceMock
   );
 
   const baseTrait = {
@@ -359,6 +365,45 @@ describe("Trait Use Cases armor type suppression", () => {
         statusCode: 400
       });
       expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a missing save attribute on a damage choice", async () => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getSystemsAndAncestors.mockResolvedValue(["sys1"]);
+      damageServiceMock.getById.mockResolvedValue({ id: typeId, ruleset: "sys1" });
+      attributeServiceMock.getById.mockResolvedValue(null);
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        damageChoices: [{
+          key: "ancestor",
+          choose: 1,
+          options: [{ name: "Rojo", damageTypeId: typeId, saveAttributeId: typeId }]
+        }]
+      }, "user1")).rejects.toMatchObject({
+        message: "Atributo no encontrado",
+        statusCode: 404
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("accepts a save attribute that belongs to an ancestor system", async () => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getSystemsAndAncestors.mockResolvedValue(["sys1", "parent"]);
+      damageServiceMock.getById.mockResolvedValue({ id: typeId, ruleset: "sys1" });
+      attributeServiceMock.getById.mockResolvedValue({ id: typeId, ruleset: "parent" });
+      traitServiceMock.create.mockResolvedValue({ id: "trait1" });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        damageChoices: [{
+          key: "ancestor",
+          choose: 1,
+          options: [{ name: "Rojo", damageTypeId: typeId, saveAttributeId: typeId }]
+        }]
+      }, "user1");
+
+      expect(traitServiceMock.create).toHaveBeenCalled();
     });
   });
 });

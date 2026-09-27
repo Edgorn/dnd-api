@@ -96,6 +96,50 @@ describe("UpdateRaceSchema creature type and playable", () => {
   });
 });
 
+describe("CreateRaceSchema levels", () => {
+  const breathId = "507f1f77bcf86cd799439099";
+
+  it("accepts unique levels from 1 to 20 with trait data", () => {
+    const result = CreateRaceSchema.safeParse({
+      ...baseRace,
+      levels: [
+        { level: 1, traits_data: { [breathId]: { "{dice}": "2d6" } } },
+        { level: 6, traits_data: { [breathId]: { "{dice}": "3d6" } } }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a trait id list on a race level", () => {
+    const result = CreateRaceSchema.safeParse({
+      ...baseRace,
+      levels: [{ level: 6, traits: [breathId], traits_data: { [breathId]: { "{dice}": "3d6" } } }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a repeated level and a level outside 1 to 20", () => {
+    const repeated = CreateRaceSchema.safeParse({
+      ...baseRace,
+      levels: [{ level: 6 }, { level: 6 }]
+    });
+    const high = CreateRaceSchema.safeParse({
+      ...baseRace,
+      levels: [{ level: 21 }]
+    });
+
+    expect(repeated.success).toBe(false);
+    expect(high.success).toBe(false);
+  });
+
+  it("accepts null to clear levels on update", () => {
+    const result = UpdateRaceSchema.safeParse({ levels: null });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("GetRacesQuerySchema playable", () => {
   it("keeps the string false instead of coercing it to true", () => {
     const result = GetRacesQuerySchema.safeParse({ playable: "false" });

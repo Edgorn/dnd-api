@@ -1,6 +1,28 @@
 import { z } from "zod";
 import { GrantedEquipmentListSchema } from "./equipment.schema";
 
+const RaceLevelSchema = z.object({
+  level: z.number().int("El nivel debe ser un entero").min(1, "El nivel debe estar entre 1 y 20").max(20, "El nivel debe estar entre 1 y 20"),
+  traits_data: z.record(
+    z.string().min(1, "El id del rasgo no puede estar vacío"),
+    z.record(z.string(), z.string())
+  ).optional()
+}).strict();
+
+const RaceLevelsSchema = z.array(RaceLevelSchema).superRefine((levels, ctx) => {
+  const seen = new Set<number>();
+  levels.forEach((row, index) => {
+    if (seen.has(row.level)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `El nivel ${row.level} está repetido`,
+        path: [index, "level"]
+      });
+    }
+    seen.add(row.level);
+  });
+}).nullish();
+
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
   options: z.array(z.string()).optional(),
@@ -45,7 +67,8 @@ export const CreateRaceSchema = z.object({
   spellcasting: z.string().nullable().optional(),
   equipment: GrantedEquipmentListSchema.nullable().optional(),
   creatureTypeId: z.string().nullable().optional(),
-  playable: z.boolean().optional()
+  playable: z.boolean().optional(),
+  levels: RaceLevelsSchema
 });
 
 export const UpdateRaceSchema = CreateRaceSchema.partial().refine(data => Object.keys(data).length > 0, {

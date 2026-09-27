@@ -31,6 +31,7 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   catalogChoices: { type: Schema.Types.Mixed, default: undefined },
   damageChoiceRef: { type: Schema.Types.Mixed, default: undefined },
   hitPoints: { type: Schema.Types.Mixed, default: undefined },
+  action: { type: Schema.Types.Mixed, default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: 'traits' });
 

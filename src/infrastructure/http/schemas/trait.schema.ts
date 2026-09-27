@@ -4,7 +4,9 @@ import { validateSystemFormula } from "../../../utils/formulaValidation";
 import { EquipmentMaterialSchema } from "./equipment.schema";
 import {
   EQUIPMENT_RESTRICTION_ENFORCEMENTS,
-  EQUIPMENT_RESTRICTION_SCOPES
+  EQUIPMENT_RESTRICTION_SCOPES,
+  TRAIT_ACTIVATIONS,
+  TRAIT_AREA_SHAPES
 } from "../../../domain/types/traits.types";
 
 const SpellPrivilegeLevelFilterSchema = z.union([
@@ -87,11 +89,30 @@ export const TraitLanguagesSchema = z.object({
   understands: z.array(z.string().min(1, "El idioma no puede estar vacío"))
 }).strict();
 
+const TraitAreaSchema = z.object({
+  shape: z.enum(TRAIT_AREA_SHAPES),
+  length: z.number().positive("La longitud del área debe ser mayor que 0"),
+  width: z.number().positive("El ancho del área debe ser mayor que 0").optional(),
+  unit: z.enum(["m", "ft"])
+}).strict().superRefine((area, ctx) => {
+  if (area.shape === "line" && area.width === undefined) {
+    ctx.addIssue({
+      code: "custom",
+      message: "La línea debe indicar width",
+      path: ["width"]
+    });
+  }
+});
+
 const TraitDamageChoiceOptionSchema = z.object({
   name: z.string().min(1, "El nombre de la fila no puede estar vacío"),
   damageTypeId: z.string().refine(val => Types.ObjectId.isValid(val), {
     message: "El tipo de daño debe ser un ID de Mongo válido"
-  })
+  }),
+  area: TraitAreaSchema.optional(),
+  saveAttributeId: z.string().refine(val => Types.ObjectId.isValid(val), {
+    message: "El atributo de salvación debe ser un ID de Mongo válido"
+  }).optional()
 }).strict();
 
 const TraitDamageChoiceSchema = z.object({
@@ -311,6 +332,20 @@ export const TraitHitPointsSchema = z.object({
   scope: z.enum(["class", "character"])
 }).strict();
 
+const saveDcFormulaSchema = z.string().min(1, "La fórmula de CD no puede estar vacía").superRefine((val, ctx) => {
+  const error = validateSystemFormula(val);
+  if (error) {
+    ctx.addIssue({ code: "custom", message: `saveDcFormula: ${error}` });
+  }
+});
+
+export const TraitActionSchema = z.object({
+  activation: z.enum(TRAIT_ACTIVATIONS),
+  saveDcFormula: saveDcFormulaSchema.optional(),
+  uses: z.number().int("Los usos deben ser un entero").min(1, "Los usos deben ser al menos 1").optional(),
+  recharge: z.enum(["shortRest", "longRest", "shortOrLongRest"]).nullable().optional()
+}).strict();
+
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -331,7 +366,8 @@ export const CreateTraitSchema = z.object({
   damageChoices: TraitDamageChoicesSchema.nullish(),
   catalogChoices: TraitCatalogChoicesSchema.nullish(),
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
-  hitPoints: TraitHitPointsSchema.nullish()
+  hitPoints: TraitHitPointsSchema.nullish(),
+  action: TraitActionSchema.nullish()
 });
 
 export const UpdateTraitSchema = z.object({
@@ -354,7 +390,8 @@ export const UpdateTraitSchema = z.object({
   damageChoices: TraitDamageChoicesSchema.nullish(),
   catalogChoices: TraitCatalogChoicesSchema.nullish(),
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
-  hitPoints: TraitHitPointsSchema.nullish()
+  hitPoints: TraitHitPointsSchema.nullish(),
+  action: TraitActionSchema.nullish()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

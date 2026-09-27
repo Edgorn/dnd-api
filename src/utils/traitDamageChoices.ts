@@ -8,6 +8,8 @@ import {
   ResolvedCatalogChoice,
   ResolvedDamageChoice,
   TraitApi,
+  TraitArea,
+  TraitAreaShape,
   TraitCatalogChoice,
   TraitCatalogChoiceApi,
   TraitCatalogOption,
@@ -854,17 +856,46 @@ function resolveRows(choice: TraitDamageChoiceApi, selectedNames: string[]): Res
     if (!option?.damage) continue;
     rows.push({
       name: option.name,
-      damage: option.damage
+      damage: option.damage,
+      ...(option.area ? { area: option.area } : {}),
+      ...(option.saveAttribute ? { saveAttribute: option.saveAttribute } : {})
     });
   }
 
   return rows;
 }
 
+const AREA_SHAPE_LABEL: Record<TraitAreaShape, string> = {
+  line: "línea",
+  cone: "cono",
+  sphere: "esfera",
+  cube: "cubo"
+};
+
+export function formatTraitArea(area: TraitArea): string {
+  const length = formatMeasure(area.length);
+  if (area.shape === "line" && typeof area.width === "number") {
+    return `línea de ${formatMeasure(area.width)} por ${length} ${area.unit}`;
+  }
+  return `${AREA_SHAPE_LABEL[area.shape]} de ${length} ${area.unit}`;
+}
+
+function formatMeasure(value: number): string {
+  return String(value).replace(".", ",");
+}
+
 function replaceDamageChoiceTokens(texts: string[], rows: ResolvedDamageChoice[]): string[] {
   const name = rows.map(row => row.name).join(", ");
   const damage = rows.map(row => row.damage.name).join(", ");
-  return texts.map(text => text.replaceAll("{name}", name).replaceAll("{damage}", damage));
+  const area = rows.flatMap(row => row.area ? [formatTraitArea(row.area)] : []).join(", ");
+  const save = rows.flatMap(row => row.saveAttribute?.name ? [row.saveAttribute.name] : []).join(", ");
+  return texts.map(text =>
+    text
+      .replaceAll("{name}", name)
+      .replaceAll("{damage}", damage)
+      .replaceAll("{area}", area)
+      .replaceAll("{save}", save)
+  );
 }
 
 function foldName(name: string): string {

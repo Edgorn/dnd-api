@@ -105,9 +105,9 @@ const router = Router();
  *         damageChoice:
  *           type: array
  *           description: >
- *             Filas resueltas en la ficha del personaje (name y damage).
- *             No aparece en el catálogo. Con varias filas, {name} y {damage} de la
- *             descripción se sustituyen uniéndolos con coma.
+ *             Filas resueltas en la ficha del personaje (name, damage, area y save).
+ *             No aparece en el catálogo. Con varias filas, {name}, {damage}, {area} y {save}
+ *             de la descripción se sustituyen uniéndolos con coma.
  *           items:
  *             $ref: '#/components/schemas/ResolvedDamageChoice'
  *         catalogChoices:
@@ -133,6 +133,11 @@ const router = Router();
  *           description: >
  *             Bono de puntos de golpe por nivel. scope class suma por nivel de la clase
  *             que otorga el rasgo; scope character suma por nivel total del personaje.
+ *         action:
+ *           $ref: '#/components/schemas/TraitAction'
+ *           description: >
+ *             Acción declarativa del rasgo. En la ficha, si hay saveDcFormula, se calcula
+ *             saveDc y {dc} de la descripción y del resumen se sustituye por ese número.
  *     EquipmentRestriction:
  *       type: object
  *       required:
@@ -231,9 +236,67 @@ const router = Router();
  *         damageTypeId:
  *           type: string
  *           description: ID de MongoDB del tipo de daño. Dos filas pueden compartir el mismo daño.
+ *         area:
+ *           $ref: '#/components/schemas/TraitArea'
+ *           description: Área de la opción. Sustituye {area} en la ficha, en español y con coma decimal.
+ *         saveAttributeId:
+ *           type: string
+ *           description: ID de MongoDB del atributo de la salvación. Debe pertenecer al sistema del rasgo o a un ancestro.
+ *         saveAttribute:
+ *           $ref: '#/components/schemas/Attribute'
+ *           description: Atributo de salvación hidratado. Su nombre sustituye {save} en la ficha.
  *         damage:
  *           $ref: '#/components/schemas/Damage'
  *           description: Tipo de daño hidratado. Sustituye {damage} en la ficha.
+ *     TraitArea:
+ *       type: object
+ *       required:
+ *         - shape
+ *         - length
+ *         - unit
+ *       properties:
+ *         shape:
+ *           type: string
+ *           enum: [line, cone, sphere, cube]
+ *           description: Forma del área. width es obligatorio solo en line.
+ *         length:
+ *           type: number
+ *           exclusiveMinimum: 0
+ *           description: Longitud del área.
+ *         width:
+ *           type: number
+ *           exclusiveMinimum: 0
+ *           description: Ancho del área. Obligatorio cuando shape es line.
+ *         unit:
+ *           type: string
+ *           enum: [m, ft]
+ *           description: Unidad de las medidas.
+ *     TraitAction:
+ *       type: object
+ *       required:
+ *         - activation
+ *       properties:
+ *         activation:
+ *           type: string
+ *           enum: [action, bonusAction, reaction]
+ *           description: Tipo de activación.
+ *         saveDcFormula:
+ *           type: string
+ *           description: >
+ *             Fórmula de la CD de salvación. Admite @proficiencyBonus y
+ *             @attributes.{key}.modifier. Ejemplo: 8 + @attributes.con.modifier + @proficiencyBonus
+ *         uses:
+ *           type: integer
+ *           minimum: 1
+ *           description: Usos declarados. No se cuenta en servidor.
+ *         recharge:
+ *           type: string
+ *           nullable: true
+ *           enum: [shortRest, longRest, shortOrLongRest]
+ *           description: Cuándo se recuperan los usos. null si no se recargan.
+ *         saveDc:
+ *           type: number
+ *           description: CD calculada en la ficha. No se envía al crear o actualizar el rasgo. Sustituye {dc}.
  *     TraitCatalogChoice:
  *       type: object
  *       required:
@@ -432,6 +495,12 @@ const router = Router();
  *           description: Nombre de la fila elegida.
  *         damage:
  *           $ref: '#/components/schemas/Damage'
+ *         area:
+ *           $ref: '#/components/schemas/TraitArea'
+ *           description: Área de la fila elegida.
+ *         saveAttribute:
+ *           $ref: '#/components/schemas/Attribute'
+ *           description: Atributo de salvación de la fila elegida.
  *     TraitCompanionRoster:
  *       type: object
  *       required:
@@ -666,6 +735,14 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitHitPoints'
  *           description: Bono de PG por nivel. null borra el campo.
+ *         action:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitAction'
+ *           description: >
+ *             Acción declarativa. null borra el campo. saveDcFormula admite
+ *             @proficiencyBonus y @attributes.{key}.modifier. En la ficha, {dc}
+ *             se sustituye por la CD calculada.
  *     TraitLanguagesInput:
  *       type: object
  *       properties:
@@ -707,6 +784,12 @@ const router = Router();
  *               damageTypeId:
  *                 type: string
  *                 description: ID de MongoDB del tipo de daño del sistema o de un ancestro.
+ *               area:
+ *                 $ref: '#/components/schemas/TraitArea'
+ *                 description: Área de la opción. width es obligatorio si shape es line.
+ *               saveAttributeId:
+ *                 type: string
+ *                 description: ID de MongoDB del atributo de salvación del sistema o de un ancestro.
  *     InputUpdateTrait:
  *       type: object
  *       properties:
@@ -804,6 +887,13 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitHitPoints'
  *           description: Bono de PG por nivel. null borra el campo.
+ *         action:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitAction'
+ *           description: >
+ *             Acción declarativa. null borra el campo. {dc} de la descripción
+ *             se sustituye en la ficha por la CD calculada con saveDcFormula.
  */
 
 /**

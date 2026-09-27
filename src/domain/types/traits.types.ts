@@ -6,6 +6,7 @@ import { EstadoApi } from "./estados.types"
 import { LanguageApi } from "./language.types"
 import { EquipmentMaterial } from "./equipment.types"
 import { CreatureTypeApi } from "./creatureType.types"
+import { AttributeApi } from "./attribute.types"
 
 export const EQUIPMENT_RESTRICTION_SCOPES = ["armor", "shield"] as const;
 export type EquipmentRestrictionScope = typeof EQUIPMENT_RESTRICTION_SCOPES[number];
@@ -82,13 +83,26 @@ export interface TraitLanguagesApi {
   understands: LanguageApi[];
 }
 
+export const TRAIT_AREA_SHAPES = ["line", "cone", "sphere", "cube"] as const;
+export type TraitAreaShape = typeof TRAIT_AREA_SHAPES[number];
+
+export interface TraitArea {
+  shape: TraitAreaShape;
+  length: number;
+  width?: number;
+  unit: "m" | "ft";
+}
+
 export interface TraitDamageChoiceOption {
   name: string;
   damageTypeId: string;
+  area?: TraitArea;
+  saveAttributeId?: string;
 }
 
 export interface TraitDamageChoiceOptionApi extends TraitDamageChoiceOption {
   damage?: Damage;
+  saveAttribute?: AttributeApi;
 }
 
 export type TraitCatalogLanguage = "optional" | "required";
@@ -189,6 +203,22 @@ export interface TraitHitPoints {
 export interface ResolvedDamageChoice {
   name: string;
   damage: Damage;
+  area?: TraitArea;
+  saveAttribute?: AttributeApi;
+}
+
+export const TRAIT_ACTIVATIONS = ["action", "bonusAction", "reaction"] as const;
+export type TraitActivation = typeof TRAIT_ACTIVATIONS[number];
+
+export interface TraitAction {
+  activation: TraitActivation;
+  saveDcFormula?: string;
+  uses?: number;
+  recharge?: SpellPrivilegeRecharge | null;
+}
+
+export interface TraitActionApi extends TraitAction {
+  saveDc?: number;
 }
 
 export type TraitChoices = Record<string, Record<string, TraitChoiceValue[]>>;
@@ -224,6 +254,7 @@ export interface TraitMongo {
   catalogChoices?: TraitCatalogChoice[],
   damageChoiceRef?: TraitDamageChoiceRef,
   hitPoints?: TraitHitPoints,
+  action?: TraitAction,
   deletedAt?: Date | null
 }
 
@@ -269,7 +300,8 @@ export interface TraitApi {
   damageChoiceRef?: TraitDamageChoiceRef,
   damageChoice?: ResolvedDamageChoice[],
   catalogChoice?: ResolvedCatalogChoice[],
-  hitPoints?: TraitHitPoints
+  hitPoints?: TraitHitPoints,
+  action?: TraitActionApi
 }
 
 export interface TraitsOptionsApi {
@@ -297,7 +329,8 @@ export interface CreateTrait {
   damageChoices?: TraitDamageChoice[] | null,
   catalogChoices?: TraitCatalogChoice[] | null,
   damageChoiceRef?: TraitDamageChoiceRef | null,
-  hitPoints?: TraitHitPoints | null
+  hitPoints?: TraitHitPoints | null,
+  action?: TraitAction | null
 }
 
 export interface UpdateTrait {
@@ -321,5 +354,6 @@ export interface UpdateTrait {
   damageChoices?: TraitDamageChoice[] | null,
   catalogChoices?: TraitCatalogChoice[] | null,
   damageChoiceRef?: TraitDamageChoiceRef | null,
-  hitPoints?: TraitHitPoints | null
+  hitPoints?: TraitHitPoints | null,
+  action?: TraitAction | null
 }

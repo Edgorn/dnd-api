@@ -1,4 +1,5 @@
 import IAttributeRepository from "../../../../domain/repositories/IAttributeRepository";
+import { Types } from "mongoose";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
 import { AttributeApi, InputCreateAttribute, InputUpdateAttribute, AttributeMongo } from "../../../../domain/types/attribute.types";
 import AttributeSchema from "../schemas/Attribute";
@@ -63,6 +64,18 @@ export default class AttributeRepository implements IAttributeRepository {
       abbreviation: attribute.abbreviation,
       icon: attribute.icon
     };
+  }
+
+  async getByIds(ids: string[]): Promise<AttributeApi[]> {
+    const validIds = [...new Set(ids.filter(id => Types.ObjectId.isValid(id)))];
+    if (!validIds.length) return [];
+
+    const attributes = await AttributeSchema.find({
+      _id: { $in: validIds as any },
+      deletedAt: null
+    }).lean<AttributeMongo[]>();
+
+    return attributes.map(attribute => this.formatAttribute(attribute));
   }
 
   async getById(id: string): Promise<AttributeApi | null> {

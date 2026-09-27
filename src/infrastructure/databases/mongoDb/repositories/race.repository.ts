@@ -16,6 +16,7 @@ import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepo
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
 import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { Types } from 'mongoose';
+import { mergeRaceLevelRows } from '../../../../utils/characterLevelUpTraits';
 
 export default class RaceRepository implements IRaceRepository {
   constructor(
@@ -101,7 +102,8 @@ export default class RaceRepository implements IRaceRepository {
       spellcasting: raza.spellcasting || null,
       equipment: raza.equipment ?? [],
       creatureTypeId: raza.creatureTypeId || null,
-      playable: raza.playable ?? true
+      playable: raza.playable ?? true,
+      levels: raza.levels ?? []
     })
 
     await nuevaRaza.save()
@@ -138,7 +140,8 @@ export default class RaceRepository implements IRaceRepository {
         spellcasting: raza.spellcasting,
         ...(raza.equipment !== undefined ? { equipment: raza.equipment === null ? [] : raza.equipment } : {}),
         ...(raza.creatureTypeId !== undefined ? { creatureTypeId: raza.creatureTypeId || null } : {}),
-        ...(raza.playable !== undefined ? { playable: raza.playable } : {})
+        ...(raza.playable !== undefined ? { playable: raza.playable } : {}),
+        ...(raza.levels !== undefined ? { levels: raza.levels ?? [] } : {})
       }
 
       const razaActualizada = await RaceModel.findByIdAndUpdate(
@@ -179,7 +182,8 @@ export default class RaceRepository implements IRaceRepository {
   }
 
   async formatearRaza(raza: RaceMongo, allowedRulesets?: string[], playable?: boolean): Promise<RaceApi> {
-    const dataLevel = raza?.levels?.find(level => level.level === 1)
+    const levels = this.normalizeLevels(raza?.levels);
+    const dataLevel = levels.find(level => level.level === 1)
     const ruleset = raza.ruleset;
 
     const [
@@ -234,7 +238,8 @@ export default class RaceRepository implements IRaceRepository {
       spellcasting: spellcasting ?? undefined,
       creatureType: creatureType ?? undefined,
       playable: raza.playable !== false,
-      equipment: equipment ?? []
+      equipment: equipment ?? [],
+      ...(Array.isArray(raza.levels) ? { levels } : {})
     };
   }
 
@@ -292,11 +297,71 @@ export default class RaceRepository implements IRaceRepository {
   }
 
   async dataLevelUp(idRaza: string, level: number): Promise<RaceLevelMongo | undefined> {
-    const raza = await RaceModel.findOne({ _id: idRaza as any, deletedAt: null });
-    if (!raza) return undefined;
+    const chain = await this.ancestryIncludingSelf(idRaza);
+    if (!chain.length) return undefined;
 
-    const dataLevel = raza?.levels?.find(lev => lev.level === level);
-    return dataLevel;
+    let merged: RaceLevelMongo | undefined;
+    for (const race of chain) {
+      const row = this.normalizeLevels(race.levels).find(item => item.level === level);
+      if (!row) continue;
+      merged = mergeRaceLevelRows(merged, row);
+    }
+    return merged;
+  }
+
+  private async ancestryIncludingSelf(id: string): Promise<RaceMongo[]> {
+    const leafToRoot: RaceMongo[] = [];
+    const seen = new Set<string>();
+    let currentId: string | undefined = id;
+
+    while (currentId && Types.ObjectId.isValid(currentId) && !seen.has(currentId)) {
+      seen.add(currentId);
+      const found: RaceMongo | null = await RaceModel.findOne({ _id: currentId as any, deletedAt: null })
+        .lean<RaceMongo | null>();
+      if (!found) break;
+      leafToRoot.push(found);
+      currentId = this.readParentId(found.parentId);
+    }
+
+    return leafToRoot.reverse();
+  }
+
+  private readParentId(parentId: RaceMongo["parentId"]): string | undefined {
+    if (!parentId) return undefined;
+    const value = parentId.toString();
+    return value.length > 0 ? value : undefined;
+  }
+
+  private normalizeLevels(levels: unknown): RaceLevelMongo[] {
+    if (!Array.isArray(levels)) return [];
+
+    const rows: RaceLevelMongo[] = [];
+    for (const item of levels) {
+      if (!item || typeof item !== "object") continue;
+      const level = (item as { level?: unknown }).level;
+      if (typeof level !== "number" || !Number.isInteger(level)) continue;
+
+      rows.push({
+        level,
+        traits_data: this.normalizeTraitData((item as { traits_data?: unknown }).traits_data)
+      });
+    }
+    return rows;
+  }
+
+  private normalizeTraitData(value: unknown): TraitDataMongo {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+    const result: TraitDataMongo = {};
+    for (const [traitId, tokens] of Object.entries(value as Record<string, unknown>)) {
+      if (!tokens || typeof tokens !== "object" || Array.isArray(tokens)) continue;
+      const clean: Record<string, string> = {};
+      for (const [token, replacement] of Object.entries(tokens as Record<string, unknown>)) {
+        if (typeof replacement === "string") clean[token] = replacement;
+      }
+      if (Object.keys(clean).length) result[traitId] = clean;
+    }
+    return result;
   }
 
   async getSpellcastingAttribute(raceId: string): Promise<AttributeApi | undefined> {

@@ -1482,7 +1482,15 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       (dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros
  *       y, si toca, mejora de característica).
  *       `traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen
- *       elecciones (`traits_options`).
+ *       elecciones (`traits_options`). Si el nivel de raza cambia `traits_data` respecto al nivel
+ *       anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se devuelven con
+ *       la descripción y el resumen sustituidos con el `traits_data` del personaje fusionado con el del nivel.
+ *       Después se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,
+ *       `{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos
+ *       actuales y el bono de competencia del nivel siguiente. La mejora de característica de este
+ *       nivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección
+ *       de daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo
+ *       origen no se añade a `traits`.
  *       Si el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene
  *       una subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.
  *       `spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`
@@ -1533,7 +1541,7 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   description: Bono de competencia correspondiente al nivel total tras la subida.
  *                 traits:
  *                   type: array
- *                   description: Rasgos automáticos que otorga el nuevo nivel de clase (incluye subclase).
+ *                   description: Rasgos automáticos del nuevo nivel de clase (incluye subclase) y rasgos cuyo texto cambia por el traits_data de la raza. La descripción y el resumen ya incluyen traits_data, las elecciones guardadas y la CD de la acción.
  *                   items:
  *                     $ref: '#/components/schemas/Trait'
  *                 traits_data:

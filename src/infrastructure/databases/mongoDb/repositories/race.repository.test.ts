@@ -289,3 +289,66 @@ describe("RaceRepository.getRaceRefsBySystems", () => {
     expect(RaceModel.find).not.toHaveBeenCalled();
   });
 });
+
+describe("RaceRepository.dataLevelUp", () => {
+  const childId = "507f1f77bcf86cd799439021";
+  const parentId = "507f1f77bcf86cd799439022";
+  let repository: RaceRepository;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const deps = stubFormatDependencies();
+    repository = new RaceRepository(
+      deps.languageRepository,
+      deps.spellRepository,
+      deps.skillService,
+      deps.proficiencyRepository,
+      deps.featRepository,
+      deps.traitRepository,
+      deps.attributeService,
+      deps.equipmentRepository,
+      { getById: vi.fn() } as unknown as ICreatureTypeRepository,
+      { getSystemsAndAncestors: vi.fn() } as unknown as ISystemRepository
+    );
+  });
+
+  function mockRace(doc: unknown) {
+    vi.mocked(RaceModel.findOne).mockReturnValueOnce({
+      lean: vi.fn().mockResolvedValue(doc)
+    } as never);
+  }
+
+  it("merges the parent row and lets the child overwrite token keys", async () => {
+    mockRace({
+      _id: childId,
+      parentId: { toString: () => parentId },
+      levels: [{ level: 6, traits_data: { breath: { "{dice}": "4d6" } } }]
+    });
+    mockRace({
+      _id: parentId,
+      parentId: null,
+      levels: [{
+        level: 6,
+        traits: ["breath"],
+        traits_data: { breath: { "{dice}": "3d6", "{area}": "cono" } }
+      }]
+    });
+
+    const result = await repository.dataLevelUp(childId, 6);
+
+    expect(result).toEqual({
+      level: 6,
+      traits_data: { breath: { "{dice}": "4d6", "{area}": "cono" } }
+    });
+  });
+
+  it("ignores a legacy levels value that is not an array", async () => {
+    mockRace({
+      _id: childId,
+      parentId: null,
+      levels: { 6: { traits_data: {} } }
+    });
+
+    await expect(repository.dataLevelUp(childId, 6)).resolves.toBeUndefined();
+  });
+});
