@@ -1,4 +1,4 @@
-import { System, SystemRulesConfig } from "../domain/types/system.types";
+import { isRulesetSystem, System, SystemRulesConfig } from "../domain/types/system.types";
 
 const SCALAR_RULE_KEYS: (keyof SystemRulesConfig)[] = [
   "globalModifierFormula",
@@ -29,6 +29,8 @@ export function mergeRulesFromAncestry(ancestry: System[]): SystemRulesConfig {
   const config: SystemRulesConfig = {};
 
   for (const ancestor of ancestry) {
+    if (!isRulesetSystem(ancestor)) continue;
+
     for (const key of SCALAR_RULE_KEYS) {
       if (config[key] !== undefined) continue;
       const val = ancestor[key as keyof System];

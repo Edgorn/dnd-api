@@ -1,7 +1,8 @@
-import { System, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from "../types/system.types";
+import { System, SystemKind, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from "../types/system.types";
 
 export default interface ISystemRepository {
-  getByUserId(userId: string, accessibleSystemIds: string[]): Promise<System[]>;
+  getByUserId(userId: string, accessibleSystemIds: string[], kind?: SystemKind): Promise<System[]>;
+  hasChildren(id: string): Promise<boolean>;
   create(data: TypeCrearSystem): Promise<System | null>;
   update(data: TypeModificarSystem): Promise<System | null>;
   getById(id: string): Promise<System | null>;

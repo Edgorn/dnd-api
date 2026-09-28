@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import SistemasModel from '../schemas/System';
-import { System, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
+import { System, SystemKind, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
 import { ValidationError } from '../../../../domain/errors/AppError';
 import { mergeRulesFromAncestry } from '../../../../utils/systemRulesMerge';
 
@@ -74,25 +74,37 @@ export default class SystemRepository implements ISystemRepository {
     return config.initiativeBonusFormula;
   }
 
-  async getByUserId(userId: string, accessibleSystemIds: string[]): Promise<System[]> {
-    const query: Record<string, unknown> = {
-      $or: [
-        { publisher: userId, deletedAt: null },
-        { isOpen: true, deletedAt: null }
-      ]
-    };
+  async getByUserId(userId: string, accessibleSystemIds: string[], kind?: SystemKind): Promise<System[]> {
+    const access: Record<string, unknown>[] = [
+      { publisher: userId, deletedAt: null },
+      { isOpen: true, deletedAt: null }
+    ];
 
     if (accessibleSystemIds.length > 0) {
       const validIds = accessibleSystemIds.filter(id => mongoose.Types.ObjectId.isValid(id));
       if (validIds.length > 0) {
-        (query.$or as Record<string, unknown>[]).push({ _id: { $in: validIds }, deletedAt: null });
+        access.push({ _id: { $in: validIds }, deletedAt: null });
       }
     }
 
-    return SistemasModel.find(query)
+    return SistemasModel.find({
+      $and: [
+        { $or: access },
+        kindClause(kind)
+      ]
+    })
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 })
       .lean();
+  }
+
+  async hasChildren(id: string): Promise<boolean> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return false;
+    const count = await SistemasModel.countDocuments({
+      parentId: new mongoose.Types.ObjectId(id),
+      deletedAt: null
+    } as Record<string, unknown>);
+    return count > 0;
   }
 
   async create(data: TypeCrearSystem): Promise<System | null> {
@@ -106,6 +118,7 @@ export default class SystemRepository implements ISystemRepository {
       publisher: data.publisher,
       isOpen: data.isOpen,
       isBase: data.isBase,
+      kind: data.kind ?? "ruleset",
       parentId: parentIdObj,
       globalModifierFormula: data.globalModifierFormula,
       initiativeBonusFormula: data.initiativeBonusFormula,
@@ -140,6 +153,7 @@ export default class SystemRepository implements ISystemRepository {
       description,
       isOpen,
       isBase,
+      kind,
       parentId,
       globalModifierFormula,
       initiativeBonusFormula,
@@ -169,6 +183,7 @@ export default class SystemRepository implements ISystemRepository {
     if (description !== undefined) updateFields.description = description;
     if (isOpen !== undefined) updateFields.isOpen = isOpen;
     if (isBase !== undefined) updateFields.isBase = isBase;
+    if (kind !== undefined) updateFields.kind = kind;
     if (parentId !== undefined) {
       updateFields.parentId = parentId && mongoose.Types.ObjectId.isValid(parentId)
         ? new mongoose.Types.ObjectId(parentId)
@@ -273,4 +288,22 @@ export default class SystemRepository implements ISystemRepository {
     if (!mongoose.Types.ObjectId.isValid(id)) return;
     await SistemasModel.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
+}
+
+function kindClause(kind?: SystemKind): Record<string, unknown> {
+  if (kind === "ruleset") {
+    return {
+      $or: [
+        { kind: "ruleset" },
+        { kind: { $exists: false } },
+        { kind: null }
+      ]
+    };
+  }
+
+  if (kind === "setting" || kind === "campaign") {
+    return { kind };
+  }
+
+  return { kind: { $ne: "campaign" } };
 }

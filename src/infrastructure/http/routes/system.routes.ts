@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { systemController, authMiddleware } from "../../dependencies";
-import { validateSchema } from "../middlewares/validateSchema";
-import { CreateSystemSchema, UpdateSystemSchema } from "../schemas/system.schema";
+import { validateQuery, validateSchema } from "../middlewares/validateSchema";
+import { CreateSystemSchema, ListSystemsQuerySchema, UpdateSystemSchema } from "../schemas/system.schema";
 
 const router = Router();
 
@@ -49,6 +49,12 @@ const router = Router();
  *         isBase:
  *           type: boolean
  *           description: Indica si el sistema es una plantilla base (reglas únicamente).
+ *         kind:
+ *           type: string
+ *           enum: [ruleset, setting, campaign]
+ *           description: |
+ *             Tipo de sistema. `ruleset` aporta reglas y contenido. `setting` y `campaign` son capas de contenido
+ *             que heredan las fórmulas del ruleset ancestro. Los documentos antiguos sin tipo se tratan como `ruleset`.
  *         parentId:
  *           type: string
  *           description: ID del sistema del que hereda (si lo tiene).
@@ -179,10 +185,17 @@ const router = Router();
  *           description: Indica si es abierto.
  *         isBase:
  *           type: boolean
- *           description: Indica si es una plantilla base.
+ *           description: Indica si es una plantilla base. Solo permitido en `ruleset`.
+ *         kind:
+ *           type: string
+ *           enum: [ruleset, setting, campaign]
+ *           default: ruleset
+ *           description: |
+ *             Tipo de sistema. `setting` y `campaign` exigen `parentId` y no admiten fórmulas ni progresiones.
+ *             `campaign` no puede ser padre de otro sistema.
  *         parentId:
  *           type: string
- *           description: ID de MongoDB del sistema padre.
+ *           description: ID de MongoDB del sistema padre. Obligatorio para `setting` y `campaign`.
  *         globalModifierFormula:
  *           type: string
  *           description: |
@@ -281,8 +294,16 @@ const router = Router();
  *           type: boolean
  *         isBase:
  *           type: boolean
+ *           description: Solo permitido en `ruleset`.
+ *         kind:
+ *           type: string
+ *           enum: [ruleset, setting, campaign]
+ *           description: |
+ *             Tipo de sistema. Al pasar a `setting` o `campaign` hay que indicar `parentId`
+ *             y no se pueden enviar fórmulas ni progresiones.
  *         parentId:
  *           type: string
+ *           description: ID de MongoDB del sistema padre. Obligatorio si `kind` es `setting` o `campaign`.
  *         globalModifierFormula:
  *           type: string
  *           description: |
@@ -361,6 +382,16 @@ const router = Router();
  *       - Sistemas
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: kind
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [ruleset, setting, campaign]
+ *         description: |
+ *           Filtra por tipo de sistema. Si se omite, se devuelven rulesets y settings
+ *           (incluidos documentos antiguos sin tipo) y se excluyen las capas de campaña.
  *     responses:
  *       200:
  *         description: Listado de sistemas obtenidos exitosamente.
@@ -370,12 +401,14 @@ const router = Router();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/SystemApi'
+ *       400:
+ *         description: El parámetro kind no es válido.
  *       401:
  *         description: No autorizado.
  *       500:
  *         description: Error del servidor.
  */
-router.get('/systems', authMiddleware, systemController.getSystems);
+router.get('/systems', authMiddleware, validateQuery(ListSystemsQuerySchema), systemController.getSystems);
 
 /**
  * @openapi

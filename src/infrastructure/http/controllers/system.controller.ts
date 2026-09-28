@@ -5,6 +5,7 @@ import CreateSystem from "../../../application/use-cases/system/createSystem.use
 import UpdateSystem from "../../../application/use-cases/system/updateSystem.use-case";
 import CascadeSoftDeleteSystem from "../../../application/use-cases/system/cascadeSoftDeleteSystem.use-case";
 import CascadeRestoreSystem from "../../../application/use-cases/system/cascadeRestoreSystem.use-case";
+import { SystemKind } from "../../../domain/types/system.types";
 
 export class SystemController {
   constructor(
@@ -18,7 +19,8 @@ export class SystemController {
   getSystems = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!;
-      const systems = await this.getSystemsByUser.execute(userId);
+      const kind = typeof req.query.kind === "string" ? req.query.kind as SystemKind : undefined;
+      const systems = await this.getSystemsByUser.execute(userId, kind);
       res.status(200).json(systems);
     } catch (e) {
       console.error("[SystemController.getSystems] Error fetching systems:", e);

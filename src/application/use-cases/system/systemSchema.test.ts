@@ -50,6 +50,71 @@ describe("CreateSystemSchema abilityScoreProgression", () => {
   });
 });
 
+describe("CreateSystemSchema kind", () => {
+  it("defaults kind to ruleset", () => {
+    const result = CreateSystemSchema.safeParse({ name: "D&D 5e" });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("ruleset");
+    }
+  });
+
+  it("rejects an unknown kind", () => {
+    const result = CreateSystemSchema.safeParse({ name: "Homebrew", kind: "world" });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("requires parentId for a setting", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Forgotten Realms",
+      kind: "setting"
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects formulas on a setting", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Forgotten Realms",
+      kind: "setting",
+      parentId: "507f1f77bcf86cd799439011",
+      maxLevel: 20
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a campaign layer with a parent and no rules", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Mesa del viernes",
+      kind: "campaign",
+      parentId: "507f1f77bcf86cd799439011"
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("UpdateSystemSchema kind", () => {
+  it("requires parentId when kind is setting or campaign", () => {
+    const result = UpdateSystemSchema.safeParse({ kind: "campaign" });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects formulas when changing to a setting", () => {
+    const result = UpdateSystemSchema.safeParse({
+      kind: "setting",
+      parentId: "507f1f77bcf86cd799439011",
+      hpInitialFormula: "10"
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("UpdateSystemSchema abilityScoreProgression", () => {
   it("accepts an empty array", () => {
     const result = UpdateSystemSchema.safeParse({

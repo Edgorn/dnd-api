@@ -1,5 +1,10 @@
 import { z } from "zod";
+import { SYSTEM_KINDS } from "../../../domain/types/system.types";
 import { validateSystemFormula, validateAttributeModifierFormula } from "../../../utils/formulaValidation";
+
+export const systemKindSchema = z.enum(SYSTEM_KINDS, {
+  error: "kind debe ser ruleset, setting o campaign",
+});
 
 const systemFormulaSchema = (fieldLabel: string) =>
   z.string().optional().superRefine((val, ctx) => {
@@ -97,6 +102,45 @@ const progressionArrayRefinement = (
   }
 };
 
+const rejectContentLayerRules = (
+  data: {
+    kind?: "ruleset" | "setting" | "campaign";
+    parentId?: string | null;
+    isBase?: boolean;
+  } & Record<string, unknown>,
+  ctx: z.RefinementCtx,
+  options: { requireParentId: boolean }
+) => {
+  const kind = data.kind ?? "ruleset";
+  if (kind === "ruleset") return;
+
+  if (options.requireParentId && !data.parentId) {
+    ctx.addIssue({
+      code: "custom",
+      message: "parentId es obligatorio para setting y campaign",
+      path: ["parentId"],
+    });
+  }
+
+  if (data.isBase === true) {
+    ctx.addIssue({
+      code: "custom",
+      message: "isBase solo está permitido en ruleset",
+      path: ["isBase"],
+    });
+  }
+
+  for (const key of Object.keys(systemRulesFields)) {
+    if (data[key] !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: `${key} no está permitido en sistemas de tipo ${kind}`,
+        path: [key],
+      });
+    }
+  }
+};
+
 export const systemRulesFields = {
   globalModifierFormula: attributeModifierFormulaSchema,
   initiativeBonusFormula: systemFormulaSchema("initiativeBonusFormula"),
@@ -127,10 +171,12 @@ export const CreateSystemSchema = z
     description: z.string().optional(),
     isOpen: z.boolean().optional(),
     isBase: z.boolean().optional(),
+    kind: systemKindSchema.default("ruleset"),
     parentId: z.string().optional(),
     ...systemRulesFields,
   })
-  .superRefine(progressionArrayRefinement);
+  .superRefine(progressionArrayRefinement)
+  .superRefine((data, ctx) => rejectContentLayerRules(data, ctx, { requireParentId: true }));
 
 export const UpdateSystemSchema = z
   .object({
@@ -138,10 +184,19 @@ export const UpdateSystemSchema = z
     description: z.string().optional(),
     isOpen: z.boolean().optional(),
     isBase: z.boolean().optional(),
+    kind: systemKindSchema.optional(),
     parentId: z.string().nullable().optional(),
     ...systemRulesFields,
   })
   .superRefine(progressionArrayRefinement)
+  .superRefine((data, ctx) => {
+    if (data.kind === undefined) return;
+    rejectContentLayerRules(data, ctx, { requireParentId: true });
+  })
   .refine((data) => Object.keys(data).length > 0, {
     message: "Debe proporcionar al menos un campo para modificar",
   });
+
+export const ListSystemsQuerySchema = z.object({
+  kind: systemKindSchema.optional(),
+});

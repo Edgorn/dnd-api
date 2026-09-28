@@ -7,6 +7,7 @@ const system: Schema = new Schema<System>({
   publisher: String,
   isOpen: Boolean,
   isBase: { type: Boolean, default: false },
+  kind: { type: String, enum: ["ruleset", "setting", "campaign"], default: "ruleset" },
   parentId: { type: Schema.Types.ObjectId, ref: 'systems' },
   globalModifierFormula: String,
   initiativeBonusFormula: String,

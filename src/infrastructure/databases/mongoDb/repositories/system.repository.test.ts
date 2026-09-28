@@ -7,6 +7,7 @@ vi.mock("../schemas/System", () => ({
   default: {
     find: vi.fn(),
     findOne: vi.fn(),
+    countDocuments: vi.fn(),
   },
 }));
 
@@ -61,6 +62,33 @@ describe("SystemRepository.getMergedRulesConfig", () => {
   });
 });
 
+describe("SystemRepository.hasChildren", () => {
+  let repository: SystemRepository;
+
+  beforeEach(() => {
+    repository = new SystemRepository();
+    vi.clearAllMocks();
+  });
+
+  it("counts only non-deleted children of the parent", async () => {
+    vi.mocked(SistemasModel.countDocuments).mockResolvedValue(1 as never);
+
+    const result = await repository.hasChildren("507f1f77bcf86cd799439011");
+
+    expect(result).toBe(true);
+    expect(SistemasModel.countDocuments).toHaveBeenCalledWith(expect.objectContaining({
+      deletedAt: null,
+    }));
+  });
+
+  it("returns false for an invalid id without querying", async () => {
+    const result = await repository.hasChildren("not-an-id");
+
+    expect(result).toBe(false);
+    expect(SistemasModel.countDocuments).not.toHaveBeenCalled();
+  });
+});
+
 describe("mergeRulesFromAncestry integration scenarios", () => {
   it("child overrides parent arrays and inherits missing values", () => {
     const config = mergeRulesFromAncestry([
@@ -88,6 +116,52 @@ describe("mergeRulesFromAncestry integration scenarios", () => {
 
     expect(config.xpProgression).toEqual([0, 900]);
     expect(config.proficiencyProgression).toEqual([2, 2]);
+    expect(config.baseAcFormula).toBe("10 + @attributes.dex.modifier");
+  });
+
+  it("returns only ruleset rules from a campaign, setting and ruleset chain", () => {
+    const config = mergeRulesFromAncestry([
+      {
+        _id: "campaign" as never,
+        name: "Mesa",
+        description: "",
+        publisher: "pub",
+        isOpen: false,
+        isBase: false,
+        kind: "campaign",
+        maxLevel: 3,
+        hpInitialFormula: "campaign-hp",
+        xpProgression: [0, 1, 2],
+      },
+      {
+        _id: "setting" as never,
+        name: "Setting",
+        description: "",
+        publisher: "pub",
+        isOpen: false,
+        isBase: false,
+        kind: "setting",
+        maxLevel: 10,
+        hpInitialFormula: "setting-hp",
+        baseAcFormula: "setting-ac",
+      },
+      {
+        _id: "ruleset" as never,
+        name: "Ruleset",
+        description: "",
+        publisher: "pub",
+        isOpen: true,
+        isBase: true,
+        maxLevel: 20,
+        hpInitialFormula: "ruleset-hp",
+        xpProgression: [0, 300],
+        baseAcFormula: "10 + @attributes.dex.modifier",
+      },
+    ] as never);
+
+    expect(config.maxLevel).toBe(20);
+    expect(config.hpInitialFormula).toBe("ruleset-hp");
+    expect(config.xpProgression).toEqual([0, 300]);
     expect(config.baseAcFormula).toBe("10 + @attributes.dex.modifier");
   });
 

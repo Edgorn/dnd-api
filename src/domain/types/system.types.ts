@@ -3,6 +3,42 @@ import { AttributeApi } from "./attribute.types";
 import { SkillApi } from "./skill.types";
 import { CoinApi } from "./coin.types";
 
+export const SYSTEM_KINDS = ["ruleset", "setting", "campaign"] as const;
+export type SystemKind = (typeof SYSTEM_KINDS)[number];
+
+export const SYSTEM_RULE_FIELD_KEYS = [
+  "globalModifierFormula",
+  "initiativeBonusFormula",
+  "maxAttributeValue",
+  "defaultMinAttributeValue",
+  "defaultMaxAttributeValue",
+  "creationMinAttributeValue",
+  "creationMaxAttributeValue",
+  "maxLevel",
+  "maxSpellLevel",
+  "xpProgression",
+  "proficiencyProgression",
+  "abilityScoreProgression",
+  "hpInitialFormula",
+  "hpLevelUpFormula",
+  "baseAcFormula",
+  "passiveSkillFormula",
+  "carryingCapacityFormula",
+  "attackBonusFormula",
+  "damageBonusFormula",
+  "meleeAttackAttributes",
+  "rangedAttackAttributes",
+] as const;
+
+export function resolveSystemKind(kind: string | null | undefined): SystemKind {
+  if (kind === "setting" || kind === "campaign") return kind;
+  return "ruleset";
+}
+
+export function isRulesetSystem(system: { kind?: string | null }): boolean {
+  return resolveSystemKind(system.kind) === "ruleset";
+}
+
 export interface System {
   _id: ObjectId;
   name: string;
@@ -10,6 +46,7 @@ export interface System {
   publisher: string;
   isOpen: boolean;
   isBase: boolean;
+  kind?: SystemKind;
   parentId?: ObjectId;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
@@ -65,6 +102,7 @@ export interface SystemApi {
   publisher: string;
   isOpen: boolean;
   isBase: boolean;
+  kind: SystemKind;
   parentId?: string;
   canEdit: boolean;
   racesCount: number;
@@ -102,6 +140,7 @@ export interface TypeCrearSystem {
   publisher: string;
   isOpen: boolean;
   isBase: boolean;
+  kind?: SystemKind;
   parentId?: string;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
@@ -133,7 +172,8 @@ export interface TypeModificarSystem {
   description?: string;
   isOpen?: boolean;
   isBase?: boolean;
-  parentId?: string;
+  kind?: SystemKind;
+  parentId?: string | null;
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
   maxAttributeValue?: number;

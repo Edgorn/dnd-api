@@ -4,7 +4,7 @@ import AttributeService from "../../../domain/services/attribute.service";
 import SkillService from "../../../domain/services/skill.service";
 import IRaceRepository from "../../../domain/repositories/IRaceRepository";
 import ICoinRepository from "../../../domain/repositories/ICoinRepository";
-import { System, SystemApi } from "../../../domain/types/system.types";
+import { isRulesetSystem, resolveSystemKind, System, SystemApi } from "../../../domain/types/system.types";
 import { AttributeApi } from "../../../domain/types/attribute.types";
 import { SkillApi } from "../../../domain/types/skill.types";
 import { CoinApi } from "../../../domain/types/coin.types";
@@ -112,6 +112,7 @@ export default class GetSystemApi {
 
     const getMergedScalar = <T>(key: keyof System, defaultValue?: T): T | undefined => {
       for (const ancestor of ancestry) {
+        if (!isRulesetSystem(ancestor)) continue;
         const val = ancestor[key];
         if (val !== undefined && val !== null && val !== '') {
           return val as unknown as T;
@@ -127,6 +128,7 @@ export default class GetSystemApi {
       publisher: publisherName,
       isOpen: !!sys.isOpen,
       isBase: !!sys.isBase,
+      kind: resolveSystemKind(sys.kind),
       parentId: sys.parentId ? sys.parentId.toString() : undefined,
       canEdit: isPublisher,
       racesCount,
