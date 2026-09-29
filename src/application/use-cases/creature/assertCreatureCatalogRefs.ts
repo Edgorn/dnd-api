@@ -9,7 +9,7 @@ import SpellService from "../../../domain/services/spell.service";
 import SystemService from "../../../domain/services/system.service";
 import IEstadoRepository from "../../../domain/repositories/IEstadoRepository";
 import { AppError } from "../../../domain/errors/AppError";
-import { CREATURE_ANY_RACE, CreateCreature, CreatureFeature, CreatureSpellcasting } from "../../../domain/types/creature.types";
+import { CREATURE_ANY_RACE, CreateCreature, CreatureFeature, CreatureInnateSpellcasting, CreatureSpellcasting } from "../../../domain/types/creature.types";
 
 export async function assertCreatureCatalogRefs(input: {
   data: CreateCreature;
@@ -53,9 +53,14 @@ export async function assertCreatureCatalogRefs(input: {
     }
   }
 
-  const abilityId = input.data.spellcasting?.abilityId;
-  if (abilityId && !catalogAttributes.some(attribute => attribute.id === abilityId)) {
-    throw new AppError("La aptitud mágica no pertenece a este sistema ni a sus ancestros", 400);
+  const abilityIds = unique([
+    input.data.spellcasting?.abilityId ?? "",
+    input.data.innateSpellcasting?.abilityId ?? ""
+  ]);
+  for (const abilityId of abilityIds) {
+    if (!catalogAttributes.some(attribute => attribute.id === abilityId)) {
+      throw new AppError("La aptitud mágica no pertenece a este sistema ni a sus ancestros", 400);
+    }
   }
 
   for (const skillId of unique((input.data.skill_bonuses ?? []).map(bonus => bonus.skillId))) {
@@ -68,7 +73,7 @@ export async function assertCreatureCatalogRefs(input: {
     }
   }
 
-  for (const spellId of collectSpellIds(input.data.spellcasting)) {
+  for (const spellId of collectSpellIds(input.data.spellcasting, input.data.innateSpellcasting)) {
     const spell = await input.spellService.getById(spellId);
     if (!spell || spell.deletedAt) {
       throw new AppError("Conjuro no encontrado", 404);
@@ -125,9 +130,14 @@ export async function assertCreatureCatalogRefs(input: {
   }
 }
 
-function collectSpellIds(spellcasting: CreatureSpellcasting | null | undefined): string[] {
-  if (!spellcasting) return [];
-  return unique(spellcasting.spells ?? []);
+function collectSpellIds(
+  spellcasting: CreatureSpellcasting | null | undefined,
+  innate: CreatureInnateSpellcasting | null | undefined
+): string[] {
+  return unique([
+    ...(spellcasting?.spells ?? []),
+    ...(innate?.spells ?? []).flatMap(group => group.spells ?? [])
+  ]);
 }
 
 function collectDamageIds(data: CreateCreature): string[] {

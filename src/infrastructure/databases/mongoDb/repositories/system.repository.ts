@@ -87,12 +87,11 @@ export default class SystemRepository implements ISystemRepository {
       }
     }
 
-    return SistemasModel.find({
-      $and: [
-        { $or: access },
-        kindClause(kind)
-      ]
-    })
+    const filter: Record<string, unknown> = kind
+      ? { $and: [{ $or: access }, kindClause(kind)] }
+      : { $or: access };
+
+    return SistemasModel.find(filter)
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 })
       .lean();
@@ -290,7 +289,7 @@ export default class SystemRepository implements ISystemRepository {
   }
 }
 
-function kindClause(kind?: SystemKind): Record<string, unknown> {
+function kindClause(kind: SystemKind): Record<string, unknown> {
   if (kind === "ruleset") {
     return {
       $or: [
@@ -301,9 +300,5 @@ function kindClause(kind?: SystemKind): Record<string, unknown> {
     };
   }
 
-  if (kind === "setting" || kind === "campaign") {
-    return { kind };
-  }
-
-  return { kind: { $ne: "campaign" } };
+  return { kind };
 }

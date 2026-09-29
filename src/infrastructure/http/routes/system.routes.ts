@@ -390,8 +390,8 @@ const router = Router();
  *           type: string
  *           enum: [ruleset, setting, campaign]
  *         description: |
- *           Filtra por tipo de sistema. Si se omite, se devuelven rulesets y settings
- *           (incluidos documentos antiguos sin tipo) y se excluyen las capas de campaña.
+ *           Filtra por tipo de sistema. Si se omite, se devuelven los tres tipos
+ *           (ruleset, setting y campaign) a los que el usuario ya tiene acceso.
  *     responses:
  *       200:
  *         description: Listado de sistemas obtenidos exitosamente.

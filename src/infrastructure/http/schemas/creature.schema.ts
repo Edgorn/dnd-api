@@ -79,6 +79,29 @@ const SpellcastingSchema = z.object({
   spells: z.array(z.string().min(1, "El identificador del conjuro no puede estar vacío"))
 }).strict();
 
+const InnateSpellGroupSchema = z.object({
+  usage: UsageSchema,
+  spells: z.array(z.string().min(1, "El identificador del conjuro no puede estar vacío"))
+    .min(1, "Cada grupo de conjuros innatos debe tener al menos un conjuro")
+}).strict().superRefine((group, ctx) => {
+  if (group.usage.type !== "perDay") return;
+  const value = group.usage.value;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["usage", "value"],
+      message: "Los usos por día deben ser un entero mayor o igual que 1"
+    });
+  }
+});
+
+const InnateSpellcastingSchema = z.object({
+  abilityId: z.string().min(1, "La aptitud mágica no puede estar vacía").optional(),
+  spellSaveDc: z.number().int("La CD de salvación de conjuros debe ser un entero").optional(),
+  spellAttackBonus: z.number().int("El bonificador de ataque de conjuros debe ser un entero").optional(),
+  spells: z.array(InnateSpellGroupSchema)
+}).strict();
+
 const LanguagesSchema = z.object({
   speaks: z.array(z.string()).optional(),
   understands: z.array(z.string()).optional(),
@@ -119,6 +142,7 @@ export const CreateCreatureSchema = z.object({
   condition_immunities: z.array(z.string()).optional(),
   special_abilities: z.array(FeatureSchema).optional(),
   spellcasting: SpellcastingSchema.nullable().optional(),
+  innateSpellcasting: InnateSpellcastingSchema.nullable().optional(),
   actions: z.array(FeatureSchema).optional(),
   bonus_actions: z.array(FeatureSchema).optional(),
   reactions: z.array(FeatureSchema).optional(),

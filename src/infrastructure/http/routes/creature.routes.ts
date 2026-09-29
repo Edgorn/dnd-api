@@ -115,6 +115,8 @@ const router = Router();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Spell'
+ *         innateSpellcasting:
+ *           $ref: '#/components/schemas/CreatureInnateSpellcastingApi'
  *         special_abilities:
  *           type: array
  *           items:
@@ -312,6 +314,11 @@ const router = Router();
  *               items:
  *                 type: string
  *               description: Identificadores de conjuros del catálogo, en el orden deseado.
+ *         innateSpellcasting:
+ *           nullable: true
+ *           description: Conjuros innatos agrupados por frecuencia (a voluntad, N/día cada uno...). Null si la criatura no tiene conjuros innatos.
+ *           allOf:
+ *             - $ref: '#/components/schemas/InputCreatureInnateSpellcasting'
  *         actions:
  *           type: array
  *           items:
@@ -380,6 +387,81 @@ const router = Router();
  *                     type: number
  *                   damageTypeId:
  *                     type: string
+ *     CreatureUsage:
+ *       type: object
+ *       required:
+ *         - type
+ *       properties:
+ *         type:
+ *           type: string
+ *           enum: [atWill, perDay, recharge, perRest]
+ *           description: atWill (a voluntad), perDay (veces por día), recharge (recarga) o perRest (por descanso).
+ *         value:
+ *           oneOf:
+ *             - type: number
+ *             - type: string
+ *           description: Con perDay es obligatorio y debe ser un entero mayor o igual que 1.
+ *     InputCreatureInnateSpellcasting:
+ *       type: object
+ *       description: Conjuros innatos agrupados por frecuencia de uso. El límite de cada grupo se aplica a cada conjuro del grupo (por ejemplo, «3/día cada uno»).
+ *       required:
+ *         - spells
+ *       properties:
+ *         abilityId:
+ *           type: string
+ *           description: Identificador del atributo usado como aptitud mágica innata.
+ *         spellSaveDc:
+ *           type: integer
+ *           description: CD de salvación de los conjuros innatos. Se guarda tal cual, sin calcularse.
+ *         spellAttackBonus:
+ *           type: integer
+ *           description: Bonificador de ataque de los conjuros innatos. Se guarda tal cual, sin calcularse.
+ *         spells:
+ *           type: array
+ *           description: Grupos de conjuros innatos.
+ *           items:
+ *             type: object
+ *             required:
+ *               - usage
+ *               - spells
+ *             properties:
+ *               usage:
+ *                 $ref: '#/components/schemas/CreatureUsage'
+ *               spells:
+ *                 type: array
+ *                 minItems: 1
+ *                 items:
+ *                   type: string
+ *                 description: Identificadores de conjuros del catálogo, en el orden deseado.
+ *       example:
+ *         abilityId: "507f1f77bcf86cd799439011"
+ *         spellSaveDc: 15
+ *         spells:
+ *           - usage: { type: perDay, value: 3 }
+ *             spells: ["comprehend-languages", "detect-magic", "identify"]
+ *           - usage: { type: perDay, value: 1 }
+ *             spells: ["dispel-magic", "levitate", "locate-object"]
+ *     CreatureInnateSpellcastingApi:
+ *       type: object
+ *       description: Conjuros innatos agrupados por frecuencia de uso. Si la criatura no tiene conjuros innatos, la lista de grupos va vacía.
+ *       properties:
+ *         ability:
+ *           $ref: '#/components/schemas/Attribute'
+ *         spellSaveDc:
+ *           type: integer
+ *         spellAttackBonus:
+ *           type: integer
+ *         spells:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               usage:
+ *                 $ref: '#/components/schemas/CreatureUsage'
+ *               spells:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Spell'
  *     InputUpdateCreature:
  *       type: object
  *       description: Cualquier subconjunto de InputCreateCreature. El id va en la ruta.

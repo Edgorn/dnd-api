@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { Types } from "mongoose";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
-import { CREATURE_ANY_RACE } from "../../../../domain/types/creature.types";
+import { CREATURE_ANY_RACE, CreatureInnateSpellcasting } from "../../../../domain/types/creature.types";
 import { SpellApi } from "../../../../domain/types/spell.types";
-import { creatureObjectIds, formatStoredCreatureRace, hydrateSpellcasting } from "./creature.repository";
+import {
+  creatureObjectIds,
+  formatStoredCreatureRace,
+  hydrateInnateSpellcasting,
+  hydrateSpellcasting
+} from "./creature.repository";
 
 describe("creatureObjectIds", () => {
   it("convierte ids de Mongo y descarta índices antiguos", () => {
@@ -120,5 +125,75 @@ describe("hydrateSpellcasting", () => {
 
     expect(result.ability).toBeUndefined();
     expect(result.spellSaveDc).toBe(10);
+  });
+});
+
+describe("hydrateInnateSpellcasting", () => {
+  const detectMagic: SpellApi = {
+    id: "detect-magic",
+    ruleset: "sys1",
+    name: "Detectar magia",
+    level: 1,
+    classes: [],
+    description: []
+  };
+  const levitate: SpellApi = {
+    id: "levitate",
+    ruleset: "sys1",
+    name: "Levitar",
+    level: 2,
+    classes: [],
+    description: []
+  };
+  const spellById = new Map<string, SpellApi>([
+    ["detect-magic", detectMagic],
+    ["levitate", levitate]
+  ]);
+  const intelligence: AttributeApi = {
+    id: "attr-int",
+    ruleset: "sys1",
+    name: "Inteligencia",
+    key: "int"
+  };
+
+  it("hidrata cada grupo con su uso y sus conjuros en orden", () => {
+    const result = hydrateInnateSpellcasting({
+      abilityId: "attr-int",
+      spellSaveDc: 15,
+      spells: [
+        { usage: { type: "perDay", value: 3 }, spells: ["detect-magic", "missing"] },
+        { usage: { type: "perDay", value: 1 }, spells: ["levitate"] }
+      ]
+    }, spellById, [intelligence]);
+
+    expect(result).toEqual({
+      ability: intelligence,
+      spellSaveDc: 15,
+      spells: [
+        { usage: { type: "perDay", value: 3 }, spells: [detectMagic] },
+        { usage: { type: "perDay", value: 1 }, spells: [levitate] }
+      ]
+    });
+  });
+
+  it("devuelve una lista vacía cuando falta el campo o no es válido", () => {
+    expect(hydrateInnateSpellcasting(null, spellById)).toEqual({ spells: [] });
+    expect(hydrateInnateSpellcasting(undefined, spellById)).toEqual({ spells: [] });
+    expect(hydrateInnateSpellcasting(
+      { spells: {} } as unknown as CreatureInnateSpellcasting,
+      spellById
+    )).toEqual({ spells: [] });
+  });
+
+  it("descarta grupos guardados sin uso o sin lista de conjuros", () => {
+    const result = hydrateInnateSpellcasting({
+      spells: [
+        { usage: { type: "atWill" }, spells: ["levitate"] },
+        { spells: ["detect-magic"] },
+        { usage: { type: "perDay", value: 1 } }
+      ] as unknown as CreatureInnateSpellcasting["spells"]
+    }, spellById);
+
+    expect(result.spells).toEqual([{ usage: { type: "atWill" }, spells: [levitate] }]);
   });
 });

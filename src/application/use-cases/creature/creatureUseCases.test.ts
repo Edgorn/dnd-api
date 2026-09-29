@@ -165,6 +165,56 @@ describe("Creature use cases", () => {
       expect(creatureService.create).not.toHaveBeenCalled();
     });
 
+    it("rechaza el alta si un conjuro innato no existe", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      spellService.getById.mockImplementation(async (id: string) =>
+        id === "detect-magic" ? { id, ruleset: "sys1", deletedAt: null } : null
+      );
+      const useCase = createUseCase();
+
+      await expect(useCase.execute({
+        ...priestInput,
+        innateSpellcasting: {
+          spells: [{ usage: { type: "perDay", value: 3 }, spells: ["detect-magic", "missing"] }]
+        }
+      }, "user1")).rejects.toMatchObject({ message: "Conjuro no encontrado", statusCode: 404 });
+      expect(spellService.getById).toHaveBeenCalledWith("missing");
+      expect(creatureService.create).not.toHaveBeenCalled();
+    });
+
+    it("rechaza el alta si la aptitud mágica innata no pertenece al sistema", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      const useCase = createUseCase();
+
+      await expect(useCase.execute({
+        ...priestInput,
+        innateSpellcasting: { abilityId: "attr-int", spells: [] }
+      }, "user1")).rejects.toMatchObject({
+        message: "La aptitud mágica no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(creatureService.create).not.toHaveBeenCalled();
+    });
+
+    it("crea la criatura con conjuros innatos del sistema", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      spellService.getById.mockImplementation(async (id: string) => ({ id, ruleset: "sys1", deletedAt: null }));
+      creatureService.create.mockResolvedValue(sampleCreature);
+      const useCase = createUseCase();
+      const input: CreateCreature = {
+        ...priestInput,
+        innateSpellcasting: {
+          abilityId: "wis",
+          spells: [{ usage: { type: "perDay", value: 1 }, spells: ["levitate"] }]
+        }
+      };
+
+      await useCase.execute(input, "user1");
+
+      expect(spellService.getById).toHaveBeenCalledWith("levitate");
+      expect(creatureService.create).toHaveBeenCalledWith(input);
+    });
+
     it("rechaza el alta si una habilidad no existe", async () => {
       skillService.getById.mockResolvedValue(null);
       const useCase = createUseCase();

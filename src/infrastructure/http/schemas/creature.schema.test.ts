@@ -176,6 +176,41 @@ describe("CreateCreatureSchema", () => {
       spellcasting: { slots: { "1": -1 }, spells: ["sacred-flame"] }
     }).success).toBe(false);
   });
+
+  it("acepta conjuros innatos agrupados por usos por día y a voluntad", () => {
+    const result = CreateCreatureSchema.safeParse({
+      ...priest,
+      innateSpellcasting: {
+        abilityId: "attr-int",
+        spellSaveDc: 15,
+        spells: [
+          { usage: { type: "atWill" }, spells: ["mage-hand"] },
+          { usage: { type: "perDay", value: 3 }, spells: ["comprehend-languages", "detect-magic", "identify"] },
+          { usage: { type: "perDay", value: 1 }, spells: ["dispel-magic", "levitate", "locate-object"] }
+        ]
+      }
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.innateSpellcasting?.spells).toHaveLength(3);
+    }
+    expect(CreateCreatureSchema.safeParse({ ...priest, innateSpellcasting: null }).success).toBe(true);
+  });
+
+  it("rechaza grupos innatos sin conjuros o con usos por día no válidos", () => {
+    const withGroup = (group: unknown) => CreateCreatureSchema.safeParse({
+      ...priest,
+      innateSpellcasting: { spells: [group] }
+    }).success;
+
+    expect(withGroup({ usage: { type: "perDay", value: 3 }, spells: [] })).toBe(false);
+    expect(withGroup({ usage: { type: "perDay" }, spells: ["identify"] })).toBe(false);
+    expect(withGroup({ usage: { type: "perDay", value: 0 }, spells: ["identify"] })).toBe(false);
+    expect(withGroup({ usage: { type: "perDay", value: "3" }, spells: ["identify"] })).toBe(false);
+    expect(withGroup({ usage: { type: "perDay", value: 1.5 }, spells: ["identify"] })).toBe(false);
+    expect(withGroup({ spells: ["identify"] })).toBe(false);
+  });
 });
 
 describe("UpdateCreatureSchema", () => {

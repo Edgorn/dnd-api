@@ -58,6 +58,7 @@ export default class UpdateCreatureUseCase {
           attributes: data.attributes,
           skill_bonuses: data.skill_bonuses,
           spellcasting: data.spellcasting,
+          innateSpellcasting: data.innateSpellcasting,
           damage_vulnerabilities: data.damage_vulnerabilities,
           damage_immunities: data.damage_immunities,
           damage_resistances: data.damage_resistances,
@@ -94,6 +95,7 @@ export default class UpdateCreatureUseCase {
       || data.attributes !== undefined
       || data.skill_bonuses !== undefined
       || data.spellcasting !== undefined
+      || data.innateSpellcasting !== undefined
       || data.damage_vulnerabilities !== undefined
       || data.damage_immunities !== undefined
       || data.damage_resistances !== undefined

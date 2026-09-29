@@ -62,6 +62,56 @@ describe("SystemRepository.getMergedRulesConfig", () => {
   });
 });
 
+function mockListChain() {
+  const lean = vi.fn().mockResolvedValue([]);
+  const sort = vi.fn().mockReturnValue({ lean });
+  const collation = vi.fn().mockReturnValue({ sort });
+  vi.mocked(SistemasModel.find).mockReturnValue({ collation } as never);
+}
+
+describe("SystemRepository.getByUserId", () => {
+  let repository: SystemRepository;
+
+  beforeEach(() => {
+    repository = new SystemRepository();
+    vi.clearAllMocks();
+  });
+
+  it("does not filter by kind when kind is omitted", async () => {
+    mockListChain();
+
+    await repository.getByUserId("507f1f77bcf86cd799439011", []);
+
+    const query = vi.mocked(SistemasModel.find).mock.calls[0][0] as Record<string, unknown>;
+    expect(query).toEqual({
+      $or: [
+        { publisher: "507f1f77bcf86cd799439011", deletedAt: null },
+        { isOpen: true, deletedAt: null },
+      ],
+    });
+    expect(query).not.toHaveProperty("$and");
+    expect(JSON.stringify(query)).not.toContain("kind");
+  });
+
+  it("requires kind campaign when kind is campaign", async () => {
+    mockListChain();
+
+    await repository.getByUserId("507f1f77bcf86cd799439011", [], "campaign");
+
+    expect(SistemasModel.find).toHaveBeenCalledWith({
+      $and: [
+        {
+          $or: [
+            { publisher: "507f1f77bcf86cd799439011", deletedAt: null },
+            { isOpen: true, deletedAt: null },
+          ],
+        },
+        { kind: "campaign" },
+      ],
+    });
+  });
+});
+
 describe("SystemRepository.hasChildren", () => {
   let repository: SystemRepository;
 

@@ -20,6 +20,8 @@ import {
   CreatureAttack,
   CreatureFeature,
   CreatureFeatureApi,
+  CreatureInnateSpellcasting,
+  CreatureInnateSpellcastingApi,
   CreatureListFilters,
   CreatureMongo,
   CreatureSpellcasting,
@@ -136,6 +138,7 @@ export default class CreatureRepository implements ICreatureRepository {
       condition_immunities: data.condition_immunities ?? [],
       special_abilities: data.special_abilities ?? [],
       spellcasting: data.spellcasting ?? null,
+      innateSpellcasting: data.innateSpellcasting ?? null,
       actions: data.actions ?? [],
       bonus_actions: data.bonus_actions ?? [],
       reactions: data.reactions ?? [],
@@ -195,7 +198,10 @@ export default class CreatureRepository implements ICreatureRepository {
     const formula = rules.globalModifierFormula || DEFAULT_ATTRIBUTE_MODIFIER_FORMULA;
 
     const damageIds = collectDamageIds(creature);
-    const spellIds = collectSpellIds(creature.spellcasting);
+    const spellIds = unique([
+      ...collectSpellIds(creature.spellcasting),
+      ...collectInnateSpellIds(creature.innateSpellcasting)
+    ]);
 
     const [
       catalogAttributes,
@@ -273,6 +279,7 @@ export default class CreatureRepository implements ICreatureRepository {
       condition_immunities: conditions,
       special_abilities: hydrate(creature.special_abilities),
       spellcasting: hydrateSpellcasting(creature.spellcasting, spellById, catalogAttributes),
+      innateSpellcasting: hydrateInnateSpellcasting(creature.innateSpellcasting, spellById, catalogAttributes),
       actions: hydrate(creature.actions),
       bonus_actions: hydrate(creature.bonus_actions),
       reactions: hydrate(creature.reactions),
@@ -357,6 +364,30 @@ export function hydrateSpellcasting(
   };
 }
 
+export function hydrateInnateSpellcasting(
+  stored: CreatureInnateSpellcasting | null | undefined,
+  spellById: Map<string, SpellApi>,
+  catalogAttributes: AttributeApi[] = []
+): CreatureInnateSpellcastingApi {
+  if (!stored || !Array.isArray(stored.spells)) {
+    return { spells: [] };
+  }
+
+  const ability = resolveSpellcastingAbility(stored.abilityId, catalogAttributes);
+
+  return {
+    ...(ability ? { ability } : {}),
+    ...(stored.spellSaveDc !== undefined ? { spellSaveDc: stored.spellSaveDc } : {}),
+    ...(stored.spellAttackBonus !== undefined ? { spellAttackBonus: stored.spellAttackBonus } : {}),
+    spells: stored.spells
+      .filter(group => group && group.usage && Array.isArray(group.spells))
+      .map(group => ({
+        usage: group.usage,
+        spells: orderedSpells(group.spells, spellById)
+      }))
+  };
+}
+
 function resolveSpellcastingAbility(
   abilityId: string | undefined,
   catalogAttributes: AttributeApi[]
@@ -399,6 +430,11 @@ function collectDamageIds(creature: CreatureMongo): string[] {
 function collectSpellIds(spellcasting: CreatureSpellcasting | null | undefined): string[] {
   if (!spellcasting || !Array.isArray(spellcasting.spells)) return [];
   return unique(spellcasting.spells);
+}
+
+function collectInnateSpellIds(innate: CreatureInnateSpellcasting | null | undefined): string[] {
+  if (!innate || !Array.isArray(innate.spells)) return [];
+  return unique(innate.spells.flatMap(group => (Array.isArray(group?.spells) ? group.spells : [])));
 }
 
 export function formatStoredCreatureRace(

@@ -90,6 +90,32 @@ export interface CreatureSpellcastingApi {
   spells: SpellApi[];
 }
 
+/** The usage limit applies to each spell of the group, not to the group as a whole. */
+export interface CreatureInnateSpellGroup {
+  usage: CreatureUsage;
+  spells: string[];
+}
+
+export interface CreatureInnateSpellGroupApi {
+  usage: CreatureUsage;
+  spells: SpellApi[];
+}
+
+export interface CreatureInnateSpellcasting {
+  /** Attribute id used as the innate spellcasting ability. */
+  abilityId?: string;
+  spellSaveDc?: number;
+  spellAttackBonus?: number;
+  spells: CreatureInnateSpellGroup[];
+}
+
+export interface CreatureInnateSpellcastingApi {
+  ability?: AttributeApi;
+  spellSaveDc?: number;
+  spellAttackBonus?: number;
+  spells: CreatureInnateSpellGroupApi[];
+}
+
 export interface CreatureSkillBonus {
   skillId: string;
   bonus: number;
@@ -148,6 +174,7 @@ export interface CreatureMongo {
   condition_immunities: string[];
   special_abilities: CreatureFeature[];
   spellcasting?: CreatureSpellcasting | null;
+  innateSpellcasting?: CreatureInnateSpellcasting | null;
   actions: CreatureFeature[];
   bonus_actions: CreatureFeature[];
   reactions: CreatureFeature[];
@@ -186,6 +213,7 @@ export interface CreatureApi {
   condition_immunities: EstadoApi[];
   special_abilities: CreatureFeatureApi[];
   spellcasting: CreatureSpellcastingApi;
+  innateSpellcasting: CreatureInnateSpellcastingApi;
   actions: CreatureFeatureApi[];
   bonus_actions: CreatureFeatureApi[];
   reactions: CreatureFeatureApi[];
@@ -223,6 +251,7 @@ export interface CreateCreature {
   condition_immunities?: string[];
   special_abilities?: CreatureFeature[];
   spellcasting?: CreatureSpellcasting | null;
+  innateSpellcasting?: CreatureInnateSpellcasting | null;
   actions?: CreatureFeature[];
   bonus_actions?: CreatureFeature[];
   reactions?: CreatureFeature[];
