@@ -4,7 +4,7 @@ import ICreatureRepository from "../../../../domain/repositories/ICreatureReposi
 import ICreatureTypeRepository from "../../../../domain/repositories/ICreatureTypeRepository";
 import IDamageRepository from "../../../../domain/repositories/IDamageRepository";
 import IEquipmentRepository from "../../../../domain/repositories/IEquipmentRepository";
-import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
+import IConditionRepository from "../../../../domain/repositories/IConditionRepository";
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import IRaceRepository from "../../../../domain/repositories/IRaceRepository";
 import ISkillRepository from "../../../../domain/repositories/ISkillRepository";
@@ -45,7 +45,7 @@ export default class CreatureRepository implements ICreatureRepository {
   constructor(
     private readonly systemRepository: ISystemRepository,
     private readonly damageRepository: IDamageRepository,
-    private readonly estadoRepository: IEstadoRepository,
+    private readonly conditionRepository: IConditionRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly spellRepository: ISpellRepository,
     private readonly skillRepository: ISkillRepository,
@@ -222,7 +222,7 @@ export default class CreatureRepository implements ICreatureRepository {
         ? this.creatureTypeRepository.getById(creature.creatureTypeId)
         : Promise.resolve(null),
       this.damageRepository.getByIds(damageIds),
-      this.estadoRepository.obtenerEstadosPorIndices(creature.condition_immunities ?? []),
+      this.conditionRepository.getByIds(creature.condition_immunities ?? []),
       this.languageRepository.getLanguagesByIndex(creature.languages?.speaks ?? []),
       this.languageRepository.getLanguagesByIndex(creature.languages?.understands ?? []),
       this.languageRepository.formatLanguageChoices(creature.language_choices, creature.ruleset),

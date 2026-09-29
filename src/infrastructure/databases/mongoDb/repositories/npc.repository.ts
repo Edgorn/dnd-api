@@ -1,6 +1,6 @@
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import IDamageRepository from '../../../../domain/repositories/IDamageRepository';
-import IEstadoRepository from '../../../../domain/repositories/IEstadoRepository';
+import IConditionRepository from '../../../../domain/repositories/IConditionRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
 import INpcRepository from '../../../../domain/repositories/INpcRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
@@ -10,7 +10,7 @@ import NpcSchema from '../schemas/Npc';
 export default class NpcRepository implements INpcRepository {
   constructor(
     private readonly damageRepository: IDamageRepository,
-    private readonly estadoRepository: IEstadoRepository,
+    private readonly conditionRepository: IConditionRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly spellsRepository: ISpellRepository,
   ) { }
@@ -44,7 +44,7 @@ export default class NpcRepository implements INpcRepository {
       this.damageRepository.getByIds(npc?.damage_vulnerabilities ?? []),
       this.damageRepository.getByIds(npc?.damage_immunities ?? []),
       this.damageRepository.getByIds(npc?.damage_resistances ?? []),
-      this.estadoRepository.obtenerEstadosPorIndices(npc?.condition_immunities ?? []),
+      this.conditionRepository.getByIds(npc?.condition_immunities ?? []),
       this.languageRepository.getLanguagesByIndex(npc?.languages?.speaks ?? []),
       this.languageRepository.getLanguagesByIndex(npc?.languages?.understands ?? []),
       this.formatCreatureSpellSlots(npc?.spell_slots ?? [])

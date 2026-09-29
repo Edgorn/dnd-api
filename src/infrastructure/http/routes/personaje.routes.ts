@@ -135,12 +135,15 @@ const router = Router();
  *     Estado:
  *       type: object
  *       properties:
- *         index:
+ *         id:
  *           type: string
- *           description: Identificador del estado.
+ *           description: ID de MongoDB del estado.
  *         name:
  *           type: string
  *           description: Nombre del estado (ej. Envenenado, Aturdido).
+ *         description:
+ *           type: string
+ *           description: Descripción del estado.
  *
  *     ConditionalResistance:
  *       type: object

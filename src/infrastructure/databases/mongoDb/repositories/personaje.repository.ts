@@ -19,7 +19,7 @@ import ILanguageRepository from "../../../../domain/repositories/ILanguageReposi
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
 import { FeatApi } from '../../../../domain/types/feat.types';
-import { EstadoApi } from '../../../../domain/types/estados.types';
+import { ConditionApi } from '../../../../domain/types/condition.types';
 import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipmentInstanceApi, EquipSlot } from '../../../../domain/types/equipment.types';
 import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRestriction';
 import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
@@ -1725,7 +1725,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const resistances: Damage[] = []
 
     const conditional_resistances: { name: string, resistances: Damage[] }[] = []
-    const condition_inmunities: { name: string, estados: EstadoApi[] }[] = []
+    const condition_inmunities: { name: string, estados: ConditionApi[] }[] = []
 
     let speed = personaje?.speed
 

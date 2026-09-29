@@ -2,14 +2,14 @@ import ObtenerTodosLosNpc from "../../../application/use-cases/npc/obtenerTodosL
 import NpcService from "../../../domain/services/npc.service";
 import SpellRepository from "../../databases/mongoDb/repositories/spell.repository";
 import DamageRepository from "../../databases/mongoDb/repositories/damage.repository";
-import EstadoRepository from "../../databases/mongoDb/repositories/estado.repository";
+import ConditionRepository from "../../databases/mongoDb/repositories/condition.repository";
 import LanguageRepository from "../../databases/mongoDb/repositories/language.repository";
 import NpcRepository from "../../databases/mongoDb/repositories/npc.repository";
 import { Request, Response, NextFunction } from "express";
 
 const npcRepository = new NpcRepository(
   new DamageRepository(),
-  new EstadoRepository(),
+  new ConditionRepository(),
   new LanguageRepository(null as any),
   new SpellRepository(null as any)
 )

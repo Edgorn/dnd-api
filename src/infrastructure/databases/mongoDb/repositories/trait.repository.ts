@@ -3,7 +3,7 @@ import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import IDamageRepository from "../../../../domain/repositories/IDamageRepository";
 import TraitSchema from "../schemas/Trait";
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
-import IEstadoRepository from "../../../../domain/repositories/IEstadoRepository";
+import IConditionRepository from "../../../../domain/repositories/IConditionRepository";
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
@@ -17,7 +17,7 @@ import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { SpellApi } from "../../../../domain/types/spell.types";
-import { EstadoApi } from "../../../../domain/types/estados.types";
+import { ConditionApi } from "../../../../domain/types/condition.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import { normalizeTraitSpeed } from "../../../../utils/applyTraitSpeed";
 import { Types } from 'mongoose';
@@ -28,7 +28,7 @@ export default class TraitRepository implements ITraitRepository {
     private readonly damageRepository: IDamageRepository,
     private readonly proficiencyRepository: IProficiencyRepository,
     private readonly spellRepository: ISpellRepository,
-    private readonly estadoRepository: IEstadoRepository,
+    private readonly conditionRepository: IConditionRepository,
     private readonly skillRepository: ISkillRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly creatureTypeRepository: ICreatureTypeRepository,
@@ -169,7 +169,7 @@ export default class TraitRepository implements ITraitRepository {
       allProficiencies.size ? this.proficiencyRepository.getProficienciesByIndices(Array.from(allProficiencies)) : [],
       allSkills.size ? this.skillRepository.getSkillsByIndices(Array.from(allSkills)) : [],
       allSpells.size ? this.spellRepository.getSpellsByIndexes(Array.from(allSpells)) : [],
-      allConditionInmunities.size ? this.estadoRepository.obtenerEstadosPorIndices(Array.from(allConditionInmunities)) : [],
+      allConditionInmunities.size ? this.conditionRepository.getByIds(Array.from(allConditionInmunities)) : [],
       allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : [],
       allLanguages.size ? this.languageRepository.getLanguagesByIndex(Array.from(allLanguages)) : [],
       allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : [],
@@ -188,7 +188,7 @@ export default class TraitRepository implements ITraitRepository {
       }
     });
     const spellMap = new Map<string, SpellApi>(fetchedSpells.map(item => [(item as any).index ?? (item as any).id, item]));
-    const conditionInmunityMap = new Map<string, EstadoApi>(fetchedConditionInmunities.map(item => [(item as any).index ?? (item as any).id, item]));
+    const conditionInmunityMap = new Map<string, ConditionApi>(fetchedConditionInmunities.map(item => [item.id, item]));
     const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
     const languageMap = new Map<string, LanguageApi>(fetchedLanguages.map(item => [item.id, item]));
     const choiceDamageMap = new Map<string, Damage>(fetchedChoiceDamages.map(item => [item.id!, item]));
@@ -215,7 +215,7 @@ export default class TraitRepository implements ITraitRepository {
 
       const condition_inmunities = (trait.condition_inmunities ?? [])
         .map(idx => conditionInmunityMap.get(idx))
-        .filter((item): item is EstadoApi => !!item);
+        .filter((item): item is ConditionApi => !!item);
 
       const incompatible_traits = (trait.incompatible_traits ?? [])
         .map(idx => incompatibleTraitMap.get(idx))

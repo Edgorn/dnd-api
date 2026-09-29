@@ -1,6 +1,6 @@
 import { Damage } from ".";
 import { SpellApi } from "./spell.types";
-import { EstadoApi } from "./estados.types";
+import { ConditionApi } from "./condition.types";
 import { LanguageApi } from "./language.types";
 
 /** Legacy NPC documents. New creatures live in creature.types.ts. */
@@ -86,7 +86,7 @@ export interface LegacyCreatureApi {
   damage_vulnerabilities: Damage[];
   damage_immunities: Damage[];
   damage_resistances: Damage[];
-  condition_immunities: EstadoApi[];
+  condition_immunities: ConditionApi[];
   special_abilities: [];
   actions: [];
   actions_aditional: [];

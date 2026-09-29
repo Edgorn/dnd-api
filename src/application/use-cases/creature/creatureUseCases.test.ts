@@ -47,7 +47,7 @@ describe("Creature use cases", () => {
   let damageService: { getById: ReturnType<typeof vi.fn> };
   let languageService: { getById: ReturnType<typeof vi.fn> };
   let equipmentService: { getById: ReturnType<typeof vi.fn> };
-  let estadoRepository: { obtenerEstadosPorIndices: ReturnType<typeof vi.fn> };
+  let conditionRepository: { getByIds: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     creatureService = {
@@ -74,7 +74,7 @@ describe("Creature use cases", () => {
     damageService = { getById: vi.fn() };
     languageService = { getById: vi.fn() };
     equipmentService = { getById: vi.fn() };
-    estadoRepository = { obtenerEstadosPorIndices: vi.fn() };
+    conditionRepository = { getByIds: vi.fn() };
   });
 
   function createUseCase() {
@@ -89,7 +89,7 @@ describe("Creature use cases", () => {
       damageService as never,
       languageService as never,
       equipmentService as never,
-      estadoRepository as never
+      conditionRepository as never
     );
   }
 
@@ -145,6 +145,29 @@ describe("Creature use cases", () => {
 
       expect(raceService.obtenerPorId).toHaveBeenCalledWith("elf");
       expect(creatureService.create).toHaveBeenCalledWith(input);
+    });
+
+    it("resuelve las inmunidades a estados por id", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      conditionRepository.getByIds.mockResolvedValue([{ id: "cond1", name: "Envenenado", ruleset: "sys1" }]);
+      creatureService.create.mockResolvedValue(sampleCreature);
+      const useCase = createUseCase();
+      const input = { ...priestInput, condition_immunities: ["cond1"] };
+
+      await useCase.execute(input, "user1");
+
+      expect(conditionRepository.getByIds).toHaveBeenCalledWith(["cond1"]);
+      expect(creatureService.create).toHaveBeenCalledWith(input);
+    });
+
+    it("rechaza el alta si el estado no existe", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      conditionRepository.getByIds.mockResolvedValue([]);
+      const useCase = createUseCase();
+
+      await expect(useCase.execute({ ...priestInput, condition_immunities: ["missing"] }, "user1"))
+        .rejects.toMatchObject({ message: "Estado no encontrado", statusCode: 404 });
+      expect(creatureService.create).not.toHaveBeenCalled();
     });
 
     it("rechaza el alta si la aptitud mágica no pertenece al sistema", async () => {
@@ -237,7 +260,7 @@ describe("Creature use cases", () => {
         damageService as never,
         languageService as never,
         equipmentService as never,
-        estadoRepository as never
+        conditionRepository as never
       );
       creatureService.getById.mockResolvedValue(null);
 
@@ -257,7 +280,7 @@ describe("Creature use cases", () => {
         damageService as never,
         languageService as never,
         equipmentService as never,
-        estadoRepository as never
+        conditionRepository as never
       );
       creatureService.getById.mockResolvedValue({
         ...sampleCreature,

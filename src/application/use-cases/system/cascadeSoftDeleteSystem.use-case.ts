@@ -8,6 +8,7 @@ import IEntityOverrideRepository from "../../../domain/repositories/IEntityOverr
 import IArmorTypeRepository from "../../../domain/repositories/IArmorTypeRepository";
 import ICreatureTypeRepository from "../../../domain/repositories/ICreatureTypeRepository";
 import ICreatureRepository from "../../../domain/repositories/ICreatureRepository";
+import IConditionRepository from "../../../domain/repositories/IConditionRepository";
 import { AppError } from "../../../domain/errors/AppError";
 
 export default class CascadeSoftDeleteSystem {
@@ -21,7 +22,8 @@ export default class CascadeSoftDeleteSystem {
     private readonly entityOverrideRepository?: IEntityOverrideRepository,
     private readonly armorTypeRepository?: IArmorTypeRepository,
     private readonly creatureTypeRepository?: ICreatureTypeRepository,
-    private readonly creatureRepository?: ICreatureRepository
+    private readonly creatureRepository?: ICreatureRepository,
+    private readonly conditionRepository?: IConditionRepository
   ) {}
 
   async execute(id: string, userId: string): Promise<void> {
@@ -67,6 +69,10 @@ export default class CascadeSoftDeleteSystem {
 
     if (this.creatureRepository) {
       cascadePromises.push(this.creatureRepository.softDeleteByRuleset(id, deletedAt));
+    }
+
+    if (this.conditionRepository) {
+      cascadePromises.push(this.conditionRepository.softDeleteByRuleset(id, deletedAt));
     }
 
     await Promise.all(cascadePromises);

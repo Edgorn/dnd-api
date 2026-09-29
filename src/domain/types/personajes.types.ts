@@ -7,7 +7,7 @@ import { ChoiceApi, Damage, Speed } from "."
 import { CharacterEquipmentApi, CharacterEquipmentMongo } from "./equipment.types"
 import { FeatApi } from "./feat.types"
 import { SpellApi } from "./spell.types"
-import { EstadoApi } from "./estados.types"
+import { ConditionApi } from "./condition.types"
 import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { CreatureApi } from "./creature.types"
@@ -379,7 +379,7 @@ export interface PersonajeApi {
   traits_data: TraitDataMongo,
   resistances: Damage[],
   conditional_resistances: { name: string, resistances: Damage[] }[],
-  condition_inmunities: { name: string, estados: EstadoApi[] }[],
+  condition_inmunities: { name: string, estados: ConditionApi[] }[],
   prof_bonus: number,
   saving_throws: string[],
   equipment: CharacterEquipmentApi[],

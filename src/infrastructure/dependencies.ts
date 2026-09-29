@@ -136,7 +136,6 @@ import RestoreArmorType from "../application/use-cases/armorType/restoreArmorTyp
 import GetArmorTypesBySystems from "../application/use-cases/armorType/getArmorTypesBySystems.use-case";
 import GetArmorTypeById from "../application/use-cases/armorType/getArmorTypeById.use-case";
 import { ArmorTypeController } from "./http/controllers/armorType.controller";
-import EstadoRepository from "./databases/mongoDb/repositories/estado.repository";
 import InvocacionRepository from "./databases/mongoDb/repositories/invocacion.repository";
 import SystemRepository from "./databases/mongoDb/repositories/system.repository";
 import { BcryptPasswordHasher } from "./security/BcryptPasswordHasher";
@@ -197,6 +196,14 @@ import UpdateCreatureType from "../application/use-cases/creatureType/updateCrea
 import SoftDeleteCreatureType from "../application/use-cases/creatureType/softDeleteCreatureType.use-case";
 import RestoreCreatureType from "../application/use-cases/creatureType/restoreCreatureType.use-case";
 import { CreatureTypeController } from "./http/controllers/creatureType.controller";
+import ConditionRepository from "./databases/mongoDb/repositories/condition.repository";
+import ConditionService from "../domain/services/condition.service";
+import GetConditionsBySystem from "../application/use-cases/condition/getConditionsBySystem.use-case";
+import CreateCondition from "../application/use-cases/condition/createCondition.use-case";
+import UpdateCondition from "../application/use-cases/condition/updateCondition.use-case";
+import SoftDeleteCondition from "../application/use-cases/condition/softDeleteCondition.use-case";
+import RestoreCondition from "../application/use-cases/condition/restoreCondition.use-case";
+import { ConditionController } from "./http/controllers/condition.controller";
 import GetLanguagesBySystem from "../application/use-cases/language/getLanguagesBySystem.use-case";
 import CreateLanguage from "../application/use-cases/language/createLanguage.use-case";
 import UpdateLanguage from "../application/use-cases/language/updateLanguage.use-case";
@@ -241,7 +248,6 @@ import RestoreMagicSchool from "../application/use-cases/magicSchool/restoreMagi
 import GetMagicSchoolsBySystems from "../application/use-cases/magicSchool/getMagicSchoolsBySystems.use-case";
 import { MagicSchoolController } from "./http/controllers/magicSchool.controller";
 
-const estadoRepository = new EstadoRepository()
 const userRepository = new UserRepository()
 const systemRepository = new SystemRepository()
 const entityOverrideRepository = new EntityOverrideRepository()
@@ -258,8 +264,10 @@ const equipmentRepository = new EquipmentRepository(systemRepository, damageRepo
 const languageRepository = new LanguageRepository(systemRepository)
 const creatureTypeRepository = new CreatureTypeRepository(systemRepository)
 const creatureTypeService = new CreatureTypeService(creatureTypeRepository)
+const conditionRepository = new ConditionRepository(systemRepository)
+const conditionService = new ConditionService(conditionRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
-const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, estadoRepository, skillRepository, languageRepository, creatureTypeRepository, attributeRepository)
+const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, conditionRepository, skillRepository, languageRepository, creatureTypeRepository, attributeRepository)
 const subclassRepository = new SubclassRepository(systemRepository, traitRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const featRepository = new FeatRepository(systemRepository, attributeService)
@@ -305,7 +313,7 @@ const backgroundRepository = new BackgroundRepository(
 const creatureRepository = new CreatureRepository(
   systemRepository,
   damageRepository,
-  estadoRepository,
+  conditionRepository,
   languageRepository,
   spellRepository,
   skillRepository,
@@ -499,8 +507,8 @@ export const magicSchoolController = new MagicSchoolController(
   getMagicSchoolsBySystems
 );
 
-const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository);
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -666,7 +674,7 @@ const createCreature = new CreateCreatureUseCase(
   damageService,
   languageService,
   equipmentService,
-  estadoRepository
+  conditionRepository
 );
 const updateCreature = new UpdateCreatureUseCase(
   creatureService,
@@ -679,7 +687,7 @@ const updateCreature = new UpdateCreatureUseCase(
   damageService,
   languageService,
   equipmentService,
-  estadoRepository
+  conditionRepository
 );
 const softDeleteCreature = new SoftDeleteCreature(creatureService, systemService);
 const restoreCreature = new RestoreCreature(creatureService, systemService);
@@ -699,6 +707,20 @@ export const creatureTypeController = new CreatureTypeController(
   updateCreatureType,
   softDeleteCreatureType,
   restoreCreatureType
+)
+
+const getConditionsBySystem = new GetConditionsBySystem(conditionService);
+const createCondition = new CreateCondition(conditionService, systemService);
+const updateCondition = new UpdateCondition(conditionService, systemService);
+const softDeleteCondition = new SoftDeleteCondition(conditionService, systemService);
+const restoreCondition = new RestoreCondition(conditionService, systemService);
+
+export const conditionController = new ConditionController(
+  getConditionsBySystem,
+  createCondition,
+  updateCondition,
+  softDeleteCondition,
+  restoreCondition
 )
 
 const featService = new FeatService(featRepository, attributeService)

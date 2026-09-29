@@ -11,7 +11,7 @@ import LanguageService from "../../../domain/services/language.service";
 import RaceService from "../../../domain/services/race.service";
 import SkillService from "../../../domain/services/skill.service";
 import SpellService from "../../../domain/services/spell.service";
-import IEstadoRepository from "../../../domain/repositories/IEstadoRepository";
+import IConditionRepository from "../../../domain/repositories/IConditionRepository";
 
 export default class UpdateCreatureUseCase {
   constructor(
@@ -25,7 +25,7 @@ export default class UpdateCreatureUseCase {
     private readonly damageService: DamageService,
     private readonly languageService: LanguageService,
     private readonly equipmentService: EquipmentService,
-    private readonly estadoRepository: IEstadoRepository
+    private readonly conditionRepository: IConditionRepository
   ) {}
 
   async execute(data: UpdateCreature, userId: string): Promise<CreatureApi> {
@@ -81,7 +81,7 @@ export default class UpdateCreatureUseCase {
         languageService: this.languageService,
         equipmentService: this.equipmentService,
         systemService: this.systemService,
-        estadoRepository: this.estadoRepository
+        conditionRepository: this.conditionRepository
       });
     }
 

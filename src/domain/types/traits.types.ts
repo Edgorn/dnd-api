@@ -2,7 +2,7 @@ import { ObjectId } from "mongoose"
 import { Damage } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { SpellApi } from "./spell.types"
-import { EstadoApi } from "./estados.types"
+import { ConditionApi } from "./condition.types"
 import { LanguageApi } from "./language.types"
 import { EquipmentMaterial } from "./equipment.types"
 import { CreatureTypeApi } from "./creatureType.types"
@@ -279,7 +279,7 @@ export interface TraitApi {
   hidden?: boolean,
   resistances: Damage[],
   conditional_resistances: Damage[],
-  condition_inmunities: EstadoApi[],
+  condition_inmunities: ConditionApi[],
   proficiencies: ProficiencyApi[],
   skills?: string[],
   speed?: TraitSpeed,

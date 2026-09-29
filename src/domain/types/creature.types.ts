@@ -4,7 +4,7 @@ import { AttributeApi, CharacterAttributeApi } from "./attribute.types";
 import { CreatureTypeApi } from "./creatureType.types";
 import { Damage } from "./damage.types";
 import { EquipmentInstanceApi, CharacterEquipmentMongo } from "./equipment.types";
-import { EstadoApi } from "./estados.types";
+import { ConditionApi } from "./condition.types";
 import { CreatureLanguages, CreatureLanguagesCreate, LanguageApi } from "./language.types";
 import { SkillPersonajeApi } from "./skill.types";
 import { RaceRef } from "./race.types";
@@ -210,7 +210,7 @@ export interface CreatureApi {
   damage_vulnerabilities: Damage[];
   damage_immunities: Damage[];
   damage_resistances: Damage[];
-  condition_immunities: EstadoApi[];
+  condition_immunities: ConditionApi[];
   special_abilities: CreatureFeatureApi[];
   spellcasting: CreatureSpellcastingApi;
   innateSpellcasting: CreatureInnateSpellcastingApi;

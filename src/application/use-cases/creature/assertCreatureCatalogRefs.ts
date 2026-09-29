@@ -7,7 +7,7 @@ import RaceService from "../../../domain/services/race.service";
 import SkillService from "../../../domain/services/skill.service";
 import SpellService from "../../../domain/services/spell.service";
 import SystemService from "../../../domain/services/system.service";
-import IEstadoRepository from "../../../domain/repositories/IEstadoRepository";
+import IConditionRepository from "../../../domain/repositories/IConditionRepository";
 import { AppError } from "../../../domain/errors/AppError";
 import { CREATURE_ANY_RACE, CreateCreature, CreatureFeature, CreatureInnateSpellcasting, CreatureSpellcasting } from "../../../domain/types/creature.types";
 
@@ -22,7 +22,7 @@ export async function assertCreatureCatalogRefs(input: {
   languageService: LanguageService;
   equipmentService: EquipmentService;
   systemService: SystemService;
-  estadoRepository: IEstadoRepository;
+  conditionRepository: IConditionRepository;
 }): Promise<void> {
   const allowedRulesets = await input.systemService.getSystemsAndAncestors([input.data.ruleset]);
 
@@ -95,10 +95,13 @@ export async function assertCreatureCatalogRefs(input: {
 
   const conditionIds = unique(input.data.condition_immunities ?? []);
   if (conditionIds.length) {
-    const conditions = await input.estadoRepository.obtenerEstadosPorIndices(conditionIds);
-    const found = new Set(conditions.map(condition => condition.index));
+    const conditions = await input.conditionRepository.getByIds(conditionIds);
+    const found = new Set(conditions.map(condition => condition.id));
     if (conditionIds.some(id => !found.has(id))) {
       throw new AppError("Estado no encontrado", 404);
+    }
+    if (conditions.some(condition => !allowedRulesets.includes(condition.ruleset))) {
+      throw new AppError("El estado no pertenece a este sistema ni a sus ancestros", 400);
     }
   }
 
