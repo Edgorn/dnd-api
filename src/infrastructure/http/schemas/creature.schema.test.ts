@@ -198,6 +198,25 @@ describe("CreateCreatureSchema", () => {
     expect(CreateCreatureSchema.safeParse({ ...priest, innateSpellcasting: null }).success).toBe(true);
   });
 
+  it("acepta visión ciega con ciego más allá de este radio", () => {
+    const result = CreateCreatureSchema.safeParse({
+      ...priest,
+      senses: { blindsight: 60, blindsightBlindBeyond: true }
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.senses).toEqual({ blindsight: 60, blindsightBlindBeyond: true });
+    }
+  });
+
+  it("rechaza ciego más allá del radio sin alcance de visión ciega", () => {
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      senses: { blindsightBlindBeyond: true }
+    }).success).toBe(false);
+  });
+
   it("rechaza grupos innatos sin conjuros o con usos por día no válidos", () => {
     const withGroup = (group: unknown) => CreateCreatureSchema.safeParse({
       ...priest,

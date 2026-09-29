@@ -30,11 +30,18 @@ const ArmorClassSchema = z.object({
 const SensesSchema = z.object({
   darkvision: z.number().nonnegative().optional(),
   blindsight: z.number().nonnegative().optional(),
+  blindsightBlindBeyond: z.boolean().optional(),
   tremorsense: z.number().nonnegative().optional(),
   truesight: z.number().nonnegative().optional(),
   passive_perception: z.number().optional(),
   notes: z.string().optional()
-}).strict();
+}).strict().refine(
+  (senses) => !senses.blindsightBlindBeyond || senses.blindsight !== undefined,
+  {
+    message: "blindsightBlindBeyond requiere un alcance de visión ciega",
+    path: ["blindsightBlindBeyond"]
+  }
+);
 
 const DamageRollSchema = z.object({
   dice: z.string().min(1, "Los dados de daño no pueden estar vacíos"),

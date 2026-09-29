@@ -78,7 +78,23 @@ const router = Router();
  *             type: object
  *         senses:
  *           type: object
- *           description: Distancias de sentidos en pies. passive_perception es el valor resuelto.
+ *           description: Distancias de sentidos en pies. passive_perception es el valor resuelto. blindsightBlindBeyond indica si la visión ciega incluye «ciego más allá de este radio».
+ *           properties:
+ *             darkvision:
+ *               type: number
+ *             blindsight:
+ *               type: number
+ *             blindsightBlindBeyond:
+ *               type: boolean
+ *               description: Verdadero si la visión ciega deja a la criatura ciega más allá de ese radio.
+ *             tremorsense:
+ *               type: number
+ *             truesight:
+ *               type: number
+ *             passive_perception:
+ *               type: number
+ *             notes:
+ *               type: string
  *         languages:
  *           type: object
  *         language_choices:
@@ -250,7 +266,23 @@ const router = Router();
  *         senses:
  *           type: object
  *           nullable: true
- *           description: Distancias en pies.
+ *           description: Distancias en pies. blindsightBlindBeyond indica si la visión ciega incluye «ciego más allá de este radio» y exige blindsight.
+ *           properties:
+ *             darkvision:
+ *               type: number
+ *             blindsight:
+ *               type: number
+ *             blindsightBlindBeyond:
+ *               type: boolean
+ *               description: Verdadero si la visión ciega deja a la criatura ciega más allá de ese radio.
+ *             tremorsense:
+ *               type: number
+ *             truesight:
+ *               type: number
+ *             passive_perception:
+ *               type: number
+ *             notes:
+ *               type: string
  *         languages:
  *           type: object
  *           nullable: true

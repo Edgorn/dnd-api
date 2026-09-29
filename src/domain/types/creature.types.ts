@@ -125,6 +125,8 @@ export interface CreatureSkillBonus {
 export interface CreatureSenses {
   darkvision?: number;
   blindsight?: number;
+  /** True when blindsight includes "(blind beyond this radius)". */
+  blindsightBlindBeyond?: boolean;
   tremorsense?: number;
   truesight?: number;
   passive_perception?: number;
