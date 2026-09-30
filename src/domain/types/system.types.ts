@@ -5,6 +5,7 @@ import { CoinApi } from "./coin.types";
 
 export const SYSTEM_KINDS = ["ruleset", "setting", "campaign"] as const;
 export type SystemKind = (typeof SYSTEM_KINDS)[number];
+export const SYSTEM_MAX_PARENTS = 16;
 
 export const SYSTEM_RULE_FIELD_KEYS = [
   "globalModifierFormula",
@@ -47,7 +48,7 @@ export interface System {
   isOpen: boolean;
   isBase: boolean;
   kind?: SystemKind;
-  parentId?: ObjectId;
+  parentIds?: ObjectId[];
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
   maxAttributeValue?: number;
@@ -103,7 +104,7 @@ export interface SystemApi {
   isOpen: boolean;
   isBase: boolean;
   kind: SystemKind;
-  parentId?: string;
+  parentIds: string[];
   canEdit: boolean;
   racesCount: number;
   globalModifierFormula?: string;
@@ -141,7 +142,7 @@ export interface TypeCrearSystem {
   isOpen: boolean;
   isBase: boolean;
   kind?: SystemKind;
-  parentId?: string;
+  parentIds?: string[];
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
   maxAttributeValue?: number;
@@ -173,7 +174,7 @@ export interface TypeModificarSystem {
   isOpen?: boolean;
   isBase?: boolean;
   kind?: SystemKind;
-  parentId?: string | null;
+  parentIds?: string[];
   globalModifierFormula?: string;
   initiativeBonusFormula?: string;
   maxAttributeValue?: number;

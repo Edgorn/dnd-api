@@ -10,6 +10,7 @@ import ICreatureTypeRepository from "../../../domain/repositories/ICreatureTypeR
 import ICreatureRepository from "../../../domain/repositories/ICreatureRepository";
 import IConditionRepository from "../../../domain/repositories/IConditionRepository";
 import { AppError } from "../../../domain/errors/AppError";
+import { parentIdStrings } from "../../../domain/services/systemHierarchy";
 
 export default class CascadeRestoreSystem {
   constructor(
@@ -41,14 +42,38 @@ export default class CascadeRestoreSystem {
       throw new AppError("El sistema no está eliminado", 400);
     }
 
-    // 1. Restore the system itself
+    await this.assertRestorable(system);
+    await this.restoreSystemAndDescendants(id, deletedAt);
+  }
+
+  private async assertRestorable(system: { isBase: boolean; parentIds?: Array<{ toString(): string }> }): Promise<void> {
+    if (system.isBase) return;
+
+    const parentIds = parentIdStrings(system.parentIds);
+    for (const parentId of parentIds) {
+      const parent = await this.systemService.getById(parentId);
+      if (parent) return;
+    }
+
+    throw new AppError("No se puede restaurar un sistema no base sin un padre activo", 400);
+  }
+
+  private async restoreSystemAndDescendants(id: string, deletedAt: Date): Promise<void> {
+    await this.restoreSystemAndEntities(id, deletedAt);
+
+    const children = await this.systemService.getChildrenDeletedAt(id, deletedAt);
+    for (const child of children) {
+      await this.restoreSystemAndDescendants(child._id.toString(), deletedAt);
+    }
+  }
+
+  private async restoreSystemAndEntities(id: string, deletedAt: Date): Promise<void> {
     await this.systemService.restore(id);
 
-    // 2. Cascade restore associated entities by system ruleset
     const cascadePromises: Promise<void>[] = [
       this.attributeRepository.restoreByRuleset(id, deletedAt),
       this.skillRepository.restoreByRuleset(id, deletedAt),
-      this.languageRepository.restoreByRuleset(id, deletedAt)
+      this.languageRepository.restoreByRuleset(id, deletedAt),
     ];
 
     if (this.magicSchoolRepository) {

@@ -10,6 +10,8 @@ import ICreatureTypeRepository from "../../../domain/repositories/ICreatureTypeR
 import ICreatureRepository from "../../../domain/repositories/ICreatureRepository";
 import IConditionRepository from "../../../domain/repositories/IConditionRepository";
 import { AppError } from "../../../domain/errors/AppError";
+import { System } from "../../../domain/types/system.types";
+import { parentIdStrings } from "../../../domain/services/systemHierarchy";
 
 export default class CascadeSoftDeleteSystem {
   constructor(
@@ -36,15 +38,58 @@ export default class CascadeSoftDeleteSystem {
       throw new AppError("No tienes permisos para borrar este sistema", 403);
     }
 
-    // 1. Soft delete the system itself
+    const toDelete = await this.collectOrphanedSubtree(system);
+    const foreign = toDelete.filter((candidate) => candidate.publisher !== userId);
+    if (foreign.length > 0) {
+      const names = foreign.map((candidate) => candidate.name).join(", ");
+      throw new AppError(
+        `No se puede borrar: la cascada incluye sistemas de otros usuarios (${names})`,
+        409
+      );
+    }
+
     const deletedAt = new Date();
+    for (const candidate of toDelete) {
+      await this.softDeleteSystemAndEntities(candidate._id.toString(), deletedAt);
+    }
+  }
+
+  private async collectOrphanedSubtree(root: System): Promise<System[]> {
+    const byId = new Map<string, System>([[root._id.toString(), root]]);
+    let grown = true;
+
+    while (grown) {
+      grown = false;
+      for (const id of [...byId.keys()]) {
+        const children = await this.systemService.getChildren(id);
+        for (const child of children) {
+          const childId = child._id.toString();
+          if (byId.has(childId)) continue;
+
+          const livingParentIds: string[] = [];
+          for (const parentId of parentIdStrings(child.parentIds)) {
+            const parent = await this.systemService.getById(parentId);
+            if (parent) livingParentIds.push(parentId);
+          }
+
+          if (livingParentIds.length > 0 && livingParentIds.every((parentId) => byId.has(parentId))) {
+            byId.set(childId, child);
+            grown = true;
+          }
+        }
+      }
+    }
+
+    return [...byId.values()];
+  }
+
+  private async softDeleteSystemAndEntities(id: string, deletedAt: Date): Promise<void> {
     await this.systemService.softDelete(id, deletedAt);
 
-    // 2. Cascade soft delete associated entities by system ruleset
     const cascadePromises: Promise<void>[] = [
       this.attributeRepository.softDeleteByRuleset(id, deletedAt),
       this.skillRepository.softDeleteByRuleset(id, deletedAt),
-      this.languageRepository.softDeleteByRuleset(id, deletedAt)
+      this.languageRepository.softDeleteByRuleset(id, deletedAt),
     ];
 
     if (this.magicSchoolRepository) {

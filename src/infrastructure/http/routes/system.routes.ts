@@ -48,16 +48,22 @@ const router = Router();
  *           description: Indica si el sistema es abierto/público.
  *         isBase:
  *           type: boolean
- *           description: Indica si el sistema es una plantilla base (reglas únicamente).
+ *           description: |
+ *             Indica si el sistema es un motor de juego. Todo sistema, y todo personaje, debe resolver
+ *             a una única base más específica. Un sistema sin padres se trata siempre como base.
  *         kind:
  *           type: string
  *           enum: [ruleset, setting, campaign]
  *           description: |
  *             Tipo de sistema. `ruleset` aporta reglas y contenido. `setting` y `campaign` son capas de contenido
  *             que heredan las fórmulas del ruleset ancestro. Los documentos antiguos sin tipo se tratan como `ruleset`.
- *         parentId:
- *           type: string
- *           description: ID del sistema del que hereda (si lo tiene).
+ *         parentIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             Identificadores de los sistemas padre, en orden de prioridad entre hermanos.
+ *             `setting` y `campaign` exigen al menos un padre. El orden se usa en la linealización C3.
  *         canEdit:
  *           type: boolean
  *           description: Indica si el usuario autenticado tiene permisos de edición.
@@ -185,17 +191,22 @@ const router = Router();
  *           description: Indica si es abierto.
  *         isBase:
  *           type: boolean
- *           description: Indica si es una plantilla base. Solo permitido en `ruleset`.
+ *           description: |
+ *             Indica si es un motor de juego. Solo permitido en `ruleset`. Un sistema sin padres
+ *             se fuerza a `isBase: true`.
  *         kind:
  *           type: string
  *           enum: [ruleset, setting, campaign]
  *           default: ruleset
  *           description: |
- *             Tipo de sistema. `setting` y `campaign` exigen `parentId` y no admiten fórmulas ni progresiones.
+ *             Tipo de sistema. `setting` y `campaign` exigen `parentIds` y no admiten fórmulas ni progresiones.
  *             `campaign` no puede ser padre de otro sistema.
- *         parentId:
- *           type: string
- *           description: ID de MongoDB del sistema padre. Obligatorio para `setting` y `campaign`.
+ *         parentIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             IDs de MongoDB de los sistemas padre, en orden de prioridad. Obligatorio para `setting` y `campaign`.
  *         globalModifierFormula:
  *           type: string
  *           description: |
@@ -294,16 +305,20 @@ const router = Router();
  *           type: boolean
  *         isBase:
  *           type: boolean
- *           description: Solo permitido en `ruleset`.
+ *           description: |
+ *             Motor de juego. Solo permitido en `ruleset`. No se puede desactivar en un sistema sin padres.
  *         kind:
  *           type: string
  *           enum: [ruleset, setting, campaign]
  *           description: |
- *             Tipo de sistema. Al pasar a `setting` o `campaign` hay que indicar `parentId`
+ *             Tipo de sistema. Al pasar a `setting` o `campaign` hay que indicar `parentIds`
  *             y no se pueden enviar fórmulas ni progresiones.
- *         parentId:
- *           type: string
- *           description: ID de MongoDB del sistema padre. Obligatorio si `kind` es `setting` o `campaign`.
+ *         parentIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             IDs de MongoDB de los sistemas padre. Obligatorio si `kind` es `setting` o `campaign`.
  *         globalModifierFormula:
  *           type: string
  *           description: |
@@ -510,6 +525,10 @@ router.put('/systems/:id', authMiddleware, validateSchema(UpdateSystemSchema), s
  * /systems/{id}:
  *   delete:
  *     summary: Realizar un borrado lógico de un sistema
+ *     description: |
+ *       Borra el sistema y, en cascada, los hijos que se queden sin ningún padre activo.
+ *       Si la cascada incluye sistemas de otros usuarios, no se borra nada y se responde 409.
+ *       Los hijos que conservan otro padre vivo no se borran y mantienen el id eliminado en `parentIds`.
  *     tags:
  *       - Sistemas
  *     security:
@@ -530,6 +549,8 @@ router.put('/systems/:id', authMiddleware, validateSchema(UpdateSystemSchema), s
  *         description: No tienes permisos para borrar este sistema.
  *       404:
  *         description: Sistema no encontrado.
+ *       409:
+ *         description: La cascada incluiría sistemas de otros usuarios; no se ha borrado nada.
  *       500:
  *         description: Error del servidor.
  */
@@ -540,6 +561,9 @@ router.delete('/systems/:id', authMiddleware, systemController.deleteSystem);
  * /systems/{id}/restore:
  *   patch:
  *     summary: Restaurar un sistema borrado lógicamente
+ *     description: |
+ *       Restaura el sistema y, de forma recursiva, los descendientes con el mismo `deletedAt`.
+ *       Un sistema que no es base y no tiene ningún padre activo no se puede restaurar.
  *     tags:
  *       - Sistemas
  *     security:

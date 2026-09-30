@@ -1,12 +1,84 @@
-import mongoose from 'mongoose';
-import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
-import SistemasModel from '../schemas/System';
-import { System, SystemKind, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from '../../../../domain/types/system.types';
-import { ValidationError } from '../../../../domain/errors/AppError';
-import { mergeRulesFromAncestry } from '../../../../utils/systemRulesMerge';
+import mongoose from "mongoose";
+import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
+import SistemasModel from "../schemas/System";
+import { System, SystemKind, SystemRulesConfig, TypeCrearSystem, TypeModificarSystem } from "../../../../domain/types/system.types";
+import { mergeRulesFromAncestry } from "../../../../utils/systemRulesMerge";
+import { linearize, parentIdStrings, parentsOfFromSystems } from "../../../../domain/services/systemHierarchy";
+
+type SystemDocument = System & { parentId?: { toString(): string } | null };
 
 export default class SystemRepository implements ISystemRepository {
   constructor() {}
+
+  private toSystem(doc: SystemDocument | null | undefined): System | null {
+    if (!doc) return null;
+    const parentIds = this.readParentIds(doc);
+    return { ...doc, parentIds };
+  }
+
+  private readParentIds(doc: SystemDocument): NonNullable<System["parentIds"]> {
+    if (Array.isArray(doc.parentIds) && doc.parentIds.length > 0) {
+      return doc.parentIds;
+    }
+    if (doc.parentId) {
+      return [doc.parentId] as NonNullable<System["parentIds"]>;
+    }
+    return [];
+  }
+
+  private toParentsOf(graph: Map<string, System>) {
+    return parentsOfFromSystems(
+      [...graph.values()].map((system) => ({
+        id: system._id.toString(),
+        parentIds: parentIdStrings(system.parentIds),
+      }))
+    );
+  }
+
+  private async loadAncestorGraph(starts: System[]): Promise<Map<string, System>> {
+    const graph = new Map<string, System>();
+    let frontier: System[] = [];
+
+    for (const start of starts) {
+      const normalized = this.toSystem(start as SystemDocument);
+      if (!normalized) continue;
+      const id = normalized._id.toString();
+      if (!graph.has(id)) {
+        graph.set(id, normalized);
+        frontier.push(normalized);
+      }
+    }
+
+    while (frontier.length > 0) {
+      const missing = new Set<string>();
+      for (const system of frontier) {
+        for (const parentId of parentIdStrings(system.parentIds)) {
+          if (!graph.has(parentId) && mongoose.Types.ObjectId.isValid(parentId)) {
+            missing.add(parentId);
+          }
+        }
+      }
+
+      if (missing.size === 0) break;
+
+      const docs = await SistemasModel.find({
+        _id: { $in: [...missing] },
+        deletedAt: null,
+      } as Record<string, unknown>).lean<SystemDocument[]>();
+
+      frontier = [];
+      for (const doc of docs) {
+        const normalized = this.toSystem(doc);
+        if (!normalized) continue;
+        const id = normalized._id.toString();
+        if (graph.has(id)) continue;
+        graph.set(id, normalized);
+        frontier.push(normalized);
+      }
+    }
+
+    return graph;
+  }
 
   private async resolveSystem(systemId: string): Promise<System | null> {
     if (mongoose.Types.ObjectId.isValid(systemId)) {
@@ -14,54 +86,63 @@ export default class SystemRepository implements ISystemRepository {
       if (byId) return byId;
     }
 
-    return SistemasModel.findOne({ name: systemId, deletedAt: null }).lean();
+    const byName = await SistemasModel.findOne({ name: systemId, deletedAt: null }).lean<SystemDocument>();
+    return this.toSystem(byName);
   }
 
   async getAncestry(systemId: string): Promise<System[]> {
     const start = await this.resolveSystem(systemId);
     if (!start) return [];
 
-    const ancestry: System[] = [start];
-    const visited = new Set<string>([start._id.toString()]);
-    let currentId = start.parentId ? start.parentId.toString() : "";
-
-    while (currentId && !visited.has(currentId)) {
-      visited.add(currentId);
-      const parent = await this.getById(currentId);
-      if (!parent) break;
-      ancestry.push(parent);
-      currentId = parent.parentId ? parent.parentId.toString() : "";
-    }
-
-    return ancestry;
+    const graph = await this.loadAncestorGraph([start]);
+    const order = linearize([start._id.toString()], this.toParentsOf(graph));
+    return order
+      .map((id) => graph.get(id))
+      .filter((system): system is System => Boolean(system));
   }
 
-  private async findSystemsDocs(systems: string[]) {
+  private hydrate(doc: unknown): SystemDocument {
+    if (
+      doc
+      && typeof doc === "object"
+      && "toObject" in doc
+      && typeof (doc as { toObject: unknown }).toObject === "function"
+    ) {
+      return (doc as { toObject: () => SystemDocument }).toObject();
+    }
+    return doc as SystemDocument;
+  }
+
+  private async findSystemsDocs(systems: string[]): Promise<SystemDocument[]> {
     if (!systems || systems.length === 0) return [];
 
-    const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
-    return SistemasModel.find({
+    const validIds = systems.filter((s) => mongoose.Types.ObjectId.isValid(s));
+    const docs = await SistemasModel.find({
       $or: [
-        { _id: { $in: validIds as any[] } },
-        { name: { $in: systems } }
+        { _id: { $in: validIds } },
+        { name: { $in: systems } },
       ],
-      deletedAt: null
-    });
+      deletedAt: null,
+    } as Record<string, unknown>);
+    return docs.map((doc) => this.hydrate(doc));
   }
 
   async getMergedRulesConfig(systemIds: string[]): Promise<SystemRulesConfig> {
     const systemsDocs = await this.findSystemsDocs(systemIds);
-    if (systemsDocs.length === 0) return {};
+    const starts = systemsDocs
+      .map((doc) => this.toSystem(doc))
+      .filter((system): system is System => Boolean(system));
+    if (starts.length === 0) return {};
 
-    for (const sys of systemsDocs) {
-      const ancestry = await this.getAncestry(sys._id.toString());
-      const config = mergeRulesFromAncestry(ancestry);
-      if (Object.keys(config).length > 0) {
-        return config;
-      }
-    }
-
-    return {};
+    const graph = await this.loadAncestorGraph(starts);
+    const linearized = linearize(
+      starts.map((system) => system._id.toString()),
+      this.toParentsOf(graph)
+    );
+    const ancestry = linearized
+      .map((id) => graph.get(id))
+      .filter((system): system is System => Boolean(system));
+    return mergeRulesFromAncestry(ancestry);
   }
 
   async getGlobalModifierFormula(systems: string[]): Promise<string | undefined> {
@@ -77,11 +158,11 @@ export default class SystemRepository implements ISystemRepository {
   async getByUserId(userId: string, accessibleSystemIds: string[], kind?: SystemKind): Promise<System[]> {
     const access: Record<string, unknown>[] = [
       { publisher: userId, deletedAt: null },
-      { isOpen: true, deletedAt: null }
+      { isOpen: true, deletedAt: null },
     ];
 
     if (accessibleSystemIds.length > 0) {
-      const validIds = accessibleSystemIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+      const validIds = accessibleSystemIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
       if (validIds.length > 0) {
         access.push({ _id: { $in: validIds }, deletedAt: null });
       }
@@ -91,26 +172,54 @@ export default class SystemRepository implements ISystemRepository {
       ? { $and: [{ $or: access }, kindClause(kind)] }
       : { $or: access };
 
-    return SistemasModel.find(filter)
-      .collation({ locale: 'es', strength: 1 })
+    const docs = await SistemasModel.find(filter)
+      .collation({ locale: "es", strength: 1 })
       .sort({ name: 1 })
-      .lean();
+      .lean<SystemDocument[]>();
+
+    return docs
+      .map((doc) => this.toSystem(doc))
+      .filter((system): system is System => Boolean(system));
+  }
+
+  private childFilter(id: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
+    const objectId = new mongoose.Types.ObjectId(id);
+    return {
+      $or: [{ parentIds: objectId }, { parentId: objectId }],
+      ...extra,
+    };
   }
 
   async hasChildren(id: string): Promise<boolean> {
     if (!mongoose.Types.ObjectId.isValid(id)) return false;
-    const count = await SistemasModel.countDocuments({
-      parentId: new mongoose.Types.ObjectId(id),
-      deletedAt: null
-    } as Record<string, unknown>);
+    const count = await SistemasModel.countDocuments(this.childFilter(id, { deletedAt: null }));
     return count > 0;
   }
 
-  async create(data: TypeCrearSystem): Promise<System | null> {
-    const parentIdObj = data.parentId && mongoose.Types.ObjectId.isValid(data.parentId)
-      ? new mongoose.Types.ObjectId(data.parentId)
-      : undefined;
+  async getChildren(id: string): Promise<System[]> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return [];
+    const docs = await SistemasModel.find(this.childFilter(id, { deletedAt: null })).lean<SystemDocument[]>();
+    return docs
+      .map((doc) => this.toSystem(doc))
+      .filter((system): system is System => Boolean(system));
+  }
 
+  async getChildrenDeletedAt(id: string, deletedAt: Date): Promise<System[]> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return [];
+    const docs = await SistemasModel.find(this.childFilter(id, { deletedAt })).lean<SystemDocument[]>();
+    return docs
+      .map((doc) => this.toSystem(doc))
+      .filter((system): system is System => Boolean(system));
+  }
+
+  private toObjectIds(parentIds: string[] | undefined): mongoose.Types.ObjectId[] {
+    if (!parentIds) return [];
+    return parentIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+  }
+
+  async create(data: TypeCrearSystem): Promise<System | null> {
     const nuevoSistema = new SistemasModel({
       name: data.name,
       description: data.description,
@@ -118,7 +227,7 @@ export default class SystemRepository implements ISystemRepository {
       isOpen: data.isOpen,
       isBase: data.isBase,
       kind: data.kind ?? "ruleset",
-      parentId: parentIdObj,
+      parentIds: this.toObjectIds(data.parentIds),
       globalModifierFormula: data.globalModifierFormula,
       initiativeBonusFormula: data.initiativeBonusFormula,
       defaultMinAttributeValue: data.defaultMinAttributeValue,
@@ -142,7 +251,7 @@ export default class SystemRepository implements ISystemRepository {
     });
 
     const resultado = await nuevoSistema.save();
-    return resultado ? resultado.toObject() : null;
+    return resultado ? this.toSystem(resultado.toObject()) : null;
   }
 
   async update(data: TypeModificarSystem): Promise<System | null> {
@@ -153,7 +262,7 @@ export default class SystemRepository implements ISystemRepository {
       isOpen,
       isBase,
       kind,
-      parentId,
+      parentIds,
       globalModifierFormula,
       initiativeBonusFormula,
       maxAttributeValue,
@@ -183,11 +292,7 @@ export default class SystemRepository implements ISystemRepository {
     if (isOpen !== undefined) updateFields.isOpen = isOpen;
     if (isBase !== undefined) updateFields.isBase = isBase;
     if (kind !== undefined) updateFields.kind = kind;
-    if (parentId !== undefined) {
-      updateFields.parentId = parentId && mongoose.Types.ObjectId.isValid(parentId)
-        ? new mongoose.Types.ObjectId(parentId)
-        : null;
-    }
+    if (parentIds !== undefined) updateFields.parentIds = this.toObjectIds(parentIds);
     if (globalModifierFormula !== undefined) updateFields.globalModifierFormula = globalModifierFormula;
     if (initiativeBonusFormula !== undefined) updateFields.initiativeBonusFormula = initiativeBonusFormula;
     if (maxAttributeValue !== undefined) updateFields.maxAttributeValue = maxAttributeValue;
@@ -212,67 +317,53 @@ export default class SystemRepository implements ISystemRepository {
 
     const resultado = await SistemasModel.findByIdAndUpdate(
       id,
-      { $set: updateFields },
-      { returnDocument: 'after' }
+      parentIds !== undefined
+        ? { $set: updateFields, $unset: { parentId: 1 } }
+        : { $set: updateFields },
+      { returnDocument: "after" }
     );
 
-    return resultado ? resultado.toObject() : null;
+    return resultado ? this.toSystem(resultado.toObject()) : null;
   }
 
   async getById(id: string): Promise<System | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return null;
     }
-    return SistemasModel.findOne({ _id: id, deletedAt: null } as any).lean();
+    const doc = await SistemasModel.findOne({ _id: id, deletedAt: null } as Record<string, unknown>).lean<SystemDocument>();
+    return this.toSystem(doc);
   }
 
   async getByIds(ids: string[]): Promise<System[]> {
     const systemsDocs = await this.findSystemsDocs(ids);
-    return systemsDocs.map((doc) => (typeof doc.toObject === "function" ? doc.toObject() : doc) as System);
+    return systemsDocs
+      .map((doc) => this.toSystem(doc))
+      .filter((system): system is System => Boolean(system));
   }
 
   async getByIdWithDeleted(id: string): Promise<System | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return null;
     }
-    return SistemasModel.findOne({ _id: id } as any).lean();
-  }
-
-  async verifySystemsNotBase(systems: string[]): Promise<void> {
-    if (!systems || systems.length === 0) return;
-    const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
-    const systemsDocs = await SistemasModel.find({
-      $or: [
-        { _id: { $in: validIds as any[] } },
-        { name: { $in: systems } }
-      ]
-    });
-    for (const sys of systemsDocs) {
-      if (sys.isBase) {
-        throw new ValidationError(`No se pueden crear elementos para el sistema base '${sys.name}'`);
-      }
-    }
+    const doc = await SistemasModel.findOne({ _id: id } as Record<string, unknown>).lean<SystemDocument>();
+    return this.toSystem(doc);
   }
 
   async getSystemsAndAncestors(systems: string[]): Promise<string[]> {
     if (!systems || systems.length === 0) return [];
 
-    const validIds = systems.filter(s => mongoose.Types.ObjectId.isValid(s));
-    const systemsDocs = await SistemasModel.find({
-      $or: [
-        { _id: { $in: validIds as any[] } },
-        { name: { $in: systems } }
-      ]
-    });
+    const systemsDocs = await this.findSystemsDocs(systems);
+    const starts = systemsDocs
+      .map((doc) => this.toSystem(doc))
+      .filter((system): system is System => Boolean(system));
 
     const resultSet = new Set<string>(systems);
+    if (starts.length === 0) return Array.from(resultSet);
 
-    for (const sys of systemsDocs) {
-      const ancestry = await this.getAncestry(sys._id.toString());
-      for (const ancestor of ancestry) {
-        if (ancestor._id) resultSet.add(ancestor._id.toString());
-        if (ancestor.name) resultSet.add(ancestor.name);
-      }
+    const graph = await this.loadAncestorGraph(starts);
+    for (const ancestor of graph.values()) {
+      if (ancestor._id) resultSet.add(ancestor._id.toString());
+      if (ancestor.name) resultSet.add(ancestor.name);
     }
 
     return Array.from(resultSet);
@@ -295,8 +386,8 @@ function kindClause(kind: SystemKind): Record<string, unknown> {
       $or: [
         { kind: "ruleset" },
         { kind: { $exists: false } },
-        { kind: null }
-      ]
+        { kind: null },
+      ],
     };
   }
 

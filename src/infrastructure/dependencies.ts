@@ -431,7 +431,7 @@ const getEquipmentsWeapons = new GetEquipmentsWeapons(equipmentService);
 const getEquipmentsArmor = new GetEquipmentsArmor(equipmentService);
 
 const getCharactersByUser = new GetCharactersByUser(personajeService);
-const crearPersonaje = new CrearPersonaje(personajeService, systemRepository, equipmentRepository);
+const crearPersonaje = new CrearPersonaje(personajeService, systemService, equipmentRepository);
 const obtenerPersonajePorId = new ObtenerPersonajePorId(personajeService);
 const updateCharacterXp = new UpdateCharacterXp(personajeService)
 const getLevelUpData = new GetLevelUpData(personajeService)

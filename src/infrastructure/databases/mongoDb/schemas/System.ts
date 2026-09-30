@@ -8,7 +8,7 @@ const system: Schema = new Schema<System>({
   isOpen: Boolean,
   isBase: { type: Boolean, default: false },
   kind: { type: String, enum: ["ruleset", "setting", "campaign"], default: "ruleset" },
-  parentId: { type: Schema.Types.ObjectId, ref: 'systems' },
+  parentIds: [{ type: Schema.Types.ObjectId, ref: "systems" }],
   globalModifierFormula: String,
   initiativeBonusFormula: String,
   defaultMinAttributeValue: Number,
@@ -30,7 +30,9 @@ const system: Schema = new Schema<System>({
   meleeAttackAttributes: [String],
   rangedAttackAttributes: [String],
   deletedAt: { type: Date, default: null }
-}, { collection: 'systems' });
+}, { collection: "systems" });
+
+system.index({ parentIds: 1 });
 
 const SistemasModel = mongoose.model<System>("systems", system);
 export default SistemasModel

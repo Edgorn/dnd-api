@@ -574,7 +574,7 @@
           },
           "isBase": {
             "type": "boolean",
-            "description": "Indica si el sistema es una plantilla base (reglas únicamente)."
+            "description": "Indica si el sistema es un motor de juego. Todo sistema, y todo personaje, debe resolver\na una única base más específica. Un sistema sin padres se trata siempre como base.\n"
           },
           "kind": {
             "type": "string",
@@ -585,9 +585,12 @@
             ],
             "description": "Tipo de sistema. `ruleset` aporta reglas y contenido. `setting` y `campaign` son capas de contenido\nque heredan las fórmulas del ruleset ancestro. Los documentos antiguos sin tipo se tratan como `ruleset`.\n"
           },
-          "parentId": {
-            "type": "string",
-            "description": "ID del sistema del que hereda (si lo tiene)."
+          "parentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Identificadores de los sistemas padre, en orden de prioridad entre hermanos.\n`setting` y `campaign` exigen al menos un padre. El orden se usa en la linealización C3.\n"
           },
           "canEdit": {
             "type": "boolean",
@@ -731,7 +734,7 @@
           },
           "isBase": {
             "type": "boolean",
-            "description": "Indica si es una plantilla base. Solo permitido en `ruleset`."
+            "description": "Indica si es un motor de juego. Solo permitido en `ruleset`. Un sistema sin padres\nse fuerza a `isBase: true`.\n"
           },
           "kind": {
             "type": "string",
@@ -741,11 +744,14 @@
               "campaign"
             ],
             "default": "ruleset",
-            "description": "Tipo de sistema. `setting` y `campaign` exigen `parentId` y no admiten fórmulas ni progresiones.\n`campaign` no puede ser padre de otro sistema.\n"
+            "description": "Tipo de sistema. `setting` y `campaign` exigen `parentIds` y no admiten fórmulas ni progresiones.\n`campaign` no puede ser padre de otro sistema.\n"
           },
-          "parentId": {
-            "type": "string",
-            "description": "ID de MongoDB del sistema padre. Obligatorio para `setting` y `campaign`."
+          "parentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de MongoDB de los sistemas padre, en orden de prioridad. Obligatorio para `setting` y `campaign`.\n"
           },
           "globalModifierFormula": {
             "type": "string",
@@ -854,7 +860,7 @@
           },
           "isBase": {
             "type": "boolean",
-            "description": "Solo permitido en `ruleset`."
+            "description": "Motor de juego. Solo permitido en `ruleset`. No se puede desactivar en un sistema sin padres.\n"
           },
           "kind": {
             "type": "string",
@@ -863,11 +869,14 @@
               "setting",
               "campaign"
             ],
-            "description": "Tipo de sistema. Al pasar a `setting` o `campaign` hay que indicar `parentId`\ny no se pueden enviar fórmulas ni progresiones.\n"
+            "description": "Tipo de sistema. Al pasar a `setting` o `campaign` hay que indicar `parentIds`\ny no se pueden enviar fórmulas ni progresiones.\n"
           },
-          "parentId": {
-            "type": "string",
-            "description": "ID de MongoDB del sistema padre. Obligatorio si `kind` es `setting` o `campaign`."
+          "parentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de MongoDB de los sistemas padre. Obligatorio si `kind` es `setting` o `campaign`.\n"
           },
           "globalModifierFormula": {
             "type": "string",
@@ -8699,6 +8708,7 @@
       },
       "delete": {
         "summary": "Realizar un borrado lógico de un sistema",
+        "description": "Borra el sistema y, en cascada, los hijos que se queden sin ningún padre activo.\nSi la cascada incluye sistemas de otros usuarios, no se borra nada y se responde 409.\nLos hijos que conservan otro padre vivo no se borran y mantienen el id eliminado en `parentIds`.\n",
         "tags": [
           "Sistemas"
         ],
@@ -8731,6 +8741,9 @@
           "404": {
             "description": "Sistema no encontrado."
           },
+          "409": {
+            "description": "La cascada incluiría sistemas de otros usuarios; no se ha borrado nada."
+          },
           "500": {
             "description": "Error del servidor."
           }
@@ -8740,6 +8753,7 @@
     "/systems/{id}/restore": {
       "patch": {
         "summary": "Restaurar un sistema borrado lógicamente",
+        "description": "Restaura el sistema y, de forma recursiva, los descendientes con el mismo `deletedAt`.\nUn sistema que no es base y no tiene ningún padre activo no se puede restaurar.\n",
         "tags": [
           "Sistemas"
         ],

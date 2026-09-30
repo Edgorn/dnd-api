@@ -9,6 +9,7 @@
     "dev": "tsx watch src/app.ts",
     "test": "vitest run",
     "migrate:background-legacy": "tsx scripts/migrate-background-legacy-fields.ts",
+    "migrate:system-parents": "tsx scripts/migrate-system-parent-ids.ts",
     "commit:ai": "git commit -F COMMIT_MESSAGE.md && del COMMIT_MESSAGE.md"
   },
   "keywords": [],

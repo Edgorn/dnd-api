@@ -66,7 +66,7 @@ describe("CreateSystemSchema kind", () => {
     expect(result.success).toBe(false);
   });
 
-  it("requires parentId for a setting", () => {
+  it("requires parentIds for a setting", () => {
     const result = CreateSystemSchema.safeParse({
       name: "Forgotten Realms",
       kind: "setting"
@@ -79,7 +79,7 @@ describe("CreateSystemSchema kind", () => {
     const result = CreateSystemSchema.safeParse({
       name: "Forgotten Realms",
       kind: "setting",
-      parentId: "507f1f77bcf86cd799439011",
+      parentIds: ["507f1f77bcf86cd799439011"],
       maxLevel: 20
     });
 
@@ -90,7 +90,7 @@ describe("CreateSystemSchema kind", () => {
     const result = CreateSystemSchema.safeParse({
       name: "Mesa del viernes",
       kind: "campaign",
-      parentId: "507f1f77bcf86cd799439011"
+      parentIds: ["507f1f77bcf86cd799439011"]
     });
 
     expect(result.success).toBe(true);
@@ -98,7 +98,7 @@ describe("CreateSystemSchema kind", () => {
 });
 
 describe("UpdateSystemSchema kind", () => {
-  it("requires parentId when kind is setting or campaign", () => {
+  it("requires parentIds when kind is setting or campaign", () => {
     const result = UpdateSystemSchema.safeParse({ kind: "campaign" });
 
     expect(result.success).toBe(false);
@@ -107,7 +107,7 @@ describe("UpdateSystemSchema kind", () => {
   it("rejects formulas when changing to a setting", () => {
     const result = UpdateSystemSchema.safeParse({
       kind: "setting",
-      parentId: "507f1f77bcf86cd799439011",
+      parentIds: ["507f1f77bcf86cd799439011"],
       hpInitialFormula: "10"
     });
 

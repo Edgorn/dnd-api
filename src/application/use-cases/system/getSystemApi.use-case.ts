@@ -33,18 +33,8 @@ export default class GetSystemApi {
       throw new AppError("Sistema no encontrado", 404);
     }
 
-    // 1. Get Ancestry
-    const ancestry: System[] = [sys];
-    let currentId = sys.parentId ? sys.parentId.toString() : '';
-    const visited = new Set<string>();
-
-    while (currentId && !visited.has(currentId)) {
-      visited.add(currentId);
-      const parent = await this.systemService.getById(currentId);
-      if (!parent) break;
-      ancestry.push(parent);
-      currentId = parent.parentId ? parent.parentId.toString() : '';
-    }
+    const ancestry = await this.systemService.getAncestry(sys._id.toString());
+    const resolvedAncestry = ancestry.length > 0 ? ancestry : [sys];
 
     // 2. Publisher Name
     let publisherName = sys.publisher;
@@ -59,7 +49,7 @@ export default class GetSystemApi {
 
     // 3. Ancestry Rulesets
     const ancestryRulesets: string[] = [];
-    for (const ancestor of ancestry) {
+    for (const ancestor of resolvedAncestry) {
       ancestryRulesets.push(ancestor._id.toString());
       if (ancestor.name) {
         ancestryRulesets.push(ancestor.name);
@@ -81,8 +71,8 @@ export default class GetSystemApi {
     const skillsMap = new Map<string, SkillApi>();
     const coinsMap = new Map<string, CoinApi>();
 
-    for (let i = ancestry.length - 1; i >= 0; i--) {
-      const ancestor = ancestry[i];
+    for (let i = resolvedAncestry.length - 1; i >= 0; i--) {
+      const ancestor = resolvedAncestry[i];
       const ancestorRulesets = [ancestor._id.toString(), ancestor.name].filter(Boolean);
 
       // Attributes for this ancestor
@@ -108,10 +98,10 @@ export default class GetSystemApi {
     const skills = Array.from(skillsMap.values());
     const coins = Array.from(coinsMap.values());
 
-    const mergedRules = mergeRulesFromAncestry(ancestry);
+    const mergedRules = mergeRulesFromAncestry(resolvedAncestry);
 
     const getMergedScalar = <T>(key: keyof System, defaultValue?: T): T | undefined => {
-      for (const ancestor of ancestry) {
+      for (const ancestor of resolvedAncestry) {
         if (!isRulesetSystem(ancestor)) continue;
         const val = ancestor[key];
         if (val !== undefined && val !== null && val !== '') {
@@ -129,7 +119,7 @@ export default class GetSystemApi {
       isOpen: !!sys.isOpen,
       isBase: !!sys.isBase,
       kind: resolveSystemKind(sys.kind),
-      parentId: sys.parentId ? sys.parentId.toString() : undefined,
+      parentIds: (sys.parentIds ?? []).map((id) => id.toString()),
       canEdit: isPublisher,
       racesCount,
       globalModifierFormula: mergedRules.globalModifierFormula,

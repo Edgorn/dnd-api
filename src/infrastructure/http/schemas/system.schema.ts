@@ -1,6 +1,28 @@
 import { z } from "zod";
-import { SYSTEM_KINDS } from "../../../domain/types/system.types";
+import { SYSTEM_KINDS, SYSTEM_MAX_PARENTS } from "../../../domain/types/system.types";
 import { validateSystemFormula, validateAttributeModifierFormula } from "../../../utils/formulaValidation";
+
+const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+const objectIdSchema = z
+  .string()
+  .regex(objectIdRegex, "Cada padre debe ser un ObjectId válido de MongoDB");
+
+const parentIdsSchema = z
+  .array(objectIdSchema)
+  .max(SYSTEM_MAX_PARENTS, `Un sistema no puede tener más de ${SYSTEM_MAX_PARENTS} padres`)
+  .superRefine((ids, ctx) => {
+    const seen = new Set<string>();
+    for (let i = 0; i < ids.length; i++) {
+      if (seen.has(ids[i])) {
+        ctx.addIssue({
+          code: "custom",
+          message: "parentIds no puede contener duplicados",
+          path: [i],
+        });
+      }
+      seen.add(ids[i]);
+    }
+  });
 
 export const systemKindSchema = z.enum(SYSTEM_KINDS, {
   error: "kind debe ser ruleset, setting o campaign",
@@ -105,20 +127,20 @@ const progressionArrayRefinement = (
 const rejectContentLayerRules = (
   data: {
     kind?: "ruleset" | "setting" | "campaign";
-    parentId?: string | null;
+    parentIds?: string[];
     isBase?: boolean;
   } & Record<string, unknown>,
   ctx: z.RefinementCtx,
-  options: { requireParentId: boolean }
+  options: { requireParentIds: boolean }
 ) => {
   const kind = data.kind ?? "ruleset";
   if (kind === "ruleset") return;
 
-  if (options.requireParentId && !data.parentId) {
+  if (options.requireParentIds && (!data.parentIds || data.parentIds.length === 0)) {
     ctx.addIssue({
       code: "custom",
-      message: "parentId es obligatorio para setting y campaign",
-      path: ["parentId"],
+      message: "parentIds es obligatorio para setting y campaign",
+      path: ["parentIds"],
     });
   }
 
@@ -172,11 +194,11 @@ export const CreateSystemSchema = z
     isOpen: z.boolean().optional(),
     isBase: z.boolean().optional(),
     kind: systemKindSchema.default("ruleset"),
-    parentId: z.string().optional(),
+    parentIds: parentIdsSchema.default([]),
     ...systemRulesFields,
   })
   .superRefine(progressionArrayRefinement)
-  .superRefine((data, ctx) => rejectContentLayerRules(data, ctx, { requireParentId: true }));
+  .superRefine((data, ctx) => rejectContentLayerRules(data, ctx, { requireParentIds: true }));
 
 export const UpdateSystemSchema = z
   .object({
@@ -185,13 +207,13 @@ export const UpdateSystemSchema = z
     isOpen: z.boolean().optional(),
     isBase: z.boolean().optional(),
     kind: systemKindSchema.optional(),
-    parentId: z.string().nullable().optional(),
+    parentIds: parentIdsSchema.optional(),
     ...systemRulesFields,
   })
   .superRefine(progressionArrayRefinement)
   .superRefine((data, ctx) => {
     if (data.kind === undefined) return;
-    rejectContentLayerRules(data, ctx, { requireParentId: true });
+    rejectContentLayerRules(data, ctx, { requireParentIds: true });
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "Debe proporcionar al menos un campo para modificar",

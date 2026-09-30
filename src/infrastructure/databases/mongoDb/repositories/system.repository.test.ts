@@ -29,24 +29,29 @@ describe("SystemRepository.getMergedRulesConfig", () => {
     const childId = "507f1f77bcf86cd799439011";
     const parentId = "507f1f77bcf86cd799439012";
 
-    vi.mocked(SistemasModel.find).mockResolvedValue([
-      { _id: childId, name: "Child" },
-    ] as never);
-
-    mockFindById({
-      _id: childId,
-      parentId,
-      xpProgression: [0, 500],
-      hpInitialFormula: "child-hp",
-      deletedAt: null,
+    vi.mocked(SistemasModel.find).mockImplementation((query: Record<string, unknown>) => {
+      if (query && typeof query === "object" && query._id) {
+        return {
+          lean: vi.fn().mockResolvedValue([{
+            _id: parentId,
+            proficiencyProgression: [2, 4],
+            hpInitialFormula: "parent-hp",
+            parentIds: [],
+            deletedAt: null,
+          }]),
+        } as never;
+      }
+      return Promise.resolve([
+        {
+          _id: childId,
+          name: "Child",
+          parentIds: [parentId],
+          xpProgression: [0, 500],
+          hpInitialFormula: "child-hp",
+          deletedAt: null,
+        },
+      ]) as never;
     });
-    mockFindById({
-      _id: parentId,
-      proficiencyProgression: [2, 4],
-      hpInitialFormula: "parent-hp",
-      deletedAt: null,
-    });
-    mockFindById(null);
 
     const config = await repository.getMergedRulesConfig([childId]);
 
@@ -59,6 +64,24 @@ describe("SystemRepository.getMergedRulesConfig", () => {
     vi.mocked(SistemasModel.find).mockResolvedValue([] as never);
     const config = await repository.getMergedRulesConfig(["unknown"]);
     expect(config).toEqual({});
+  });
+});
+
+describe("SystemRepository.getByIds", () => {
+  it("hydrates mongoose documents and normalizes legacy parentId", async () => {
+    const childId = "507f1f77bcf86cd799439011";
+    const parentId = "507f1f77bcf86cd799439012";
+    vi.mocked(SistemasModel.find).mockResolvedValue([
+      { toObject: () => ({ _id: childId, name: "Child", parentIds: [parentId] }) },
+      { _id: parentId, name: "Parent", parentId: childId },
+    ] as never);
+
+    const repository = new SystemRepository();
+    const result = await repository.getByIds([childId, parentId]);
+
+    expect(result.map((system) => system.name)).toEqual(["Child", "Parent"]);
+    expect(result[0].parentIds).toEqual([parentId]);
+    expect(result[1].parentIds?.map((id) => id.toString())).toEqual([childId]);
   });
 });
 
@@ -128,6 +151,7 @@ describe("SystemRepository.hasChildren", () => {
     expect(result).toBe(true);
     expect(SistemasModel.countDocuments).toHaveBeenCalledWith(expect.objectContaining({
       deletedAt: null,
+      $or: expect.any(Array),
     }));
   });
 

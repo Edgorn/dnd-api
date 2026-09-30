@@ -5,7 +5,7 @@ import {
   PersonajeEquipmentMongo,
   TypeCrearPersonaje,
 } from "../../../domain/types/personajes.types";
-import ISystemRepository from "../../../domain/repositories/ISystemRepository";
+import SystemService from "../../../domain/services/system.service";
 import IEquipmentRepository from "../../../domain/repositories/IEquipmentRepository";
 import { NotFoundError, ValidationError } from "../../../domain/errors/AppError";
 import { addToInventory, createInventoryInstance } from "../../../utils/inventoryStacks";
@@ -20,12 +20,12 @@ export type CreateCharacterInput = Omit<TypeCrearPersonaje, "equipment"> & {
 export default class CrearPersonaje {
   constructor(
     private readonly personajeService: PersonajeService,
-    private readonly systemRepository: ISystemRepository,
+    private readonly systemService: SystemService,
     private readonly equipmentRepository: IEquipmentRepository
   ) { }
 
   async execute(data: CreateCharacterInput): Promise<PersonajeBasico | null> {
-    await this.systemRepository.verifySystemsNotBase(data.systems || []);
+    await this.systemService.assertSingleBase(data.systems || []);
     const companions = this.parseCompanions(data.companions);
     const equipment = await this.resolveStartingEquipment(this.parseStartingEquipment(data.equipment));
     return this.personajeService.crear({ ...data, equipment, companions });

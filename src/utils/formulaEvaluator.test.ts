@@ -260,7 +260,7 @@ describe("mergeRulesFromAncestry", () => {
     publisher: "pub",
     isOpen: false,
     isBase: false,
-    parentId: grandparent._id,
+    parentIds: [grandparent._id],
     proficiencyProgression: [2, 4],
   };
 
@@ -271,7 +271,7 @@ describe("mergeRulesFromAncestry", () => {
     publisher: "pub",
     isOpen: false,
     isBase: false,
-    parentId: parent._id,
+    parentIds: [parent._id],
     xpProgression: [0, 500],
     hpInitialFormula: "child-hp",
     attackBonusFormula: "child-attack",
