@@ -27,7 +27,7 @@ const creatureSchema = new Schema<CreatureMongo>({
   damage_immunities: { type: [String], default: [] },
   damage_resistances: { type: [String], default: [] },
   condition_immunities: { type: [String], default: [] },
-  special_abilities: { type: Schema.Types.Mixed, default: [] },
+  traits: { type: Schema.Types.Mixed, default: [] },
   spellcasting: { type: Schema.Types.Mixed, default: null },
   innateSpellcasting: { type: Schema.Types.Mixed, default: null },
   actions: { type: Schema.Types.Mixed, default: [] },

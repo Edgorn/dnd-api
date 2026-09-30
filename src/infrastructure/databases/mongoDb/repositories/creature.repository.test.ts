@@ -7,8 +7,19 @@ import {
   creatureObjectIds,
   formatStoredCreatureRace,
   hydrateInnateSpellcasting,
-  hydrateSpellcasting
+  hydrateSpellcasting,
+  resolveCreatureTraits
 } from "./creature.repository";
+
+describe("resolveCreatureTraits", () => {
+  it("expone traits y lee special_abilities de documentos lean antiguos", () => {
+    const embedded = { name: "Incorpóreo", description: ["Puede atravesar objetos."] };
+
+    expect(resolveCreatureTraits({ traits: [embedded] })).toEqual([embedded]);
+    expect(resolveCreatureTraits({ special_abilities: [embedded] })).toEqual([embedded]);
+    expect(resolveCreatureTraits({})).toEqual([]);
+  });
+});
 
 describe("creatureObjectIds", () => {
   it("convierte ids de Mongo y descarta índices antiguos", () => {

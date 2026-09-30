@@ -24,6 +24,9 @@ function normalizeBaseSpeed(base: number | Speed | undefined | null): Speed {
       const value = base[mode];
       if (typeof value === "number") extra[mode] = value;
     }
+    if (typeof base.flyHover === "boolean") {
+      extra.flyHover = base.flyHover;
+    }
   }
 
   return {

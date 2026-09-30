@@ -136,7 +136,7 @@ export default class CreatureRepository implements ICreatureRepository {
       damage_immunities: data.damage_immunities ?? [],
       damage_resistances: data.damage_resistances ?? [],
       condition_immunities: data.condition_immunities ?? [],
-      special_abilities: data.special_abilities ?? [],
+      traits: data.traits ?? [],
       spellcasting: data.spellcasting ?? null,
       innateSpellcasting: data.innateSpellcasting ?? null,
       actions: data.actions ?? [],
@@ -161,9 +161,14 @@ export default class CreatureRepository implements ICreatureRepository {
       }
     }
 
+    const updateQuery: { $set: Record<string, unknown>; $unset?: Record<string, string> } = { $set };
+    if (data.traits !== undefined) {
+      updateQuery.$unset = { special_abilities: "" };
+    }
+
     const updated = await CreatureModel.findByIdAndUpdate(
       id,
-      { $set },
+      updateQuery,
       { returnDocument: "after" }
     ).lean<CreatureMongo>();
 
@@ -241,6 +246,7 @@ export default class CreatureRepository implements ICreatureRepository {
 
     const hydrate = (features: CreatureFeature[] | undefined) =>
       hydrateFeatures(features ?? [], damageById, attributes, creature.prof_bonus ?? 0);
+    const traits = resolveCreatureTraits(creature);
 
     return {
       id: creature._id.toString(),
@@ -277,7 +283,7 @@ export default class CreatureRepository implements ICreatureRepository {
       damage_immunities: orderedDamages(creature.damage_immunities ?? [], damageById),
       damage_resistances: orderedDamages(creature.damage_resistances ?? [], damageById),
       condition_immunities: conditions,
-      special_abilities: hydrate(creature.special_abilities),
+      traits: hydrate(traits),
       spellcasting: hydrateSpellcasting(creature.spellcasting, spellById, catalogAttributes),
       innateSpellcasting: hydrateInnateSpellcasting(creature.innateSpellcasting, spellById, catalogAttributes),
       actions: hydrate(creature.actions),
@@ -411,6 +417,13 @@ function orderedSpells(ids: string[], spellById: Map<string, SpellApi>): SpellAp
   });
 }
 
+export function resolveCreatureTraits(creature: {
+  traits?: CreatureFeature[];
+  special_abilities?: CreatureFeature[];
+}): CreatureFeature[] {
+  return creature.traits ?? creature.special_abilities ?? [];
+}
+
 function collectDamageIds(creature: CreatureMongo): string[] {
   const fromFeatures = (features: CreatureFeature[] | undefined) =>
     (features ?? []).flatMap(feature => (feature.attack?.damage ?? []).map(roll => roll.damageTypeId));
@@ -419,7 +432,7 @@ function collectDamageIds(creature: CreatureMongo): string[] {
     ...(creature.damage_vulnerabilities ?? []),
     ...(creature.damage_immunities ?? []),
     ...(creature.damage_resistances ?? []),
-    ...fromFeatures(creature.special_abilities),
+    ...fromFeatures(resolveCreatureTraits(creature)),
     ...fromFeatures(creature.actions),
     ...fromFeatures(creature.bonus_actions),
     ...fromFeatures(creature.reactions),

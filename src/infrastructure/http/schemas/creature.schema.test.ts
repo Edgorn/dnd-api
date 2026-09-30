@@ -34,7 +34,7 @@ const priest = {
     slots: { "1": 4, "2": 3, "3": 2 },
     spells: ["sacred-flame", "cure-wounds"]
   },
-  special_abilities: [{
+  traits: [{
     name: "Prerrogativa Divina",
     description: ["Como acción adicional, el sacerdote puede gastar un espacio de conjuro."]
   }],
@@ -214,6 +214,48 @@ describe("CreateCreatureSchema", () => {
     expect(CreateCreatureSchema.safeParse({
       ...priest,
       senses: { blindsightBlindBeyond: true }
+    }).success).toBe(false);
+  });
+
+  it("acepta vuelo con flotar", () => {
+    const result = CreateCreatureSchema.safeParse({
+      ...priest,
+      speed: { walk: 0, fly: 50, flyHover: true }
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.speed).toEqual({ walk: 0, fly: 50, flyHover: true });
+    }
+  });
+
+  it("rechaza flotar sin velocidad de vuelo", () => {
+    const result = CreateCreatureSchema.safeParse({
+      ...priest,
+      speed: { walk: 30, flyHover: true }
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some(issue =>
+        issue.path[0] === "speed"
+        && issue.path[1] === "flyHover"
+        && issue.message === "flyHover requiere una velocidad de vuelo"
+      )).toBe(true);
+    }
+  });
+
+  it("acepta flyHover falso sin vuelo", () => {
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      speed: { walk: 30, flyHover: false }
+    }).success).toBe(true);
+  });
+
+  it("rechaza special_abilities en el cuerpo HTTP", () => {
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      special_abilities: priest.traits
     }).success).toBe(false);
   });
 

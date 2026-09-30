@@ -59,6 +59,7 @@ export * from "./property.types";
 export interface Speed {
   walk: number
   fly?: number
+  flyHover?: boolean
   climb?: number
   swim?: number
   burrow?: number

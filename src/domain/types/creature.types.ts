@@ -174,7 +174,9 @@ export interface CreatureMongo {
   damage_immunities: string[];
   damage_resistances: string[];
   condition_immunities: string[];
-  special_abilities: CreatureFeature[];
+  traits: CreatureFeature[];
+  /** Present on legacy lean documents before the field was renamed to `traits`. */
+  special_abilities?: CreatureFeature[];
   spellcasting?: CreatureSpellcasting | null;
   innateSpellcasting?: CreatureInnateSpellcasting | null;
   actions: CreatureFeature[];
@@ -213,7 +215,7 @@ export interface CreatureApi {
   damage_immunities: Damage[];
   damage_resistances: Damage[];
   condition_immunities: ConditionApi[];
-  special_abilities: CreatureFeatureApi[];
+  traits: CreatureFeatureApi[];
   spellcasting: CreatureSpellcastingApi;
   innateSpellcasting: CreatureInnateSpellcastingApi;
   actions: CreatureFeatureApi[];
@@ -251,7 +253,7 @@ export interface CreateCreature {
   damage_immunities?: string[];
   damage_resistances?: string[];
   condition_immunities?: string[];
-  special_abilities?: CreatureFeature[];
+  traits?: CreatureFeature[];
   spellcasting?: CreatureSpellcasting | null;
   innateSpellcasting?: CreatureInnateSpellcasting | null;
   actions?: CreatureFeature[];

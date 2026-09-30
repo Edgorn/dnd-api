@@ -55,12 +55,15 @@ const router = Router();
  *           type: string
  *         speed:
  *           type: object
- *           description: Velocidades de movimiento en pies.
+ *           description: Velocidades de movimiento en pies. flyHover indica «(flotar)» y exige fly.
  *           properties:
  *             walk:
  *               type: number
  *             fly:
  *               type: number
+ *             flyHover:
+ *               type: boolean
+ *               description: Verdadero si la velocidad de vuelo incluye «(flotar)». Exige fly.
  *             climb:
  *               type: number
  *             swim:
@@ -133,8 +136,9 @@ const router = Router();
  *                 $ref: '#/components/schemas/Spell'
  *         innateSpellcasting:
  *           $ref: '#/components/schemas/CreatureInnateSpellcastingApi'
- *         special_abilities:
+ *         traits:
  *           type: array
+ *           description: Rasgos embebidos de la ficha (nombre, descripción, uso, ataque). No son identificadores del catálogo de rasgos.
  *           items:
  *             type: object
  *         actions:
@@ -225,7 +229,7 @@ const router = Router();
  *           nullable: true
  *         speed:
  *           type: object
- *           description: Velocidades en pies. Un humanoide mediano camina 30 pies.
+ *           description: Velocidades en pies. Un humanoide mediano camina 30 pies. flyHover indica «(flotar)» y exige fly.
  *           required:
  *             - walk
  *           properties:
@@ -233,6 +237,9 @@ const router = Router();
  *               type: number
  *             fly:
  *               type: number
+ *             flyHover:
+ *               type: boolean
+ *               description: Verdadero si la velocidad de vuelo incluye «(flotar)». Exige fly.
  *             climb:
  *               type: number
  *             swim:
@@ -313,8 +320,9 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *         special_abilities:
+ *         traits:
  *           type: array
+ *           description: Rasgos embebidos de la ficha (nombre, descripción, uso, ataque). No son identificadores del catálogo de rasgos.
  *           items:
  *             $ref: '#/components/schemas/CreatureFeature'
  *         spellcasting:

@@ -75,4 +75,15 @@ describe("applyTraitSpeed", () => {
   it("defaults missing walk to 30", () => {
     expect(applyTraitSpeed(undefined, [])).toEqual({ walk: 30 });
   });
+
+  it("preserves flyHover when traits do not change fly", () => {
+    expect(applyTraitSpeed(
+      { walk: 0, fly: 50, flyHover: true },
+      [{ speed: { add: { walk: 10 } } }]
+    )).toEqual({
+      walk: 10,
+      fly: 50,
+      flyHover: true
+    });
+  });
 });

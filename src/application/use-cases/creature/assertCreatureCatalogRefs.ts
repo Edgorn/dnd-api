@@ -151,7 +151,7 @@ function collectDamageIds(data: CreateCreature): string[] {
     ...(data.damage_vulnerabilities ?? []),
     ...(data.damage_immunities ?? []),
     ...(data.damage_resistances ?? []),
-    ...fromFeatures(data.special_abilities),
+    ...fromFeatures(data.traits),
     ...fromFeatures(data.actions),
     ...fromFeatures(data.bonus_actions),
     ...fromFeatures(data.reactions),

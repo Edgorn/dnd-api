@@ -16,10 +16,17 @@ const ChoiceMongoSchema = z.object({
 const SpeedSchema = z.object({
   walk: z.number().nonnegative("La velocidad a pie no puede ser negativa"),
   fly: z.number().nonnegative().optional(),
+  flyHover: z.boolean().optional(),
   climb: z.number().nonnegative().optional(),
   swim: z.number().nonnegative().optional(),
   burrow: z.number().nonnegative().optional()
-}).strict();
+}).strict().refine(
+  (speed) => !speed.flyHover || speed.fly !== undefined,
+  {
+    message: "flyHover requiere una velocidad de vuelo",
+    path: ["flyHover"]
+  }
+);
 
 const ArmorClassSchema = z.object({
   value: z.number(),
@@ -147,7 +154,7 @@ export const CreateCreatureSchema = z.object({
   damage_immunities: z.array(z.string()).optional(),
   damage_resistances: z.array(z.string()).optional(),
   condition_immunities: z.array(z.string()).optional(),
-  special_abilities: z.array(FeatureSchema).optional(),
+  traits: z.array(FeatureSchema).optional(),
   spellcasting: SpellcastingSchema.nullable().optional(),
   innateSpellcasting: InnateSpellcastingSchema.nullable().optional(),
   actions: z.array(FeatureSchema).optional(),

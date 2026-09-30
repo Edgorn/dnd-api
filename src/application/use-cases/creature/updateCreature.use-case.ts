@@ -66,7 +66,7 @@ export default class UpdateCreatureUseCase {
           languages: data.languages,
           language_choices: data.language_choices,
           equipment: data.equipment,
-          special_abilities: data.special_abilities,
+          traits: data.traits,
           actions: data.actions,
           bonus_actions: data.bonus_actions,
           reactions: data.reactions,
@@ -103,7 +103,7 @@ export default class UpdateCreatureUseCase {
       || data.languages !== undefined
       || data.language_choices !== undefined
       || data.equipment !== undefined
-      || data.special_abilities !== undefined
+      || data.traits !== undefined
       || data.actions !== undefined
       || data.bonus_actions !== undefined
       || data.reactions !== undefined
