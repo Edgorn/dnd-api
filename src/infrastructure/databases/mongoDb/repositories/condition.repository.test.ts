@@ -4,12 +4,22 @@ import { NotFoundError } from "../../../../domain/errors/AppError";
 import ConditionRepository from "./condition.repository";
 import ConditionModel from "../schemas/Condition";
 
-vi.mock("../schemas/Condition", () => ({
-  default: {
+vi.mock("../schemas/Condition", () => {
+  const ConditionModel = vi.fn().mockImplementation(function (this: Record<string, unknown>, data: Record<string, unknown>) {
+    Object.assign(this, data, {
+      _id: { toString: () => "507f1f77bcf86cd799439011" },
+      save: vi.fn().mockResolvedValue(undefined)
+    });
+    return this;
+  });
+
+  Object.assign(ConditionModel, {
     find: vi.fn(),
     findByIdAndUpdate: vi.fn()
-  }
-}));
+  });
+
+  return { default: ConditionModel };
+});
 
 const POISONED_ID = "507f1f77bcf86cd799439011";
 
@@ -64,5 +74,71 @@ describe("ConditionRepository.update", () => {
     await expect(repository.update({ id: "not-an-id", name: "Aturdido" }))
       .rejects.toBeInstanceOf(NotFoundError);
     expect(ConditionModel.findByIdAndUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("ConditionRepository.create y formatCondition con niveles", () => {
+  const repository = new ConditionRepository();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("persiste y formatea niveles y acumulación", async () => {
+    const levels = [
+      { level: 1, description: "Desventaja en pruebas de característica" },
+      { level: 6, description: "Muerte" }
+    ];
+
+    const result = await repository.create({
+      name: "Cansancio",
+      ruleset: "sys1",
+      description: "El cansancio se acumula",
+      cumulative: true,
+      levels
+    });
+
+    expect(ConditionModel).toHaveBeenCalledWith({
+      name: "Cansancio",
+      ruleset: "sys1",
+      description: "El cansancio se acumula",
+      cumulative: true,
+      levels,
+      deletedAt: null
+    });
+    expect(result).toEqual({
+      id: POISONED_ID,
+      name: "Cansancio",
+      ruleset: "sys1",
+      description: "El cansancio se acumula",
+      cumulative: true,
+      levels,
+      deletedAt: null
+    });
+  });
+
+  it("incluye los niveles al formatear un documento leído", async () => {
+    vi.mocked(ConditionModel.find).mockReturnValue({
+      lean: vi.fn().mockResolvedValue([{
+        _id: new Types.ObjectId(POISONED_ID),
+        name: "Cansancio",
+        ruleset: "sys1",
+        deletedAt: null,
+        cumulative: true,
+        levels: [{ level: 1, description: "Desventaja" }]
+      }])
+    } as never);
+
+    const result = await repository.getByIds([POISONED_ID]);
+
+    expect(result).toEqual([{
+      id: POISONED_ID,
+      name: "Cansancio",
+      ruleset: "sys1",
+      description: undefined,
+      deletedAt: null,
+      cumulative: true,
+      levels: [{ level: 1, description: "Desventaja" }]
+    }]);
   });
 });

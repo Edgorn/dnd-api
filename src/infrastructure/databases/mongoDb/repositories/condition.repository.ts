@@ -4,6 +4,7 @@ import ISystemRepository from "../../../../domain/repositories/ISystemRepository
 import { NotFoundError } from "../../../../domain/errors/AppError";
 import {
   ConditionApi,
+  ConditionLevel,
   ConditionMongo,
   InputCreateCondition,
   InputUpdateCondition
@@ -77,6 +78,8 @@ export default class ConditionRepository implements IConditionRepository {
       name: data.name,
       description: data.description,
       ruleset: data.ruleset,
+      levels: data.levels,
+      cumulative: data.cumulative,
       deletedAt: null
     });
 
@@ -130,12 +133,33 @@ export default class ConditionRepository implements IConditionRepository {
   }
 
   private formatCondition(condition: ConditionMongo): ConditionApi {
-    return {
+    const formatted: ConditionApi = {
       id: condition._id.toString(),
       name: condition.name,
       description: condition.description,
       ruleset: condition.ruleset || "",
       deletedAt: condition.deletedAt ?? null
     };
+
+    const levels = this.formatLevels(condition.levels);
+    if (levels !== undefined) {
+      formatted.levels = levels;
+    }
+    if (condition.cumulative !== undefined) {
+      formatted.cumulative = condition.cumulative;
+    }
+
+    return formatted;
+  }
+
+  private formatLevels(levels: unknown): ConditionLevel[] | undefined {
+    if (!Array.isArray(levels)) {
+      return undefined;
+    }
+
+    return levels.map((item: ConditionLevel) => ({
+      level: item.level,
+      description: item.description
+    }));
   }
 }

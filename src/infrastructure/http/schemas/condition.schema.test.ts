@@ -33,6 +33,70 @@ describe("createConditionSchema", () => {
     expect(withoutRuleset.success).toBe(false);
     expect(emptyName.success).toBe(false);
   });
+
+  it("acepta niveles únicos y acumulación", () => {
+    const result = createConditionSchema.safeParse({
+      name: "Cansancio",
+      ruleset: "sys1",
+      description: "El cansancio se acumula por niveles",
+      cumulative: true,
+      levels: [
+        { level: 1, description: "Desventaja en pruebas de característica" },
+        { level: 2, description: "La velocidad se reduce a la mitad" }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza niveles duplicados", () => {
+    const result = createConditionSchema.safeParse({
+      name: "Cansancio",
+      ruleset: "sys1",
+      levels: [
+        { level: 1, description: "Primero" },
+        { level: 1, description: "Repetido" }
+      ]
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some(issue =>
+        issue.message === "El nivel 1 está repetido"
+      )).toBe(true);
+    }
+  });
+
+  it("rechaza acumulación sin niveles", () => {
+    const result = createConditionSchema.safeParse({
+      name: "Cansancio",
+      ruleset: "sys1",
+      cumulative: true
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some(issue =>
+        issue.message === "Un estado acumulativo debe tener al menos un nivel"
+      )).toBe(true);
+    }
+  });
+
+  it("rechaza un nivel no positivo o una descripción vacía", () => {
+    const zeroLevel = createConditionSchema.safeParse({
+      name: "Cansancio",
+      ruleset: "sys1",
+      levels: [{ level: 0, description: "Inválido" }]
+    });
+    const emptyDescription = createConditionSchema.safeParse({
+      name: "Cansancio",
+      ruleset: "sys1",
+      levels: [{ level: 1, description: "" }]
+    });
+
+    expect(zeroLevel.success).toBe(false);
+    expect(emptyDescription.success).toBe(false);
+  });
 });
 
 describe("updateConditionSchema", () => {
@@ -55,5 +119,20 @@ describe("updateConditionSchema", () => {
         issue.message === "Debe proporcionar al menos un campo para modificar"
       )).toBe(true);
     }
+  });
+
+  it("acepta vaciar la tabla de niveles", () => {
+    const result = updateConditionSchema.safeParse({ levels: [] });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.levels).toEqual([]);
+    }
+  });
+
+  it("rechaza acumulación verdadera sin niveles en la actualización", () => {
+    const result = updateConditionSchema.safeParse({ cumulative: true, levels: [] });
+
+    expect(result.success).toBe(false);
   });
 });

@@ -9,6 +9,19 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
+ *     ConditionLevel:
+ *       type: object
+ *       required:
+ *         - level
+ *         - description
+ *       properties:
+ *         level:
+ *           type: integer
+ *           minimum: 1
+ *           description: Número de nivel del estado (entero positivo, sin duplicados).
+ *         description:
+ *           type: string
+ *           description: Consecuencia o reglas de ese nivel.
  *     Condition:
  *       type: object
  *       properties:
@@ -20,10 +33,18 @@ const router = Router();
  *           description: Nombre del estado (ej. Envenenado, Aturdido).
  *         description:
  *           type: string
- *           description: Descripción del estado.
+ *           description: Descripción general del estado (causas, acumulación, recuperación).
  *         ruleset:
  *           type: string
  *           description: ID del sistema al que pertenece.
+ *         levels:
+ *           type: array
+ *           description: Tabla de niveles para estados escalonados (por ejemplo Cansancio). Se omite en estados sin niveles.
+ *           items:
+ *             $ref: '#/components/schemas/ConditionLevel'
+ *         cumulative:
+ *           type: boolean
+ *           description: Si es verdadero, los niveles 1..N se aplican juntos. Requiere al menos un nivel.
  *         deletedAt:
  *           type: string
  *           format: date-time
@@ -44,6 +65,14 @@ const router = Router();
  *         ruleset:
  *           type: string
  *           description: ID del sistema de reglas.
+ *         levels:
+ *           type: array
+ *           description: Niveles opcionales del estado. Cada level debe ser único.
+ *           items:
+ *             $ref: '#/components/schemas/ConditionLevel'
+ *         cumulative:
+ *           type: boolean
+ *           description: Si es verdadero, debe enviarse al menos un nivel.
  *     InputUpdateCondition:
  *       type: object
  *       properties:
@@ -56,6 +85,14 @@ const router = Router();
  *         ruleset:
  *           type: string
  *           description: ID del sistema de reglas.
+ *         levels:
+ *           type: array
+ *           description: Niveles del estado. Enviar un array vacío elimina la tabla de niveles.
+ *           items:
+ *             $ref: '#/components/schemas/ConditionLevel'
+ *         cumulative:
+ *           type: boolean
+ *           description: Si es verdadero, debe haber al menos un nivel en el mismo cuerpo.
  */
 
 /**
