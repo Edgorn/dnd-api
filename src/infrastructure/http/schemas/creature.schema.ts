@@ -129,6 +129,7 @@ export const CreateCreatureSchema = z.object({
   description: z.array(z.string()).optional(),
   creatureTypeId: z.string().min(1, "El tipo de criatura es obligatorio"),
   race: z.union([z.literal(CREATURE_ANY_RACE), z.string().min(1)]).nullable().optional(),
+  tags: z.array(z.string().min(1)).optional(),
   size: z.string().min(1, "El tamaño no puede estar vacío"),
   alignment: z.string().min(1, "El alineamiento no puede estar vacío"),
   armor_class: ArmorClassSchema.nullable().optional(),

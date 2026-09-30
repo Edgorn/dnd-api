@@ -8,6 +8,7 @@ const creatureSchema = new Schema<CreatureMongo>({
   description: { type: [String], default: [] },
   creatureTypeId: { type: String, required: true },
   race: String,
+  tags: { type: [String], default: [] },
   size: { type: String, required: true },
   alignment: { type: String, required: true },
   armor_class: Schema.Types.Mixed,

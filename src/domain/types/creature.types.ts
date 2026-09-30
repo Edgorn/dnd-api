@@ -154,6 +154,7 @@ export interface CreatureMongo {
   creatureTypeId: string;
   /** `"any"`, a race id, or null when the creature has no race. Legacy `subtype` is ignored. */
   race?: string | null;
+  tags?: string[];
   size: string;
   alignment: string;
   armor_class?: { value: number; notes?: string };
@@ -195,6 +196,7 @@ export interface CreatureApi {
   description: string[];
   creatureType?: CreatureTypeApi;
   race: RaceRef | typeof CREATURE_ANY_RACE | null;
+  tags: string[];
   size: string;
   alignment: string;
   armor_class?: { value: number; notes?: string };
@@ -234,6 +236,7 @@ export interface CreateCreature {
   creatureTypeId: string;
   /** `"any"`, a race id, or null when the creature has no race. */
   race?: string | null;
+  tags?: string[];
   size: string;
   alignment: string;
   armor_class?: { value: number; notes?: string } | null;

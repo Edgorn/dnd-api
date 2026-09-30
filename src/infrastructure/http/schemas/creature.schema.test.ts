@@ -68,6 +68,19 @@ describe("CreateCreatureSchema", () => {
     expect(CreateCreatureSchema.safeParse({ ...priest, race: "507f1f77bcf86cd799439011" }).success).toBe(true);
   });
 
+  it("acepta tags y rechaza cadenas vacías en el array", () => {
+    const withTags = CreateCreatureSchema.safeParse({
+      ...priest,
+      tags: ["cambiaformas", "demonio"]
+    });
+    expect(withTags.success).toBe(true);
+    if (withTags.success) {
+      expect(withTags.data.tags).toEqual(["cambiaformas", "demonio"]);
+    }
+
+    expect(CreateCreatureSchema.safeParse({ ...priest, tags: [""] }).success).toBe(false);
+  });
+
   it("acepta los tres modos de language_choices y descarta claves ajenas", () => {
     const chooseOnly = CreateCreatureSchema.safeParse({
       ...priest,

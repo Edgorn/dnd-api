@@ -35,6 +35,11 @@ const router = Router();
  *               enum:
  *                 - any
  *             - $ref: '#/components/schemas/CreatureRaceRef'
+ *         tags:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Etiquetas de la criatura (p. ej. cambiaformas, demonio). No son el tipo ni la raza.
  *         size:
  *           type: string
  *         alignment:
@@ -210,6 +215,11 @@ const router = Router();
  *           nullable: true
  *           description: Omitido o null si la criatura no tiene raza. "any" si admite cualquier raza. Cualquier otro valor es el ID de una raza existente, no borrada, del sistema de la criatura o de un ancestro.
  *           example: any
+ *         tags:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Etiquetas opcionales (p. ej. cambiaformas, demonio). No son el tipo ni la raza.
  *         size:
  *           type: string
  *         alignment:
