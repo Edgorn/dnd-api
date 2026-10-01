@@ -55,8 +55,8 @@ export const CreateRaceSchema = z.object({
   traits: z.array(z.string()).nullable().optional(),
   traits_data: z.record(z.string(), z.any()).nullable().optional(),
   languages: z.object({
-    speaks: z.array(z.string()).optional(),
-    understands: z.array(z.string()).optional(),
+    speaks: z.array(z.string().min(1, "El idioma no puede estar vacío")).optional(),
+    understands: z.array(z.string().min(1, "El idioma no puede estar vacío")).optional(),
     notes: z.string().optional()
   }).nullable().optional(),
   language_choices: ChoiceMongoSchema.nullable().optional(),

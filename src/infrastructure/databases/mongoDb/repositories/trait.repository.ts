@@ -171,7 +171,7 @@ export default class TraitRepository implements ITraitRepository {
       allSpells.size ? this.spellRepository.getSpellsByIndexes(Array.from(allSpells)) : [],
       allConditionInmunities.size ? this.conditionRepository.getByIds(Array.from(allConditionInmunities)) : [],
       allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : [],
-      allLanguages.size ? this.languageRepository.getLanguagesByIndex(Array.from(allLanguages)) : [],
+      allLanguages.size ? this.languageRepository.getByIds(Array.from(allLanguages)) : [],
       allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : [],
       allSaveAttributes.size ? this.attributeRepository.getByIds(Array.from(allSaveAttributes)) : [],
       allCreatureTypes.size ? this.creatureTypeRepository.getByIds(Array.from(allCreatureTypes)) : []

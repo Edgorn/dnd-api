@@ -3,6 +3,7 @@ import { ChoiceApi, ChoiceMongo, Speed } from ".";
 import { AttributeApi, CharacterAttributeApi } from "./attribute.types";
 import { CreatureTypeApi } from "./creatureType.types";
 import { Damage } from "./damage.types";
+import { DamageAffinityGrant, DamageAffinityGrantApi } from "./damageAffinity.types";
 import { EquipmentInstanceApi, CharacterEquipmentMongo } from "./equipment.types";
 import { ConditionApi } from "./condition.types";
 import { CreatureLanguages, CreatureLanguagesCreate, LanguageApi } from "./language.types";
@@ -171,9 +172,9 @@ export interface CreatureMongo {
   challenge_rating: number;
   xp: number;
   prof_bonus: number;
-  damage_vulnerabilities: string[];
-  damage_immunities: string[];
-  damage_resistances: string[];
+  damage_vulnerabilities: DamageAffinityGrant[];
+  damage_immunities: DamageAffinityGrant[];
+  damage_resistances: DamageAffinityGrant[];
   condition_immunities: string[];
   traits: CreatureFeature[];
   /** Present on legacy lean documents before the field was renamed to `traits`. */
@@ -213,9 +214,9 @@ export interface CreatureApi {
   challenge_rating: number;
   xp: number;
   prof_bonus: number;
-  damage_vulnerabilities: Damage[];
-  damage_immunities: Damage[];
-  damage_resistances: Damage[];
+  damage_vulnerabilities: DamageAffinityGrantApi[];
+  damage_immunities: DamageAffinityGrantApi[];
+  damage_resistances: DamageAffinityGrantApi[];
   condition_immunities: ConditionApi[];
   traits: CreatureFeatureApi[];
   spellcasting: CreatureSpellcastingApi;
@@ -252,9 +253,9 @@ export interface CreateCreature {
   challenge_rating: number;
   xp: number;
   prof_bonus: number;
-  damage_vulnerabilities?: string[];
-  damage_immunities?: string[];
-  damage_resistances?: string[];
+  damage_vulnerabilities?: DamageAffinityGrant[];
+  damage_immunities?: DamageAffinityGrant[];
+  damage_resistances?: DamageAffinityGrant[];
   condition_immunities?: string[];
   traits?: CreatureFeature[];
   spellcasting?: CreatureSpellcasting | null;

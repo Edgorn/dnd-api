@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { CREATURE_ANY_RACE, CREATURE_ATTACK_KINDS, CREATURE_USAGE_TYPES } from "../../../domain/types/creature.types";
+import { DAMAGE_AFFINITY_BYPASSES, DAMAGE_AFFINITY_SOURCES } from "../../../domain/types/damageAffinity.types";
+import { normalizeDamageAffinityList } from "../../../utils/damageAffinity";
 import { GrantedEquipmentListSchema } from "./equipment.schema";
 
 const ChoiceMongoSchema = z.object({
@@ -116,9 +118,31 @@ const InnateSpellcastingSchema = z.object({
   spells: z.array(InnateSpellGroupSchema)
 }).strict();
 
+export const DamageAffinityGrantSchema = z.object({
+  damageTypeIds: z.array(z.string().min(1, "El identificador del tipo de daño no puede estar vacío"))
+    .min(1, "Cada afinidad de daño debe tener al menos un tipo"),
+  source: z.enum(DAMAGE_AFFINITY_SOURCES).optional(),
+  bypass: z.array(z.enum(DAMAGE_AFFINITY_BYPASSES)).optional()
+}).strict().superRefine((grant, ctx) => {
+  if ((grant.bypass?.length ?? 0) > 0 && grant.source !== "nonmagical_attacks") {
+    ctx.addIssue({
+      code: "custom",
+      path: ["bypass"],
+      message: "bypass solo es válido con source nonmagical_attacks"
+    });
+  }
+});
+
+const DamageAffinityListSchema = z
+  .array(z.union([
+    z.string().min(1, "El identificador del tipo de daño no puede estar vacío"),
+    DamageAffinityGrantSchema
+  ]))
+  .transform(normalizeDamageAffinityList);
+
 const LanguagesSchema = z.object({
-  speaks: z.array(z.string()).optional(),
-  understands: z.array(z.string()).optional(),
+  speaks: z.array(z.string().min(1, "El idioma no puede estar vacío")).optional(),
+  understands: z.array(z.string().min(1, "El idioma no puede estar vacío")).optional(),
   notes: z.string().optional()
 }).strict();
 
@@ -151,9 +175,9 @@ export const CreateCreatureSchema = z.object({
   challenge_rating: z.number().nonnegative(),
   xp: z.number().int().nonnegative(),
   prof_bonus: z.number().int().nonnegative(),
-  damage_vulnerabilities: z.array(z.string()).optional(),
-  damage_immunities: z.array(z.string()).optional(),
-  damage_resistances: z.array(z.string()).optional(),
+  damage_vulnerabilities: DamageAffinityListSchema.optional(),
+  damage_immunities: DamageAffinityListSchema.optional(),
+  damage_resistances: DamageAffinityListSchema.optional(),
   condition_immunities: z.array(z.string()).optional(),
   traits: z.array(FeatureSchema).optional(),
   spellcasting: SpellcastingSchema.nullable().optional(),

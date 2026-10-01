@@ -10,6 +10,8 @@ import SystemService from "../../../domain/services/system.service";
 import IConditionRepository from "../../../domain/repositories/IConditionRepository";
 import { AppError } from "../../../domain/errors/AppError";
 import { CREATURE_ANY_RACE, CreateCreature, CreatureFeature, CreatureInnateSpellcasting, CreatureSpellcasting } from "../../../domain/types/creature.types";
+import { collectDamageTypeIdsFromAffinities } from "../../../utils/damageAffinity";
+import { isMongoObjectId } from "../../../utils/mongoObjectId";
 
 export async function assertCreatureCatalogRefs(input: {
   data: CreateCreature;
@@ -106,8 +108,8 @@ export async function assertCreatureCatalogRefs(input: {
   }
 
   const languageIds = unique([
-    ...(input.data.languages?.speaks ?? []),
-    ...(input.data.languages?.understands ?? []),
+    ...(input.data.languages?.speaks ?? []).filter(isMongoObjectId),
+    ...(input.data.languages?.understands ?? []).filter(isMongoObjectId),
     ...(Array.isArray(input.data.language_choices?.options) ? input.data.language_choices.options : [])
   ]);
   for (const languageId of languageIds) {
@@ -148,9 +150,11 @@ function collectDamageIds(data: CreateCreature): string[] {
     (features ?? []).flatMap(feature => (feature.attack?.damage ?? []).map(roll => roll.damageTypeId));
 
   return unique([
-    ...(data.damage_vulnerabilities ?? []),
-    ...(data.damage_immunities ?? []),
-    ...(data.damage_resistances ?? []),
+    ...collectDamageTypeIdsFromAffinities(
+      data.damage_vulnerabilities,
+      data.damage_immunities,
+      data.damage_resistances
+    ),
     ...fromFeatures(data.traits),
     ...fromFeatures(data.actions),
     ...fromFeatures(data.bonus_actions),

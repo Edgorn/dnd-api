@@ -6,6 +6,7 @@ import INpcRepository from '../../../../domain/repositories/INpcRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
 import { LegacyCreatureApi, LegacyCreatureMongo } from '../../../../domain/types/npc.types';
 import NpcSchema from '../schemas/Npc';
+import { collectCatalogLanguageIds, hydrateLanguageGrants, languageApiById } from '../../../../utils/hydrateLanguageGrants';
 
 export default class NpcRepository implements INpcRepository {
   constructor(
@@ -32,23 +33,24 @@ export default class NpcRepository implements INpcRepository {
   }
 
   private async formatearNpc(npc: LegacyCreatureMongo): Promise<LegacyCreatureApi> {
+    const speakRaw = npc?.languages?.speaks ?? [];
+    const understandRaw = npc?.languages?.understands ?? [];
     const [
       damage_vulnerabilities,
       damage_immunities,
       damage_resistances,
       condition_immunities,
-      speaks_languages,
-      understands_languages,
+      catalogLanguages,
       spell_slots
     ] = await Promise.all([
       this.damageRepository.getByIds(npc?.damage_vulnerabilities ?? []),
       this.damageRepository.getByIds(npc?.damage_immunities ?? []),
       this.damageRepository.getByIds(npc?.damage_resistances ?? []),
       this.conditionRepository.getByIds(npc?.condition_immunities ?? []),
-      this.languageRepository.getLanguagesByIndex(npc?.languages?.speaks ?? []),
-      this.languageRepository.getLanguagesByIndex(npc?.languages?.understands ?? []),
+      this.languageRepository.getByIds(collectCatalogLanguageIds(speakRaw, understandRaw)),
       this.formatCreatureSpellSlots(npc?.spell_slots ?? [])
     ])
+    const languageCatalog = languageApiById(catalogLanguages);
        
     return {
       id: npc.index,
@@ -66,8 +68,8 @@ export default class NpcRepository implements INpcRepository {
       skills: npc.skills,
       senses: npc.senses,
       languages: {
-        speaks: speaks_languages,
-        understands: understands_languages,
+        speaks: hydrateLanguageGrants(speakRaw, languageCatalog),
+        understands: hydrateLanguageGrants(understandRaw, languageCatalog),
         notes: npc?.languages?.notes
       },
       challenge_rating: npc.challenge_rating,

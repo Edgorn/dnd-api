@@ -245,6 +245,76 @@ describe("Creature use cases", () => {
       await expect(useCase.execute(priestInput, "user1")).rejects.toBeInstanceOf(AppError);
       expect(creatureService.create).not.toHaveBeenCalled();
     });
+
+    it("no consulta el catálogo de idiomas para etiquetas especiales", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      creatureService.create.mockResolvedValue(sampleCreature);
+      const useCase = createUseCase();
+      const input = {
+        ...priestInput,
+        languages: { speaks: [], understands: ["the languages of its creator"] }
+      };
+
+      await useCase.execute(input, "user1");
+
+      expect(languageService.getById).not.toHaveBeenCalled();
+      expect(creatureService.create).toHaveBeenCalledWith(input);
+    });
+
+    it("rechaza un idioma de catálogo inexistente", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      languageService.getById.mockResolvedValue(null);
+      const useCase = createUseCase();
+      const missingId = "507f1f77bcf86cd799439099";
+
+      await expect(useCase.execute({
+        ...priestInput,
+        languages: { speaks: [missingId], understands: [] }
+      }, "user1")).rejects.toMatchObject({ message: "Idioma no encontrado", statusCode: 404 });
+      expect(languageService.getById).toHaveBeenCalledWith(missingId);
+      expect(creatureService.create).not.toHaveBeenCalled();
+    });
+
+    it("rechaza un tipo de daño de afinidad que no existe", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      damageService.getById.mockResolvedValue(null);
+      const useCase = createUseCase();
+
+      await expect(useCase.execute({
+        ...priestInput,
+        damage_resistances: [{ damageTypeIds: ["cold"], source: "any", bypass: [] }]
+      }, "user1")).rejects.toMatchObject({ message: "Tipo de daño no encontrado", statusCode: 404 });
+      expect(damageService.getById).toHaveBeenCalledWith("cold");
+      expect(creatureService.create).not.toHaveBeenCalled();
+    });
+
+    it("acepta grants de afinidad del catálogo", async () => {
+      skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
+      damageService.getById.mockImplementation(async (id: string) => ({
+        id,
+        ruleset: "sys1",
+        deletedAt: null
+      }));
+      creatureService.create.mockResolvedValue(sampleCreature);
+      const useCase = createUseCase();
+      const input: CreateCreature = {
+        ...priestInput,
+        damage_immunities: [
+          { damageTypeIds: ["cold"], source: "any", bypass: [] },
+          {
+            damageTypeIds: ["bludgeoning", "piercing", "slashing"],
+            source: "nonmagical_attacks",
+            bypass: ["silvered"]
+          }
+        ]
+      };
+
+      await useCase.execute(input, "user1");
+
+      expect(damageService.getById).toHaveBeenCalledWith("cold");
+      expect(damageService.getById).toHaveBeenCalledWith("bludgeoning");
+      expect(creatureService.create).toHaveBeenCalledWith(input);
+    });
   });
 
   describe("UpdateCreature", () => {

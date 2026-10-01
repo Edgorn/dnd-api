@@ -3,6 +3,7 @@ import ILanguageRepository from '../../../../domain/repositories/ILanguageReposi
 import { ChoiceMongo, ChoiceApi } from '../../../../domain/types';
 import { InputCreateLanguage, InputUpdateLanguage, LanguageApi, LanguageMongo } from '../../../../domain/types/language.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
+import { isMongoObjectId } from '../../../../utils/mongoObjectId';
 import LanguageSchema from '../schemas/Language';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import { ConflictError, NotFoundError } from '../../../../domain/errors/AppError';
@@ -73,21 +74,16 @@ export default class LanguageRepository implements ILanguageRepository {
     return this.formatLanguage(updatedLanguage);
   }
 
-  async getLanguagesByIndex(indexes: string[]): Promise<LanguageApi[]> {
-    if (!indexes.length) return [];
-
-    const validMongoIds = indexes.filter(item => Types.ObjectId.isValid(item));
-    const stringIndexes = indexes.filter(item => !Types.ObjectId.isValid(item));
+  async getByIds(ids: string[]): Promise<LanguageApi[]> {
+    const objectIds = ids.filter(isMongoObjectId).map(id => new Types.ObjectId(id));
+    if (!objectIds.length) return [];
 
     const languages = await LanguageSchema.find({
-      $or: [
-        { _id: { $in: validMongoIds } as any },
-        { index: { $in: stringIndexes } }
-      ],
+      _id: { $in: objectIds as any },
       deletedAt: null
     });
 
-    return ordenarPorNombre(this.formatLanguages(languages));
+    return this.formatLanguages(languages);
   }
 
   async formatLanguageChoices(choices: ChoiceMongo | undefined, ruleset?: string): Promise<ChoiceApi<LanguageApi> | undefined> {
@@ -98,7 +94,7 @@ export default class LanguageRepository implements ILanguageRepository {
       const isAll = choices.options === 'all' || choices.options === 'cualquiera';
       const languages = isAll 
         ? (ruleset ? await this.getBySystems([ruleset]) : await this.getAll())
-        : await this.getLanguagesByIndex([choices.options as unknown as string]);
+        : await this.getByIds([choices.options as unknown as string]);
       
       return {
         choose: choices.choose,
@@ -108,7 +104,7 @@ export default class LanguageRepository implements ILanguageRepository {
     }
 
     if (choices.options && choices.options.length > 0) {
-      const languages = await this.getLanguagesByIndex(choices.options);
+      const languages = await this.getByIds(choices.options);
 
       return {
         choose: choices.choose,
@@ -172,7 +168,7 @@ export default class LanguageRepository implements ILanguageRepository {
 
   private formatLanguage(language: LanguageMongo): LanguageApi {
     return {
-      id: language.index ?? language._id.toString(),
+      id: language._id.toString(),
       name: language.name,
       type: language.type,
       description: language.description,
@@ -183,30 +179,20 @@ export default class LanguageRepository implements ILanguageRepository {
   }
 
   async getById(id: string): Promise<LanguageApi | null> {
-    let language;
-    if (Types.ObjectId.isValid(id)) {
-      language = await LanguageSchema.findById(id);
-    } else {
-      language = await LanguageSchema.findOne({ index: id });
-    }
+    if (!isMongoObjectId(id)) return null;
+    const language = await LanguageSchema.findById(id);
     if (!language) return null;
     return this.formatLanguage(language);
   }
 
   async softDelete(id: string): Promise<void> {
-    if (Types.ObjectId.isValid(id)) {
-      await LanguageSchema.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } });
-    } else {
-      await LanguageSchema.findOneAndUpdate({ index: id }, { $set: { deletedAt: new Date() } });
-    }
+    if (!isMongoObjectId(id)) return;
+    await LanguageSchema.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } });
   }
 
   async restore(id: string): Promise<void> {
-    if (Types.ObjectId.isValid(id)) {
-      await LanguageSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
-    } else {
-      await LanguageSchema.findOneAndUpdate({ index: id }, { $set: { deletedAt: null } });
-    }
+    if (!isMongoObjectId(id)) return;
+    await LanguageSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
 
   async softDeleteByRuleset(ruleset: string, deletedAt: Date): Promise<void> {

@@ -4,12 +4,37 @@ import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CREATURE_ANY_RACE, CreatureInnateSpellcasting } from "../../../../domain/types/creature.types";
 import { SpellApi } from "../../../../domain/types/spell.types";
 import {
+  collectDamageIds,
   creatureObjectIds,
   formatStoredCreatureRace,
   hydrateInnateSpellcasting,
   hydrateSpellcasting,
   resolveCreatureTraits
 } from "./creature.repository";
+
+describe("collectDamageIds", () => {
+  it("recoge ids legado y grants, más el daño de ataques", () => {
+    const ids = collectDamageIds({
+      damage_vulnerabilities: ["cold"] as never,
+      damage_immunities: [{
+        damageTypeIds: ["bludgeoning", "piercing"],
+        source: "nonmagical_attacks",
+        bypass: ["silvered"]
+      }],
+      damage_resistances: [],
+      actions: [{
+        name: "Mordisco",
+        description: [],
+        attack: {
+          kind: "melee_weapon",
+          damage: [{ dice: "1d6", damageTypeId: "poison" }]
+        }
+      }]
+    } as never);
+
+    expect(ids).toEqual(["cold", "bludgeoning", "piercing", "poison"]);
+  });
+});
 
 describe("resolveCreatureTraits", () => {
   it("expone traits y lee special_abilities de documentos lean antiguos", () => {

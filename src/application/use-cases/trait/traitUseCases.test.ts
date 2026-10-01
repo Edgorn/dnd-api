@@ -162,7 +162,7 @@ describe("Trait Use Cases armor type suppression", () => {
 
   describe("catalog languages and damage", () => {
     const damageId = "507f1f77bcf86cd799439012";
-    const languageId = "common";
+    const languageId = "507f1f77bcf86cd799439013";
 
     beforeEach(() => {
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
@@ -172,15 +172,15 @@ describe("Trait Use Cases armor type suppression", () => {
     });
 
     it("stores languages with the public id of the catalog", async () => {
-      languageServiceMock.getById.mockResolvedValue({ id: "draconic", ruleset: "parent" });
+      languageServiceMock.getById.mockResolvedValue({ id: languageId, ruleset: "parent" });
 
       await createUseCase().execute({
         ...baseTrait,
-        languages: { speaks: ["507f1f77bcf86cd799439013"], understands: ["draconic"] }
+        languages: { speaks: [languageId], understands: [languageId] }
       }, "user1");
 
       expect(traitServiceMock.create).toHaveBeenCalledWith(expect.objectContaining({
-        languages: { speaks: ["draconic"], understands: ["draconic"] }
+        languages: { speaks: [languageId], understands: [languageId] }
       }));
     });
 

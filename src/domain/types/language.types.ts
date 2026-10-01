@@ -20,7 +20,6 @@ export interface InputUpdateLanguage {
 
 export interface LanguageMongo {
   _id: ObjectId,
-  index?: string,
   name: string,
   type?: string,
   description?: string,
@@ -39,6 +38,12 @@ export interface LanguageApi {
   deletedAt?: Date
 }
 
+export interface LanguageLabel {
+  name: string
+}
+
+export type LanguageGrantApi = LanguageApi | LanguageLabel
+
 export interface CreatureLanguagesCreate {
   understands: string[],
   speaks: string[],
@@ -46,7 +51,7 @@ export interface CreatureLanguagesCreate {
 }
 
 export interface CreatureLanguages {
-  understands: LanguageApi[],
-  speaks: LanguageApi[],
+  understands: LanguageGrantApi[],
+  speaks: LanguageGrantApi[],
   notes?: string
 }

@@ -272,7 +272,7 @@ describe("CreateTraitSchema languages and damage choices", () => {
     const result = CreateTraitSchema.safeParse({
       ruleset: "sys1",
       name: "Ascendencia",
-      languages: { speaks: ["draconic"], understands: ["draconic"] },
+      languages: { speaks: ["507f1f77bcf86cd799439013"], understands: ["507f1f77bcf86cd799439013"] },
       damageChoices,
     });
     expect(result.success).toBe(true);

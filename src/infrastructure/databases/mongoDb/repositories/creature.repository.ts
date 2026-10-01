@@ -12,6 +12,7 @@ import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 import { NotFoundError } from "../../../../domain/errors/AppError";
 import { Damage } from "../../../../domain/types";
+import { CREATURE_DAMAGE_AFFINITY_FIELDS } from "../../../../domain/types/damageAffinity.types";
 import { AttributeApi, CharacterAttributeApi } from "../../../../domain/types/attribute.types";
 import {
   CREATURE_ANY_RACE,
@@ -40,6 +41,12 @@ import {
   resolvePassivePerception
 } from "../../../../utils/creatureStats";
 import CreatureModel from "../schemas/Creature";
+import {
+  collectDamageTypeIdsFromAffinities,
+  hydrateDamageAffinities,
+  normalizeDamageAffinityList
+} from "../../../../utils/damageAffinity";
+import { collectCatalogLanguageIds, hydrateLanguageGrants, languageApiById } from "../../../../utils/hydrateLanguageGrants";
 
 export default class CreatureRepository implements ICreatureRepository {
   constructor(
@@ -133,9 +140,9 @@ export default class CreatureRepository implements ICreatureRepository {
       challenge_rating: data.challenge_rating,
       xp: data.xp,
       prof_bonus: data.prof_bonus,
-      damage_vulnerabilities: data.damage_vulnerabilities ?? [],
-      damage_immunities: data.damage_immunities ?? [],
-      damage_resistances: data.damage_resistances ?? [],
+      damage_vulnerabilities: normalizeDamageAffinityList(data.damage_vulnerabilities),
+      damage_immunities: normalizeDamageAffinityList(data.damage_immunities),
+      damage_resistances: normalizeDamageAffinityList(data.damage_resistances),
       condition_immunities: data.condition_immunities ?? [],
       traits: data.traits ?? [],
       spellcasting: data.spellcasting ?? null,
@@ -156,9 +163,11 @@ export default class CreatureRepository implements ICreatureRepository {
     const { id, ...updateFields } = data;
     const $set: Record<string, unknown> = {};
 
+    const affinityFields = new Set<string>(CREATURE_DAMAGE_AFFINITY_FIELDS);
+
     for (const [key, value] of Object.entries(updateFields)) {
       if (value !== undefined) {
-        $set[key] = value;
+        $set[key] = affinityFields.has(key) ? normalizeDamageAffinityList(value) : value;
       }
     }
 
@@ -208,6 +217,8 @@ export default class CreatureRepository implements ICreatureRepository {
       ...collectSpellIds(creature.spellcasting),
       ...collectInnateSpellIds(creature.innateSpellcasting)
     ]);
+    const speakRaw = creature.languages?.speaks ?? [];
+    const understandRaw = creature.languages?.understands ?? [];
 
     const [
       catalogAttributes,
@@ -215,8 +226,7 @@ export default class CreatureRepository implements ICreatureRepository {
       creatureType,
       damages,
       conditions,
-      speaks,
-      understands,
+      catalogLanguages,
       languageChoices,
       spells,
       equipment,
@@ -229,13 +239,13 @@ export default class CreatureRepository implements ICreatureRepository {
         : Promise.resolve(null),
       this.damageRepository.getByIds(damageIds),
       this.conditionRepository.getByIds(creature.condition_immunities ?? []),
-      this.languageRepository.getLanguagesByIndex(creature.languages?.speaks ?? []),
-      this.languageRepository.getLanguagesByIndex(creature.languages?.understands ?? []),
+      this.languageRepository.getByIds(collectCatalogLanguageIds(speakRaw, understandRaw)),
       this.languageRepository.formatLanguageChoices(creature.language_choices, creature.ruleset),
       this.spellRepository.getSpellsByIndexes(spellIds),
       this.equipmentRepository.getCharacterEquipmentsByIds(creature.equipment ?? []),
       this.resolveRace(creature.race)
     ]);
+    const languageCatalog = languageApiById(catalogLanguages);
 
     const damageById = new Map(damages.filter(item => item.id).map(item => [item.id as string, item]));
     const spellById = new Map(spells.filter(item => item.id).map(item => [item.id as string, item]));
@@ -273,17 +283,17 @@ export default class CreatureRepository implements ICreatureRepository {
         passive_perception: resolvePassivePerception(skills, attributes, creature.senses?.passive_perception)
       },
       languages: {
-        speaks,
-        understands,
+        speaks: hydrateLanguageGrants(speakRaw, languageCatalog),
+        understands: hydrateLanguageGrants(understandRaw, languageCatalog),
         notes: creature.languages?.notes
       },
       language_choices: languageChoices,
       challenge_rating: creature.challenge_rating,
       xp: creature.xp,
       prof_bonus: creature.prof_bonus,
-      damage_vulnerabilities: orderedDamages(creature.damage_vulnerabilities ?? [], damageById),
-      damage_immunities: orderedDamages(creature.damage_immunities ?? [], damageById),
-      damage_resistances: orderedDamages(creature.damage_resistances ?? [], damageById),
+      damage_vulnerabilities: hydrateDamageAffinities(creature.damage_vulnerabilities, damageById),
+      damage_immunities: hydrateDamageAffinities(creature.damage_immunities, damageById),
+      damage_resistances: hydrateDamageAffinities(creature.damage_resistances, damageById),
       condition_immunities: conditions,
       traits: hydrate(traits),
       spellcasting: hydrateSpellcasting(creature.spellcasting, spellById, catalogAttributes),
@@ -405,13 +415,6 @@ function resolveSpellcastingAbility(
     ?? catalogAttributes.find(attribute => attribute.key === abilityId);
 }
 
-function orderedDamages(ids: string[], damageById: Map<string, Damage>): Damage[] {
-  return ids.flatMap(id => {
-    const damage = damageById.get(id);
-    return damage ? [damage] : [];
-  });
-}
-
 function orderedSpells(ids: string[], spellById: Map<string, SpellApi>): SpellApi[] {
   return ids.flatMap(id => {
     const spell = spellById.get(id);
@@ -426,14 +429,16 @@ export function resolveCreatureTraits(creature: {
   return creature.traits ?? creature.special_abilities ?? [];
 }
 
-function collectDamageIds(creature: CreatureMongo): string[] {
+export function collectDamageIds(creature: CreatureMongo): string[] {
   const fromFeatures = (features: CreatureFeature[] | undefined) =>
     (features ?? []).flatMap(feature => (feature.attack?.damage ?? []).map(roll => roll.damageTypeId));
 
   return unique([
-    ...(creature.damage_vulnerabilities ?? []),
-    ...(creature.damage_immunities ?? []),
-    ...(creature.damage_resistances ?? []),
+    ...collectDamageTypeIdsFromAffinities(
+      creature.damage_vulnerabilities,
+      creature.damage_immunities,
+      creature.damage_resistances
+    ),
     ...fromFeatures(resolveCreatureTraits(creature)),
     ...fromFeatures(creature.actions),
     ...fromFeatures(creature.bonus_actions),

@@ -113,6 +113,21 @@ const router = Router();
  *           type: number
  *         prof_bonus:
  *           type: number
+ *         damage_vulnerabilities:
+ *           type: array
+ *           description: Vulnerabilidades a tipos de daño, hidratadas.
+ *           items:
+ *             $ref: '#/components/schemas/DamageAffinityGrantApi'
+ *         damage_immunities:
+ *           type: array
+ *           description: Inmunidades a tipos de daño, hidratadas.
+ *           items:
+ *             $ref: '#/components/schemas/DamageAffinityGrantApi'
+ *         damage_resistances:
+ *           type: array
+ *           description: Resistencias a tipos de daño, hidratadas.
+ *           items:
+ *             $ref: '#/components/schemas/DamageAffinityGrantApi'
  *         spellcasting:
  *           type: object
  *           description: Nivel de lanzador, aptitud mágica, CD de salvación, bonificador de ataque, ranuras y conjuros del catálogo. Si la criatura no lanza conjuros, las ranuras y la lista van vacías.
@@ -182,6 +197,58 @@ const router = Router();
  *         creatureTypeId:
  *           type: string
  *           nullable: true
+ *     DamageAffinityGrant:
+ *       type: object
+ *       description: Afinidad a uno o más tipos de daño, con origen y excepciones. bypass solo aplica si source es nonmagical_attacks.
+ *       required:
+ *         - damageTypeIds
+ *       properties:
+ *         damageTypeIds:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             type: string
+ *           description: Identificadores de tipos de daño del catálogo.
+ *         source:
+ *           type: string
+ *           enum:
+ *             - any
+ *             - nonmagical_attacks
+ *           default: any
+ *           description: Origen del daño. any cubre cualquier fuente. nonmagical_attacks limita la afinidad a ataques no mágicos.
+ *         bypass:
+ *           type: array
+ *           default: []
+ *           items:
+ *             type: string
+ *             enum:
+ *               - silvered
+ *               - adamantine
+ *           description: Materiales que ignoran esta afinidad (plateado o adamantina). Vacío por defecto.
+ *     DamageAffinityGrantApi:
+ *       type: object
+ *       description: Afinidad de daño con los tipos hidratados del catálogo.
+ *       required:
+ *         - damageTypes
+ *         - source
+ *         - bypass
+ *       properties:
+ *         damageTypes:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Damage'
+ *         source:
+ *           type: string
+ *           enum:
+ *             - any
+ *             - nonmagical_attacks
+ *         bypass:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum:
+ *               - silvered
+ *               - adamantine
  *     InputCreateCreature:
  *       type: object
  *       required:
@@ -316,16 +383,25 @@ const router = Router();
  *           type: number
  *         damage_vulnerabilities:
  *           type: array
+ *           description: Vulnerabilidades. Grants o, por compatibilidad, identificadores de tipo de daño.
  *           items:
- *             type: string
+ *             oneOf:
+ *               - type: string
+ *               - $ref: '#/components/schemas/DamageAffinityGrant'
  *         damage_immunities:
  *           type: array
+ *           description: Inmunidades. Grants o, por compatibilidad, identificadores de tipo de daño.
  *           items:
- *             type: string
+ *             oneOf:
+ *               - type: string
+ *               - $ref: '#/components/schemas/DamageAffinityGrant'
  *         damage_resistances:
  *           type: array
+ *           description: Resistencias. Grants o, por compatibilidad, identificadores de tipo de daño.
  *           items:
- *             type: string
+ *             oneOf:
+ *               - type: string
+ *               - $ref: '#/components/schemas/DamageAffinityGrant'
  *         condition_immunities:
  *           type: array
  *           items:

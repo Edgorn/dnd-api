@@ -750,12 +750,12 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *           description: IDs o index de idiomas que el personaje pasa a hablar.
+ *           description: IDs de Mongo de idiomas que el personaje pasa a hablar.
  *         understands:
  *           type: array
  *           items:
  *             type: string
- *           description: IDs o index de idiomas que el personaje pasa a entender.
+ *           description: IDs de Mongo de idiomas que el personaje pasa a entender.
  *     TraitDamageChoiceInput:
  *       type: object
  *       required:

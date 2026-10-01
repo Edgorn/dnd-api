@@ -2,7 +2,7 @@ import { ChoiceApi, ChoiceMongo } from "../types"
 import { InputCreateLanguage, InputUpdateLanguage, LanguageApi } from "../types/language.types"
 
 export default interface ILanguageRepository {
-  getLanguagesByIndex(indexes: string[]): Promise<LanguageApi[]>
+  getByIds(ids: string[]): Promise<LanguageApi[]>
   getAll(): Promise<LanguageApi[]>
   getBySystems(rulesets: string[], userId?: string): Promise<LanguageApi[]>
   formatLanguageChoices(choices: ChoiceMongo | undefined, ruleset?: string): Promise<ChoiceApi<LanguageApi> | undefined>

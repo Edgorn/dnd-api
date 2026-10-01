@@ -17,6 +17,7 @@ import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTy
 import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { Types } from 'mongoose';
 import { mergeRaceLevelRows } from '../../../../utils/characterLevelUpTraits';
+import { collectCatalogLanguageIds, hydrateLanguageGrants, languageApiById } from '../../../../utils/hydrateLanguageGrants';
 
 export default class RaceRepository implements IRaceRepository {
   constructor(
@@ -186,26 +187,29 @@ export default class RaceRepository implements IRaceRepository {
     const dataLevel = levels.find(level => level.level === 1)
     const ruleset = raza.ruleset;
 
+    const understandRaw = raza?.languages?.understands ?? [];
+    const speakRaw = raza?.languages?.speaks ?? [];
+
     const [
-      traits, ability_bonuses, ability_bonus_choices, skill_choices, languages, 
+      traits, ability_bonuses, ability_bonus_choices, skill_choices, catalogLanguages,
       proficiencies_choices, subraces, variants, spell_choices,
-      speaksLanguages, formattedLanguageChoices, spellcasting, equipment, creatureType
+      formattedLanguageChoices, spellcasting, equipment, creatureType
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.attributeService.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
       this.attributeService.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
       this.skillService.formatSkillChoices(raza.skill_choices),
-      this.languageRepository.getLanguagesByIndex(raza?.languages?.understands ?? []),
+      this.languageRepository.getByIds(collectCatalogLanguageIds(understandRaw, speakRaw)),
       this.proficiencyRepository.formatProficiencyChoices(raza?.proficiencies_choices),
       this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, allowedRulesets, playable),
       this.formatearVariantes(raza?.variants ?? [], ruleset),
       this.spellRepository.formatSpellChoices(raza?.spell_choices),
-      this.languageRepository.getLanguagesByIndex(raza?.languages?.speaks ?? []),
       this.languageRepository.formatLanguageChoices(raza.language_choices, ruleset),
       this.formatRaceSpellcasting(raza),
       this.equipmentRepository.getCharacterEquipmentsByIds(raza.equipment ?? []),
       this.formatRaceCreatureType(raza)
     ])
+    const languageCatalog = languageApiById(catalogLanguages);
 
     return {
       id: raza._id.toString(),
@@ -225,8 +229,8 @@ export default class RaceRepository implements IRaceRepository {
       traits,
       traits_data: { ...dataLevel?.traits_data, ...raza.traits_data },
       languages: {
-        understands: languages,
-        speaks: speaksLanguages,
+        understands: hydrateLanguageGrants(understandRaw, languageCatalog),
+        speaks: hydrateLanguageGrants(speakRaw, languageCatalog),
         notes: raza?.languages?.notes ?? ""
       },
       language_choices: formattedLanguageChoices,

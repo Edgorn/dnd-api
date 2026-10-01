@@ -44,6 +44,7 @@ import {
   mergeTraitLanguageIds,
   resolveCharacterTraitChoices
 } from '../../../../utils/traitDamageChoices';
+import { catalogLanguagesById, collectCatalogLanguageIds, hydrateLanguageGrants, languageApiById } from '../../../../utils/hydrateLanguageGrants';
 import { applyTraitSpeed } from '../../../../utils/applyTraitSpeed';
 import {
   applyArmorStrengthSpeedPenalty,
@@ -1799,8 +1800,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
       traits,
       catalogSpeakIds(traits, personaje.traitChoices)
     )
-    const idiomas_understands = await this.languageRepository.getLanguagesByIndex(mergedLanguageIds.understands)
-    const idiomas_speaks = await this.languageRepository.getLanguagesByIndex(mergedLanguageIds.speaks)
+    const catalogLanguages = await this.languageRepository.getByIds(
+      collectCatalogLanguageIds(mergedLanguageIds.understands, mergedLanguageIds.speaks)
+    )
+    const languageCatalog = languageApiById(catalogLanguages)
+    const idiomas_understands = hydrateLanguageGrants(mergedLanguageIds.understands, languageCatalog)
+    const idiomas_speaks = hydrateLanguageGrants(mergedLanguageIds.speaks, languageCatalog)
     const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(this.toHydrationRows(personaje.equipment))
 
     const clases = personaje.classes
@@ -2050,7 +2055,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
         hydrateCatalogChoiceLanguages(
           traits,
           personaje.traitChoices,
-          new Map(idiomas_speaks.map(language => [language.id, language])),
+          catalogLanguagesById(idiomas_speaks),
           raceRefs
         ),
         apiAttributes,

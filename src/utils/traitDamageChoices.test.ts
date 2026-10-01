@@ -280,10 +280,13 @@ const favoredEnemy = trait("enemigo-predilecto", {
   }]
 });
 
-const dragons = { name: "Dragones", languageId: "draconic" };
+const DRACONIC_ID = "507f1f77bcf86cd7994390c2";
+const GIANT_ID = "507f1f77bcf86cd7994390c3";
+const COMMON_ID = "507f1f77bcf86cd7994390c1";
+const dragons = { name: "Dragones", languageId: DRACONIC_ID };
 const beasts = { name: "Bestias", languageId: null };
 const orcs = { name: "Humanoides", inputs: ["Orcos", "Trasgos"], languageId: null };
-const languages = new Set(["draconic", "giant"]);
+const languages = new Set([DRACONIC_ID, GIANT_ID]);
 
 describe("applyCatalogTraitChoices favored enemy", () => {
   it("stores one option at class level 1", () => {
@@ -564,12 +567,12 @@ describe("resolveCharacterTraitChoices", () => {
   });
 
   it("labels free text and hydrates catalog languages", () => {
-    const giant: LanguageApi = { id: "giant", name: "Gigante", ruleset: "dnd5e" };
+    const giant: LanguageApi = { id: GIANT_ID, name: "Gigante", ruleset: "dnd5e" };
     const stored = {
       "enemigo-predilecto": {
         favoredEnemy: [
           dragons,
-          { name: "Humanoides", inputs: ["Orcos", "Trasgos"], languageId: "giant" }
+          { name: "Humanoides", inputs: ["Orcos", "Trasgos"], languageId: GIANT_ID }
         ]
       }
     };
@@ -577,7 +580,7 @@ describe("resolveCharacterTraitChoices", () => {
     const result = hydrateCatalogChoiceLanguages(
       resolved.traits,
       stored,
-      new Map([["giant", giant]])
+      new Map([[GIANT_ID, giant]])
     );
 
     expect(result[0].catalogChoice).toEqual([
@@ -940,33 +943,33 @@ describe("expandCatalogChoices creature types", () => {
 describe("mergeTraitLanguageIds", () => {
   it("unions character languages with trait grants and drops duplicates", () => {
     const result = mergeTraitLanguageIds(
-      { speaks: ["common"], understands: ["common"] },
+      { speaks: [COMMON_ID], understands: [COMMON_ID] },
       [{
         languages: {
           speaks: [
-            { id: "common", name: "Común", ruleset: "dnd5e" },
-            { id: "draconic", name: "Dracónico", ruleset: "dnd5e" }
+            { id: COMMON_ID, name: "Común", ruleset: "dnd5e" },
+            { id: DRACONIC_ID, name: "Dracónico", ruleset: "dnd5e" }
           ],
-          understands: [{ id: "draconic", name: "Dracónico", ruleset: "dnd5e" }]
+          understands: [{ id: DRACONIC_ID, name: "Dracónico", ruleset: "dnd5e" }]
         }
       }]
     );
 
     expect(result).toEqual({
-      speaks: ["common", "draconic"],
-      understands: ["common", "draconic"]
+      speaks: [COMMON_ID, DRACONIC_ID],
+      understands: [COMMON_ID, DRACONIC_ID]
     });
   });
 
   it("adds catalog language ids to speaks", () => {
     const result = mergeTraitLanguageIds(
-      { speaks: ["common"], understands: [] },
+      { speaks: [COMMON_ID], understands: [] },
       [],
-      ["common", "giant"]
+      [COMMON_ID, GIANT_ID]
     );
 
     expect(result).toEqual({
-      speaks: ["common", "giant"],
+      speaks: [COMMON_ID, GIANT_ID],
       understands: []
     });
   });

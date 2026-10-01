@@ -1,7 +1,7 @@
 import { Damage } from ".";
 import { SpellApi } from "./spell.types";
 import { ConditionApi } from "./condition.types";
-import { LanguageApi } from "./language.types";
+import { LanguageGrantApi } from "./language.types";
 
 /** Legacy NPC documents. New creatures live in creature.types.ts. */
 export interface LegacyCreatureMongo {
@@ -96,7 +96,7 @@ export interface LegacyCreatureApi {
 }
 
 export interface LegacyCreatureLanguagesApi {
-  understands: LanguageApi[];
-  speaks: LanguageApi[];
+  understands: LanguageGrantApi[];
+  speaks: LanguageGrantApi[];
   notes?: string;
 }

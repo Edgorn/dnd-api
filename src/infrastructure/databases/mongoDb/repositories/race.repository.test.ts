@@ -27,7 +27,7 @@ const ELF_ID = "507f1f77bcf86cd799439013";
 function stubFormatDependencies() {
   return {
     languageRepository: {
-      getLanguagesByIndex: vi.fn().mockResolvedValue([]),
+      getByIds: vi.fn().mockResolvedValue([]),
       formatLanguageChoices: vi.fn().mockResolvedValue(undefined),
     } as unknown as ILanguageRepository,
     spellRepository: {

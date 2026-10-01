@@ -68,6 +68,21 @@ describe("CreateCreatureSchema", () => {
     expect(CreateCreatureSchema.safeParse({ ...priest, race: "507f1f77bcf86cd799439011" }).success).toBe(true);
   });
 
+  it("acepta etiquetas de idioma que no son ObjectId", () => {
+    const result = CreateCreatureSchema.safeParse({
+      ...priest,
+      languages: {
+        speaks: [],
+        understands: ["the languages of its creator"],
+        notes: "homúnculo"
+      }
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.languages?.understands).toEqual(["the languages of its creator"]);
+    }
+  });
+
   it("acepta tags y rechaza cadenas vacías en el array", () => {
     const withTags = CreateCreatureSchema.safeParse({
       ...priest,
@@ -284,6 +299,62 @@ describe("CreateCreatureSchema", () => {
     expect(withGroup({ usage: { type: "perDay", value: "3" }, spells: ["identify"] })).toBe(false);
     expect(withGroup({ usage: { type: "perDay", value: 1.5 }, spells: ["identify"] })).toBe(false);
     expect(withGroup({ spells: ["identify"] })).toBe(false);
+  });
+
+  it("acepta afinidades legado como ids y las normaliza a grants", () => {
+    const result = CreateCreatureSchema.safeParse({
+      ...priest,
+      damage_resistances: ["cold", "fire"]
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.damage_resistances).toEqual([
+        { damageTypeIds: ["cold"], source: "any", bypass: [] },
+        { damageTypeIds: ["fire"], source: "any", bypass: [] }
+      ]);
+    }
+  });
+
+  it("acepta grants de afinidad y rechaza bypass sin ataques no mágicos", () => {
+    const devil = CreateCreatureSchema.safeParse({
+      ...priest,
+      damage_immunities: [
+        { damageTypeIds: ["cold"] },
+        {
+          damageTypeIds: ["bludgeoning", "piercing", "slashing"],
+          source: "nonmagical_attacks",
+          bypass: ["silvered"]
+        }
+      ]
+    });
+    expect(devil.success).toBe(true);
+    if (devil.success) {
+      expect(devil.data.damage_immunities).toEqual([
+        { damageTypeIds: ["cold"], source: "any", bypass: [] },
+        {
+          damageTypeIds: ["bludgeoning", "piercing", "slashing"],
+          source: "nonmagical_attacks",
+          bypass: ["silvered"]
+        }
+      ]);
+    }
+
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      damage_immunities: [{
+        damageTypeIds: ["bludgeoning"],
+        source: "any",
+        bypass: ["silvered"]
+      }]
+    }).success).toBe(false);
+
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      damage_immunities: [{
+        damageTypeIds: ["bludgeoning"],
+        bypass: ["silvered"]
+      }]
+    }).success).toBe(false);
   });
 });
 

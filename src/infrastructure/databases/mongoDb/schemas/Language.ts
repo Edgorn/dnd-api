@@ -2,7 +2,6 @@ import mongoose, { Schema } from "mongoose";
 import { LanguageMongo } from "../../../../domain/types/language.types";
 
 const languageSchema: Schema = new Schema<LanguageMongo>({
-  index: String,
   name: String,
   type: String,
   description: String,

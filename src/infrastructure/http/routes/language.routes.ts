@@ -32,19 +32,31 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Array de IDs de los sistemas a los que pertenece el idioma.
+ *     LanguageLabel:
+ *       type: object
+ *       required:
+ *         - name
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Etiqueta de idioma especial que no pertenece al catálogo.
  *     CreatureLanguages:
  *       type: object
  *       properties:
  *         understands:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Language'
- *           description: Idiomas que el personaje comprende.
+ *             oneOf:
+ *               - $ref: '#/components/schemas/Language'
+ *               - $ref: '#/components/schemas/LanguageLabel'
+ *           description: Idiomas que comprende. Cada valor es un idioma del catálogo o una etiqueta libre.
  *         speaks:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Language'
- *           description: Idiomas que el personaje habla.
+ *             oneOf:
+ *               - $ref: '#/components/schemas/Language'
+ *               - $ref: '#/components/schemas/LanguageLabel'
+ *           description: Idiomas que habla. Cada valor es un idioma del catálogo o una etiqueta libre.
  *         notes:
  *           type: string
  *           description: Notas adicionales sobre los idiomas del personaje.
