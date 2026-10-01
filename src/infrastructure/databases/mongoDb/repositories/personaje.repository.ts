@@ -16,7 +16,6 @@ import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepo
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
-import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import { SpellApi } from '../../../../domain/types/spell.types';
 import { FeatApi } from '../../../../domain/types/feat.types';
 import { ConditionApi } from '../../../../domain/types/condition.types';

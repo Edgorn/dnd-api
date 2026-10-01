@@ -5,6 +5,7 @@ import { EquipmentMaterialSchema } from "./equipment.schema";
 import {
   EQUIPMENT_RESTRICTION_ENFORCEMENTS,
   EQUIPMENT_RESTRICTION_SCOPES,
+  SPELL_PRIVILEGE_RECHARGES,
   TRAIT_ACTIVATIONS,
   TRAIT_AREA_SHAPES
 } from "../../../domain/types/traits.types";
@@ -28,7 +29,7 @@ export const SpellPrivilegeRuleSchema = z.object({
       z.literal("unlimited"),
       z.number().int().min(1)
     ]),
-    recharge: z.enum(["shortRest", "longRest", "shortOrLongRest"]).nullable()
+    recharge: z.enum(SPELL_PRIVILEGE_RECHARGES).nullable()
   }).nullable(),
   replace: z.object({
     hours: z.number().min(0, "Las horas no pueden ser negativas"),
@@ -343,8 +344,60 @@ export const TraitActionSchema = z.object({
   activation: z.enum(TRAIT_ACTIVATIONS),
   saveDcFormula: saveDcFormulaSchema.optional(),
   uses: z.number().int("Los usos deben ser un entero").min(1, "Los usos deben ser al menos 1").optional(),
-  recharge: z.enum(["shortRest", "longRest", "shortOrLongRest"]).nullable().optional()
+  recharge: z.enum(SPELL_PRIVILEGE_RECHARGES).nullable().optional()
 }).strict();
+
+const mongoObjectId = (message: string) =>
+  z.string().refine(val => Types.ObjectId.isValid(val), { message });
+
+export const TraitInnateSpellGrantSchema = z.object({
+  spellId: mongoObjectId("El conjuro debe ser un ID de Mongo válido"),
+  atLevel: z.number().int().min(1, "El nivel de personaje debe ser al menos 1"),
+  slotLevel: z.union([
+    z.literal("spellLevel"),
+    z.number().int().min(1, "El nivel de ranura debe ser al menos 1").max(9, "El nivel de ranura no puede superar 9")
+  ]),
+  uses: z.union([
+    z.literal("unlimited"),
+    z.number().int().min(1, "Los usos deben ser al menos 1")
+  ]),
+  recharge: z.enum(SPELL_PRIVILEGE_RECHARGES).nullable()
+}).strict().superRefine((grant, ctx) => {
+  if (grant.uses === "unlimited") {
+    if (grant.recharge !== null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "La recarga debe ser nula si los usos son ilimitados",
+        path: ["recharge"]
+      });
+    }
+    return;
+  }
+  if (grant.recharge == null) {
+    ctx.addIssue({
+      code: "custom",
+      message: "La recarga es obligatoria si los usos no son ilimitados",
+      path: ["recharge"]
+    });
+  }
+});
+
+export const TraitInnateSpellsSchema = z.object({
+  abilityId: mongoObjectId("El atributo debe ser un ID de Mongo válido"),
+  grants: z.array(TraitInnateSpellGrantSchema).min(1, "Debe indicar al menos un conjuro innato")
+}).strict().superRefine((innateSpells, ctx) => {
+  const spellIds = new Set<string>();
+  innateSpells.grants.forEach((grant, index) => {
+    if (spellIds.has(grant.spellId)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `El conjuro ${grant.spellId} está repetido`,
+        path: ["grants", index, "spellId"]
+      });
+    }
+    spellIds.add(grant.spellId);
+  });
+});
 
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
@@ -367,7 +420,8 @@ export const CreateTraitSchema = z.object({
   catalogChoices: TraitCatalogChoicesSchema.nullish(),
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
   hitPoints: TraitHitPointsSchema.nullish(),
-  action: TraitActionSchema.nullish()
+  action: TraitActionSchema.nullish(),
+  innateSpells: TraitInnateSpellsSchema.nullish()
 });
 
 export const UpdateTraitSchema = z.object({
@@ -391,7 +445,8 @@ export const UpdateTraitSchema = z.object({
   catalogChoices: TraitCatalogChoicesSchema.nullish(),
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
   hitPoints: TraitHitPointsSchema.nullish(),
-  action: TraitActionSchema.nullish()
+  action: TraitActionSchema.nullish(),
+  innateSpells: TraitInnateSpellsSchema.nullish()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

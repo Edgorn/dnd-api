@@ -13,6 +13,7 @@ describe("Trait Use Cases armor type suppression", () => {
   let damageServiceMock: any;
   let creatureTypeServiceMock: any;
   let attributeServiceMock: any;
+  let spellServiceMock: any;
 
   beforeEach(() => {
     traitServiceMock = {
@@ -40,6 +41,9 @@ describe("Trait Use Cases armor type suppression", () => {
     attributeServiceMock = {
       getById: vi.fn()
     };
+    spellServiceMock = {
+      getById: vi.fn()
+    };
   });
 
   const createUseCase = () => new CreateTraitUseCase(
@@ -49,7 +53,8 @@ describe("Trait Use Cases armor type suppression", () => {
     languageServiceMock,
     damageServiceMock,
     creatureTypeServiceMock,
-    attributeServiceMock
+    attributeServiceMock,
+    spellServiceMock
   );
 
   const updateUseCase = () => new UpdateTraitUseCase(
@@ -59,7 +64,8 @@ describe("Trait Use Cases armor type suppression", () => {
     languageServiceMock,
     damageServiceMock,
     creatureTypeServiceMock,
-    attributeServiceMock
+    attributeServiceMock,
+    spellServiceMock
   );
 
   const baseTrait = {
@@ -404,6 +410,140 @@ describe("Trait Use Cases armor type suppression", () => {
       }, "user1");
 
       expect(traitServiceMock.create).toHaveBeenCalled();
+    });
+  });
+
+  describe("innate spells", () => {
+    const abilityId = "507f1f77bcf86cd799439021";
+    const thaumaturgyId = "507f1f77bcf86cd799439022";
+    const hellishRebukeId = "507f1f77bcf86cd799439023";
+
+    const innateSpells = {
+      abilityId,
+      grants: [
+        {
+          spellId: thaumaturgyId,
+          atLevel: 1,
+          slotLevel: "spellLevel" as const,
+          uses: "unlimited" as const,
+          recharge: null
+        },
+        {
+          spellId: hellishRebukeId,
+          atLevel: 3,
+          slotLevel: 2,
+          uses: 1,
+          recharge: "longRest" as const
+        }
+      ]
+    };
+
+    beforeEach(() => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getSystemsAndAncestors.mockResolvedValue(["sys1", "parent"]);
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      traitServiceMock.create.mockResolvedValue({ id: "trait1" });
+      traitServiceMock.update.mockResolvedValue({ id: "trait1" });
+    });
+
+    it("persists innate spells when the ability and spells belong to the system or an ancestor", async () => {
+      attributeServiceMock.getById.mockResolvedValue({ id: abilityId, ruleset: "parent" });
+      spellServiceMock.getById.mockImplementation(async (id: string) => {
+        if (id === thaumaturgyId) return { id, ruleset: "sys1", level: 0 };
+        if (id === hellishRebukeId) return { id, ruleset: "parent", level: 1 };
+        return null;
+      });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        innateSpells
+      }, "user1");
+
+      expect(traitServiceMock.create).toHaveBeenCalledWith(expect.objectContaining({ innateSpells }));
+    });
+
+    it("rejects a missing innate spell", async () => {
+      attributeServiceMock.getById.mockResolvedValue({ id: abilityId, ruleset: "sys1" });
+      spellServiceMock.getById.mockResolvedValue(null);
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        innateSpells
+      }, "user1")).rejects.toMatchObject({
+        message: "Conjuro no encontrado",
+        statusCode: 404
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a deleted innate spell", async () => {
+      attributeServiceMock.getById.mockResolvedValue({ id: abilityId, ruleset: "sys1" });
+      spellServiceMock.getById.mockResolvedValue({
+        id: thaumaturgyId,
+        ruleset: "sys1",
+        level: 0,
+        deletedAt: new Date()
+      });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        innateSpells
+      }, "user1")).rejects.toMatchObject({
+        message: "Conjuro no encontrado",
+        statusCode: 404
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects an innate spell outside the system and its ancestors", async () => {
+      attributeServiceMock.getById.mockResolvedValue({ id: abilityId, ruleset: "sys1" });
+      spellServiceMock.getById.mockResolvedValue({ id: thaumaturgyId, ruleset: "other", level: 0 });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        innateSpells
+      }, "user1")).rejects.toMatchObject({
+        message: "El conjuro no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a cantrip whose slotLevel is not spellLevel", async () => {
+      attributeServiceMock.getById.mockResolvedValue({ id: abilityId, ruleset: "sys1" });
+      spellServiceMock.getById.mockResolvedValue({ id: thaumaturgyId, ruleset: "sys1", level: 0 });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        innateSpells: {
+          abilityId,
+          grants: [{
+            spellId: thaumaturgyId,
+            atLevel: 1,
+            slotLevel: 1,
+            uses: 1,
+            recharge: "longRest"
+          }]
+        }
+      }, "user1")).rejects.toMatchObject({
+        message: "Los trucos innatos deben usar slotLevel spellLevel",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a missing innate ability", async () => {
+      attributeServiceMock.getById.mockResolvedValue(null);
+      spellServiceMock.getById.mockResolvedValue({ id: thaumaturgyId, ruleset: "sys1", level: 0 });
+
+      await expect(updateUseCase().execute({
+        id: "trait1",
+        innateSpells
+      }, "user1")).rejects.toMatchObject({
+        message: "Atributo no encontrado",
+        statusCode: 404
+      });
+      expect(traitServiceMock.update).not.toHaveBeenCalled();
     });
   });
 });

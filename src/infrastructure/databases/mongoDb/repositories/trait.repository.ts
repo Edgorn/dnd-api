@@ -11,7 +11,7 @@ import IAttributeRepository from '../../../../domain/repositories/IAttributeRepo
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitDamageChoiceApi, TraitDataMongo, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait, SPELL_PRIVILEGE_RECHARGES, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES } from "../../../../domain/types/traits.types";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import { Damage } from "../../../../domain/types";
@@ -148,6 +148,8 @@ export default class TraitRepository implements ITraitRepository {
       this.languageIds(trait.languages).forEach(id => allLanguages.add(id));
       this.damageChoiceTypeIds(trait).forEach(id => allChoiceDamages.add(id));
       this.saveAttributeIds(trait).forEach(id => allSaveAttributes.add(id));
+      this.innateAbilityId(trait).forEach(id => allSaveAttributes.add(id));
+      this.innateSpellIds(trait).forEach(id => allSpells.add(id));
       this.catalogCreatureTypeIds(trait).forEach(id => allCreatureTypes.add(id));
     }
 
@@ -187,7 +189,12 @@ export default class TraitRepository implements ITraitRepository {
         skillMap.set(item.key, item);
       }
     });
-    const spellMap = new Map<string, SpellApi>(fetchedSpells.map(item => [(item as any).index ?? (item as any).id, item]));
+    const spellMap = new Map<string, SpellApi>();
+    fetchedSpells.forEach(item => {
+      if (item.id) spellMap.set(item.id, item);
+      const index = (item as { index?: string }).index;
+      if (index) spellMap.set(index, item);
+    });
     const conditionInmunityMap = new Map<string, ConditionApi>(fetchedConditionInmunities.map(item => [item.id, item]));
     const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
     const languageMap = new Map<string, LanguageApi>(fetchedLanguages.map(item => [item.id, item]));
@@ -276,7 +283,8 @@ export default class TraitRepository implements ITraitRepository {
         ...this.formatCatalogChoices(trait, creatureTypeMap),
         ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {}),
         ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {}),
-        ...this.formatAction(trait.action)
+        ...this.formatAction(trait.action),
+        ...this.formatInnateSpells(trait.innateSpells, spellMap, saveAttributeMap)
       };
     });
   }
@@ -287,7 +295,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, innateSpells, ...rest } = trait;
     return {
       ...rest,
       ...(typeof acFormula === "string" ? { acFormula } : {}),
@@ -299,7 +307,8 @@ export default class TraitRepository implements ITraitRepository {
       ...(Array.isArray(catalogChoices) ? { catalogChoices } : {}),
       ...(damageChoiceRef ? { damageChoiceRef } : {}),
       ...(hitPoints ? { hitPoints } : {}),
-      ...(action ? { action } : {})
+      ...(action ? { action } : {}),
+      ...(innateSpells ? { innateSpells } : {})
     };
   }
 
@@ -318,6 +327,7 @@ export default class TraitRepository implements ITraitRepository {
       damageChoiceRef,
       hitPoints,
       action,
+      innateSpells,
       ...rest
     } = updateFields;
     const $set: Record<string, unknown> = { ...rest };
@@ -348,6 +358,7 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "damageChoiceRef", damageChoiceRef);
     this.assignNullable($set, $unset, "hitPoints", hitPoints);
     this.assignNullable($set, $unset, "action", action);
+    this.assignNullable($set, $unset, "innateSpells", innateSpells);
 
     return { $set, $unset };
   }
@@ -389,6 +400,18 @@ export default class TraitRepository implements ITraitRepository {
         .map(option => option.saveAttributeId)
         .filter((id): id is string => typeof id === "string" && id.length > 0)
     );
+  }
+
+  private innateAbilityId(trait: TraitMongo): string[] {
+    const abilityId = trait.innateSpells?.abilityId;
+    return typeof abilityId === "string" && abilityId.length > 0 ? [abilityId] : [];
+  }
+
+  private innateSpellIds(trait: TraitMongo): string[] {
+    if (!Array.isArray(trait.innateSpells?.grants)) return [];
+    return trait.innateSpells.grants
+      .map(grant => grant.spellId)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
   }
 
   private formatLanguages(
@@ -528,6 +551,59 @@ export default class TraitRepository implements ITraitRepository {
     };
     if (typeof area.width === "number") formatted.width = area.width;
     return formatted;
+  }
+
+  private formatInnateSpells(
+    innateSpells: TraitInnateSpells | undefined,
+    spellMap: Map<string, SpellApi>,
+    attributeMap: Map<string, AttributeApi>
+  ): { innateSpells: TraitInnateSpellsApi } | Record<string, never> {
+    if (!innateSpells || typeof innateSpells !== "object") return {};
+    if (typeof innateSpells.abilityId !== "string" || innateSpells.abilityId.length === 0) return {};
+    if (!Array.isArray(innateSpells.grants) || innateSpells.grants.length === 0) return {};
+
+    const grants = innateSpells.grants.flatMap(grant => {
+      const formatted = this.formatInnateSpellGrant(grant, spellMap);
+      return formatted ? [formatted] : [];
+    });
+    if (!grants.length) return {};
+
+    const ability = attributeMap.get(innateSpells.abilityId);
+    return {
+      innateSpells: {
+        abilityId: innateSpells.abilityId,
+        ...(ability ? { ability } : {}),
+        grants
+      }
+    };
+  }
+
+  private formatInnateSpellGrant(
+    grant: TraitInnateSpellGrant,
+    spellMap: Map<string, SpellApi>
+  ): TraitInnateSpellsApi["grants"][number] | undefined {
+    if (typeof grant?.spellId !== "string" || grant.spellId.length === 0) return undefined;
+    if (!Number.isInteger(grant.atLevel) || grant.atLevel < 1) return undefined;
+    const slotLevel = grant.slotLevel;
+    const validSlotLevel = slotLevel === "spellLevel"
+      || (typeof slotLevel === "number" && Number.isInteger(slotLevel) && slotLevel >= 1 && slotLevel <= 9);
+    if (!validSlotLevel) return undefined;
+    const uses = grant.uses;
+    const validUses = uses === "unlimited" || (typeof uses === "number" && Number.isInteger(uses) && uses >= 1);
+    if (!validUses) return undefined;
+    const recharge = grant.recharge;
+    const validRecharge = recharge === null || (SPELL_PRIVILEGE_RECHARGES as readonly string[]).includes(recharge ?? "");
+    if (!validRecharge) return undefined;
+
+    const spell = spellMap.get(grant.spellId);
+    return {
+      spellId: grant.spellId,
+      atLevel: grant.atLevel,
+      slotLevel,
+      uses,
+      recharge,
+      ...(spell ? { spell } : {})
+    };
   }
 
   private formatAction(action: TraitAction | undefined): { action: TraitAction } | Record<string, never> {

@@ -474,8 +474,8 @@ const languageService = new LanguageService(languageRepository)
 const damageService = new DamageService(damageRepository)
 
 const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService, systemService)
-const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService)
-const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService)
+const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService)
+const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService)
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 

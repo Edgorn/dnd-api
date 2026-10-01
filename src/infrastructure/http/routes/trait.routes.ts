@@ -56,6 +56,11 @@ const router = Router();
  *           description: >
  *             Reglas de privilegio de conjuro que otorga el rasgo (elección del personaje,
  *             preparados automáticos, lanzamiento sin ranura y sustitución).
+ *         innateSpells:
+ *           $ref: '#/components/schemas/TraitInnateSpells'
+ *           description: >
+ *             Magia innata del rasgo (p. ej. Linaje Infernal). Independiente de
+ *             spellPrivileges. En GET, ability y cada grant.spell van hidratados.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo.
@@ -633,6 +638,117 @@ const router = Router();
  *             sameLevel:
  *               type: boolean
  *               description: Si el sustituto debe ser del mismo nivel.
+ *     TraitInnateSpellGrant:
+ *       type: object
+ *       required:
+ *         - spellId
+ *         - atLevel
+ *         - slotLevel
+ *         - uses
+ *         - recharge
+ *       properties:
+ *         spellId:
+ *           type: string
+ *           description: ID de MongoDB del conjuro.
+ *         atLevel:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nivel de personaje a partir del cual se concede el conjuro.
+ *         slotLevel:
+ *           description: >
+ *             Nivel de ranura al lanzar. spellLevel usa el nivel del conjuro.
+ *             Los trucos solo admiten spellLevel. Un entero de 1 a 9 fija la ranura.
+ *           oneOf:
+ *             - type: string
+ *               enum: [spellLevel]
+ *             - type: integer
+ *               minimum: 1
+ *               maximum: 9
+ *         uses:
+ *           description: Usos (`unlimited` o un entero positivo).
+ *           oneOf:
+ *             - type: string
+ *               enum: [unlimited]
+ *             - type: integer
+ *               minimum: 1
+ *         recharge:
+ *           nullable: true
+ *           type: string
+ *           enum: [shortRest, longRest, shortOrLongRest]
+ *           description: Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad.
+ *         spell:
+ *           $ref: '#/components/schemas/Spell'
+ *           description: Conjuro hidratado. Solo aparece en las respuestas GET.
+ *     TraitInnateSpells:
+ *       type: object
+ *       required:
+ *         - abilityId
+ *         - grants
+ *       properties:
+ *         abilityId:
+ *           type: string
+ *           description: ID de MongoDB del atributo de característica para la CD y el ataque.
+ *         ability:
+ *           $ref: '#/components/schemas/Attribute'
+ *           description: Atributo hidratado. Solo aparece en las respuestas GET.
+ *         grants:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             $ref: '#/components/schemas/TraitInnateSpellGrant'
+ *           description: Conjuros concedidos. Un mismo conjuro no puede repetirse.
+ *     TraitInnateSpellGrantInput:
+ *       type: object
+ *       required:
+ *         - spellId
+ *         - atLevel
+ *         - slotLevel
+ *         - uses
+ *         - recharge
+ *       properties:
+ *         spellId:
+ *           type: string
+ *           description: ID de MongoDB del conjuro del sistema o de un ancestro.
+ *         atLevel:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nivel de personaje a partir del cual se concede el conjuro.
+ *         slotLevel:
+ *           description: >
+ *             Nivel de ranura al lanzar. spellLevel usa el nivel del conjuro.
+ *             Los trucos solo admiten spellLevel.
+ *           oneOf:
+ *             - type: string
+ *               enum: [spellLevel]
+ *             - type: integer
+ *               minimum: 1
+ *               maximum: 9
+ *         uses:
+ *           description: Usos (`unlimited` o un entero positivo).
+ *           oneOf:
+ *             - type: string
+ *               enum: [unlimited]
+ *             - type: integer
+ *               minimum: 1
+ *         recharge:
+ *           nullable: true
+ *           type: string
+ *           enum: [shortRest, longRest, shortOrLongRest]
+ *           description: Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad.
+ *     TraitInnateSpellsInput:
+ *       type: object
+ *       required:
+ *         - abilityId
+ *         - grants
+ *       properties:
+ *         abilityId:
+ *           type: string
+ *           description: ID de MongoDB del atributo de característica del sistema o de un ancestro.
+ *         grants:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             $ref: '#/components/schemas/TraitInnateSpellGrantInput'
  *     InputCreateTrait:
  *       type: object
  *       required:
@@ -675,6 +791,14 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/SpellPrivilegeRule'
  *           description: Reglas de privilegio de conjuro que otorga el rasgo.
+ *         innateSpells:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitInnateSpellsInput'
+ *           description: >
+ *             Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges.
+ *             null borra el campo. grants no puede estar vacío ni repetir spellId.
+ *             Si uses es unlimited, recharge debe ser null.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
@@ -829,6 +953,13 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/SpellPrivilegeRule'
  *           description: Reglas de privilegio de conjuro que otorga el rasgo.
+ *         innateSpells:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitInnateSpellsInput'
+ *           description: >
+ *             Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges.
+ *             null borra el campo.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.

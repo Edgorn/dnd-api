@@ -808,3 +808,152 @@ describe("CreateTraitSchema area, save and action", () => {
     expect(result.success).toBe(false);
   });
 });
+
+const abilityId = "507f1f77bcf86cd799439021";
+const thaumaturgyId = "507f1f77bcf86cd799439022";
+const hellishRebukeId = "507f1f77bcf86cd799439023";
+const darknessId = "507f1f77bcf86cd799439024";
+
+const infernalLineageInnateSpells = {
+  abilityId,
+  grants: [
+    {
+      spellId: thaumaturgyId,
+      atLevel: 1,
+      slotLevel: "spellLevel" as const,
+      uses: "unlimited" as const,
+      recharge: null
+    },
+    {
+      spellId: hellishRebukeId,
+      atLevel: 3,
+      slotLevel: 2,
+      uses: 1,
+      recharge: "longRest" as const
+    },
+    {
+      spellId: darknessId,
+      atLevel: 5,
+      slotLevel: "spellLevel" as const,
+      uses: 1,
+      recharge: "longRest" as const
+    }
+  ]
+};
+
+describe("CreateTraitSchema innateSpells", () => {
+  it("accepts Infernal Legacy-style innate spells", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje Infernal",
+      innateSpells: infernalLineageInnateSpells
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty grants list", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje Infernal",
+      innateSpells: { abilityId, grants: [] }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a duplicated spellId", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje Infernal",
+      innateSpells: {
+        abilityId,
+        grants: [
+          infernalLineageInnateSpells.grants[0],
+          { ...infernalLineageInnateSpells.grants[0], atLevel: 2 }
+        ]
+      }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unlimited uses with a recharge and numbered uses without one", () => {
+    const unlimited = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje Infernal",
+      innateSpells: {
+        abilityId,
+        grants: [{
+          spellId: thaumaturgyId,
+          atLevel: 1,
+          slotLevel: "spellLevel",
+          uses: "unlimited",
+          recharge: "longRest"
+        }]
+      }
+    });
+    const numbered = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje Infernal",
+      innateSpells: {
+        abilityId,
+        grants: [{
+          spellId: hellishRebukeId,
+          atLevel: 3,
+          slotLevel: 2,
+          uses: 1,
+          recharge: null
+        }]
+      }
+    });
+    expect(unlimited.success).toBe(false);
+    expect(numbered.success).toBe(false);
+  });
+
+  it("rejects invalid ids, slotLevel and unknown keys", () => {
+    const badId = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje Infernal",
+      innateSpells: {
+        abilityId: "not-an-id",
+        grants: [infernalLineageInnateSpells.grants[0]]
+      }
+    });
+    const slot = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje Infernal",
+      innateSpells: {
+        abilityId,
+        grants: [{
+          spellId: hellishRebukeId,
+          atLevel: 3,
+          slotLevel: 0,
+          uses: 1,
+          recharge: "longRest"
+        }]
+      }
+    });
+    const extra = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Linaje Infernal",
+      innateSpells: { ...infernalLineageInnateSpells, note: "x" }
+    });
+    expect(badId.success).toBe(false);
+    expect(slot.success).toBe(false);
+    expect(extra.success).toBe(false);
+  });
+
+  it("accepts null to clear innateSpells on create", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      innateSpells: null
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("UpdateTraitSchema innateSpells", () => {
+  it("accepts null to clear innateSpells", () => {
+    const result = UpdateTraitSchema.safeParse({ innateSpells: null });
+    expect(result.success).toBe(true);
+  });
+});

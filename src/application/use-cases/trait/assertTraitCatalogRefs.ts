@@ -2,6 +2,7 @@ import LanguageService from "../../../domain/services/language.service";
 import DamageService from "../../../domain/services/damage.service";
 import CreatureTypeService from "../../../domain/services/creatureType.service";
 import AttributeService from "../../../domain/services/attribute.service";
+import SpellService from "../../../domain/services/spell.service";
 import SystemService from "../../../domain/services/system.service";
 import TraitService from "../../../domain/services/trait.service";
 import { AppError } from "../../../domain/errors/AppError";
@@ -9,6 +10,7 @@ import {
   TraitCatalogChoice,
   TraitDamageChoice,
   TraitDamageChoiceRef,
+  TraitInnateSpells,
   TraitLanguages
 } from "../../../domain/types/traits.types";
 
@@ -19,10 +21,12 @@ export async function assertTraitCatalogRefs(input: {
   damageChoices?: TraitDamageChoice[] | null;
   catalogChoices?: TraitCatalogChoice[] | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
+  innateSpells?: TraitInnateSpells | null;
   languageService: LanguageService;
   damageService: DamageService;
   creatureTypeService: CreatureTypeService;
   attributeService: AttributeService;
+  spellService: SpellService;
   systemService: SystemService;
   traitService: TraitService;
 }): Promise<{
@@ -43,14 +47,18 @@ export async function assertTraitCatalogRefs(input: {
       ...(choice.creatureTypeRaces ?? []).map(item => item.creatureTypeId)
     ])
   );
-  const attributeIds = uniqueIds(
-    (input.damageChoices ?? []).flatMap(choice =>
+  const attributeIds = uniqueIds([
+    ...(input.damageChoices ?? []).flatMap(choice =>
       choice.options.flatMap(option => option.saveAttributeId ? [option.saveAttributeId] : [])
-    )
+    ),
+    ...(input.innateSpells?.abilityId ? [input.innateSpells.abilityId] : [])
+  ]);
+  const spellIds = uniqueIds(
+    (input.innateSpells?.grants ?? []).map(grant => grant.spellId)
   );
   const publicLanguageIds = new Map<string, string>();
 
-  if (languageIds.length || damageIds.length || creatureTypeIds.length || attributeIds.length) {
+  if (languageIds.length || damageIds.length || creatureTypeIds.length || attributeIds.length || spellIds.length) {
     const allowedRulesets = await input.systemService.getSystemsAndAncestors([input.ruleset]);
 
     for (const languageId of languageIds) {
@@ -91,6 +99,25 @@ export async function assertTraitCatalogRefs(input: {
       }
       if (!allowedRulesets.includes(attribute.ruleset)) {
         throw new AppError("El atributo no pertenece a este sistema ni a sus ancestros", 400);
+      }
+    }
+
+    const spellsById = new Map<string, Awaited<ReturnType<SpellService["getById"]>>>();
+    for (const spellId of spellIds) {
+      const spell = await input.spellService.getById(spellId);
+      if (!spell || spell.deletedAt) {
+        throw new AppError("Conjuro no encontrado", 404);
+      }
+      if (!allowedRulesets.includes(spell.ruleset)) {
+        throw new AppError("El conjuro no pertenece a este sistema ni a sus ancestros", 400);
+      }
+      spellsById.set(spellId, spell);
+    }
+
+    for (const grant of input.innateSpells?.grants ?? []) {
+      const spell = spellsById.get(grant.spellId);
+      if (spell?.level === 0 && grant.slotLevel !== "spellLevel") {
+        throw new AppError("Los trucos innatos deben usar slotLevel spellLevel", 400);
       }
     }
   }

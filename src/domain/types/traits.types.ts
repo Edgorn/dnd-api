@@ -41,7 +41,31 @@ export interface TraitSpeed {
 }
 
 export type SpellPrivilegeSource = "known" | "classList";
-export type SpellPrivilegeRecharge = "shortRest" | "longRest" | "shortOrLongRest";
+export const SPELL_PRIVILEGE_RECHARGES = ["shortRest", "longRest", "shortOrLongRest"] as const;
+export type SpellPrivilegeRecharge = typeof SPELL_PRIVILEGE_RECHARGES[number];
+
+export interface TraitInnateSpellGrant {
+  spellId: string;
+  atLevel: number;
+  slotLevel: "spellLevel" | number;
+  uses: number | "unlimited";
+  recharge: SpellPrivilegeRecharge | null;
+}
+
+export interface TraitInnateSpells {
+  abilityId: string;
+  grants: TraitInnateSpellGrant[];
+}
+
+export interface TraitInnateSpellGrantApi extends TraitInnateSpellGrant {
+  spell?: SpellApi;
+}
+
+export interface TraitInnateSpellsApi {
+  abilityId: string;
+  ability?: AttributeApi;
+  grants: TraitInnateSpellGrantApi[];
+}
 
 export interface SpellPrivilegeFilter {
   level: number | number[];
@@ -255,6 +279,7 @@ export interface TraitMongo {
   damageChoiceRef?: TraitDamageChoiceRef,
   hitPoints?: TraitHitPoints,
   action?: TraitAction,
+  innateSpells?: TraitInnateSpells,
   deletedAt?: Date | null
 }
 
@@ -301,7 +326,8 @@ export interface TraitApi {
   damageChoice?: ResolvedDamageChoice[],
   catalogChoice?: ResolvedCatalogChoice[],
   hitPoints?: TraitHitPoints,
-  action?: TraitActionApi
+  action?: TraitActionApi,
+  innateSpells?: TraitInnateSpellsApi
 }
 
 export interface TraitsOptionsApi {
@@ -330,7 +356,8 @@ export interface CreateTrait {
   catalogChoices?: TraitCatalogChoice[] | null,
   damageChoiceRef?: TraitDamageChoiceRef | null,
   hitPoints?: TraitHitPoints | null,
-  action?: TraitAction | null
+  action?: TraitAction | null,
+  innateSpells?: TraitInnateSpells | null
 }
 
 export interface UpdateTrait {
@@ -355,5 +382,6 @@ export interface UpdateTrait {
   catalogChoices?: TraitCatalogChoice[] | null,
   damageChoiceRef?: TraitDamageChoiceRef | null,
   hitPoints?: TraitHitPoints | null,
-  action?: TraitAction | null
+  action?: TraitAction | null,
+  innateSpells?: TraitInnateSpells | null
 }

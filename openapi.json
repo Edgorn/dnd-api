@@ -243,6 +243,10 @@
             },
             "description": "Reglas de privilegio de conjuro que otorga el rasgo (elección del personaje, preparados automáticos, lanzamiento sin ranura y sustitución).\n"
           },
+          "innateSpells": {
+            "$ref": "#/components/schemas/TraitInnateSpells",
+            "description": "Magia innata del rasgo (p. ej. Linaje Infernal). Independiente de spellPrivileges. En GET, ability y cada grant.spell van hidratados.\n"
+          },
           "speed": {
             "$ref": "#/components/schemas/TraitSpeed",
             "description": "Efecto de velocidad de movimiento que otorga el rasgo."
