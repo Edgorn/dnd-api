@@ -59,6 +59,8 @@ export const CreateRaceSchema = z.object({
     understands: z.array(z.string().min(1, "El idioma no puede estar vacío")).optional(),
     notes: z.string().optional()
   }).nullable().optional(),
+  ability_bonus_choices: ChoiceMongoSchema.nullable().optional(),
+  skill_choices: ChoiceMongoSchema.nullable().optional(),
   language_choices: ChoiceMongoSchema.nullable().optional(),
   parentId: z.string().nullable().optional(),
   subraces_name: z.string().nullable().optional(),

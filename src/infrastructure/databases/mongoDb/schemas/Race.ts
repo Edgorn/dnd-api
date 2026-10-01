@@ -4,8 +4,8 @@ import { RaceMongo, VarianteMongo } from "../../../../domain/types/race.types";
 const varianteSchema = new Schema<VarianteMongo>({
   name: String,
   ability_bonuses: [],
-  skill_choices: {},
-  ability_bonus_choices: {},
+  skill_choices: Schema.Types.Mixed,
+  ability_bonus_choices: Schema.Types.Mixed,
   feats: Number,
   dotes: Number
 });
@@ -31,10 +31,10 @@ const raceSchema: Schema = new Schema<RaceMongo>({
     expectancy: Number
   },
   ability_bonuses: [],
-  ability_bonus_choices: {},
+  ability_bonus_choices: Schema.Types.Mixed,
   traits: [String],
   traits_data: {},
-  skill_choices: {},
+  skill_choices: Schema.Types.Mixed,
   languages: {},
   language_choices: {},
   proficiencies_choices: [],

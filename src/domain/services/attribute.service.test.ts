@@ -76,3 +76,63 @@ describe("AttributeService.formatSpellcastingAttribute", () => {
     expect(result?.key).toBe("507f1f77bcf86cd799439099");
   });
 });
+
+describe("AttributeService.formatAbilityBonusChoices", () => {
+  const mockRepository: IAttributeRepository = {
+    create: vi.fn(),
+    update: vi.fn(),
+    getBySystems: vi.fn(),
+    getById: vi.fn(),
+    softDelete: vi.fn(),
+    restore: vi.fn(),
+    softDeleteByRuleset: vi.fn(),
+    restoreByRuleset: vi.fn()
+  };
+
+  let service: AttributeService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(mockRepository.getBySystems).mockResolvedValue([chaAttribute, intAttribute]);
+    service = new AttributeService(mockRepository);
+  });
+
+  it("returns undefined when choose is missing or less than 1", async () => {
+    await expect(service.formatAbilityBonusChoices(undefined, "5e")).resolves.toBeUndefined();
+    await expect(service.formatAbilityBonusChoices({} as never, "5e")).resolves.toBeUndefined();
+    await expect(service.formatAbilityBonusChoices({ choose: 0, options: ["cha"] }, "5e")).resolves.toBeUndefined();
+    expect(mockRepository.getBySystems).not.toHaveBeenCalled();
+  });
+
+  it("hydrates explicit attribute keys with bonus 1", async () => {
+    const result = await service.formatAbilityBonusChoices(
+      { choose: 2, options: ["cha", "int"] },
+      "5e"
+    );
+
+    expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"]);
+    expect(result).toEqual({
+      choose: 2,
+      options: [
+        { key: "cha", name: "Carisma", bonus: 1 },
+        { key: "int", name: "Inteligencia", bonus: 1 }
+      ]
+    });
+  });
+
+  it("applies filter instead of returning the full catalog", async () => {
+    const result = await service.formatAbilityBonusChoices(
+      { choose: 1, filter: { key: "cha" } },
+      "5e"
+    );
+
+    expect(result?.options).toEqual([{ key: "cha", name: "Carisma", bonus: 1 }]);
+  });
+
+  it("returns the catalog when only choose is provided", async () => {
+    const result = await service.formatAbilityBonusChoices({ choose: 2 }, "5e");
+
+    expect(result?.choose).toBe(2);
+    expect(result?.options).toHaveLength(2);
+  });
+});

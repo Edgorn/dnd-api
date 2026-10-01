@@ -81,16 +81,22 @@ export default class SkillService {
     });
   }
 
-  async formatSkillChoices(opciones: ChoiceMongo | undefined): Promise<ChoiceApi<SkillApi> | undefined> {
-    if (!opciones) return undefined;
+  async formatSkillChoices(
+    opciones: ChoiceMongo | undefined,
+    ruleset?: string
+  ): Promise<ChoiceApi<SkillApi> | undefined> {
+    if (!opciones || typeof opciones.choose !== "number" || opciones.choose < 1) {
+      return undefined;
+    }
 
     const options = opciones.options as string[] | string | undefined;
+    const loadCatalog = () => ruleset ? this.getBySystems([ruleset]) : this.getAll();
 
     // Soporte legacy para base de datos (cuando options era un string)
     if (typeof options === 'string') {
       const isAll = options === 'all' || options === 'cualquiera';
       const skills = isAll
-        ? await this.getAll()
+        ? await loadCatalog()
         : await this.skillRepository.getSkillsByIndices([options]);
 
       return {
@@ -109,7 +115,7 @@ export default class SkillService {
     }
 
     if (opciones.filter) {
-      const skills = await this.getAll();
+      const skills = await loadCatalog();
       const filteredSkills = skills.filter(skill => {
         for (const [key, value] of Object.entries(opciones.filter!)) {
           const skillVal = (skill as any)[key];
@@ -129,7 +135,7 @@ export default class SkillService {
     }
 
     if ((!options || options.length === 0) && !opciones.filter) {
-      const skills = await this.getAll();
+      const skills = await loadCatalog();
       return {
         choose: opciones.choose,
         options: skills

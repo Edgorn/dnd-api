@@ -258,6 +258,24 @@ const router = Router();
  *           type: array
  *           items:
  *             type: object
+ *         ability_bonus_choices:
+ *           nullable: true
+ *           description: >
+ *             Elección de bonificadores de característica. Misma forma que ChoiceMongo.
+ *             Solo `choose` ofrece todos los atributos del sistema (y ancestros).
+ *             `options` son keys de atributo (cha, dex, …). `filter` busca atributos por criterio.
+ *             Cada opción hidratada tiene bonus 1. Envíe null para borrar la elección.
+ *           allOf:
+ *             - $ref: '#/components/schemas/ChoiceMongo'
+ *         skill_choices:
+ *           nullable: true
+ *           description: >
+ *             Elección de habilidades. Misma forma que ChoiceMongo.
+ *             Solo `choose` ofrece todas las habilidades del sistema (y ancestros).
+ *             `options` son identificadores de habilidad. `filter` busca habilidades por criterio.
+ *             Envíe null para borrar la elección.
+ *           allOf:
+ *             - $ref: '#/components/schemas/ChoiceMongo'
  *         speed:
  *           type: object
  *           required:
@@ -345,6 +363,24 @@ const router = Router();
  *           type: array
  *           items:
  *             type: object
+ *         ability_bonus_choices:
+ *           nullable: true
+ *           description: >
+ *             Elección de bonificadores de característica. Misma forma que ChoiceMongo.
+ *             Solo `choose` ofrece todos los atributos del sistema (y ancestros).
+ *             `options` son keys de atributo (cha, dex, …). `filter` busca atributos por criterio.
+ *             Cada opción hidratada tiene bonus 1. Envíe null para borrar la elección.
+ *           allOf:
+ *             - $ref: '#/components/schemas/ChoiceMongo'
+ *         skill_choices:
+ *           nullable: true
+ *           description: >
+ *             Elección de habilidades. Misma forma que ChoiceMongo.
+ *             Solo `choose` ofrece todas las habilidades del sistema (y ancestros).
+ *             `options` son identificadores de habilidad. `filter` busca habilidades por criterio.
+ *             Envíe null para borrar la elección.
+ *           allOf:
+ *             - $ref: '#/components/schemas/ChoiceMongo'
  *         speed:
  *           type: object
  *         size:

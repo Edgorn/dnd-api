@@ -86,6 +86,8 @@ export default class RaceRepository implements IRaceRepository {
       alignment: raza.alignment,
       img: raza.img,
       ability_bonuses: raza.ability_bonuses,
+      ability_bonus_choices: raza.ability_bonus_choices ?? undefined,
+      skill_choices: raza.skill_choices ?? undefined,
       age: raza.age,
       size: raza.size,
       size_range: raza.size_range,
@@ -142,7 +144,13 @@ export default class RaceRepository implements IRaceRepository {
         ...(raza.equipment !== undefined ? { equipment: raza.equipment === null ? [] : raza.equipment } : {}),
         ...(raza.creatureTypeId !== undefined ? { creatureTypeId: raza.creatureTypeId || null } : {}),
         ...(raza.playable !== undefined ? { playable: raza.playable } : {}),
-        ...(raza.levels !== undefined ? { levels: raza.levels ?? [] } : {})
+        ...(raza.levels !== undefined ? { levels: raza.levels ?? [] } : {}),
+        ...(raza.ability_bonus_choices !== undefined
+          ? { ability_bonus_choices: raza.ability_bonus_choices ?? undefined }
+          : {}),
+        ...(raza.skill_choices !== undefined
+          ? { skill_choices: raza.skill_choices ?? undefined }
+          : {})
       }
 
       const razaActualizada = await RaceModel.findByIdAndUpdate(
@@ -198,7 +206,7 @@ export default class RaceRepository implements IRaceRepository {
       this.traitRepository.getTraitsByIndexes(raza?.traits ?? [], { ...dataLevel?.traits_data, ...raza.traits_data }),
       this.attributeService.formatAbilityBonuses(raza?.ability_bonuses ?? [], ruleset),
       this.attributeService.formatAbilityBonusChoices(raza?.ability_bonus_choices, ruleset),
-      this.skillService.formatSkillChoices(raza.skill_choices),
+      this.skillService.formatSkillChoices(raza.skill_choices, ruleset),
       this.languageRepository.getByIds(collectCatalogLanguageIds(understandRaw, speakRaw)),
       this.proficiencyRepository.formatProficiencyChoices(raza?.proficiencies_choices),
       this.formatearSubrazas(raza, { ...dataLevel?.traits_data, ...raza.traits_data }, allowedRulesets, playable),
@@ -285,7 +293,7 @@ export default class RaceRepository implements IRaceRepository {
 
   async formatearVariante(variante: VarianteMongo, ruleset?: string): Promise<VarianteApi> {
     const [skill_choices, feats, ability_bonuses, ability_bonus_choices] = await Promise.all([
-      ruleset ? this.skillService.formatSkillChoices(variante?.skill_choices) : Promise.resolve(undefined),
+      ruleset ? this.skillService.formatSkillChoices(variante?.skill_choices, ruleset) : Promise.resolve(undefined),
       this.featRepository.formatFeatChoices(variante.feats ?? variante.dotes, ruleset),
       ruleset ? this.attributeService.formatAbilityBonuses(variante?.ability_bonuses ?? [], ruleset) : Promise.resolve([]),
       ruleset ? this.attributeService.formatAbilityBonusChoices(variante?.ability_bonus_choices, ruleset) : Promise.resolve(undefined)

@@ -81,22 +81,21 @@ export default class AttributeService {
     bonus_choices: ChoiceMongo | undefined,
     system: string
   ): Promise<ChoiceApi<AttributeBonus> | undefined> {
-    if (!bonus_choices) return undefined;
+    if (!this.hasValidChoose(bonus_choices)) return undefined;
+
+    const attributes = await this.getBySystems([system]);
 
     if (bonus_choices.options && bonus_choices.options.length > 0) {
-      const attributes = await this.getBySystems([system]);
       const attributesMap = new Map<string, string>();
       attributes.forEach(a => {
         attributesMap.set(a.key, a.name);
       });
 
-      const options = bonus_choices.options.map(option => {
-        return {
-          key: option,
-          name: attributesMap.get(option) ?? option,
-          bonus: 1
-        };
-      });
+      const options = bonus_choices.options.map(option => ({
+        key: option,
+        name: attributesMap.get(option) ?? option,
+        bonus: 1
+      }));
 
       return {
         choose: bonus_choices.choose,
@@ -104,40 +103,37 @@ export default class AttributeService {
       };
     }
 
-    if (bonus_choices.filter) {
-      const attributes = await this.getBySystems([system]);
-      const attributesMap = new Map<string, string>();
-      attributes.forEach(a => {
-        attributesMap.set(a.key, a.name);
-      });
+    const pool = bonus_choices.filter
+      ? attributes.filter(attribute => this.matchesChoiceFilter(attribute, bonus_choices.filter!))
+      : attributes;
 
-      const options = attributes.map(a => {
-        return {
-          key: a.key,
-          name: a.name,
-          bonus: 1
-        };
-      });
+    return {
+      choose: bonus_choices.choose,
+      options: pool.map(a => ({
+        key: a.key,
+        name: a.name,
+        bonus: 1
+      }))
+    };
+  }
 
-      return {
-        choose: bonus_choices.choose,
-        options
-      };
+  private hasValidChoose(choice: ChoiceMongo | undefined): choice is ChoiceMongo {
+    return typeof choice?.choose === "number" && choice.choose >= 1;
+  }
+
+  private matchesChoiceFilter(
+    attribute: AttributeApi,
+    filter: NonNullable<ChoiceMongo["filter"]>
+  ): boolean {
+    for (const [key, value] of Object.entries(filter)) {
+      const attributeVal = (attribute as unknown as Record<string, unknown>)[key];
+      if (Array.isArray(value)) {
+        if (!value.includes(attributeVal as string | number)) return false;
+      } else if (attributeVal !== value) {
+        return false;
+      }
     }
-
-    if (!bonus_choices.options && !bonus_choices.filter) {
-      const attributes = await this.getBySystems([system]);
-      const options = attributes.map(a => {
-        return {
-          key: a.key,
-          name: a.name,
-          bonus: 1
-        };
-      });
-      return { choose: bonus_choices.choose, options };
-    }
-
-    return undefined;
+    return true;
   }
 
   async formatAttributes(attributes: { key: string, value: number }[], systems: string[]): Promise<CharacterAttributeApi[]> {

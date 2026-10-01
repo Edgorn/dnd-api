@@ -32,7 +32,7 @@ export interface RaceMongo {
     expectancy: number;
   },
   ability_bonuses: AttributeBonusCreate[],
-  ability_bonus_choices: ChoiceMongo,
+  ability_bonus_choices?: ChoiceMongo,
   traits: string[],
   traits_data: TraitDataMongo,
   skill_choices?: ChoiceMongo,
@@ -137,7 +137,9 @@ export interface CreateRace {
   alignment?: string | null;
   ruleset: string;
   img?: string | null;
-  ability_bonuses?: AttributeBonusCreate | null;
+  ability_bonuses?: AttributeBonusCreate[] | null;
+  ability_bonus_choices?: ChoiceMongo | null;
+  skill_choices?: ChoiceMongo | null;
   speed: {
     walk: number;
   };

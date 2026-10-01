@@ -222,5 +222,29 @@ describe("SkillService", () => {
       expect(result?.options).toHaveLength(1);
       expect(result?.options[0].key).toBe("athletics");
     });
+
+    it("returns undefined when choose is missing or less than 1", async () => {
+      await expect(service.formatSkillChoices(undefined)).resolves.toBeUndefined();
+      await expect(service.formatSkillChoices({} as ChoiceMongo)).resolves.toBeUndefined();
+      await expect(service.formatSkillChoices({ choose: 0, options: ["skill-id-athletics"] })).resolves.toBeUndefined();
+      expect(mockRepository.getAll).not.toHaveBeenCalled();
+      expect(mockRepository.getBySystems).not.toHaveBeenCalled();
+    });
+
+    it("uses getBySystems for catalog and filter modes when a ruleset is provided", async () => {
+      vi.mocked(mockRepository.getBySystems).mockResolvedValue(mockSkills);
+
+      const allFromRuleset = await service.formatSkillChoices({ choose: 2 }, "5e");
+      const filteredFromRuleset = await service.formatSkillChoices(
+        { choose: 1, filter: { key: "athletics" } },
+        "5e"
+      );
+
+      expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"], false);
+      expect(mockRepository.getAll).not.toHaveBeenCalled();
+      expect(allFromRuleset?.options).toEqual(mockSkills);
+      expect(filteredFromRuleset?.options).toHaveLength(1);
+      expect(filteredFromRuleset?.options[0].key).toBe("athletics");
+    });
   });
 });

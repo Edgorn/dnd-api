@@ -140,6 +140,116 @@ describe("CreateRaceSchema levels", () => {
   });
 });
 
+describe("CreateRaceSchema ability_bonus_choices and skill_choices", () => {
+  it("accepts choose-only, options, and filter modes", () => {
+    const chooseOnly = CreateRaceSchema.safeParse({
+      ...baseRace,
+      ability_bonus_choices: { choose: 2 },
+      skill_choices: { choose: 2 }
+    });
+    expect(chooseOnly.success).toBe(true);
+    if (chooseOnly.success) {
+      expect(chooseOnly.data.ability_bonus_choices).toEqual({ choose: 2 });
+      expect(chooseOnly.data.skill_choices).toEqual({ choose: 2 });
+    }
+
+    const withOptions = CreateRaceSchema.safeParse({
+      ...baseRace,
+      ability_bonus_choices: { choose: 2, options: ["dex", "int"] },
+      skill_choices: { choose: 1, options: [proficiencyId] }
+    });
+    expect(withOptions.success).toBe(true);
+    if (withOptions.success) {
+      expect(withOptions.data.ability_bonus_choices).toEqual({
+        choose: 2,
+        options: ["dex", "int"]
+      });
+      expect(withOptions.data.skill_choices).toEqual({
+        choose: 1,
+        options: [proficiencyId]
+      });
+    }
+
+    const withFilter = CreateRaceSchema.safeParse({
+      ...baseRace,
+      ability_bonus_choices: { choose: 1, filter: { key: "cha" } },
+      skill_choices: { choose: 1, filter: { key: "athletics" } }
+    });
+    expect(withFilter.success).toBe(true);
+    if (withFilter.success) {
+      expect(withFilter.data.ability_bonus_choices).toEqual({
+        choose: 1,
+        filter: { key: "cha" }
+      });
+      expect(withFilter.data.skill_choices).toEqual({
+        choose: 1,
+        filter: { key: "athletics" }
+      });
+    }
+  });
+
+  it("accepts null to clear the choices", () => {
+    const result = CreateRaceSchema.safeParse({
+      ...baseRace,
+      ability_bonus_choices: null,
+      skill_choices: null
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.ability_bonus_choices).toBeNull();
+      expect(result.data.skill_choices).toBeNull();
+    }
+  });
+
+  it("rejects choose less than 1", () => {
+    const ability = CreateRaceSchema.safeParse({
+      ...baseRace,
+      ability_bonus_choices: { choose: 0, options: ["dex"] }
+    });
+    const skill = CreateRaceSchema.safeParse({
+      ...baseRace,
+      skill_choices: { choose: 0, options: [proficiencyId] }
+    });
+
+    expect(ability.success).toBe(false);
+    expect(skill.success).toBe(false);
+  });
+
+  it("strips response keys query_type and query_filter", () => {
+    const result = CreateRaceSchema.safeParse({
+      ...baseRace,
+      ability_bonus_choices: { choose: 2, query_type: "all", query_filter: { key: "cha" } },
+      skill_choices: { choose: 2, query_type: "filter", query_filter: { key: "athletics" } }
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.ability_bonus_choices).toEqual({ choose: 2 });
+      expect(result.data.skill_choices).toEqual({ choose: 2 });
+    }
+  });
+});
+
+describe("UpdateRaceSchema ability_bonus_choices and skill_choices", () => {
+  it("accepts null to clear the choices", () => {
+    const result = UpdateRaceSchema.safeParse({
+      ability_bonus_choices: null,
+      skill_choices: null
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects choose less than 1", () => {
+    const result = UpdateRaceSchema.safeParse({
+      ability_bonus_choices: { choose: 0 }
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("GetRacesQuerySchema playable", () => {
   it("keeps the string false instead of coercing it to true", () => {
     const result = GetRacesQuerySchema.safeParse({ playable: "false" });
