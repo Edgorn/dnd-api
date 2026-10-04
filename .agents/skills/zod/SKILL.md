@@ -109,10 +109,6 @@ Read individual reference files for detailed explanations and code examples:
 - [Rule template](assets/templates/_template.md) - Template for adding new rules
 - Individual rules: `references/{prefix}-{slug}.md`
 
-## Full Compiled Document
-
-For the complete guide with all rules expanded: `AGENTS.md`
-
 ## Related Skills
 
 - For React Hook Form integration, see `react-hook-form` skill

@@ -1,152 +1,68 @@
-# Guía para Agentes (Contexto del Proyecto)
+# AGENTS.md — API D&D (backend)
 
-Este archivo sirve como referencia principal para agentes de IA (y desarrolladores) sobre la arquitectura, el stack tecnológico y las convenciones de este proyecto.
+API REST para gestionar sistemas de reglas de rol (D&D y derivados), campañas y personajes. Arquitectura hexagonal / DDD sobre Express y MongoDB.
 
-**IMPORTANTE:** Es obligatorio que los agentes de IA sigan todas las directivas, guías, habilidades (skills) y configuraciones adicionales definidas en el directorio [.agents](./.agents) del proyecto.
+## Stack y estructura
 
+- Node.js >= 22.12 + **pnpm** (nunca `npm` ni `yarn`). TypeScript: `tsx` en desarrollo, `tsc` a CommonJS / ES2021.
+- Express 5, MongoDB + Mongoose 9, Zod 4, JWT (`jsonwebtoken`) + `bcrypt`, Vitest. También `pdf-lib` (PDFs) y `swagger-ui-express`. `swagger-jsdoc` es solo de desarrollo (genera `openapi.json`).
+- `src/domain/`: modelos, errores (`AppError`), tipos, servicios de dominio. Sin dependencias de infraestructura.
+  - `ports/`: contratos de servicios no ligados a entidades (`IPasswordHasher`, `ITokenService`, `IUserCache`).
+  - `repositories/`: interfaces de repositorio por entidad (`IAttributeRepository`).
+- `src/application/use-cases/`: casos de uso que orquestan dominio y repositorios.
+- `src/infrastructure/`: adaptadores. `databases/mongoDb/` (schemas y repositorios Mongoose), `http/` (controllers, middlewares, schemas Zod, routes), `security/`, `cache/`, `config/`, `defaultApi/`.
+- `src/infrastructure/dependencies.ts`: contenedor IoC manual. Instancia repositorios, servicios, casos de uso y controladores.
+- `.env` en la raíz: `PORT`, `MONGO_URI`, `JWT_SECRET`, `JWT_REFRESH_SECRET`.
 
-## 🛠️ Stack Tecnológico
+## Comandos
 
-- **Entorno y Gestor de Paquetes:** Node.js con **pnpm** (obligatorio usar siempre `pnpm` en lugar de `npm` o `yarn`).
-- **Lenguaje:** TypeScript (`tsx` para desarrollo, `tsc` para compilación a CommonJS / ES2021).
-- **Framework Web:** Express (v5)
-- **Base de Datos:** MongoDB con Mongoose (v9)
-- **Validaciones:** Zod
-- **Autenticación:** JWT (`jsonwebtoken`) y `bcrypt` para encriptar contraseñas.
-- **Otros:** `multer` para subida de archivos, `pdf-lib` para manipular PDFs, `cors`, `dotenv`, `swagger-ui-express`, `swagger-jsdoc` (para documentación OpenAPI).
+- Instalar: `pnpm install`
+- Desarrollo (watch): `pnpm dev`
+- Tests: `pnpm test`
+- Build: `pnpm build` (`tsc` a `dist/`)
+- Producción: `pnpm start` (`dist/app.js`)
+- Regenerar `openapi.json`: `pnpm docs:openapi`
+- Commit con el mensaje preparado: `pnpm commit:ai` (usa `COMMIT_MESSAGE.md` y luego lo borra)
+- No hay linter configurado.
 
-## 📂 Estructura de Carpetas
+## Convenciones y patrones
 
-El proyecto implementa principios de **Arquitectura Hexagonal / Domain-Driven Design (DDD)**. Todo el código fuente está dentro de `src/`:
+- **Idioma:** código nuevo (variables, archivos, schemas, interfaces) en inglés (`Attribute`, no `Caracteristica`). Swagger y `COMMIT_MESSAGE.md` en español. El código legacy en Spanglish (`IClaseRepository`, `ICriaturaRepository`...) no se renombra salvo petición explícita o refactor de esa entidad.
+- **DI:** clases con dependencias por constructor (`constructor(private readonly myUseCase: MyUseCase) {}`). Todo repositorio, servicio, caso de uso o controlador nuevo se cablea en `dependencies.ts`.
+- **Controllers:** métodos como funciones flecha (`login = async (req, res) => {...}`) con `try/catch`. Lanzar `AppError` (`src/domain/errors/AppError.ts`) y delegar la respuesta en `src/infrastructure/http/middlewares/errorHandler.middleware.ts` (o responder estructurado en el catch si hace falta control local). Trazar con `console.error` / `console.warn` antes de propagar.
+- **Capas:** los casos de uso no conocen Express (`req`, `res`). Los repositorios encapsulan Mongoose y no lo exponen hacia arriba. El dominio no importa Express ni Mongoose.
+- **Validación:** Zod para body, params y query, en `src/infrastructure/http/schemas/`.
+- **Tipos:** firmas explícitas; no abusar de `any`.
+- **REST PUT/PATCH:** el `id` va en la URL (`PUT /recurso/:id`), nunca en el body. El schema Zod no exige `id`; el controller combina `req.params.id` con `req.body` antes del caso de uso.
+- **Swagger:** todo endpoint, parámetro o respuesta nuevos o modificados se documentan con `@openapi` en `src/infrastructure/http/routes/*.routes.ts`, en español (resúmenes, descripciones, tags y mensajes). Después, regenerar `openapi.json`.
+- **Referencia canónica** (entidad `Attribute`): `src/application/use-cases/attribute/`, `src/infrastructure/http/controllers/attribute.controller.ts`, `src/infrastructure/databases/mongoDb/repositories/attribute.repository.ts`, `src/infrastructure/http/schemas/attribute.schema.ts`, `src/infrastructure/http/routes/attribute.routes.ts`. Tests de casos de uso: `src/application/use-cases/feat/*.test.ts`.
 
-- `src/domain/`: Lógica de negocio core y abstracciones. No tiene dependencias de infraestructura.
-  - `errors/`: Clases de error específicas del dominio (ej. `AppError.ts`).
-  - `models/`: Modelos de dominio y entidades de negocio.
-  - `ports/`: Contratos/interfaces para servicios de infraestructura ajenos a entidades (ej. `IPasswordHasher.ts`, `ITokenService.ts`, `IUserCache.ts`).
-  - `repositories/`: Interfaces de repositorios (puertos de entrada/salida) que definen el acceso a datos para cada entidad (ej. `IAttributeRepository.ts`).
-  - `services/`: Interfaces y lógica de dominio agnóstica a infraestructura.
-  - `types/`: Definiciones de tipos e interfaces generales de TypeScript.
-- `src/application/`: Casos de uso del sistema.
-  - `use-cases/`: Clases que orquestan las llamadas entre el dominio y los repositorios/puertos para ejecutar tareas específicas (ej. `createCampaign`, `login`).
-- `src/infrastructure/`: Detalles de implementación técnica externa al dominio (adaptadores).
-  - `cache/`: Implementaciones concretas de caché y almacenamiento rápido.
-  - `config/`: Configuraciones generales del sistema (ej. Swagger, constantes).
-  - `databases/mongoDb/`: Modelos e implementaciones concretas de los repositorios Mongoose.
-  - `defaultApi/`: Lógica por defecto de la API o inicializaciones estándar.
-  - `http/`: Capa web con Express (controladores, middlewares, esquemas Zod, rutas y arranque del servidor).
-  - `security/`: Implementaciones concretas de seguridad (hashing, encriptado, tokens).
-  - `dependencies.ts`: Archivo crucial para la inyección de dependencias manual (IoC Container). Instancia repositorios, los inyecta en servicios, estos en casos de uso, y finalmente los casos de uso en controladores.
-- `src/utils/`: Funciones utilitarias generales.
+## Reglas de dominio y trampas
 
-## 📝 Reglas de Código y Convenciones (Cómo Programar Aquí)
+- **Rulesets (1 a N):** cada entidad (`Attribute`, `Skill`, `Language`...) pertenece a un solo sistema mediante `ruleset: string`. Para compartir entre sistemas se usa la herencia de sistemas (un hijo ve las entidades de sus ancestros). `getBySystems` recoge los ancestros y filtra con `ruleset: { $in: expandedRulesets }`.
+- **Soft delete:** siempre con `deletedAt: Date | null` (schema: `deletedAt: { type: Date, default: null }`), como en `attributes`, `skills` y `systems`. Las lecturas filtran `{ deletedAt: null }`. Endpoints `DELETE /recurso/:id` y, opcionalmente, `PATCH /recurso/:id/restore`.
+- **Campo `index` obsoleto:** usar solo el `id` de MongoDB. Sin `index` en schemas Mongoose, interfaces ni Zod. Al refactorizar una entidad legacy, quitarlo de todas las capas y verificar que se eliminan los índices residuales (`index_1`, `ruleset_1_index_1`).
+- **Datos legacy:** `.lean()` devuelve los documentos tal cual están guardados. Si cambia la forma de un campo (por ejemplo, `money` de objeto a array), el repositorio normaliza al leer (`formatear...`, `Array.isArray()`, comprobar propiedades antiguas) antes de usar `.map()` / `.filter()`.
+- **Repositorios:** nada de cachés en memoria (`Map`, `Record`, arrays locales) para entidades; toda consulta va a MongoDB (hay múltiples réplicas). Un repositorio no importa el modelo Mongoose de otra entidad; si necesita sus datos, recibe su repositorio por constructor.
+- **Lógica entre entidades** (estadísticas cruzadas, borrado en cascada...): va en un caso de uso orquestador en `application/` que inyecta los repositorios o servicios implicados, no en un repositorio.
+- **`COMMIT_MESSAGE.md`:** resumen en español de cada desarrollo; su contenido es el mensaje del commit (`pnpm commit:ai`). Está en `.gitignore` (`/COMMIT_MESSAGE.md`), así que `Glob`, búsquedas y `git status` no lo muestran. Antes de escribir, **leerlo** siempre. Si tiene contenido, añadir al final o ampliar el texto relacionado; nunca sustituirlo entero. Solo crearlo si la lectura confirma que no existe o está vacío.
 
-Cuando vayas a crear o modificar código en este repositorio, sigue estrictamente estas reglas:
+## Forma de trabajar
 
-1. **Inyección de Dependencias (DI):**
-   - Usa clases e inyecta las dependencias a través del constructor.
-   - Ejemplo: `constructor(private readonly myUseCase: MyUseCase) {}`.
-   - **IMPORTANTE:** Siempre que crees un nuevo repositorio, servicio, caso de uso o controlador, DEBES instanciarlo y encadenarlo correctamente en `src/infrastructure/dependencies.ts`.
+- Antes de crear una entidad o endpoint, leer la referencia canónica y replicar su forma.
+- Planificar antes de tocar código si el cambio afecta a varias entidades, cambia el formato de datos persistidos o requiere migración.
+- Mantener el diff acotado a la tarea; no refactorizar de paso código ajeno.
+- Al terminar, resumir qué se cambió y qué se verificó.
+- Las skills de `.agents/` se usan cuando aplican; si contradicen este archivo, manda `AGENTS.md`.
 
-2. **Controladores (Controllers) y Manejo de Errores:**
-   - Define los métodos de los controladores como funciones flecha asignadas a propiedades de la clase para preservar el contexto de `this` (ej. `login = async (req: Request, res: Response) => { ... }`).
-   - Envuelve el cuerpo de los métodos en un bloque `try/catch`.
-   - Utiliza la clase de error del dominio `AppError` (en `src/domain/errors/AppError.ts`) para lanzar excepciones controladas de lógica de negocio o de validación de datos.
-   - Para centralizar las respuestas de error y códigos HTTP adecuados (400, 401, 403, 404, 409, etc.), delega en el middleware global de captura de errores (`src/infrastructure/http/middlewares/errorHandler.middleware.ts`) lanzando el error adecuado, o responde estructuradamente en el catch si requieres control específico local.
-   - Usa `console.error()` o `console.warn()` para dejar trazas antes de propagar o responder un error.
+## Límites
 
-3. **Arquitectura Hexagonal / DDD:**
-   - **Los Casos de Uso (`application/use-cases/`)** deben orquestar la lógica. Solo deben comunicarse con los servicios de dominio o repositorios inyectados, sin acoplarse a Express (`req`, `res`).
-   - **Los Repositorios (`infrastructure/databases/mongoDb/repositories/`)** encapsulan toda la lógica específica de Mongoose. No expongas objetos o métodos de Mongoose en capas superiores. Además, **respeta la arquitectura hexagonal**: un repositorio no debe importar y usar directamente el Modelo/Schema de Mongoose que pertenezca a otra entidad. Si necesitas datos de otra entidad, inyecta su respectivo repositorio a través del constructor.
-   - **El Dominio (`domain/`)** no debe tener dependencias de infraestructura (ni Express, ni Mongoose, etc.).
+- **Siempre:** usar pnpm; cablear en `dependencies.ts`; añadir tests (`.test.ts` / `.spec.ts`, Vitest) para cada caso de uso nuevo; actualizar Swagger y `openapi.json` si cambia la API; registrar el desarrollo en `COMMIT_MESSAGE.md`.
+- **Preguntar antes:** dependencias nuevas; cambios en el formato de datos o en schemas persistidos; migraciones; renombrar código legacy.
+- **Nunca:** subir `.env` ni credenciales; usar `npm` o `yarn`; cachés en memoria en repositorios; importar modelos Mongoose de otra entidad; añadir campos `index`; sobrescribir `COMMIT_MESSAGE.md`.
 
-4. **Validaciones:**
-   - Para las peticiones HTTP (cuerpos, parámetros, queries), utiliza **Zod**. Los esquemas se ubican normalmente cerca de la infraestructura (ej. `src/infrastructure/http/schemas/`).
+## Verificación
 
-5. **Tipado Estratégico:**
-   - Asegúrate de definir las firmas de los métodos y usar los tipos adecuadamente sin abusar del tipo `any`.
-
-6. **Manejo de Rulesets y Relaciones (1 a N):**
-   - Las entidades (como `Attribute`, `Skill` o `Language`) tienen una relación de **uno a muchos** con los sistemas a través del campo `ruleset: string`.
-   - Una entidad pertenece de forma exclusiva a **un solo sistema**.
-   - Para compartir entidades entre sistemas, se utiliza la **herencia de sistemas** (sistemas derivados), lo que permite que un sistema hijo disponga indirectamente de las entidades de sus sistemas ancestros.
-   - **Consultas de Sistemas:** Al buscar entidades para un sistema (`getBySystems`), la consulta debe delegar en la recolección de ancestros y usar el filtro `$in` (`ruleset: { $in: expandedRulesets }`).
-
-7. **Documentación de la API (Swagger / OpenAPI):**
-   - Siempre que se realice un desarrollo nuevo que modifique o añada endpoints, parámetros de petición o esquemas de respuesta, se debe actualizar la documentación Swagger (usando comentarios `@openapi`) en los archivos correspondientes dentro de `src/infrastructure/http/routes/*.routes.ts`.
-   - **Idioma de Swagger:** La documentación expuesta en Swagger (resúmenes, descripciones, etiquetas/tags y mensajes de respuesta) debe redactarse estrictamente en **Español** para los usuarios de la API.
-   - Tras realizar las modificaciones de Swagger, es obligatorio regenerar el archivo `openapi.json` estático en la raíz ejecutando el comando:
-     ```bash
-     pnpm exec tsx src/infrastructure/http/config/swagger.ts
-     ```
-
-8. **Idioma (Inglés vs Spanglish):**
-   - Se ha decidido abandonar el uso del Spanglish en el código fuente y decantarse por el Inglés. Todo el código nuevo, nombres de variables, archivos, esquemas e interfaces TypeScript deben declararse estrictamente en Inglés (ej. `Attribute` en lugar de `Caracteristica`). La única excepción es la **documentación de Swagger/OpenAPI**, la cual debe ser en **Español**.
-   - **Nota sobre código legacy:** Gran parte del código existente en `src/domain/repositories/` y otras carpetas sigue en Spanglish (ej. `IClaseRepository.ts`, `ICriaturaRepository.ts`). La migración de este código es progresiva. No renombres ni alteres archivos antiguos a inglés a menos que se te indique explícitamente o estés trabajando en su refactorización.
-
-9. **Registro del Desarrollo (COMMIT_MESSAGE.md):**
-   - Cuando se haga un desarrollo se debe crear (en caso de no existir) un archivo `COMMIT_MESSAGE.md` en la raíz del proyecto.
-   - En este archivo se debe escribir un resumen del desarrollo, cuyo contenido será el texto que irá en el commit de git.
-   - El contenido de este archivo debe redactarse estrictamente en **Español**.
-   - En caso de ya existir el archivo, se debe añadir la información del nuevo desarrollo al final. Si el nuevo desarrollo tiene relación directa con lo que ya estaba escrito en el archivo, se puede modificar o ampliar el texto existente para añadir más detalles.
-   - Este archivo debe estar excluido en el archivo `.gitignore` (como `/COMMIT_MESSAGE.md`).
-   - **Obligatorio para agentes:** el archivo está ignorado por Git, así que `Glob`, búsquedas y `git status` **no lo listan**. Antes de escribir, hay que **leer** `COMMIT_MESSAGE.md` en la raíz (aunque las búsquedas digan que no existe). Si la lectura tiene contenido, **nunca** sustituir el archivo entero: añadir al final o ampliar el texto relacionado. Solo crear de cero si la lectura confirma que no existe o está vacío.
-
-10. **Repositorios y Caché:**
-   - **Bajo ningún concepto** se deben utilizar cachés en memoria (ej. `Map`, `Record`, arrays locales) dentro de los repositorios para almacenar entidades o evitar consultas a la base de datos.
-   - Todas las consultas, filtrados y recolección de datos deben delegarse directamente a **Mongoose / MongoDB**. Esto evita graves problemas de desincronización de estado en sistemas escalables o con múltiples réplicas.
-
-11. **Estándar REST para Endpoints de Actualización (PUT / PATCH):**
-   - Todo endpoint encargado de modificar un recurso específico debe recibir el identificador único (`id`) como parámetro en la ruta de la URL (ej. `PUT /recurso/:id`) y no a través del cuerpo de la petición (`body`).
-   - Los esquemas de validación (Zod) no deben exigir el `id` dentro del `req.body`.
-   - Los controladores deben capturar `req.params.id` y combinarlo con `req.body` antes de enviarlo al respectivo Caso de Uso.
-
-12. **Casos de Uso Orquestadores (Regla de Desacoplamiento):**
-   - Para mantener la separación de conceptos y la Arquitectura Hexagonal pura, los repositorios no deben importar ni utilizar directamente esquemas/modelos de Mongoose de otras entidades.
-   - If una operación requiere coordinar lógica que involucra múltiples entidades (por ejemplo, conteo de estadísticas cruzadas o borrado lógico en cascada de sub-entidades), se debe crear un **Caso de Uso Orquestador** en la capa de aplicación.
-   - Este Caso de Uso Orquestador inyectará los servicios o repositorios de las distintas entidades implicadas y coordinará la ejecución del proceso paso a paso, evitando así dependencias circulares y acoplamientos innecesarios entre repositorios.
-
-13. **Borrado Lógico (Soft Delete):**
-   - Cuando se realicen borrados lógicos, **siempre** se debe utilizar la estrategia basada en el campo `deletedAt: Date | null` (como se hace en `attributes`, `skills` y `systems`).
-   - El Schema de Mongoose debe incluir `deletedAt: { type: Date, default: null }`.
-   - Las consultas de obtención (`find`, `getBySystems`, etc.) deben filtrar excluyendo los borrados: `{ deletedAt: null }`.
-   - Se deben crear endpoints para el borrado `DELETE /recurso/:id` y, opcionalmente, para la restauración `PATCH /recurso/:id/restore`.
-
-14. **Obsolescencia del campo `index`:**
-    - El campo `index` (propiedad usada previamente como identificador o slug) queda oficialmente **obsoleto**.
-    - Todas las entidades nuevas o refactorizadas deben utilizar exclusivamente el `id` autogenerado de MongoDB como identificador único.
-    - No se deben incluir campos `index` en los esquemas Mongoose, interfaces TypeScript ni esquemas de validación Zod.
-    - Al refactorizar entidades legacy que tenían el campo `index`, se debe remover el campo de todas las capas y verificar la eliminación de cualquier índice residual de base de datos (`index_1` o `ruleset_1_index_1`).
-
-15. **Compatibilidad y Normalización de Datos Legacy:**
-    - Al refactorizar estructuras de datos o cambiar tipos en esquemas existentes (por ejemplo, cambiar un campo de objeto único a un array, como en `money`), los repositorios deben incluir mecanismos de normalización o tolerancia a datos antiguos al leer desde la base de datos (`formatear...`).
-    - Las lecturas de MongoDB mediante `.lean()` devuelven documentos tal como están almacenados en la base de datos. Si un documento posee una estructura obsoleta (ej. un objeto en vez de un array), el código debe validar en tiempo de ejecución (`Array.isArray()`, comprobación de propiedades previas) y normalizar el dato antes de invocar métodos de array (`.map()`, `.filter()`, etc.) para prevenir errores fatales de ejecución (`TypeError: ... is not a function`).
-
-16. **Verificación de Compilación (`pnpm run build`):**
-    - Tras completar un desarrollo (nuevas features, refactors, cambios de tipos, esquemas Zod, repositorios o endpoints), es **obligatorio** ejecutar `pnpm run build` (`tsc`) antes de dar el trabajo por cerrado.
-    - El build debe terminar con código de salida 0. Si falla, hay que corregir los errores de TypeScript y volver a ejecutarlo hasta que compile.
-    - No se debe considerar el desarrollo terminado si `tsc` no pasa, aunque los tests unitarios o el servidor de desarrollo (`tsx`) funcionen.
-    - Si `pnpm run build` falla, debe interpretarse como que **falta un test** en el código afectado: el error no se detectó antes porque no había cobertura que ejerciera esos tipos o esa integración. Tras corregir el build, hay que añadir (o ampliar) un test en ese lugar para que el mismo fallo no vuelva a pasar desapercibido.
-
-## 🧪 Pruebas Unitarias e Integración (Testing)
-
-- **Framework:** Se utiliza **Vitest** como framework de pruebas para el proyecto.
-- **Estrategia:** Se requiere que los nuevos Casos de Uso desarrollados (`src/application/use-cases/`) tengan sus correspondientes tests unitarios implementados en archivos `.test.ts` o `.spec.ts` para asegurar la robustez de la lógica de negocio.
-
-## 🔑 Variables de Entorno
-
-El proyecto requiere un archivo `.env` en la raíz con las siguientes variables básicas para su ejecución:
-- `PORT`: Puerto en el que correrá el servidor local (ej. `3000`).
-- `MONGO_URI`: Cadena de conexión para la base de datos MongoDB.
-- `JWT_SECRET`: Clave secreta para la firma y verificación de tokens JWT.
-- `JWT_REFRESH_SECRET`: Clave secreta para la firma y verificación de tokens de actualización (refresh tokens).
-
-*Nota: Asegúrate de no subir credenciales reales ni archivos `.env` al control de versiones.*
-
-## 🚀 Comandos del Proyecto
-
-Para gestionar y ejecutar el proyecto, se utilizan los siguientes comandos principales mediante `pnpm`:
-- `pnpm install`: Instala todas las dependencias necesarias.
-- `pnpm dev`: Inicia el servidor de desarrollo local con recarga en caliente utilizando `tsx watch`.
-- `pnpm build`: Compila el código TypeScript a JavaScript en el directorio `dist/` usando el compilador `tsc`.
-- `pnpm start`: Ejecuta la versión compilada en producción desde `dist/app.js`.
-- `pnpm commit:ai`: Ejecuta el commit Git usando el contenido de `COMMIT_MESSAGE.md` y luego elimina el archivo.
+- `pnpm test` en verde.
+- `pnpm run build` con código de salida 0. Si `tsc` falla, corregir y repetir. El trabajo no está terminado aunque pasen los tests o arranque `pnpm dev`.
+- Un build fallido significa que **falta un test** en el código afectado: tras arreglar la compilación, añadir o ampliar un test ahí para cubrir el caso.

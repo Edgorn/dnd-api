@@ -1,52 +1,69 @@
-import swaggerJSDoc from 'swagger-jsdoc';
+import fs from "fs";
+import path from "path";
+import swaggerJSDoc from "swagger-jsdoc";
 
 const options: swaggerJSDoc.Options = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'D&D API',
-      version: '1.0.0',
-      description: 'Documentación de la API para gestión de campañas y fichas de D&D',
+      title: "D&D API",
+      version: "1.0.0",
+      description: "Documentación de la API para gestión de campañas y fichas de D&D"
     },
     servers: [
       {
-        url: 'http://localhost:8000',
-        description: 'Servidor Local',
-      },
+        url: "http://localhost:8000",
+        description: "Servidor Local"
+      }
     ],
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'Introduce el token JWT recibido en el login (sin el prefijo "Bearer ")'
-        },
-      },
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description: "Introduce el token JWT recibido en el login (sin el prefijo \"Bearer \")"
+        }
+      }
     },
     security: [
       {
-        bearerAuth: [],
-      },
-    ],
+        bearerAuth: []
+      }
+    ]
   },
-  // Rutas relativas para buscar comentarios JSDoc
   apis: [
-    './src/infrastructure/http/routes/*.ts',
-    './src/infrastructure/http/routes/*.js'
-  ],
+    "./src/infrastructure/http/routes/*.ts",
+    "./src/infrastructure/http/routes/*.js"
+  ]
 };
 
-export const swaggerSpec = swaggerJSDoc(options);
+export function generateSwaggerSpec(): object {
+  return swaggerJSDoc(options);
+}
 
-// Generar archivo openapi.json estático en la raíz del proyecto
-import fs from 'fs';
-import path from 'path';
+export function writeOpenApiJson(cwd: string = process.cwd()): string {
+  const swaggerSpec = generateSwaggerSpec();
+  const outputPath = path.resolve(cwd, "openapi.json");
+  fs.writeFileSync(outputPath, JSON.stringify(swaggerSpec, null, 2), "utf-8");
+  return outputPath;
+}
 
-try {
-  const outputPath = path.resolve(process.cwd(), 'openapi.json');
-  fs.writeFileSync(outputPath, JSON.stringify(swaggerSpec, null, 2), 'utf-8');
-  console.log(`✅ openapi.json generado exitosamente en: ${outputPath}`);
-} catch (error) {
-  console.error('❌ Error al escribir openapi.json:', error);
+function isExecutedAsCli(): boolean {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+  const normalized = entry.replace(/\\/g, "/");
+  return normalized.endsWith("/swagger.ts") || normalized.endsWith("/swagger.js");
+}
+
+if (isExecutedAsCli()) {
+  try {
+    const outputPath = writeOpenApiJson();
+    console.log(`openapi.json generado en: ${outputPath}`);
+  } catch (error) {
+    console.error("Error al escribir openapi.json:", error);
+    process.exitCode = 1;
+  }
 }

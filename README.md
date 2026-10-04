@@ -4,7 +4,7 @@ API REST para la gestión de campañas, personajes, conjuros, equipamientos y si
 
 ## 🛠️ Stack Tecnológico
 
-- **Entorno de Ejecución:** Node.js (v18+)
+- **Entorno de Ejecución:** Node.js (v22.12+)
 - **Gestor de Paquetes:** pnpm
 - **Lenguaje:** TypeScript (compilando a CommonJS/ES2021)
 - **Framework Web:** Express (v5)
@@ -16,7 +16,7 @@ API REST para la gestión de campañas, personajes, conjuros, equipamientos y si
 
 ## 📂 Requisitos Previos
 
-- **Node.js** >= 18.x
+- **Node.js** >= 22.12
 - **pnpm** instalado globalmente (`npm i -g pnpm`)
 - Instancia activa de **MongoDB** (local o en la nube a través de MongoDB Atlas)
 
