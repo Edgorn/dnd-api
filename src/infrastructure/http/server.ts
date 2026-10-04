@@ -30,7 +30,7 @@ import armorTypeRoutes from "./routes/armorType.routes";
 import creatureTypeRoutes from "./routes/creatureType.routes";
 import conditionRoutes from "./routes/condition.routes";
 import swaggerUi from 'swagger-ui-express';
-import { loadOpenApiSpec } from './config/loadOpenApiSpec';
+import { tryLoadOpenApiSpec } from './config/loadOpenApiSpec';
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 
 const app: Application = express();
@@ -84,13 +84,14 @@ app.use(conditionRoutes);
 
 app.use(errorHandler);
 
-const swaggerSpec = loadOpenApiSpec();
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.get('/api-docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});
+const swaggerSpec = tryLoadOpenApiSpec();
+if (swaggerSpec) {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api-docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+}
 
 export const startServer = async (port: number | string): Promise<void> => {
   await connectDB();

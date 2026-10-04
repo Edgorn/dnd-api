@@ -16,12 +16,22 @@ export const openApiSpecSchema = z
 
 export type OpenApiSpec = z.infer<typeof openApiSpecSchema>;
 
+export type TryLoadOpenApiOptions = {
+  extraPaths?: string[];
+};
+
 export function getOpenApiJsonPath(cwd: string = process.cwd()): string {
   return path.resolve(cwd, "openapi.json");
 }
 
-export function loadOpenApiSpec(cwd: string = process.cwd()): OpenApiSpec {
-  const openApiPath = getOpenApiJsonPath(cwd);
+export function getModuleRelativeOpenApiPaths(): string[] {
+  return [
+    path.resolve(__dirname, "../../../../openapi.json"),
+    path.resolve(__dirname, "../../../../../openapi.json")
+  ];
+}
+
+export function loadOpenApiSpecFromFile(openApiPath: string): OpenApiSpec {
   let raw: string;
   try {
     raw = fs.readFileSync(openApiPath, "utf-8");
@@ -42,4 +52,43 @@ export function loadOpenApiSpec(cwd: string = process.cwd()): OpenApiSpec {
   }
 
   return result.data;
+}
+
+export function loadOpenApiSpec(cwd: string = process.cwd()): OpenApiSpec {
+  return loadOpenApiSpecFromFile(getOpenApiJsonPath(cwd));
+}
+
+function tryLoadFromPath(openApiPath: string): OpenApiSpec | null {
+  try {
+    return loadOpenApiSpecFromFile(openApiPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[OpenAPI] ${message}`);
+    return null;
+  }
+}
+
+export function tryLoadOpenApiSpec(
+  cwd: string = process.cwd(),
+  options: TryLoadOpenApiOptions = {}
+): OpenApiSpec | null {
+  const primaryPath = getOpenApiJsonPath(cwd);
+  if (fs.existsSync(primaryPath)) {
+    return tryLoadFromPath(primaryPath);
+  }
+
+  const extraPaths = options.extraPaths ?? getModuleRelativeOpenApiPaths();
+  const uniqueExtraPaths = [...new Set(extraPaths.filter((candidate) => candidate !== primaryPath))];
+
+  for (const openApiPath of uniqueExtraPaths) {
+    if (!fs.existsSync(openApiPath)) {
+      continue;
+    }
+    return tryLoadFromPath(openApiPath);
+  }
+
+  console.warn(
+    `[OpenAPI] No se encontró openapi.json en ${primaryPath}. Swagger no se montará. Ejecuta pnpm docs:openapi`
+  );
+  return null;
 }
