@@ -5,11 +5,9 @@ import GetUserProfileUseCase from "./getUserProfile.use-case";
 import UpdateUserProfileUseCase from "./updateUserProfile.use-case";
 import SoftDeleteUserUseCase from "./softDeleteUser.use-case";
 import UserService from "../../../domain/services/user.service";
+import AuthService from "../../../domain/services/auth.service";
 import IUserRepository from "../../../domain/repositories/IUserRepository";
 import { IPasswordHasher } from "../../../domain/ports/IPasswordHasher";
-import { ITokenService } from "../../../domain/ports/ITokenService";
-import { IRefreshTokenRepository } from "../../../domain/ports/IRefreshTokenRepository";
-import { IUserCache } from "../../../domain/ports/IUserCache";
 import { AppError, NotFoundError } from "../../../domain/errors/AppError";
 import { User, UserProfile } from "../../../domain/types/user.types";
 
@@ -19,7 +17,9 @@ const admin: User = {
   password: "hashed",
   accessibleSystems: [],
   isAdmin: true,
-  deletedAt: null
+  deletedAt: null,
+  failedLoginAttempts: 0,
+  lockedUntil: null
 };
 
 const otherAdmin: User = {
@@ -81,34 +81,21 @@ function createHarness() {
     dummyHash: "dummy"
   } as unknown as IPasswordHasher;
 
-  const refreshTokenRepository = {
-    revokeAllByUser: vi.fn().mockResolvedValue(undefined)
-  } as unknown as IRefreshTokenRepository;
-
-  const userCache = {
-    get: vi.fn().mockReturnValue(null),
-    set: vi.fn(),
-    invalidate: vi.fn()
-  } as unknown as IUserCache;
-
-  const userService = new UserService(
-    userRepository,
-    passwordHasher,
-    {} as ITokenService,
-    refreshTokenRepository,
-    userCache
-  );
+  const userService = new UserService(userRepository, passwordHasher);
+  const authService = {
+    revokeAllSessions: vi.fn().mockResolvedValue(undefined),
+    invalidateUser: vi.fn()
+  } as unknown as AuthService;
 
   return {
     userRepository,
     passwordHasher,
-    refreshTokenRepository,
-    userCache,
+    authService,
     createUser: new CreateUserUseCase(userService),
     listUsers: new ListUsersUseCase(userService),
     getUserProfile: new GetUserProfileUseCase(userService),
     updateUserProfile: new UpdateUserProfileUseCase(userService),
-    softDeleteUser: new SoftDeleteUserUseCase(userService)
+    softDeleteUser: new SoftDeleteUserUseCase(userService, authService)
   };
 }
 
@@ -189,7 +176,7 @@ describe("admin user management", () => {
   });
 
   it("refuses to delete the acting admin or another admin", async () => {
-    const { softDeleteUser, userRepository, refreshTokenRepository, userCache } = createHarness();
+    const { softDeleteUser, userRepository, authService } = createHarness();
 
     await expect(softDeleteUser.execute(admin.id, admin.id)).rejects.toMatchObject({
       statusCode: 403,
@@ -201,17 +188,17 @@ describe("admin user management", () => {
     });
 
     expect(userRepository.softDelete).not.toHaveBeenCalled();
-    expect(refreshTokenRepository.revokeAllByUser).not.toHaveBeenCalled();
-    expect(userCache.invalidate).not.toHaveBeenCalled();
+    expect(authService.revokeAllSessions).not.toHaveBeenCalled();
+    expect(authService.invalidateUser).not.toHaveBeenCalled();
   });
 
   it("soft-deletes a regular account and ends its session", async () => {
-    const { softDeleteUser, userRepository, refreshTokenRepository, userCache } = createHarness();
+    const { softDeleteUser, userRepository, authService } = createHarness();
 
     await softDeleteUser.execute(admin.id, member.id);
 
     expect(userRepository.softDelete).toHaveBeenCalledWith(member.id);
-    expect(refreshTokenRepository.revokeAllByUser).toHaveBeenCalledWith(member.id);
-    expect(userCache.invalidate).toHaveBeenCalledWith(member.id);
+    expect(authService.revokeAllSessions).toHaveBeenCalledWith(member.id);
+    expect(authService.invalidateUser).toHaveBeenCalledWith(member.id);
   });
 });

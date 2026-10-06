@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError } from "../../../domain/errors/AppError";
+import { AppError, RateLimitedError } from "../../../domain/errors/AppError";
 
 export const errorHandler = (
   err: any,
@@ -7,13 +7,17 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  if (err instanceof RateLimitedError) {
+    res.setHeader("Retry-After", String(Math.max(1, err.retryAfterSeconds)));
+    return res.status(err.statusCode).json({ error: err.message });
+  }
+
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ error: err.message });
   }
 
-  // Manejar errores de Mongoose como CastError (ID inválido)
   if (err.name === "CastError") {
-    return res.status(400).json({ error: `Formato de ID inválido: ${err.value}` });
+    return res.status(400).json({ error: "Formato de ID inválido" });
   }
 
   console.error("Unexpected error:", err);

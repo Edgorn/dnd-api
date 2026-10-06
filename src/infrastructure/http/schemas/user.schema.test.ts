@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { loginSchema } from "./login.schema";
 import { changePasswordSchema, createUserSchema, updateUserNameSchema, updateUserProfileSchema } from "./user.schema";
 
 describe("user schemas", () => {
@@ -16,10 +15,6 @@ describe("user schemas", () => {
         accessibleSystems: []
       });
     }
-  });
-
-  it("keeps login passwords of any existing length", () => {
-    expect(loginSchema.safeParse({ user: "Ada", password: "x" }).success).toBe(true);
   });
 
   it("requires a name when renaming", () => {

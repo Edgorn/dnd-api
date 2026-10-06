@@ -5,15 +5,14 @@ const respondZodError = (res: Response, error: ZodError) => {
   const messages = error.issues.map((issue) => issue.message).join(", ");
 
   return res.status(400).json({
-    error: messages,
-    details: error.issues
+    error: messages
   });
 };
 
 export const validateSchema = (schema: z.ZodTypeAny) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      schema.parse(req.body);
+      req.body = schema.parse(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {

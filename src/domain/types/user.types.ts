@@ -5,8 +5,9 @@ export interface User {
   accessibleSystems: string[];
   isAdmin: boolean;
   deletedAt: Date | null;
+  failedLoginAttempts: number;
+  lockedUntil: Date | null;
 }
-
 
 export interface UserApi {
   id: string,
@@ -51,15 +52,4 @@ export interface ChangePasswordParams {
   id: string;
   currentPassword: string;
   newPassword: string;
-}
-
-export interface LoginParams {
-  user: string;
-  password: string;
-}
-
-export interface LoginResult {
-  token: string;
-  refreshToken: string;
-  user: UserApi;
 }

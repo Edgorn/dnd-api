@@ -7,6 +7,8 @@ export interface UserDocument extends Document {
   accessibleSystems: string[];
   isAdmin?: boolean;
   deletedAt?: Date | null;
+  failedLoginAttempts?: number;
+  lockedUntil?: Date | null;
 }
 
 const userSchema: Schema = new Schema<UserDocument>({
@@ -26,6 +28,14 @@ const userSchema: Schema = new Schema<UserDocument>({
     default: false
   },
   deletedAt: {
+    type: Date,
+    default: null
+  },
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockedUntil: {
     type: Date,
     default: null
   }

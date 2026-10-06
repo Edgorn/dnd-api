@@ -13,7 +13,7 @@ import CoinRepository from "./databases/mongoDb/repositories/coin.repository";
 import { CoinController } from "./http/controllers/coin.controller";
 import DenyJoinCampaign from "../application/use-cases/campaign/denyJoinCampaign.use-case";
 import AddCharacterToCampaign from "../application/use-cases/campaign/addCharacterToCampaign.use-case";
-import LoginUseCase from "../application/use-cases/user/login.use-case";
+import LoginUseCase from "../application/use-cases/auth/login.use-case";
 import CreateUserUseCase from "../application/use-cases/user/createUser.use-case";
 import GetCurrentUserUseCase from "../application/use-cases/user/getCurrentUser.use-case";
 import UpdateUserNameUseCase from "../application/use-cases/user/updateUserName.use-case";
@@ -22,7 +22,7 @@ import ListUsersUseCase from "../application/use-cases/user/listUsers.use-case";
 import GetUserProfileUseCase from "../application/use-cases/user/getUserProfile.use-case";
 import UpdateUserProfileUseCase from "../application/use-cases/user/updateUserProfile.use-case";
 import SoftDeleteUserUseCase from "../application/use-cases/user/softDeleteUser.use-case";
-import ValidateTokenUseCase from "../application/use-cases/user/validateToken.use-case";
+import ValidateTokenUseCase from "../application/use-cases/auth/validateToken.use-case";
 import { createAuthMiddleware } from "./http/middlewares/auth.middleware";
 import GetBackgroundsBySystems from "../application/use-cases/background/getBackgroundsBySystems.use-case";
 import GetBackgroundById from "../application/use-cases/background/getBackgroundById.use-case";
@@ -88,6 +88,7 @@ import { ProficiencyController } from "./http/controllers/proficiency.controller
 
 import CampaignService from "../domain/services/campaign.service";
 import UserService from "../domain/services/user.service";
+import AuthService from "../domain/services/auth.service";
 import RaceService from "../domain/services/race.service";
 import BackgroundService from "../domain/services/background.service";
 import CharacterClassService from "../domain/services/characterClass.service";
@@ -142,12 +143,13 @@ import { BcryptPasswordHasher } from "./security/BcryptPasswordHasher";
 import { JwtTokenService } from "./security/JwtTokenService";
 import { InMemoryUserCache } from "./cache/InMemoryUserCache";
 import RefreshTokenRepository from "./databases/mongoDb/repositories/refreshToken.repository";
-import RefreshTokenUseCase from "../application/use-cases/user/refreshToken.use-case";
-import LogoutUseCase from "../application/use-cases/user/logout.use-case";
+import RefreshTokenUseCase from "../application/use-cases/auth/refreshToken.use-case";
+import LogoutUseCase from "../application/use-cases/auth/logout.use-case";
 import { createAuthorizeSystemMiddleware } from "./http/middlewares/authorizeSystem.middleware";
 
 import { CampaignController } from "./http/controllers/campaign.controller";
 import { UserController } from "./http/controllers/user.controller";
+import { AuthController } from "./http/controllers/auth.controller";
 import { RaceController } from "./http/controllers/race.controller";
 import { BackgroundController } from "./http/controllers/background.controller";
 import { CharacterClassController } from "./http/controllers/characterClass.controller";
@@ -357,20 +359,21 @@ const passwordHasher = new BcryptPasswordHasher()
 const tokenService = new JwtTokenService(process.env.JWT_SECRET ?? '')
 const userCache = new InMemoryUserCache()
 const refreshTokenRepository = new RefreshTokenRepository()
-const userService = new UserService(userRepository, passwordHasher, tokenService, refreshTokenRepository, userCache)
+const userService = new UserService(userRepository, passwordHasher)
+const authService = new AuthService(userRepository, passwordHasher, tokenService, refreshTokenRepository, userCache)
 
-const loginUseCase = new LoginUseCase(userService)
-const refreshTokenUseCase = new RefreshTokenUseCase(userService)
-const logoutUseCase = new LogoutUseCase(userService)
+const loginUseCase = new LoginUseCase(authService)
+const refreshTokenUseCase = new RefreshTokenUseCase(authService)
+const logoutUseCase = new LogoutUseCase(authService)
 const createUserUseCase = new CreateUserUseCase(userService)
 const getCurrentUserUseCase = new GetCurrentUserUseCase(userService)
 const updateUserNameUseCase = new UpdateUserNameUseCase(userService)
-const changePasswordUseCase = new ChangePasswordUseCase(userService)
+const changePasswordUseCase = new ChangePasswordUseCase(userService, authService)
 const listUsersUseCase = new ListUsersUseCase(userService)
 const getUserProfileUseCase = new GetUserProfileUseCase(userService)
 const updateUserProfileUseCase = new UpdateUserProfileUseCase(userService)
-const softDeleteUserUseCase = new SoftDeleteUserUseCase(userService)
-const validateTokenUseCase = new ValidateTokenUseCase(userService)
+const softDeleteUserUseCase = new SoftDeleteUserUseCase(userService, authService)
+const validateTokenUseCase = new ValidateTokenUseCase(authService)
 
 export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
 
@@ -538,10 +541,13 @@ export const campaignController = new CampaignController(
   addCharacterToCampaign
 )
 
-export const userController = new UserController(
+export const authController = new AuthController(
   loginUseCase,
   refreshTokenUseCase,
-  logoutUseCase,
+  logoutUseCase
+)
+
+export const userController = new UserController(
   createUserUseCase,
   getCurrentUserUseCase,
   updateUserNameUseCase,

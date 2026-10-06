@@ -1,7 +1,4 @@
-import { Request, Response, NextFunction } from "express";
-import LoginUseCase from "../../../application/use-cases/user/login.use-case";
-import RefreshTokenUseCase from "../../../application/use-cases/user/refreshToken.use-case";
-import LogoutUseCase from "../../../application/use-cases/user/logout.use-case";
+import { Response, NextFunction } from "express";
 import CreateUserUseCase from "../../../application/use-cases/user/createUser.use-case";
 import GetCurrentUserUseCase from "../../../application/use-cases/user/getCurrentUser.use-case";
 import UpdateUserNameUseCase from "../../../application/use-cases/user/updateUserName.use-case";
@@ -15,9 +12,6 @@ import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 
 export class UserController {
   constructor(
-    private readonly loginUseCase: LoginUseCase,
-    private readonly refreshTokenUseCase: RefreshTokenUseCase,
-    private readonly logoutUseCase: LogoutUseCase,
     private readonly createUserUseCase: CreateUserUseCase,
     private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
     private readonly updateUserNameUseCase: UpdateUserNameUseCase,
@@ -27,59 +21,6 @@ export class UserController {
     private readonly updateUserProfileUseCase: UpdateUserProfileUseCase,
     private readonly softDeleteUserUseCase: SoftDeleteUserUseCase
   ) { }
-
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { user, password } = req.body;
-
-      const data = await this.loginUseCase.execute({ user, password });
-
-      if (!data) {
-        console.warn(`[AUTH] Intento de login fallido: ${user}`);
-        throw new AppError("Usuario o contraseña incorrectos", 401);
-      }
-
-      res.status(200).json(data);
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  refreshToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { refreshToken } = req.body;
-
-      if (!refreshToken) {
-        throw new AppError("Refresh token no proporcionado", 400);
-      }
-
-      const data = await this.refreshTokenUseCase.execute(refreshToken);
-
-      if (!data) {
-        throw new AppError("Refresh token inválido o expirado", 401);
-      }
-
-      res.status(200).json(data);
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { refreshToken } = req.body;
-
-      if (!refreshToken) {
-        throw new AppError("Refresh token no proporcionado", 400);
-      }
-
-      await this.logoutUseCase.execute(refreshToken);
-
-      res.status(200).json({ message: "Sesión cerrada correctamente" });
-    } catch (error) {
-      next(error);
-    }
-  };
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {

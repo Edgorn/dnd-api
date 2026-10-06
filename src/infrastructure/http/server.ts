@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import connectDB from '../databases/mongoDb/mongodb';
 
 //Importacion de rutas
+import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import backgroundRoutes from "./routes/background.routes";
 import raceRoutes from "./routes/race.routes";
@@ -37,6 +38,7 @@ const app: Application = express();
 
 // Middlewares
 app.use(helmet());
+app.set("trust proxy", 1);
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()) ?? ['http://localhost:3000'];
 
@@ -56,7 +58,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rutas
-app.use(userRoutes)
+app.use(authRoutes);
+app.use(userRoutes);
 app.use(backgroundRoutes);
 app.use(raceRoutes)
 app.use(characterClassRoutes);

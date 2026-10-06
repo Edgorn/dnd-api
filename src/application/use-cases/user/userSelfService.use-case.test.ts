@@ -4,6 +4,7 @@ import GetCurrentUserUseCase from "./getCurrentUser.use-case";
 import UpdateUserNameUseCase from "./updateUserName.use-case";
 import ChangePasswordUseCase from "./changePassword.use-case";
 import UserService from "../../../domain/services/user.service";
+import AuthService from "../../../domain/services/auth.service";
 import { UserProfile } from "../../../domain/types/user.types";
 
 const profile: UserProfile = {
@@ -53,14 +54,35 @@ describe("UpdateUserNameUseCase", () => {
 });
 
 describe("ChangePasswordUseCase", () => {
-  it("delegates the password change to the user service", async () => {
+  it("changes the password and revokes refresh sessions", async () => {
     const userService = {
       changePassword: vi.fn().mockResolvedValue(undefined)
     } as unknown as UserService;
-    const useCase = new ChangePasswordUseCase(userService);
+    const authService = {
+      revokeAllSessions: vi.fn().mockResolvedValue(undefined)
+    } as unknown as AuthService;
+    const useCase = new ChangePasswordUseCase(userService, authService);
     const input = { id: profile.id, currentPassword: "secret123", newPassword: "newsecret1" };
 
     await expect(useCase.execute(input)).resolves.toBeUndefined();
     expect(userService.changePassword).toHaveBeenCalledWith(input);
+    expect(authService.revokeAllSessions).toHaveBeenCalledWith(profile.id);
+  });
+
+  it("does not revoke sessions when changing the password fails", async () => {
+    const userService = {
+      changePassword: vi.fn().mockRejectedValue(new Error("Contraseña actual incorrecta"))
+    } as unknown as UserService;
+    const authService = {
+      revokeAllSessions: vi.fn().mockResolvedValue(undefined)
+    } as unknown as AuthService;
+    const useCase = new ChangePasswordUseCase(userService, authService);
+
+    await expect(useCase.execute({
+      id: profile.id,
+      currentPassword: "wrong",
+      newPassword: "newsecret1"
+    })).rejects.toThrow("Contraseña actual incorrecta");
+    expect(authService.revokeAllSessions).not.toHaveBeenCalled();
   });
 });

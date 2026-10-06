@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
-import ValidateTokenUseCase from "../../../application/use-cases/user/validateToken.use-case";
+import ValidateTokenUseCase from "../../../application/use-cases/auth/validateToken.use-case";
 import { AppError } from "../../../domain/errors/AppError";
 
 export const createAuthMiddleware = (validateTokenUseCase: ValidateTokenUseCase) => {

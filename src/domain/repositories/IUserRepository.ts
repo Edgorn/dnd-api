@@ -1,4 +1,5 @@
 import { UserApi, User, UserProfile, CreateUserRecord, UpdateUserProfileData } from "../types/user.types";
+import { LoginGuardUpdate } from "../types/auth.types";
 
 export default interface IUserRepository {
   getUserById(id: string): Promise<User | null>
@@ -12,5 +13,6 @@ export default interface IUserRepository {
   updateName(id: string, name: string): Promise<UserProfile | null>
   updateProfile(id: string, data: UpdateUserProfileData): Promise<UserProfile | null>
   updatePassword(id: string, password: string): Promise<boolean>
+  updateLoginGuard(id: string, data: LoginGuardUpdate): Promise<void>
   softDelete(id: string): Promise<boolean>
 }

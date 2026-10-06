@@ -1,6 +1,7 @@
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import { ConflictError } from '../../../../domain/errors/AppError';
 import { UserApi, User, UserProfile, CreateUserRecord, UpdateUserProfileData } from '../../../../domain/types/user.types';
+import { LoginGuardUpdate } from '../../../../domain/types/auth.types';
 import UserModel, { UserDocument } from '../schemas/User';
 
 const DUPLICATE_KEY_CODE = 11000;
@@ -104,6 +105,13 @@ export default class UserRepository implements IUserRepository {
     return result.matchedCount > 0;
   }
 
+  async updateLoginGuard(id: string, data: LoginGuardUpdate): Promise<void> {
+    await UserModel.updateOne(
+      { _id: id },
+      { $set: { failedLoginAttempts: data.failedLoginAttempts, lockedUntil: data.lockedUntil } }
+    );
+  }
+
   async softDelete(id: string): Promise<boolean> {
     const result = await UserModel.updateOne(
       { _id: id, deletedAt: null },
@@ -139,7 +147,9 @@ export default class UserRepository implements IUserRepository {
       password: doc.password,
       accessibleSystems: doc.accessibleSystems ?? [],
       isAdmin: doc.isAdmin === true,
-      deletedAt: doc.deletedAt ?? null
+      deletedAt: doc.deletedAt ?? null,
+      failedLoginAttempts: doc.failedLoginAttempts ?? 0,
+      lockedUntil: doc.lockedUntil ?? null
     };
   }
 }
