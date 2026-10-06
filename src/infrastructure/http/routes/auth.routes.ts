@@ -91,13 +91,6 @@ const refreshLimiterByIp = rateLimit({
  *         refreshToken:
  *           type: string
  *           description: Refresh token opaco nuevo (vigencia de 7 días). Cada refresh invalida el anterior y emite uno nuevo.
- *         user:
- *           type: object
- *           properties:
- *             id:
- *               type: string
- *             name:
- *               type: string
  *     RefreshTokenInput:
  *       type: object
  *       additionalProperties: false
@@ -133,7 +126,7 @@ const refreshLimiterByIp = rateLimit({
  *             $ref: '#/components/schemas/LoginInput'
  *     responses:
  *       200:
- *         description: Login exitoso. Retorna el access token, un refresh token nuevo e info básica.
+ *         description: Login exitoso. Retorna access token y refresh token. El perfil del usuario se obtiene con GET /users/me.
  *         content:
  *           application/json:
  *             schema:

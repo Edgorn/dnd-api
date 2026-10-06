@@ -8,8 +8,7 @@ import { LoginResult } from "../../../domain/types/auth.types";
 
 const loginResult: LoginResult = {
   token: "access-token",
-  refreshToken: "refresh-token",
-  user: { id: "user-1", name: "Ada" }
+  refreshToken: "refresh-token"
 };
 
 describe("auth use cases", () => {

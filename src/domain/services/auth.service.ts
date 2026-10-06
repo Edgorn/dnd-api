@@ -66,11 +66,7 @@ export default class AuthService {
 
     return {
       token,
-      refreshToken,
-      user: {
-        id: userResult.id,
-        name: userResult.name
-      }
+      refreshToken
     };
   }
 
@@ -92,11 +88,7 @@ export default class AuthService {
 
     return {
       token,
-      refreshToken: newRefreshToken,
-      user: {
-        id: userResult.id,
-        name: userResult.name
-      }
+      refreshToken: newRefreshToken
     };
   }
 

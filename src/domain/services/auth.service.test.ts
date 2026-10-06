@@ -182,9 +182,12 @@ describe("AuthService login lockout", () => {
       }
     });
 
-    await expect(service.login({ user: "Ada", password: "secret123" })).resolves.toMatchObject({
-      token: "access-token"
+    const result = await service.login({ user: "Ada", password: "secret123" });
+    expect(result).toEqual({
+      token: "access-token",
+      refreshToken: expect.any(String)
     });
+    expect(result).not.toHaveProperty("user");
     expect(userRepository.updateLoginGuard).toHaveBeenCalledWith(user.id, {
       failedLoginAttempts: 0,
       lockedUntil: null
@@ -210,9 +213,12 @@ describe("AuthService refresh rotation", () => {
     expect(refreshTokenRepository.revokeByToken).toHaveBeenCalledWith("old-refresh");
     expect(refreshTokenRepository.create).toHaveBeenCalled();
     expect(tokenService.sign).toHaveBeenCalledWith({ id: user.id });
-    expect(result?.token).toBe("access-token");
-    expect(result?.refreshToken).toEqual(expect.any(String));
+    expect(result).toEqual({
+      token: "access-token",
+      refreshToken: expect.any(String)
+    });
     expect(result?.refreshToken).not.toBe("old-refresh");
+    expect(result).not.toHaveProperty("user");
   });
 });
 
