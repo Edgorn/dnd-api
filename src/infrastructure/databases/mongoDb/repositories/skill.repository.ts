@@ -50,8 +50,14 @@ export default class SkillRepository implements ISkillRepository {
     return this.formatSkill(updatedSkill);
   }
 
-  async getBySystems(rulesets: string[], includeDeleted: boolean = false): Promise<SkillApi[]> {
-    const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
+  async getBySystems(
+    rulesets: string[],
+    includeDeleted: boolean = false,
+    expandAncestry: boolean = true
+  ): Promise<SkillApi[]> {
+    const expandedRulesets = expandAncestry
+      ? await this.systemRepository.getSystemsAndAncestors(rulesets)
+      : rulesets;
     const rulesetQuery: any = { ruleset: { $in: expandedRulesets } };
     if (!includeDeleted) {
       rulesetQuery.deletedAt = null;

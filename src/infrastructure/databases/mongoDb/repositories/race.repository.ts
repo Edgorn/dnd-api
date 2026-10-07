@@ -410,6 +410,34 @@ export default class RaceRepository implements IRaceRepository {
     return refs;
   }
 
+  async countRootRacesByRulesets(rulesets: string[]): Promise<Map<string, number>> {
+    const uniqueRulesets = [...new Set(rulesets.filter((id) => typeof id === "string" && id.length > 0))];
+    if (uniqueRulesets.length === 0) return new Map();
+
+    const grouped = await RaceModel.aggregate<{ _id: string | null; count: number }>([
+      {
+        $match: {
+          parentId: null,
+          deletedAt: null,
+          ruleset: { $in: uniqueRulesets },
+        },
+      },
+      {
+        $group: {
+          _id: "$ruleset",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const counts = new Map<string, number>();
+    for (const row of grouped) {
+      if (row._id == null || row._id === "") continue;
+      counts.set(String(row._id), row.count);
+    }
+    return counts;
+  }
+
   async getRaceRefsBySystems(rulesets: string[]): Promise<RaceRef[]> {
     const uniqueRulesets = [...new Set(rulesets.filter(id => typeof id === "string" && id.length > 0))];
     if (!uniqueRulesets.length) return [];

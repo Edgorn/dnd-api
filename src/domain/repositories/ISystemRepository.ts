@@ -14,6 +14,7 @@ export default interface ISystemRepository {
   getInitiativeBonusFormula(systems: string[]): Promise<string | undefined>;
   getMergedRulesConfig(systemIds: string[]): Promise<SystemRulesConfig>;
   getAncestry(systemId: string): Promise<System[]>;
+  getAncestorGraph(starts: System[]): Promise<Map<string, System>>;
   getSystemsAndAncestors(systems: string[]): Promise<string[]>;
   softDelete(id: string, deletedAt: Date): Promise<void>;
   restore(id: string): Promise<void>;

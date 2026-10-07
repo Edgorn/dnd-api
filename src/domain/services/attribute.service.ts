@@ -18,8 +18,8 @@ export default class AttributeService {
     return this.attributeRepository.update(data);
   }
 
-  getBySystems(rulesets: string[]): Promise<AttributeApi[]> {
-    return this.attributeRepository.getBySystems(rulesets);
+  getBySystems(rulesets: string[], expandAncestry: boolean = true): Promise<AttributeApi[]> {
+    return this.attributeRepository.getBySystems(rulesets, expandAncestry);
   }
 
   getById(id: string): Promise<AttributeApi | null> {

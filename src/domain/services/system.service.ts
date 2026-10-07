@@ -111,6 +111,10 @@ export default class SystemService {
     return this.systemRepository.getAncestry(systemId);
   }
 
+  getAncestorGraph(starts: System[]): Promise<Map<string, System>> {
+    return this.systemRepository.getAncestorGraph(starts);
+  }
+
   getChildren(id: string): Promise<System[]> {
     return this.systemRepository.getChildren(id);
   }

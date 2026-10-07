@@ -35,7 +35,7 @@ export default class SystemRepository implements ISystemRepository {
     );
   }
 
-  private async loadAncestorGraph(starts: System[]): Promise<Map<string, System>> {
+  async getAncestorGraph(starts: System[]): Promise<Map<string, System>> {
     const graph = new Map<string, System>();
     let frontier: System[] = [];
 
@@ -94,7 +94,7 @@ export default class SystemRepository implements ISystemRepository {
     const start = await this.resolveSystem(systemId);
     if (!start) return [];
 
-    const graph = await this.loadAncestorGraph([start]);
+    const graph = await this.getAncestorGraph([start]);
     const order = linearize([start._id.toString()], this.toParentsOf(graph));
     return order
       .map((id) => graph.get(id))
@@ -134,7 +134,7 @@ export default class SystemRepository implements ISystemRepository {
       .filter((system): system is System => Boolean(system));
     if (starts.length === 0) return {};
 
-    const graph = await this.loadAncestorGraph(starts);
+    const graph = await this.getAncestorGraph(starts);
     const linearized = linearize(
       starts.map((system) => system._id.toString()),
       this.toParentsOf(graph)
@@ -360,7 +360,7 @@ export default class SystemRepository implements ISystemRepository {
     const resultSet = new Set<string>(systems);
     if (starts.length === 0) return Array.from(resultSet);
 
-    const graph = await this.loadAncestorGraph(starts);
+    const graph = await this.getAncestorGraph(starts);
     for (const ancestor of graph.values()) {
       if (ancestor._id) resultSet.add(ancestor._id.toString());
       if (ancestor.name) resultSet.add(ancestor.name);

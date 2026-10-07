@@ -160,21 +160,53 @@ const router = Router();
  *             type: string
  *           description: |
  *             Atributos base para armas a distancia (ej. ["dex"]). Se combinan con attackAttributes de las properties.
- *         attributes:
+ *     SystemSummary:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: ID de MongoDB del sistema.
+ *         name:
+ *           type: string
+ *           description: Nombre del sistema.
+ *         description:
+ *           type: string
+ *           description: Descripción del sistema.
+ *         publisher:
+ *           type: string
+ *           description: Nombre del publicador.
+ *         isOpen:
+ *           type: boolean
+ *           description: Indica si el sistema es abierto/público.
+ *         isBase:
+ *           type: boolean
+ *           description: |
+ *             Indica si el sistema es un motor de juego. Todo sistema, y todo personaje, debe resolver
+ *             a una única base más específica. Un sistema sin padres se trata siempre como base.
+ *         kind:
+ *           type: string
+ *           enum: [ruleset, setting, campaign]
+ *           description: |
+ *             Tipo de sistema. `ruleset` aporta reglas y contenido. `setting` y `campaign` son capas de contenido
+ *             que heredan las fórmulas del ruleset ancestro. Los documentos antiguos sin tipo se tratan como `ruleset`.
+ *         parentIds:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Attribute'
- *           description: Características vinculadas a este sistema (incluyendo heredadas).
- *         skills:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/Skill'
- *           description: Habilidades vinculadas a este sistema (incluyendo heredadas).
- *         coins:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/Coin'
- *           description: Monedas vinculadas a este sistema (incluyendo heredadas).
+ *             type: string
+ *           description: |
+ *             Identificadores de los sistemas padre, en orden de prioridad entre hermanos.
+ *             `setting` y `campaign` exigen al menos un padre. El orden se usa en la linealización C3.
+ *         canEdit:
+ *           type: boolean
+ *           description: Indica si el usuario autenticado tiene permisos de edición.
+ *         racesCount:
+ *           type: integer
+ *           description: Cantidad de razas raíz asociadas (incluyendo heredadas).
+ *         deletedAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Fecha de borrado lógico. En el listado de sistemas activos es `null`.
  *     TypeCrearSystem:
  *       type: object
  *       required:
@@ -409,13 +441,13 @@ const router = Router();
  *           (ruleset, setting y campaign) a los que el usuario ya tiene acceso.
  *     responses:
  *       200:
- *         description: Listado de sistemas obtenidos exitosamente.
+ *         description: Listado ligero de sistemas obtenidos exitosamente (sin catálogos ni fórmulas).
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/SystemApi'
+ *                 $ref: '#/components/schemas/SystemSummary'
  *       400:
  *         description: El parámetro kind no es válido.
  *       401:
@@ -470,7 +502,7 @@ router.get('/systems', authMiddleware, validateQuery(ListSystemsQuerySchema), sy
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SystemApi'
+ *               $ref: '#/components/schemas/SystemSummary'
  *       400:
  *         description: Nombre de sistema es obligatorio.
  *       401:
@@ -479,6 +511,47 @@ router.get('/systems', authMiddleware, validateQuery(ListSystemsQuerySchema), sy
  *         description: Error del servidor.
  */
 router.post('/systems', authMiddleware, validateSchema(CreateSystemSchema), systemController.createSystem);
+
+/**
+ * @openapi
+ * /systems/{id}:
+ *   get:
+ *     summary: Obtener el detalle completo de un sistema
+ *     description: |
+ *       Devuelve `SystemApi` (metadatos, fórmulas, progresiones y `racesCount`, incluyendo herencia de reglas).
+ *       Características, habilidades y monedas se obtienen con `GET /attributes`, `GET /skills` y `GET /coins` filtrando por `ruleset`.
+ *       El acceso sigue la misma regla que `GET /systems`: publicador, sistema abierto (`isOpen`)
+ *       o identificador presente en `accessibleSystems` del usuario.
+ *       Un `accessibleSystems` vacío no otorga acceso a todos los sistemas.
+ *       Los sistemas borrados lógicamente responden 404.
+ *     tags:
+ *       - Sistemas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del sistema.
+ *     responses:
+ *       200:
+ *         description: Detalle del sistema obtenido exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SystemApi'
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: El sistema existe pero el usuario no tiene acceso.
+ *       404:
+ *         description: Sistema no encontrado o borrado lógicamente.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/systems/:id', authMiddleware, systemController.getSystem);
 
 /**
  * @openapi
@@ -508,7 +581,7 @@ router.post('/systems', authMiddleware, validateSchema(CreateSystemSchema), syst
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/SystemApi'
+ *               $ref: '#/components/schemas/SystemSummary'
  *       400:
  *         description: Falta ID del sistema.
  *       403:
@@ -578,6 +651,10 @@ router.delete('/systems/:id', authMiddleware, systemController.deleteSystem);
  *     responses:
  *       200:
  *         description: Sistema restaurado exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SystemSummary'
  *       400:
  *         description: ID de sistema requerido.
  *       403:

@@ -93,7 +93,9 @@ const router = Router();
  *         name: ruleset
  *         schema:
  *           type: string
- *         description: ID o nombre del sistema para filtrar habilidades (se heredan sistemas ancestros).
+ *         description: |
+ *           ID o nombre del sistema. Incluye habilidades de ancestros; si padre e hijo
+ *           comparten la misma `key`, gana el más específico. Sin `ruleset` se listan todas.
  *     responses:
  *       200:
  *         description: Lista de habilidades devuelta con éxito.

@@ -11,6 +11,8 @@ import ICreatureRepository from "../../../domain/repositories/ICreatureRepositor
 import IConditionRepository from "../../../domain/repositories/IConditionRepository";
 import { AppError } from "../../../domain/errors/AppError";
 import { parentIdStrings } from "../../../domain/services/systemHierarchy";
+import BuildSystemSummary from "./buildSystemSummary.use-case";
+import { SystemSummary } from "../../../domain/types/system.types";
 
 export default class CascadeRestoreSystem {
   constructor(
@@ -18,6 +20,7 @@ export default class CascadeRestoreSystem {
     private readonly attributeRepository: IAttributeRepository,
     private readonly skillRepository: ISkillRepository,
     private readonly languageRepository: ILanguageRepository,
+    private readonly buildSystemSummary: BuildSystemSummary,
     private readonly magicSchoolRepository?: IMagicSchoolRepository,
     private readonly featRepository?: IFeatRepository,
     private readonly entityOverrideRepository?: IEntityOverrideRepository,
@@ -27,7 +30,7 @@ export default class CascadeRestoreSystem {
     private readonly conditionRepository?: IConditionRepository
   ) {}
 
-  async execute(id: string, userId: string): Promise<void> {
+  async execute(id: string, userId: string): Promise<SystemSummary> {
     const system = await this.systemService.getByIdWithDeleted(id);
     if (!system) {
       throw new AppError("Sistema no encontrado", 404);
@@ -44,6 +47,13 @@ export default class CascadeRestoreSystem {
 
     await this.assertRestorable(system);
     await this.restoreSystemAndDescendants(id, deletedAt);
+
+    const restored = await this.systemService.getById(id);
+    if (!restored) {
+      throw new AppError("Sistema no encontrado", 404);
+    }
+
+    return this.buildSystemSummary.execute(restored, userId);
   }
 
   private async assertRestorable(system: { isBase: boolean; parentIds?: Array<{ toString(): string }> }): Promise<void> {

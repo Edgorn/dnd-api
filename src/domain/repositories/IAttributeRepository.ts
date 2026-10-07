@@ -3,7 +3,7 @@ import { AttributeApi, InputCreateAttribute, InputUpdateAttribute } from "../typ
 export default interface IAttributeRepository {
   create(data: InputCreateAttribute): Promise<AttributeApi>;
   update(data: InputUpdateAttribute): Promise<AttributeApi>;
-  getBySystems(rulesets: string[]): Promise<AttributeApi[]>;
+  getBySystems(rulesets: string[], expandAncestry?: boolean): Promise<AttributeApi[]>;
   getById(id: string): Promise<AttributeApi | null>;
   getByIds(ids: string[]): Promise<AttributeApi[]>;
   softDelete(id: string): Promise<void>;

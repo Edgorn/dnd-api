@@ -92,7 +92,9 @@ const router = Router();
  *         name: ruleset
  *         schema:
  *           type: string
- *         description: ID o nombre del sistema para filtrar características (se heredan sistemas ancestros).
+ *         description: |
+ *           ID o nombre del sistema. Incluye características de ancestros; si padre e hijo
+ *           comparten la misma `key`, gana el más específico.
  *     responses:
  *       200:
  *         description: Lista de características devuelta con éxito.

@@ -73,8 +73,10 @@ import UpdateCompanions from "../application/use-cases/personaje/updateCompanion
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 import CreateSystem from "../application/use-cases/system/createSystem.use-case";
 import GetSystemsByUser from "../application/use-cases/system/getSystemsByUser.use-case";
+import GetSystemById from "../application/use-cases/system/getSystemById.use-case";
 import UpdateSystem from "../application/use-cases/system/updateSystem.use-case";
 import GetSystemApi from "../application/use-cases/system/getSystemApi.use-case";
+import BuildSystemSummary from "../application/use-cases/system/buildSystemSummary.use-case";
 import CascadeSoftDeleteSystem from "../application/use-cases/system/cascadeSoftDeleteSystem.use-case";
 import CascadeRestoreSystem from "../application/use-cases/system/cascadeRestoreSystem.use-case";
 
@@ -389,11 +391,9 @@ const systemService = new SystemService(systemRepository)
 const getSystemApi = new GetSystemApi(
   systemService,
   userService,
-  raceRepository,
-  attributeService,
-  skillService,
-  coinRepository
+  raceRepository
 )
+const buildSystemSummary = new BuildSystemSummary(systemService, userRepository, raceRepository)
 
 const createCampaign = new CreateCampaign(campaignService)
 const getCampaignsByUser = new GetCampaignsByUser(campaignService)
@@ -456,13 +456,14 @@ const prepareSpells = new PrepareSpells(personajeService);
 const bindSpellPrivileges = new BindSpellPrivileges(personajeService);
 const updateCompanions = new UpdateCompanions(personajeService);
 const añadirForma = new AñadirForma(personajeService);
-const createSystem = new CreateSystem(systemService, getSystemApi);
-const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, getSystemApi);
-const updateSystem = new UpdateSystem(systemService, getSystemApi);
+const createSystem = new CreateSystem(systemService, buildSystemSummary);
+const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, raceRepository);
+const getSystemById = new GetSystemById(systemService, userRepository, getSystemApi);
+const updateSystem = new UpdateSystem(systemService, buildSystemSummary);
 
 const createAttribute = new CreateAttribute(attributeService, systemService);
 const updateAttribute = new UpdateAttribute(attributeService, systemService);
-const getAttributesBySystems = new GetAttributesBySystems(attributeService);
+const getAttributesBySystems = new GetAttributesBySystems(attributeService, systemService);
 
 const createSpell = new CreateSpell(spellService, systemService);
 const updateSpell = new UpdateSpell(spellService, systemService);
@@ -489,7 +490,7 @@ const updateSubclass = new UpdateSubclass(subclassService, systemService, charac
 const softDeleteSubclass = new SoftDeleteSubclass(subclassService, systemService)
 const restoreSubclass = new RestoreSubclass(subclassService, systemService)
 
-const getSkillsBySystems = new GetSkillsBySystems(skillService)
+const getSkillsBySystems = new GetSkillsBySystems(skillService, systemService)
 const createSkill = new CreateSkill(skillService, systemService)
 const updateSkill = new UpdateSkill(skillService, systemService)
 
@@ -511,7 +512,7 @@ export const magicSchoolController = new MagicSchoolController(
 );
 
 const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, buildSystemSummary, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -621,6 +622,7 @@ export const spellController = new SpellController(
 
 export const systemController = new SystemController(
   getSystemsByUser,
+  getSystemById,
   createSystem,
   updateSystem,
   cascadeSoftDeleteSystem,
@@ -785,7 +787,7 @@ export const damageController = new DamageController(
 
 const createCoin = new CreateCoin(coinRepository);
 const updateCoin = new UpdateCoin(coinRepository);
-const getCoins = new GetCoins(coinRepository);
+const getCoins = new GetCoins(coinRepository, systemService);
 const getCoinById = new GetCoinById(coinRepository);
 const deleteCoin = new DeleteCoin(coinRepository);
 const restoreCoin = new RestoreCoin(coinRepository);

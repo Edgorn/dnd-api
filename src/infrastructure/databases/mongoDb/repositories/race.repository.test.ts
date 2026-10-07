@@ -17,6 +17,7 @@ vi.mock("../schemas/Race", () => ({
   default: {
     find: vi.fn(),
     findOne: vi.fn(),
+    aggregate: vi.fn(),
   },
 }));
 
@@ -350,5 +351,70 @@ describe("RaceRepository.dataLevelUp", () => {
     });
 
     await expect(repository.dataLevelUp(childId, 6)).resolves.toBeUndefined();
+  });
+});
+
+describe("RaceRepository.countRootRacesByRulesets", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("groups root races by ruleset without hydrating documents", async () => {
+    const deps = stubFormatDependencies();
+    const repository = new RaceRepository(
+      deps.languageRepository,
+      deps.spellRepository,
+      deps.skillService,
+      deps.proficiencyRepository,
+      deps.featRepository,
+      deps.traitRepository,
+      deps.attributeService,
+      deps.equipmentRepository,
+      { getById: vi.fn() } as unknown as ICreatureTypeRepository
+    );
+    vi.mocked(RaceModel.aggregate).mockResolvedValue([
+      { _id: PARENT_SYSTEM_ID, count: 2 },
+      { _id: "SRD", count: 1 },
+    ] as never);
+
+    const result = await repository.countRootRacesByRulesets([PARENT_SYSTEM_ID, "SRD", PARENT_SYSTEM_ID]);
+
+    expect(RaceModel.aggregate).toHaveBeenCalledWith([
+      {
+        $match: {
+          parentId: null,
+          deletedAt: null,
+          ruleset: { $in: [PARENT_SYSTEM_ID, "SRD"] },
+        },
+      },
+      {
+        $group: {
+          _id: "$ruleset",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+    expect(result.get(PARENT_SYSTEM_ID)).toBe(2);
+    expect(result.get("SRD")).toBe(1);
+  });
+
+  it("skips Mongo when there are no rulesets", async () => {
+    const deps = stubFormatDependencies();
+    const repository = new RaceRepository(
+      deps.languageRepository,
+      deps.spellRepository,
+      deps.skillService,
+      deps.proficiencyRepository,
+      deps.featRepository,
+      deps.traitRepository,
+      deps.attributeService,
+      deps.equipmentRepository,
+      { getById: vi.fn() } as unknown as ICreatureTypeRepository
+    );
+
+    const result = await repository.countRootRacesByRulesets([]);
+
+    expect(result.size).toBe(0);
+    expect(RaceModel.aggregate).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,4 @@
 import { ObjectId } from "mongoose";
-import { AttributeApi } from "./attribute.types";
-import { SkillApi } from "./skill.types";
-import { CoinApi } from "./coin.types";
 
 export const SYSTEM_KINDS = ["ruleset", "setting", "campaign"] as const;
 export type SystemKind = (typeof SYSTEM_KINDS)[number];
@@ -128,12 +125,23 @@ export interface SystemApi {
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
-  attributes: AttributeApi[];
-  skills: SkillApi[];
-  coins: CoinApi[];
 }
 
 export type SystemBasic = Pick<SystemApi, "id" | "name" | "description">;
+
+export interface SystemSummary {
+  id: string;
+  name: string;
+  description: string;
+  publisher: string;
+  isOpen: boolean;
+  isBase: boolean;
+  kind: SystemKind;
+  parentIds: string[];
+  canEdit: boolean;
+  racesCount: number;
+  deletedAt: Date | null;
+}
 
 export interface TypeCrearSystem {
   name: string;

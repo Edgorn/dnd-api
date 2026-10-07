@@ -13,4 +13,5 @@ export default interface IRaceRepository {
   restore(id: string): Promise<boolean>
   getRaceRefsByIds(ids: string[]): Promise<RaceRef[]>
   getRaceRefsBySystems(rulesets: string[]): Promise<RaceRef[]>
+  countRootRacesByRulesets(rulesets: string[]): Promise<Map<string, number>>
 }

@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import GetSystemsByUser from "../../../application/use-cases/system/getSystemsByUser.use-case";
+import GetSystemById from "../../../application/use-cases/system/getSystemById.use-case";
 import CreateSystem from "../../../application/use-cases/system/createSystem.use-case";
 import UpdateSystem from "../../../application/use-cases/system/updateSystem.use-case";
 import CascadeSoftDeleteSystem from "../../../application/use-cases/system/cascadeSoftDeleteSystem.use-case";
@@ -10,6 +11,7 @@ import { SystemKind } from "../../../domain/types/system.types";
 export class SystemController {
   constructor(
     private readonly getSystemsByUser: GetSystemsByUser,
+    private readonly getSystemByIdUseCase: GetSystemById,
     private readonly createSystemUseCase: CreateSystem,
     private readonly updateSystemUseCase: UpdateSystem,
     private readonly cascadeSoftDeleteSystem: CascadeSoftDeleteSystem,
@@ -24,6 +26,18 @@ export class SystemController {
       res.status(200).json(systems);
     } catch (e) {
       console.error("[SystemController.getSystems] Error fetching systems:", e);
+      next(e);
+    }
+  };
+
+  getSystem = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!;
+      const { id } = req.params;
+      const system = await this.getSystemByIdUseCase.execute(id, userId);
+      res.status(200).json(system);
+    } catch (e) {
+      console.error("[SystemController.getSystem] Error fetching system:", e);
       next(e);
     }
   };
@@ -79,8 +93,8 @@ export class SystemController {
       const userId = req.user!;
       const { id } = req.params;
 
-      await this.cascadeRestoreSystem.execute(id, userId);
-      res.status(200).json({ message: 'Sistema restaurado con éxito' });
+      const data = await this.cascadeRestoreSystem.execute(id, userId);
+      res.status(200).json(data);
     } catch (e) {
       console.error("[SystemController.restore] Error restoring system:", e);
       next(e);

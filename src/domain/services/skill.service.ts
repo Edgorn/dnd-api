@@ -19,8 +19,12 @@ export default class SkillService {
     return this.skillRepository.getAll();
   }
 
-  getBySystems(rulesets: string[], includeDeleted: boolean = false): Promise<SkillApi[]> {
-    return this.skillRepository.getBySystems(rulesets, includeDeleted);
+  getBySystems(
+    rulesets: string[],
+    includeDeleted: boolean = false,
+    expandAncestry: boolean = true
+  ): Promise<SkillApi[]> {
+    return this.skillRepository.getBySystems(rulesets, includeDeleted, expandAncestry);
   }
 
   getById(id: string): Promise<SkillApi | null> {

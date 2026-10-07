@@ -59,7 +59,7 @@ describe("AttributeService.formatSpellcastingAttribute", () => {
     const result = await service.formatSpellcastingAttribute("cha", "5e");
 
     expect(mockRepository.getById).not.toHaveBeenCalled();
-    expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"]);
+    expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"], true);
     expect(result).toEqual(chaAttribute);
   });
 
@@ -72,7 +72,7 @@ describe("AttributeService.formatSpellcastingAttribute", () => {
     const result = await service.formatSpellcastingAttribute("507f1f77bcf86cd799439099", "5e");
 
     expect(mockRepository.getById).toHaveBeenCalledWith("507f1f77bcf86cd799439099");
-    expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"]);
+    expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"], true);
     expect(result?.key).toBe("507f1f77bcf86cd799439099");
   });
 });
@@ -110,7 +110,7 @@ describe("AttributeService.formatAbilityBonusChoices", () => {
       "5e"
     );
 
-    expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"]);
+    expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"], true);
     expect(result).toEqual({
       choose: 2,
       options: [
@@ -134,5 +134,28 @@ describe("AttributeService.formatAbilityBonusChoices", () => {
 
     expect(result?.choose).toBe(2);
     expect(result?.options).toHaveLength(2);
+  });
+});
+
+describe("AttributeService.getBySystems", () => {
+  const mockRepository: IAttributeRepository = {
+    create: vi.fn(),
+    update: vi.fn(),
+    getBySystems: vi.fn(),
+    getById: vi.fn(),
+    getByIds: vi.fn(),
+    softDelete: vi.fn(),
+    restore: vi.fn(),
+    softDeleteByRuleset: vi.fn(),
+    restoreByRuleset: vi.fn()
+  };
+
+  it("forwards expandAncestry to the repository", async () => {
+    vi.mocked(mockRepository.getBySystems).mockResolvedValue([]);
+    const service = new AttributeService(mockRepository);
+
+    await service.getBySystems(["5e"], false);
+
+    expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"], false);
   });
 });

@@ -59,9 +59,13 @@ export default class CoinRepository implements ICoinRepository {
     return coins.map(c => this.formatCoin(c));
   }
 
-  async getBySystems(rulesets: string[], includeDeleted: boolean = false): Promise<CoinApi[]> {
+  async getBySystems(
+    rulesets: string[],
+    includeDeleted: boolean = false,
+    expandAncestry: boolean = true
+  ): Promise<CoinApi[]> {
     let expandedRulesets = rulesets;
-    if (this.systemRepository && rulesets.length > 0) {
+    if (expandAncestry && this.systemRepository && rulesets.length > 0) {
       expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
     }
 

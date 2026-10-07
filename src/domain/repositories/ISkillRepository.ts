@@ -3,7 +3,7 @@ import { SkillApi, InputCreateSkill, InputUpdateSkill } from "../types/skill.typ
 export default interface ISkillRepository {
   create(data: InputCreateSkill): Promise<SkillApi>;
   update(data: InputUpdateSkill): Promise<SkillApi>;
-  getBySystems(rulesets: string[], includeDeleted?: boolean): Promise<SkillApi[]>;
+  getBySystems(rulesets: string[], includeDeleted?: boolean, expandAncestry?: boolean): Promise<SkillApi[]>;
   getSkillsByKeys(keys: string[]): Promise<SkillApi[]>;
   getSkillsByIds(ids: string[]): Promise<SkillApi[]>;
   getSkillsByIndices(indices: string[]): Promise<SkillApi[]>;

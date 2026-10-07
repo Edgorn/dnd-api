@@ -121,6 +121,9 @@ describe("CascadeRestoreSystem", () => {
   const attributes = emptyEntityRepo();
   const skills = emptyEntityRepo();
   const languages = emptyEntityRepo();
+  const buildSystemSummary = {
+    execute: vi.fn().mockResolvedValue({ id: "root" }),
+  };
   let useCase: CascadeRestoreSystem;
 
   beforeEach(() => {
@@ -131,7 +134,8 @@ describe("CascadeRestoreSystem", () => {
       systemService as unknown as SystemService,
       attributes as never,
       skills as never,
-      languages as never
+      languages as never,
+      buildSystemSummary as never
     );
   });
 
@@ -140,15 +144,21 @@ describe("CascadeRestoreSystem", () => {
     const root = makeSystem("root", { isBase: true, deletedAt });
     const child = makeSystem("child", { parentIds: [asId("root")], deletedAt });
     systemService.getByIdWithDeleted.mockResolvedValue(root);
+    systemService.getById.mockResolvedValue(makeSystem("root", { isBase: true }));
     systemService.getChildrenDeletedAt.mockImplementation(async (id: string) => {
       if (id === "root") return [child];
       return [];
     });
 
-    await useCase.execute("root", "user-1");
+    const result = await useCase.execute("root", "user-1");
 
     expect(systemService.restore).toHaveBeenCalledWith("root");
     expect(systemService.restore).toHaveBeenCalledWith("child");
+    expect(buildSystemSummary.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "root" }),
+      "user-1"
+    );
+    expect(result).toEqual({ id: "root" });
   });
 
   it("rejects restoring a non-base system without a living parent", async () => {

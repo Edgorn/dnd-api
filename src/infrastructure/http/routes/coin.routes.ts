@@ -116,7 +116,9 @@ const router = Router();
  *         name: ruleset
  *         schema:
  *           type: string
- *         description: ID o clave del sistema para filtrar monedas (incluye herencia de ancestros).
+ *         description: |
+ *           ID o clave del sistema. Incluye monedas de ancestros; si padre e hijo
+ *           comparten el mismo `name`, gana el más específico. Sin `ruleset` se listan todas.
  *     responses:
  *       200:
  *         description: Lista de monedas devuelta con éxito.

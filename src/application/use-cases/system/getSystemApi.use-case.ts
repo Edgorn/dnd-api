@@ -1,13 +1,7 @@
 import SystemService from "../../../domain/services/system.service";
 import UserService from "../../../domain/services/user.service";
-import AttributeService from "../../../domain/services/attribute.service";
-import SkillService from "../../../domain/services/skill.service";
 import IRaceRepository from "../../../domain/repositories/IRaceRepository";
-import ICoinRepository from "../../../domain/repositories/ICoinRepository";
 import { isRulesetSystem, resolveSystemKind, System, SystemApi } from "../../../domain/types/system.types";
-import { AttributeApi } from "../../../domain/types/attribute.types";
-import { SkillApi } from "../../../domain/types/skill.types";
-import { CoinApi } from "../../../domain/types/coin.types";
 import { AppError } from "../../../domain/errors/AppError";
 import { mergeRulesFromAncestry } from "../../../utils/systemRulesMerge";
 
@@ -15,10 +9,7 @@ export default class GetSystemApi {
   constructor(
     private readonly systemService: SystemService,
     private readonly userService: UserService,
-    private readonly raceRepository: IRaceRepository,
-    private readonly attributeService: AttributeService,
-    private readonly skillService: SkillService,
-    private readonly coinRepository: ICoinRepository
+    private readonly raceRepository: IRaceRepository
   ) {}
 
   async execute(sysOrId: System | string, userId?: string): Promise<SystemApi> {
@@ -36,7 +27,6 @@ export default class GetSystemApi {
     const ancestry = await this.systemService.getAncestry(sys._id.toString());
     const resolvedAncestry = ancestry.length > 0 ? ancestry : [sys];
 
-    // 2. Publisher Name
     let publisherName = sys.publisher;
     if (sys.publisher) {
       const user = await this.userService.getUserById(sys.publisher);
@@ -47,7 +37,6 @@ export default class GetSystemApi {
 
     const isPublisher = userId ? sys.publisher === userId : false;
 
-    // 3. Ancestry Rulesets
     const ancestryRulesets: string[] = [];
     for (const ancestor of resolvedAncestry) {
       ancestryRulesets.push(ancestor._id.toString());
@@ -56,47 +45,12 @@ export default class GetSystemApi {
       }
     }
 
-    // 4. Statistics Counts
-    const races = await this.raceRepository.obtenerPorSistema(sys._id.toString());
-    const racesCount = races.length;
+    const raceCounts = await this.raceRepository.countRootRacesByRulesets(ancestryRulesets);
 
-    // 5, 6 & 7. Attributes, Skills and Coins (batch query to avoid N+1)
-    const [allAttrs, allSkills, allCoins] = await Promise.all([
-      this.attributeService.getBySystems(ancestryRulesets),
-      this.skillService.getBySystems(ancestryRulesets, true),
-      this.coinRepository.getBySystems(ancestryRulesets)
-    ]);
-
-    const attributesMap = new Map<string, AttributeApi>();
-    const skillsMap = new Map<string, SkillApi>();
-    const coinsMap = new Map<string, CoinApi>();
-
-    for (let i = resolvedAncestry.length - 1; i >= 0; i--) {
-      const ancestor = resolvedAncestry[i];
-      const ancestorRulesets = [ancestor._id.toString(), ancestor.name].filter(Boolean);
-
-      // Attributes for this ancestor
-      const sysAttrs = allAttrs.filter(attr => ancestorRulesets.includes(attr.ruleset));
-      for (const attr of sysAttrs) {
-        attributesMap.set(attr.key, attr);
-      }
-
-      // Skills for this ancestor
-      const sysSkills = allSkills.filter(skill => ancestorRulesets.includes(skill.ruleset));
-      for (const skill of sysSkills) {
-        skillsMap.set(skill.key, skill);
-      }
-
-      // Coins for this ancestor
-      const sysCoins = allCoins.filter(coin => ancestorRulesets.includes(coin.ruleset));
-      for (const coin of sysCoins) {
-        coinsMap.set(coin.name, coin);
-      }
+    let racesCount = 0;
+    for (const key of new Set(ancestryRulesets)) {
+      racesCount += raceCounts.get(key) ?? 0;
     }
-
-    const attributes = Array.from(attributesMap.values());
-    const skills = Array.from(skillsMap.values());
-    const coins = Array.from(coinsMap.values());
 
     const mergedRules = mergeRulesFromAncestry(resolvedAncestry);
 
@@ -143,9 +97,6 @@ export default class GetSystemApi {
       damageBonusFormula: mergedRules.damageBonusFormula,
       meleeAttackAttributes: mergedRules.meleeAttackAttributes,
       rangedAttackAttributes: mergedRules.rangedAttackAttributes,
-      attributes,
-      skills,
-      coins
     };
   }
 }

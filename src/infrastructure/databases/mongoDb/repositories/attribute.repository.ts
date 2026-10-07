@@ -46,8 +46,10 @@ export default class AttributeRepository implements IAttributeRepository {
     return this.formatAttribute(updatedAttribute);
   }
 
-  async getBySystems(rulesets: string[]): Promise<AttributeApi[]> {
-    const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
+  async getBySystems(rulesets: string[], expandAncestry: boolean = true): Promise<AttributeApi[]> {
+    const expandedRulesets = expandAncestry
+      ? await this.systemRepository.getSystemsAndAncestors(rulesets)
+      : rulesets;
     const attributes = await AttributeSchema.find({ ruleset: { $in: expandedRulesets }, deletedAt: null });
     return attributes.map(a => this.formatAttribute(a));
   }

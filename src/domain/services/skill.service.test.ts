@@ -240,7 +240,7 @@ describe("SkillService", () => {
         "5e"
       );
 
-      expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"], false);
+      expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"], false, true);
       expect(mockRepository.getAll).not.toHaveBeenCalled();
       expect(allFromRuleset?.options).toEqual(mockSkills);
       expect(filteredFromRuleset?.options).toHaveLength(1);

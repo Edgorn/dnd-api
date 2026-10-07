@@ -7,6 +7,8 @@ import DeleteCoin from "./deleteCoin.use-case";
 import RestoreCoin from "./restoreCoin.use-case";
 import { NotFoundError } from "../../../domain/errors/AppError";
 import ICoinRepository from "../../../domain/repositories/ICoinRepository";
+import SystemService from "../../../domain/services/system.service";
+import { System } from "../../../domain/types/system.types";
 
 describe("Coin Use Cases", () => {
   let coinRepositoryMock: ICoinRepository;
@@ -74,8 +76,9 @@ describe("Coin Use Cases", () => {
   });
 
   describe("GetCoins", () => {
-    it("should get coins by systems", async () => {
-      const useCase = new GetCoins(coinRepositoryMock);
+    it("should get all coins without collapsing when no ruleset is provided", async () => {
+      const systemService = { getAncestry: vi.fn() } as unknown as SystemService;
+      const useCase = new GetCoins(coinRepositoryMock, systemService);
       const expectedCoins = [
         {
           id: "coin1",
@@ -91,10 +94,72 @@ describe("Coin Use Cases", () => {
       ];
       vi.mocked(coinRepositoryMock.getBySystems).mockResolvedValue(expectedCoins);
 
-      const result = await useCase.execute(["dnd5e"]);
+      const result = await useCase.execute([]);
 
       expect(result).toEqual(expectedCoins);
-      expect(coinRepositoryMock.getBySystems).toHaveBeenCalledWith(["dnd5e"], false);
+      expect(coinRepositoryMock.getBySystems).toHaveBeenCalledWith([], false);
+      expect(systemService.getAncestry).not.toHaveBeenCalled();
+    });
+
+    it("collapses inherited coins by name with the child winning", async () => {
+      const parent = {
+        _id: { toString: () => "parent" },
+        name: "SRD",
+      } as System;
+      const child = {
+        _id: { toString: () => "child" },
+        name: "Homebrew",
+      } as System;
+      const systemService = {
+        getAncestry: vi.fn().mockResolvedValue([child, parent]),
+      } as unknown as SystemService;
+      const useCase = new GetCoins(coinRepositoryMock, systemService);
+
+      vi.mocked(coinRepositoryMock.getBySystems).mockResolvedValue([
+        {
+          id: "p-gp",
+          ruleset: "parent",
+          name: "Pieza de Oro",
+          abbreviation: "gp",
+          isBase: true,
+          multiplier: 1,
+          weight: 0.02,
+          color: "#FFD700",
+          deletedAt: null,
+        },
+        {
+          id: "c-gp",
+          ruleset: "child",
+          name: "Pieza de Oro",
+          abbreviation: "po",
+          isBase: true,
+          multiplier: 1,
+          weight: 0.02,
+          color: "#FFAA00",
+          deletedAt: null,
+        },
+      ]);
+
+      const result = await useCase.execute(["child"]);
+
+      expect(coinRepositoryMock.getBySystems).toHaveBeenCalledWith(
+        ["child", "Homebrew", "parent", "SRD"],
+        false,
+        false
+      );
+      expect(result).toEqual([
+        {
+          id: "c-gp",
+          ruleset: "child",
+          name: "Pieza de Oro",
+          abbreviation: "po",
+          isBase: true,
+          multiplier: 1,
+          weight: 0.02,
+          color: "#FFAA00",
+          deletedAt: null,
+        },
+      ]);
     });
   });
 
