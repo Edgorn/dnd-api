@@ -1,27 +1,39 @@
-import IRaceRepository from "../repositories/IRaceRepository";
-import { CreateRace, RaceApi, RaceRef, UpdateRace } from "../types/race.types";
+import IRaceRepository, { RaceSummarySubtree } from "../repositories/IRaceRepository";
+import { CreateRace, RaceApi, RaceCatalogItem, RaceRef, RaceSummaryDraft, UpdateRace } from "../types/race.types";
 
 export default class RaceService {
   constructor(private readonly raceRepository: IRaceRepository) { }
 
-  obtenerTodas(playable?: boolean): Promise<RaceApi[]> {
-    return this.raceRepository.obtenerTodas(playable);
+  getAll(playable?: boolean): Promise<RaceApi[]> {
+    return this.raceRepository.getAll(playable);
   }
 
-  obtenerPorSistema(ruleset: string, playable?: boolean): Promise<RaceApi[]> {
-    return this.raceRepository.obtenerPorSistema(ruleset, playable);
+  getBySystem(ruleset: string, playable?: boolean): Promise<RaceApi[]> {
+    return this.raceRepository.getBySystem(ruleset, playable);
   }
 
-  obtenerPorId(id: string): Promise<RaceApi | undefined> {
-    return this.raceRepository.obtenerPorId(id);
+  getById(id: string, allowedRulesets?: string[]): Promise<RaceApi | undefined> {
+    return this.raceRepository.getById(id, allowedRulesets);
   }
 
-  crear(race: CreateRace): Promise<RaceApi> {
-    return this.raceRepository.crear(race);
+  getSummaries(ruleset?: string, playable?: boolean): Promise<RaceSummaryDraft[]> {
+    return this.raceRepository.getSummaries(ruleset, playable);
   }
 
-  actualizar(race: UpdateRace): Promise<RaceApi | undefined> {
-    return this.raceRepository.actualizar(race);
+  getSummarySubtree(parentId: string, ruleset?: string): Promise<RaceSummarySubtree | undefined> {
+    return this.raceRepository.getSummarySubtree(parentId, ruleset);
+  }
+
+  getCatalog(ruleset?: string, playable?: boolean): Promise<RaceCatalogItem[]> {
+    return this.raceRepository.getCatalog(ruleset, playable);
+  }
+
+  create(race: CreateRace): Promise<RaceApi> {
+    return this.raceRepository.create(race);
+  }
+
+  update(race: UpdateRace): Promise<RaceApi | undefined> {
+    return this.raceRepository.update(race);
   }
 
   softDelete(id: string): Promise<boolean> {

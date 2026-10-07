@@ -49,8 +49,8 @@ const parentRace: RaceApi = {
 describe("GetAllRacesUseCase", () => {
   it("returns all races without overlays when no ruleset is provided", async () => {
     const raceService = {
-      obtenerTodas: vi.fn().mockResolvedValue([parentRace]),
-      obtenerPorSistema: vi.fn()
+      getAll: vi.fn().mockResolvedValue([parentRace]),
+      getBySystem: vi.fn()
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn()
@@ -63,14 +63,14 @@ describe("GetAllRacesUseCase", () => {
     const result = await useCase.execute();
 
     expect(result).toEqual([parentRace]);
-    expect(raceService.obtenerTodas).toHaveBeenCalledWith(undefined);
-    expect(raceService.obtenerPorSistema).not.toHaveBeenCalled();
+    expect(raceService.getAll).toHaveBeenCalledWith(undefined);
+    expect(raceService.getBySystem).not.toHaveBeenCalled();
     expect(entityOverrideService.getBySystems).not.toHaveBeenCalled();
   });
 
   it("forwards the playable filter to the race listing", async () => {
     const raceService = {
-      obtenerPorSistema: vi.fn().mockResolvedValue([parentRace])
+      getBySystem: vi.fn().mockResolvedValue([parentRace])
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([])
@@ -82,7 +82,7 @@ describe("GetAllRacesUseCase", () => {
     const useCase = new GetAllRacesUseCase(raceService, systemService, entityOverrideService);
     await useCase.execute(childId.toString(), true);
 
-    expect(raceService.obtenerPorSistema).toHaveBeenCalledWith(childId.toString(), true);
+    expect(raceService.getBySystem).toHaveBeenCalledWith(childId.toString(), true);
   });
 
   it("returns the parent race id with the child description", async () => {
@@ -95,7 +95,7 @@ describe("GetAllRacesUseCase", () => {
     };
 
     const raceService = {
-      obtenerPorSistema: vi.fn().mockResolvedValue([parentRace])
+      getBySystem: vi.fn().mockResolvedValue([parentRace])
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])

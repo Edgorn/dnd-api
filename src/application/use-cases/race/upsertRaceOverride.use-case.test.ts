@@ -58,7 +58,7 @@ describe("UpsertRaceOverride UseCase", () => {
     };
 
     const raceService = {
-      obtenerPorId: vi.fn().mockResolvedValue(parentRace)
+      getById: vi.fn().mockResolvedValue(parentRace)
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
@@ -94,7 +94,7 @@ describe("UpsertRaceOverride UseCase", () => {
     };
 
     const raceService = {
-      obtenerPorId: vi.fn().mockResolvedValue(parentRace)
+      getById: vi.fn().mockResolvedValue(parentRace)
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
@@ -129,7 +129,7 @@ describe("UpsertRaceOverride UseCase", () => {
     };
 
     const raceService = {
-      obtenerPorId: vi.fn().mockResolvedValue(parentRace)
+      getById: vi.fn().mockResolvedValue(parentRace)
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
@@ -162,7 +162,7 @@ describe("UpsertRaceOverride UseCase", () => {
 
   it("throws 403 when the user is not the child system publisher", async () => {
     const raceService = {
-      obtenerPorId: vi.fn()
+      getById: vi.fn()
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
@@ -182,7 +182,7 @@ describe("UpsertRaceOverride UseCase", () => {
   it("throws 400 when the race belongs to the child system", async () => {
     const ownRace = { ...parentRace, ruleset: childId.toString() };
     const raceService = {
-      obtenerPorId: vi.fn().mockResolvedValue(ownRace)
+      getById: vi.fn().mockResolvedValue(ownRace)
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
@@ -201,7 +201,7 @@ describe("UpsertRaceOverride UseCase", () => {
   it("throws 400 when the race is outside the child ancestry", async () => {
     const foreignRace = { ...parentRace, ruleset: new Types.ObjectId().toString() };
     const raceService = {
-      obtenerPorId: vi.fn().mockResolvedValue(foreignRace)
+      getById: vi.fn().mockResolvedValue(foreignRace)
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])

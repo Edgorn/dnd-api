@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import UpdateRaceUseCase from "./updateRace.use-case";
+import GetRaceByIdUseCase from "./getRaceById.use-case";
 import RaceService from "../../../domain/services/race.service";
 import CreatureTypeService from "../../../domain/services/creatureType.service";
 import SystemService from "../../../domain/services/system.service";
-import { RaceApi } from "../../../domain/types/race.types";
+import { RaceApi, RaceDetailApi } from "../../../domain/types/race.types";
 
 const existingRace = {
   id: "race-1",
@@ -17,14 +18,21 @@ const parentRace = {
   playable: false
 } as RaceApi;
 
+const updatedDetail = {
+  id: "race-1",
+  name: "Alto elfo",
+  playable: false,
+  subraces: { name: "Linajes", list: [] }
+} as unknown as RaceDetailApi;
+
 function buildUseCase() {
   const raceService = {
-    obtenerPorId: vi.fn().mockImplementation(async (id: string) => {
+    getById: vi.fn().mockImplementation(async (id: string) => {
       if (id === existingRace.id) return existingRace;
       if (id === parentRace.id) return parentRace;
       return undefined;
     }),
-    actualizar: vi.fn().mockResolvedValue(existingRace)
+    update: vi.fn().mockResolvedValue(existingRace)
   } as unknown as RaceService;
   const creatureTypeService = {
     getById: vi.fn()
@@ -32,10 +40,14 @@ function buildUseCase() {
   const systemService = {
     getSystemsAndAncestors: vi.fn()
   } as unknown as SystemService;
+  const getRaceById = {
+    execute: vi.fn().mockResolvedValue(updatedDetail)
+  } as unknown as GetRaceByIdUseCase;
 
   return {
-    useCase: new UpdateRaceUseCase(raceService, creatureTypeService, systemService),
-    raceService
+    useCase: new UpdateRaceUseCase(raceService, creatureTypeService, systemService, getRaceById),
+    raceService,
+    getRaceById
   };
 }
 
@@ -45,7 +57,7 @@ describe("UpdateRaceUseCase", () => {
 
     await useCase.execute({ id: existingRace.id, name: "Alto elfo" });
 
-    expect(raceService.actualizar).toHaveBeenCalledWith({ id: existingRace.id, name: "Alto elfo" });
+    expect(raceService.update).toHaveBeenCalledWith({ id: existingRace.id, name: "Alto elfo" });
   });
 
   it("rejects making a subrace playable when its parent is not", async () => {
@@ -54,12 +66,20 @@ describe("UpdateRaceUseCase", () => {
     await expect(useCase.execute({ id: existingRace.id, playable: true })).rejects.toMatchObject({
       statusCode: 400
     });
-    expect(raceService.actualizar).not.toHaveBeenCalled();
+    expect(raceService.update).not.toHaveBeenCalled();
   });
 
   it("returns undefined when the race does not exist", async () => {
-    const { useCase } = buildUseCase();
+    const { useCase, getRaceById } = buildUseCase();
 
     await expect(useCase.execute({ id: "missing", name: "Nada" })).resolves.toBeUndefined();
+    expect(getRaceById.execute).not.toHaveBeenCalled();
+  });
+
+  it("returns the canonical RaceDetail for the updated id", async () => {
+    const { useCase, getRaceById } = buildUseCase();
+
+    await expect(useCase.execute({ id: existingRace.id, name: "Alto elfo" })).resolves.toBe(updatedDetail);
+    expect(getRaceById.execute).toHaveBeenCalledWith(existingRace.id);
   });
 });

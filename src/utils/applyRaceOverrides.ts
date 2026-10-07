@@ -1,4 +1,3 @@
-import { RaceApi } from "../domain/types/race.types";
 import {
   EntityOverrideApi,
   RACE_FLAVOR_FIELDS,
@@ -7,6 +6,22 @@ import {
   RaceFlavorPatchInput
 } from "../domain/types/entityOverride.types";
 import { System } from "../domain/types/system.types";
+
+export interface RaceOverlayTarget {
+  id: string;
+  name: string;
+  description?: string[];
+  img?: string;
+  alignment?: string;
+  ruleset: string;
+  inherited?: boolean;
+  overriddenFields?: RaceFlavorField[];
+  overrideRuleset?: string;
+  subraces?: {
+    name: string;
+    list: RaceOverlayTarget[];
+  };
+}
 
 export interface AncestrySystemRef {
   id: string;
@@ -73,25 +88,54 @@ export function systemMatchesRuleset(system: AncestrySystemRef, ruleset: string)
   return system.id === ruleset || system.name === ruleset;
 }
 
-export function applyRaceOverrides(
-  races: RaceApi[],
+export function applyRaceOverrides<T extends RaceOverlayTarget>(
+  races: T[],
   overlays: EntityOverrideApi[],
   ancestry: AncestrySystemRef[]
-): RaceApi[] {
+): T[] {
   if (ancestry.length === 0) return races;
 
   return races.map(race => applyRaceOverride(race, overlays, ancestry));
 }
 
-function applyRaceOverride(
-  race: RaceApi,
+export function applyRaceNameOverrides<T extends { id: string; name: string; ruleset: string }>(
+  items: T[],
   overlays: EntityOverrideApi[],
   ancestry: AncestrySystemRef[]
-): RaceApi {
+): T[] {
+  if (ancestry.length === 0) return items;
+
+  return items.map(item => {
+    let name = item.name;
+    for (let i = ancestry.length - 1; i >= 0; i--) {
+      const system = ancestry[i];
+      const overlay = overlays.find(
+        entry => entry.sourceId === item.id && systemMatchesRuleset(system, entry.ruleset)
+      );
+      const patched = overlay?.patch.name;
+      if (patched === undefined || !isMeaningfulFlavorValue(patched)) continue;
+      name = String(patched);
+    }
+    return name === item.name ? item : { ...item, name };
+  });
+}
+
+export function raceDescriptionTeaser(description: string[] | undefined, maxChars = 200): string | undefined {
+  const first = description?.find(paragraph => typeof paragraph === "string" && paragraph.trim().length > 0)?.trim();
+  if (!first) return undefined;
+  if (first.length <= maxChars) return first;
+  return `${first.slice(0, maxChars).trimEnd()}…`;
+}
+
+function applyRaceOverride<T extends RaceOverlayTarget>(
+  race: T,
+  overlays: EntityOverrideApi[],
+  ancestry: AncestrySystemRef[]
+): T {
   const viewingSystem = ancestry[0];
   const inherited = !systemMatchesRuleset(viewingSystem, race.ruleset);
 
-  let result: RaceApi = { ...race, inherited };
+  let result: T = { ...race, inherited };
   const overriddenFields: RaceFlavorField[] = [];
   let overrideRuleset: string | undefined;
 
@@ -122,7 +166,7 @@ function applyRaceOverride(
       ...result,
       subraces: {
         ...result.subraces,
-        list: applyRaceOverrides(result.subraces.list, overlays, ancestry)
+        list: applyRaceOverrides(result.subraces.list as T[], overlays, ancestry)
       }
     };
   }
@@ -130,11 +174,11 @@ function applyRaceOverride(
   return result;
 }
 
-function applyFlavorField(
-  race: RaceApi,
+function applyFlavorField<T extends RaceOverlayTarget>(
+  race: T,
   key: RaceFlavorField,
   value: string | string[]
-): RaceApi {
+): T {
   switch (key) {
     case "name":
       return { ...race, name: String(value) };

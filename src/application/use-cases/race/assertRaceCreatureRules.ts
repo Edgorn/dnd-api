@@ -29,7 +29,7 @@ export async function assertSubracePlayable(
 ): Promise<void> {
   if (!playable || !parentId) return;
 
-  const parent = await raceService.obtenerPorId(parentId);
+  const parent = await raceService.getById(parentId);
   if (!parent) {
     throw new AppError("Raza padre no encontrada", 404);
   }

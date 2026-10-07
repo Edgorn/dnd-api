@@ -49,7 +49,7 @@ const parentRace: RaceApi = {
 describe("DeleteRaceOverride UseCase", () => {
   it("soft-deletes the overlay when the publisher requests it", async () => {
     const raceService = {
-      obtenerPorId: vi.fn().mockResolvedValue(parentRace)
+      getById: vi.fn().mockResolvedValue(parentRace)
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
@@ -70,7 +70,7 @@ describe("DeleteRaceOverride UseCase", () => {
 
   it("throws 404 when the overlay does not exist", async () => {
     const raceService = {
-      obtenerPorId: vi.fn().mockResolvedValue(parentRace)
+      getById: vi.fn().mockResolvedValue(parentRace)
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
@@ -88,7 +88,7 @@ describe("DeleteRaceOverride UseCase", () => {
 
   it("throws 403 when the user is not the child system publisher", async () => {
     const raceService = {
-      obtenerPorId: vi.fn()
+      getById: vi.fn()
     } as unknown as RaceService;
     const systemService = {
       getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])

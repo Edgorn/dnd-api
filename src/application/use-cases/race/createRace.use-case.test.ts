@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import CreateRaceUseCase from "./createRace.use-case";
+import GetRaceByIdUseCase from "./getRaceById.use-case";
 import RaceService from "../../../domain/services/race.service";
 import CreatureTypeService from "../../../domain/services/creatureType.service";
 import SystemService from "../../../domain/services/system.service";
 import { AppError } from "../../../domain/errors/AppError";
-import { CreateRace, RaceApi } from "../../../domain/types/race.types";
+import { CreateRace, RaceApi, RaceDetailApi } from "../../../domain/types/race.types";
 import { CreatureTypeApi } from "../../../domain/types/creatureType.types";
 
 const baseRace: CreateRace = {
@@ -15,6 +16,12 @@ const baseRace: CreateRace = {
 };
 
 const savedRace = { id: "race-1", playable: true } as RaceApi;
+const savedDetail = {
+  id: "race-1",
+  name: "Elfo",
+  playable: true,
+  subraces: { name: "Linajes", list: [] }
+} as unknown as RaceDetailApi;
 
 const humanoid: CreatureTypeApi = {
   id: "type-1",
@@ -29,8 +36,8 @@ function buildUseCase(options?: {
   ancestors?: string[];
 }) {
   const raceService = {
-    crear: vi.fn().mockResolvedValue(savedRace),
-    obtenerPorId: vi.fn().mockResolvedValue(options?.parent)
+    create: vi.fn().mockResolvedValue(savedRace),
+    getById: vi.fn().mockResolvedValue(options?.parent)
   } as unknown as RaceService;
   const creatureTypeService = {
     getById: vi.fn().mockResolvedValue(options?.creatureType === undefined ? null : options.creatureType)
@@ -38,11 +45,15 @@ function buildUseCase(options?: {
   const systemService = {
     getSystemsAndAncestors: vi.fn().mockResolvedValue(options?.ancestors ?? ["sys-child", "sys-parent"])
   } as unknown as SystemService;
+  const getRaceById = {
+    execute: vi.fn().mockResolvedValue(savedDetail)
+  } as unknown as GetRaceByIdUseCase;
 
   return {
-    useCase: new CreateRaceUseCase(raceService, creatureTypeService, systemService),
+    useCase: new CreateRaceUseCase(raceService, creatureTypeService, systemService, getRaceById),
     raceService,
-    creatureTypeService
+    creatureTypeService,
+    getRaceById
   };
 }
 
@@ -52,7 +63,14 @@ describe("CreateRaceUseCase", () => {
 
     await useCase.execute(baseRace);
 
-    expect(raceService.crear).toHaveBeenCalledWith({ ...baseRace, playable: true });
+    expect(raceService.create).toHaveBeenCalledWith({ ...baseRace, playable: true });
+  });
+
+  it("returns the canonical RaceDetail for the saved id", async () => {
+    const { useCase, getRaceById } = buildUseCase();
+
+    await expect(useCase.execute(baseRace)).resolves.toBe(savedDetail);
+    expect(getRaceById.execute).toHaveBeenCalledWith(savedRace.id);
   });
 
   it("accepts a creature type that belongs to an ancestor ruleset", async () => {
@@ -60,7 +78,7 @@ describe("CreateRaceUseCase", () => {
 
     await useCase.execute({ ...baseRace, creatureTypeId: humanoid.id, playable: false });
 
-    expect(raceService.crear).toHaveBeenCalledWith({
+    expect(raceService.create).toHaveBeenCalledWith({
       ...baseRace,
       creatureTypeId: humanoid.id,
       playable: false
@@ -96,6 +114,6 @@ describe("CreateRaceUseCase", () => {
     await expect(useCase.execute({ ...baseRace, parentId: "parent-1" })).rejects.toMatchObject({
       statusCode: 400
     } satisfies Partial<AppError>);
-    expect(raceService.crear).not.toHaveBeenCalled();
+    expect(raceService.create).not.toHaveBeenCalled();
   });
 });

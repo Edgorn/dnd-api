@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { raceController, authMiddleware } from "../../dependencies";
-import { CreateRaceSchema, UpdateRaceSchema, UpsertRaceOverrideSchema, RaceOverrideQuerySchema, GetRacesQuerySchema } from "../schemas/race.schema";
+import { CreateRaceSchema, UpdateRaceSchema, UpsertRaceOverrideSchema, RaceOverrideQuerySchema, GetRacesQuerySchema, GetRaceByIdQuerySchema, GetRaceCatalogQuerySchema } from "../schemas/race.schema";
 import { validateSchema, validateQuery } from "../middlewares/validateSchema";
 
 const router = Router();
@@ -9,7 +9,7 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
- *     SubrazasApi:
+ *     SubracesApi:
  *       type: object
  *       properties:
  *         name:
@@ -19,7 +19,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Race'
- *     VarianteApi:
+ *     VariantApi:
  *       type: object
  *       properties:
  *         name:
@@ -155,11 +155,11 @@ const router = Router();
  *           type: string
  *           description: ID de la raza padre si esta raza es una subraza (Opcional).
  *         subraces:
- *           $ref: '#/components/schemas/SubrazasApi'
+ *           $ref: '#/components/schemas/SubracesApi'
  *         variants:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/VarianteApi'
+ *             $ref: '#/components/schemas/VariantApi'
  *         inherited:
  *           type: boolean
  *           description: Indica si la raza pertenece a un sistema ancestro del ruleset consultado.
@@ -172,6 +172,104 @@ const router = Router();
  *         overrideRuleset:
  *           type: string
  *           description: ID del sistema cuyo parche se ha aplicado.
+ *     RaceSummary:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         img:
+ *           type: string
+ *         descriptionTeaser:
+ *           type: string
+ *           description: Primer párrafo de la descripción, recortado a unos 200 caracteres, tras aplicar parches de flavor.
+ *         ruleset:
+ *           type: string
+ *         playable:
+ *           type: boolean
+ *         inherited:
+ *           type: boolean
+ *         overriddenFields:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [name, description, img, alignment]
+ *         overrideRuleset:
+ *           type: string
+ *         parentId:
+ *           type: string
+ *         size:
+ *           type: string
+ *         speed:
+ *           type: object
+ *           properties:
+ *             walk:
+ *               type: number
+ *         creatureType:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *             name:
+ *               type: string
+ *         ability_bonuses:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               key:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               bonus:
+ *                 type: number
+ *         ability_bonus_choices:
+ *           type: object
+ *           properties:
+ *             choose:
+ *               type: number
+ *         skill_choices:
+ *           type: object
+ *           properties:
+ *             choose:
+ *               type: number
+ *         subraces:
+ *           type: object
+ *           properties:
+ *             name:
+ *               type: string
+ *             list:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/RaceSummary'
+ *     RaceCatalogItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         creatureTypeId:
+ *           type: string
+ *           nullable: true
+ *         ruleset:
+ *           type: string
+ *     RaceDetail:
+ *       allOf:
+ *         - $ref: '#/components/schemas/Race'
+ *         - type: object
+ *           properties:
+ *             subraces:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 list:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/RaceSummary'
+ *               description: Subrazas del nodo en forma ligera (RaceSummary), no hidratadas.
  *     RaceOverride:
  *       type: object
  *       properties:
@@ -500,7 +598,11 @@ const router = Router();
  * /races:
  *   get:
  *     summary: Obtener el listado de razas (con soporte para herencia del sistema)
- *     description: Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor del sistema consultado (el más cercano gana). El parámetro playable filtra razas raíz y subrazas; si se omite, se devuelven todas.
+ *     description: >
+ *       Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor
+ *       del sistema consultado (el más cercano gana). El parámetro playable filtra razas raíz
+ *       y subrazas; si se omite, se devuelven todas. Con view=summary se devuelve un árbol
+ *       ligero (RaceSummary) sin hidratar rasgos, conjuros ni opciones de elección.
  *     tags:
  *       - Razas
  *     security:
@@ -517,6 +619,12 @@ const router = Router();
  *           type: string
  *           enum: ["true", "false"]
  *         description: Si es true, solo razas jugables (incluye las que no tienen el campo). Si es false, solo las no jugables. Si se omite, se devuelven todas.
+ *       - in: query
+ *         name: view
+ *         schema:
+ *           type: string
+ *           enum: [summary, full]
+ *         description: summary devuelve RaceSummary. Si se omite o es full, se hidrata el árbol completo (Race).
  *     responses:
  *       200:
  *         description: Listado de razas obtenido exitosamente (ensamblado de forma recursiva).
@@ -525,7 +633,9 @@ const router = Router();
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Race'
+ *                 oneOf:
+ *                   - $ref: '#/components/schemas/Race'
+ *                   - $ref: '#/components/schemas/RaceSummary'
  *       401:
  *         description: No autorizado.
  *       500:
@@ -538,6 +648,9 @@ router.get('/races', authMiddleware, validateQuery(GetRacesQuerySchema), raceCon
  * /races:
  *   post:
  *     summary: Crear una nueva raza
+ *     description: >
+ *       Crea la raza y devuelve el detalle canónico (RaceDetail), igual que GET /races/{id}
+ *       sin ruleset: nodo hidratado y subrazas hijas como RaceSummary.
  *     tags:
  *       - Razas
  *     security:
@@ -554,7 +667,7 @@ router.get('/races', authMiddleware, validateQuery(GetRacesQuerySchema), raceCon
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Race'
+ *               $ref: '#/components/schemas/RaceDetail'
  *       400:
  *         description: Datos de entrada inválidos.
  *       401:
@@ -563,6 +676,85 @@ router.get('/races', authMiddleware, validateQuery(GetRacesQuerySchema), raceCon
  *         description: Error del servidor.
  */
 router.post('/races', authMiddleware, validateSchema(CreateRaceSchema), raceController.createRace);
+
+/**
+ * @openapi
+ * /races/catalog:
+ *   get:
+ *     summary: Obtener el catálogo plano de razas
+ *     description: Lista plana de raíces y subrazas (id, name, creatureTypeId, ruleset) con herencia de tipo de criatura y parches de nombre. Pensado para elecciones de catálogo y subir de nivel.
+ *     tags:
+ *       - Razas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema. Incluye razas de ancestros.
+ *       - in: query
+ *         name: playable
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Si es true, solo razas jugables. Si es false, solo las no jugables. Si se omite, se devuelven todas.
+ *     responses:
+ *       200:
+ *         description: Catálogo obtenido exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/RaceCatalogItem'
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/races/catalog', authMiddleware, validateQuery(GetRaceCatalogQuerySchema), raceController.getCatalog);
+
+/**
+ * @openapi
+ * /races/{id}:
+ *   get:
+ *     summary: Obtener una raza hidratada por ID
+ *     description: >
+ *       Devuelve el nodo pedido hidratado (Race). Las subrazas hijas van como RaceSummary
+ *       (sin rasgos, conjuros ni opciones de elección). Si se indica ruleset, se aplican
+ *       parches de flavor y el indicador inherited.
+ *     tags:
+ *       - Razas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la raza.
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema consultado. La raza debe pertenecer a ese sistema o a un ancestro.
+ *     responses:
+ *       200:
+ *         description: Raza obtenida exitosamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RaceDetail'
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Raza no encontrada.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/races/:id', authMiddleware, validateQuery(GetRaceByIdQuerySchema), raceController.getById);
 
 /**
  * @openapi
@@ -690,6 +882,9 @@ router.delete('/races/:id/override', authMiddleware, validateQuery(RaceOverrideQ
  * /races/{id}:
  *   put:
  *     summary: Modificar una raza existente por ID
+ *     description: >
+ *       Actualiza la raza y devuelve el detalle canónico (RaceDetail), igual que GET /races/{id}
+ *       sin ruleset: nodo hidratado y subrazas hijas como RaceSummary.
  *     tags:
  *       - Razas
  *     security:
@@ -713,7 +908,7 @@ router.delete('/races/:id/override', authMiddleware, validateQuery(RaceOverrideQ
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Race'
+ *               $ref: '#/components/schemas/RaceDetail'
  *       400:
  *         description: Datos inválidos.
  *       401:

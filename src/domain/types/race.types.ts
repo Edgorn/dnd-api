@@ -9,6 +9,7 @@ import { TraitApi, TraitDataMongo } from "./traits.types"
 import { CharacterEquipmentMongo, EquipmentInstanceApi } from "./equipment.types"
 import { AttributeApi, AttributeBonus, AttributeBonusCreate } from "./attribute.types"
 import { CreatureTypeApi } from "./creatureType.types"
+import { RaceFlavorField } from "./entityOverride.types"
 
 export interface RaceMongo {
   _id: ObjectId,
@@ -41,7 +42,7 @@ export interface RaceMongo {
   proficiencies_choices?: ChoiceMongo[],
   subraces_name?: string,
   parentId?: ObjectId | null,
-  variants: VarianteMongo[],
+  variants: VariantMongo[],
   levels: RaceLevelMongo[],
   spell_choices?: ChoiceMongo[],
   spellcasting?: ObjectId | string | null,
@@ -58,7 +59,7 @@ export interface RaceLevelMongo {
 
 // SubracesMongo has been removed in favor of parentId on children
 
-export interface VarianteMongo {
+export interface VariantMongo {
   name: string,
   ability_bonuses: AttributeBonus[],
   skill_choices?: ChoiceMongo,
@@ -102,10 +103,10 @@ export interface RaceApi {
   playable: boolean,
   subraces?: SubracesApi,
   parentId?: string | null,
-  variants: VarianteApi[],
+  variants: VariantApi[],
   levels?: RaceLevelMongo[],
   inherited?: boolean,
-  overriddenFields?: Array<"name" | "description" | "img" | "alignment">,
+  overriddenFields?: RaceFlavorField[],
   overrideRuleset?: string,
   equipment?: EquipmentInstanceApi[]
 }
@@ -115,7 +116,14 @@ export interface SubracesApi {
   list: RaceApi[]
 }
 
-export interface VarianteApi {
+export interface RaceDetailApi extends Omit<RaceApi, "subraces"> {
+  subraces?: {
+    name: string;
+    list: RaceSummary[];
+  };
+}
+
+export interface VariantApi {
   name: string,
   ability_bonuses: AttributeBonus[],
   skill_choices?: ChoiceApi<SkillApi>,
@@ -128,6 +136,69 @@ export interface RaceRef {
   name: string;
   ruleset: string;
   creatureTypeId: string | null;
+}
+
+export interface RaceCatalogItem {
+  id: string;
+  name: string;
+  creatureTypeId: string | null;
+  ruleset: string;
+}
+
+export interface RaceChoiceCount {
+  choose: number;
+}
+
+export interface RaceSummaryCreatureType {
+  id: string;
+  name: string;
+}
+
+export interface RaceSummary {
+  id: string;
+  name: string;
+  img: string;
+  descriptionTeaser?: string;
+  ruleset: string;
+  playable: boolean;
+  inherited?: boolean;
+  overriddenFields?: RaceFlavorField[];
+  overrideRuleset?: string;
+  parentId?: string | null;
+  size?: string;
+  speed?: { walk: number };
+  creatureType?: RaceSummaryCreatureType;
+  ability_bonuses?: AttributeBonus[];
+  ability_bonus_choices?: RaceChoiceCount;
+  skill_choices?: RaceChoiceCount;
+  subraces?: {
+    name: string;
+    list: RaceSummary[];
+  };
+}
+
+export interface RaceSummaryDraft {
+  id: string;
+  name: string;
+  img: string;
+  description: string[];
+  alignment?: string;
+  ruleset: string;
+  playable: boolean;
+  inherited?: boolean;
+  overriddenFields?: RaceFlavorField[];
+  overrideRuleset?: string;
+  parentId?: string | null;
+  size?: string;
+  speed?: { walk: number };
+  creatureType?: RaceSummaryCreatureType;
+  ability_bonuses?: AttributeBonus[];
+  ability_bonus_choices?: RaceChoiceCount;
+  skill_choices?: RaceChoiceCount;
+  subraces?: {
+    name: string;
+    list: RaceSummaryDraft[];
+  };
 }
 
 export interface CreateRace {

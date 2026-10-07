@@ -9,7 +9,7 @@ export default class RestoreRace {
   ) {}
 
   async execute(id: string, userId: string): Promise<void> {
-    const race = await this.raceService.obtenerPorId(id);
+    const race = await this.raceService.getById(id);
     if (!race) {
       throw new AppError("Raza no encontrada", 404);
     }

@@ -17,6 +17,7 @@ vi.mock("../schemas/Race", () => ({
   default: {
     find: vi.fn(),
     findOne: vi.fn(),
+    findById: vi.fn(),
     aggregate: vi.fn(),
   },
 }));
@@ -64,7 +65,7 @@ function mockRootRaceFind(races: unknown[]) {
   } as never);
 }
 
-describe("RaceRepository.obtenerPorSistema subrace ancestry filter", () => {
+describe("RaceRepository.getBySystem subrace ancestry filter", () => {
   const elfRace = {
     _id: ELF_ID,
     name: "Elf",
@@ -102,7 +103,7 @@ describe("RaceRepository.obtenerPorSistema subrace ancestry filter", () => {
     mockRootRaceFind([elfRace]);
     vi.mocked(RaceModel.find).mockResolvedValueOnce([]);
 
-    await repository.obtenerPorSistema(PARENT_SYSTEM_ID);
+    await repository.getBySystem(PARENT_SYSTEM_ID);
 
     expect(RaceModel.find).toHaveBeenNthCalledWith(1, {
       ruleset: { $in: parentExpanded },
@@ -122,7 +123,7 @@ describe("RaceRepository.obtenerPorSistema subrace ancestry filter", () => {
     mockRootRaceFind([elfRace]);
     vi.mocked(RaceModel.find).mockResolvedValueOnce([]);
 
-    await repository.obtenerPorSistema(CHILD_SYSTEM_ID);
+    await repository.getBySystem(CHILD_SYSTEM_ID);
 
     expect(RaceModel.find).toHaveBeenNthCalledWith(1, {
       ruleset: { $in: childExpanded },
@@ -142,7 +143,7 @@ describe("RaceRepository.obtenerPorSistema subrace ancestry filter", () => {
     mockRootRaceFind([elfRace]);
     vi.mocked(RaceModel.find).mockResolvedValueOnce([]);
 
-    await repository.obtenerPorSistema(PARENT_SYSTEM_ID, true);
+    await repository.getBySystem(PARENT_SYSTEM_ID, true);
 
     expect(RaceModel.find).toHaveBeenNthCalledWith(1, {
       ruleset: { $in: parentExpanded },
@@ -183,26 +184,27 @@ describe("RaceRepository.getRaceRefsByIds", () => {
   });
 
   it("inherits the creature type from the parent race", async () => {
-    vi.mocked(RaceModel.find).mockReturnValueOnce({
-      select: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue([{
-          _id: childId,
-          name: "Trasgo",
-          ruleset: PARENT_SYSTEM_ID,
-          parentId,
-          creatureTypeId: null,
-        }]),
-      }),
-    } as never);
-    vi.mocked(RaceModel.findOne).mockReturnValueOnce({
-      select: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue({
-          _id: parentId,
-          creatureTypeId: typeId,
-          parentId: null,
+    vi.mocked(RaceModel.find)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([{
+            _id: childId,
+            name: "Trasgo",
+            ruleset: PARENT_SYSTEM_ID,
+            parentId,
+            creatureTypeId: null,
+          }]),
         }),
-      }),
-    } as never);
+      } as never)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([{
+            _id: parentId,
+            creatureTypeId: typeId,
+            parentId: null,
+          }]),
+        }),
+      } as never);
 
     const refs = await repository.getRaceRefsByIds([childId, "not-an-id"]);
 
@@ -247,27 +249,28 @@ describe("RaceRepository.getRaceRefsBySystems", () => {
   });
 
   it("returns non-playable races and inherits the creature type", async () => {
-    vi.mocked(RaceModel.find).mockReturnValueOnce({
-      select: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue([{
-          _id: childId,
-          name: "Trasgo",
-          ruleset: PARENT_SYSTEM_ID,
-          parentId,
-          creatureTypeId: null,
-          playable: false,
-        }]),
-      }),
-    } as never);
-    vi.mocked(RaceModel.findOne).mockReturnValueOnce({
-      select: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue({
-          _id: parentId,
-          creatureTypeId: typeId,
-          parentId: null,
+    vi.mocked(RaceModel.find)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([{
+            _id: childId,
+            name: "Trasgo",
+            ruleset: PARENT_SYSTEM_ID,
+            parentId,
+            creatureTypeId: null,
+            playable: false,
+          }]),
         }),
-      }),
-    } as never);
+      } as never)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue([{
+            _id: parentId,
+            creatureTypeId: typeId,
+            parentId: null,
+          }]),
+        }),
+      } as never);
 
     const refs = await repository.getRaceRefsBySystems([PARENT_SYSTEM_ID, PARENT_SYSTEM_ID]);
 
@@ -291,7 +294,7 @@ describe("RaceRepository.getRaceRefsBySystems", () => {
   });
 });
 
-describe("RaceRepository.dataLevelUp", () => {
+describe("RaceRepository.getLevelUpData", () => {
   const childId = "507f1f77bcf86cd799439021";
   const parentId = "507f1f77bcf86cd799439022";
   let repository: RaceRepository;
@@ -335,7 +338,7 @@ describe("RaceRepository.dataLevelUp", () => {
       }]
     });
 
-    const result = await repository.dataLevelUp(childId, 6);
+    const result = await repository.getLevelUpData(childId, 6);
 
     expect(result).toEqual({
       level: 6,
@@ -350,7 +353,7 @@ describe("RaceRepository.dataLevelUp", () => {
       levels: { 6: { traits_data: {} } }
     });
 
-    await expect(repository.dataLevelUp(childId, 6)).resolves.toBeUndefined();
+    await expect(repository.getLevelUpData(childId, 6)).resolves.toBeUndefined();
   });
 });
 
@@ -418,3 +421,261 @@ describe("RaceRepository.countRootRacesByRulesets", () => {
     expect(RaceModel.aggregate).not.toHaveBeenCalled();
   });
 });
+
+describe("RaceRepository.getSummaries", () => {
+  const childRaceId = "507f1f77bcf86cd799439014";
+  const typeId = "507f1f77bcf86cd799439023";
+
+  it("builds a light tree without hydrating skill or ASI options", async () => {
+    const deps = stubFormatDependencies();
+    const formatSkillChoices = vi.fn();
+    const formatAbilityBonusChoices = vi.fn();
+    const getBySystems = vi.fn().mockResolvedValue([{ key: "dex", name: "Destreza" }]);
+    const getByIds = vi.fn().mockResolvedValue([{ id: typeId, name: "Humanoide" }]);
+    const systemRepository = {
+      getSystemsAndAncestors: vi.fn().mockResolvedValue([PARENT_SYSTEM_ID])
+    };
+    const repository = new RaceRepository(
+      deps.languageRepository,
+      deps.spellRepository,
+      { formatSkillChoices } as unknown as SkillService,
+      deps.proficiencyRepository,
+      deps.featRepository,
+      deps.traitRepository,
+      {
+        ...deps.attributeService,
+        getBySystems,
+        formatAbilityBonusChoices
+      } as unknown as AttributeService,
+      deps.equipmentRepository,
+      { getById: vi.fn(), getByIds } as unknown as ICreatureTypeRepository,
+      systemRepository as unknown as ISystemRepository
+    );
+
+    vi.mocked(RaceModel.find).mockReturnValueOnce({
+      select: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue([
+          {
+            _id: ELF_ID,
+            name: "Elf",
+            description: ["Long lore"],
+            img: "elf.png",
+            ruleset: PARENT_SYSTEM_ID,
+            parentId: null,
+            subraces_name: "Linajes",
+            size: "Medium",
+            speed: { walk: 30 },
+            creatureTypeId: typeId,
+            ability_bonuses: [{ key: "dex", bonus: 2 }],
+            ability_bonus_choices: { choose: 2, options: ["str", "dex"] },
+            skill_choices: { choose: 1 },
+            playable: true
+          },
+          {
+            _id: childRaceId,
+            name: "High Elf",
+            description: [],
+            img: "high.png",
+            ruleset: PARENT_SYSTEM_ID,
+            parentId: ELF_ID,
+            creatureTypeId: null,
+            ability_bonuses: [],
+            playable: true
+          }
+        ])
+      })
+    } as never);
+
+    const [root] = await repository.getSummaries(PARENT_SYSTEM_ID, true);
+
+    expect(formatSkillChoices).not.toHaveBeenCalled();
+    expect(formatAbilityBonusChoices).not.toHaveBeenCalled();
+    expect(deps.traitRepository.getTraitsByIndexes).not.toHaveBeenCalled();
+    expect(getByIds).toHaveBeenCalledWith([typeId]);
+    expect(root.ability_bonuses).toEqual([{ key: "dex", name: "Destreza", bonus: 2 }]);
+    expect(root.ability_bonus_choices).toEqual({ choose: 2 });
+    expect(root.skill_choices).toEqual({ choose: 1 });
+    expect(root.subraces?.name).toBe("Linajes");
+    expect(root.subraces?.list[0]).toMatchObject({
+      id: childRaceId,
+      name: "High Elf",
+      creatureType: { id: typeId, name: "Humanoide" }
+    });
+  });
+});
+
+describe("RaceRepository.getCatalog", () => {
+  const childRaceId = "507f1f77bcf86cd799439014";
+  const typeId = "507f1f77bcf86cd799439023";
+
+  it("returns a flat list with inherited creature types", async () => {
+    const deps = stubFormatDependencies();
+    const systemRepository = {
+      getSystemsAndAncestors: vi.fn().mockResolvedValue([PARENT_SYSTEM_ID])
+    };
+    const repository = new RaceRepository(
+      deps.languageRepository,
+      deps.spellRepository,
+      deps.skillService,
+      deps.proficiencyRepository,
+      deps.featRepository,
+      deps.traitRepository,
+      deps.attributeService,
+      deps.equipmentRepository,
+      { getById: vi.fn() } as unknown as ICreatureTypeRepository,
+      systemRepository as unknown as ISystemRepository
+    );
+
+    vi.mocked(RaceModel.find).mockReturnValueOnce({
+      select: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue([
+          {
+            _id: ELF_ID,
+            name: "Elf",
+            ruleset: PARENT_SYSTEM_ID,
+            parentId: null,
+            creatureTypeId: typeId
+          },
+          {
+            _id: childRaceId,
+            name: "High Elf",
+            ruleset: PARENT_SYSTEM_ID,
+            parentId: ELF_ID,
+            creatureTypeId: null
+          }
+        ])
+      })
+    } as never);
+
+    const catalog = await repository.getCatalog(PARENT_SYSTEM_ID, true);
+
+    expect(RaceModel.find).toHaveBeenCalledWith({
+      deletedAt: null,
+      playable: { $ne: false },
+      ruleset: { $in: [PARENT_SYSTEM_ID] }
+    });
+    expect(catalog).toEqual([
+      { id: ELF_ID, name: "Elf", ruleset: PARENT_SYSTEM_ID, creatureTypeId: typeId },
+      { id: childRaceId, name: "High Elf", ruleset: PARENT_SYSTEM_ID, creatureTypeId: typeId }
+    ]);
+  });
+});
+
+describe("RaceRepository.getById", () => {
+  const typeId = "507f1f77bcf86cd799439023";
+
+  it("hydrates only the requested race and does not load child races", async () => {
+    const deps = stubFormatDependencies();
+    const repository = new RaceRepository(
+      deps.languageRepository,
+      deps.spellRepository,
+      deps.skillService,
+      deps.proficiencyRepository,
+      deps.featRepository,
+      deps.traitRepository,
+      deps.attributeService,
+      deps.equipmentRepository,
+      { getById: vi.fn().mockResolvedValue({ id: typeId, name: "Humanoide" }) } as unknown as ICreatureTypeRepository
+    );
+
+    vi.mocked(RaceModel.findById).mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        _id: ELF_ID,
+        name: "Elf",
+        description: ["Lore"],
+        img: "elf.png",
+        ruleset: PARENT_SYSTEM_ID,
+        parentId: null,
+        deletedAt: null,
+        speed: { walk: 30 },
+        size: "Medium",
+        traits: ["darkvision"],
+        traits_data: {},
+        ability_bonuses: [],
+        skill_choices: { choose: 1, options: ["skill-1"] },
+        languages: {},
+        variants: [],
+        equipment: [],
+        creatureTypeId: typeId,
+        playable: true
+      })
+    } as never);
+
+    const result = await repository.getById(ELF_ID);
+
+    expect(result?.id).toBe(ELF_ID);
+    expect(result?.subraces).toBeUndefined();
+    expect(deps.traitRepository.getTraitsByIndexes).toHaveBeenCalledTimes(1);
+    expect(deps.skillService.formatSkillChoices).toHaveBeenCalledTimes(1);
+    expect(RaceModel.find).not.toHaveBeenCalled();
+  });
+});
+
+describe("RaceRepository.getSummarySubtree", () => {
+  const childRaceId = "507f1f77bcf86cd799439014";
+  const typeId = "507f1f77bcf86cd799439023";
+
+  it("returns the child summary tree of the parent without the parent node", async () => {
+    const deps = stubFormatDependencies();
+    const getBySystems = vi.fn().mockResolvedValue([]);
+    const getByIds = vi.fn().mockResolvedValue([{ id: typeId, name: "Humanoide" }]);
+    const repository = new RaceRepository(
+      deps.languageRepository,
+      deps.spellRepository,
+      deps.skillService,
+      deps.proficiencyRepository,
+      deps.featRepository,
+      deps.traitRepository,
+      { ...deps.attributeService, getBySystems } as unknown as AttributeService,
+      deps.equipmentRepository,
+      { getById: vi.fn(), getByIds } as unknown as ICreatureTypeRepository,
+      { getSystemsAndAncestors: vi.fn().mockResolvedValue([PARENT_SYSTEM_ID]) } as unknown as ISystemRepository
+    );
+
+    vi.mocked(RaceModel.find).mockReturnValueOnce({
+      select: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue([
+          {
+            _id: ELF_ID,
+            name: "Elf",
+            description: ["Parent"],
+            img: "elf.png",
+            ruleset: PARENT_SYSTEM_ID,
+            parentId: null,
+            subraces_name: "Linajes",
+            size: "Medium",
+            speed: { walk: 30 },
+            creatureTypeId: typeId,
+            ability_bonuses: [],
+            playable: true
+          },
+          {
+            _id: childRaceId,
+            name: "High Elf",
+            description: ["Child lore"],
+            img: "high.png",
+            ruleset: PARENT_SYSTEM_ID,
+            parentId: ELF_ID,
+            creatureTypeId: null,
+            ability_bonuses: [],
+            playable: true
+          }
+        ])
+      })
+    } as never);
+
+    const subtree = await repository.getSummarySubtree(ELF_ID, PARENT_SYSTEM_ID);
+
+    expect(deps.skillService.formatSkillChoices).not.toHaveBeenCalled();
+    expect(subtree?.name).toBe("Linajes");
+    expect(subtree?.list).toHaveLength(1);
+    expect(subtree?.list[0]).toMatchObject({
+      id: childRaceId,
+      name: "High Elf",
+      description: ["Child lore"],
+      creatureType: { id: typeId, name: "Humanoide" }
+    });
+  });
+});
+
+

@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
-import { RaceMongo, VarianteMongo } from "../../../../domain/types/race.types";
+import { RaceMongo, VariantMongo } from "../../../../domain/types/race.types";
 
-const varianteSchema = new Schema<VarianteMongo>({
+const variantSchema = new Schema<VariantMongo>({
   name: String,
   ability_bonuses: [],
   skill_choices: Schema.Types.Mixed,
@@ -44,7 +44,7 @@ const raceSchema: Schema = new Schema<RaceMongo>({
   }],
   subraces_name: String,
   parentId: { type: Schema.Types.ObjectId, ref: 'races', default: null },
-  variants: [varianteSchema],
+  variants: [variantSchema],
   spell_choices: [],
   spellcasting: { type: Schema.Types.ObjectId, ref: 'attributes', default: null },
   equipment: { type: [], default: [] },

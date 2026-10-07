@@ -1,29 +1,29 @@
 import RaceService from "../../../domain/services/race.service";
 import SystemService from "../../../domain/services/system.service";
 import EntityOverrideService from "../../../domain/services/entityOverride.service";
-import { RaceApi } from "../../../domain/types/race.types";
+import { RaceCatalogItem } from "../../../domain/types/race.types";
 import {
   ancestryRulesets,
   ancestryToRefs,
-  applyRaceOverrides
+  applyRaceNameOverrides
 } from "../../../utils/applyRaceOverrides";
 
-export default class GetAllRacesUseCase {
+export default class GetRaceCatalogUseCase {
   constructor(
     private readonly raceService: RaceService,
     private readonly systemService: SystemService,
     private readonly entityOverrideService: EntityOverrideService
   ) { }
 
-  async execute(ruleset?: string, playable?: boolean): Promise<RaceApi[]> {
+  async execute(ruleset?: string, playable?: boolean): Promise<RaceCatalogItem[]> {
+    const catalog = await this.raceService.getCatalog(ruleset, playable);
     if (!ruleset) {
-      return this.raceService.getAll(playable);
+      return catalog;
     }
 
-    const races = await this.raceService.getBySystem(ruleset, playable);
     const ancestry = await this.systemService.getAncestry(ruleset);
     if (ancestry.length === 0) {
-      return races;
+      return catalog;
     }
 
     const overlays = await this.entityOverrideService.getBySystems(
@@ -31,6 +31,6 @@ export default class GetAllRacesUseCase {
       "race"
     );
 
-    return applyRaceOverrides(races, overlays, ancestryToRefs(ancestry));
+    return applyRaceNameOverrides(catalog, overlays, ancestryToRefs(ancestry));
   }
 }

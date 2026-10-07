@@ -38,7 +38,7 @@ export async function assertCreatureCatalogRefs(input: {
 
   const raceId = input.data.race;
   if (raceId && raceId !== CREATURE_ANY_RACE) {
-    const race = await input.raceService.obtenerPorId(raceId);
+    const race = await input.raceService.getById(raceId);
     if (!race) {
       throw new AppError("Raza no encontrada", 404);
     }

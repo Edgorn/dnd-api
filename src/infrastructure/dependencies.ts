@@ -31,6 +31,9 @@ import UpdateBackground from "../application/use-cases/background/updateBackgrou
 import SoftDeleteBackground from "../application/use-cases/background/softDeleteBackground.use-case";
 import RestoreBackground from "../application/use-cases/background/restoreBackground.use-case";
 import GetAllRacesUseCase from "../application/use-cases/race/getAllRaces.use-case";
+import GetRaceSummariesUseCase from "../application/use-cases/race/getRaceSummaries.use-case";
+import GetRaceByIdUseCase from "../application/use-cases/race/getRaceById.use-case";
+import GetRaceCatalogUseCase from "../application/use-cases/race/getRaceCatalog.use-case";
 import UpsertRaceOverride from "../application/use-cases/race/upsertRaceOverride.use-case";
 import DeleteRaceOverride from "../application/use-cases/race/deleteRaceOverride.use-case";
 import GetRaceOverride from "../application/use-cases/race/getRaceOverride.use-case";
@@ -404,8 +407,11 @@ const denyJoinCampaign = new DenyJoinCampaign(campaignService)
 const addCharacterToCampaign = new AddCharacterToCampaign(campaignService, personajeService)
 
 const getAllRaces = new GetAllRacesUseCase(raceService, systemService, entityOverrideService);
-const createRace = new CreateRaceUseCase(raceService, creatureTypeService, systemService);
-const updateRace = new UpdateRaceUseCase(raceService, creatureTypeService, systemService);
+const getRaceSummaries = new GetRaceSummariesUseCase(raceService, systemService, entityOverrideService);
+const getRaceById = new GetRaceByIdUseCase(raceService, systemService, entityOverrideService);
+const getRaceCatalog = new GetRaceCatalogUseCase(raceService, systemService, entityOverrideService);
+const createRace = new CreateRaceUseCase(raceService, creatureTypeService, systemService, getRaceById);
+const updateRace = new UpdateRaceUseCase(raceService, creatureTypeService, systemService, getRaceById);
 const upsertRaceOverride = new UpsertRaceOverride(raceService, systemService, entityOverrideService);
 const deleteRaceOverride = new DeleteRaceOverride(raceService, systemService, entityOverrideService);
 const getRaceOverride = new GetRaceOverride(raceService, systemService, entityOverrideService);
@@ -523,6 +529,9 @@ const restoreRace = new RestoreRace(raceService, systemService);
 
 export const raceController = new RaceController(
   getAllRaces,
+  getRaceSummaries,
+  getRaceById,
+  getRaceCatalog,
   createRace,
   updateRace,
   softDeleteRace,

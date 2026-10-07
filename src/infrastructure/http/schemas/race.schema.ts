@@ -97,6 +97,21 @@ export const RaceOverrideQuerySchema = z.object({
 });
 
 export const GetRacesQuerySchema = z.object({
+  ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío").optional(),
+  playable: z.enum(["true", "false"], {
+    error: "playable debe ser true o false"
+  }).optional(),
+  view: z.enum(["summary", "full"], {
+    error: "view debe ser summary o full"
+  }).optional()
+});
+
+export const GetRaceByIdQuerySchema = z.object({
+  ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío").optional()
+});
+
+export const GetRaceCatalogQuerySchema = z.object({
+  ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío").optional(),
   playable: z.enum(["true", "false"], {
     error: "playable debe ser true o false"
   }).optional()
@@ -104,3 +119,6 @@ export const GetRacesQuerySchema = z.object({
 
 export type UpsertRaceOverrideBody = z.infer<typeof UpsertRaceOverrideSchema>;
 export type RaceOverrideQuery = z.infer<typeof RaceOverrideQuerySchema>;
+export type GetRacesQuery = z.infer<typeof GetRacesQuerySchema>;
+export type GetRaceByIdQuery = z.infer<typeof GetRaceByIdQuerySchema>;
+export type GetRaceCatalogQuery = z.infer<typeof GetRaceCatalogQuerySchema>;

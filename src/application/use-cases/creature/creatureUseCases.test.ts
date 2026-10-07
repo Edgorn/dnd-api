@@ -40,7 +40,7 @@ describe("Creature use cases", () => {
   };
   let systemService: { getById: ReturnType<typeof vi.fn>; getSystemsAndAncestors: ReturnType<typeof vi.fn> };
   let creatureTypeService: { getById: ReturnType<typeof vi.fn> };
-  let raceService: { obtenerPorId: ReturnType<typeof vi.fn> };
+  let raceService: { getById: ReturnType<typeof vi.fn> };
   let attributeService: { getBySystems: ReturnType<typeof vi.fn> };
   let skillService: { getById: ReturnType<typeof vi.fn> };
   let spellService: { getById: ReturnType<typeof vi.fn> };
@@ -65,7 +65,7 @@ describe("Creature use cases", () => {
     creatureTypeService = {
       getById: vi.fn().mockResolvedValue({ id: "type1", name: "Humanoide", ruleset: "sys1", deletedAt: null })
     };
-    raceService = { obtenerPorId: vi.fn() };
+    raceService = { getById: vi.fn() };
     attributeService = {
       getBySystems: vi.fn().mockResolvedValue([{ id: "wis", key: "wis", name: "Sabiduría", ruleset: "sys1" }])
     };
@@ -122,11 +122,11 @@ describe("Creature use cases", () => {
       await useCase.execute({ ...priestInput, race: null }, "user1");
       await useCase.execute(priestInput, "user1");
 
-      expect(raceService.obtenerPorId).not.toHaveBeenCalled();
+      expect(raceService.getById).not.toHaveBeenCalled();
     });
 
     it("rechaza el alta si la raza no existe", async () => {
-      raceService.obtenerPorId.mockResolvedValue(undefined);
+      raceService.getById.mockResolvedValue(undefined);
       const useCase = createUseCase();
 
       await expect(useCase.execute({ ...priestInput, race: "missing" }, "user1"))
@@ -136,14 +136,14 @@ describe("Creature use cases", () => {
 
     it("acepta el alta si la raza pertenece al sistema", async () => {
       skillService.getById.mockResolvedValue({ id: "medicine", ruleset: "sys1", deletedAt: null });
-      raceService.obtenerPorId.mockResolvedValue({ id: "elf", name: "Elfo", ruleset: "sys1" });
+      raceService.getById.mockResolvedValue({ id: "elf", name: "Elfo", ruleset: "sys1" });
       creatureService.create.mockResolvedValue(sampleCreature);
       const useCase = createUseCase();
       const input = { ...priestInput, race: "elf" };
 
       await useCase.execute(input, "user1");
 
-      expect(raceService.obtenerPorId).toHaveBeenCalledWith("elf");
+      expect(raceService.getById).toHaveBeenCalledWith("elf");
       expect(creatureService.create).toHaveBeenCalledWith(input);
     });
 
@@ -357,11 +357,11 @@ describe("Creature use cases", () => {
         race: { id: "elf", name: "Elfo", ruleset: "sys1", creatureTypeId: "type1" }
       });
       systemService.getById.mockImplementation(async (id: string) => ({ id, publisher: "user1" }));
-      raceService.obtenerPorId.mockResolvedValue(undefined);
+      raceService.getById.mockResolvedValue(undefined);
 
       await expect(useCase.execute({ id: "creature1", ruleset: "sys2" }, "user1"))
         .rejects.toMatchObject({ message: "Raza no encontrada", statusCode: 404 });
-      expect(raceService.obtenerPorId).toHaveBeenCalledWith("elf");
+      expect(raceService.getById).toHaveBeenCalledWith("elf");
       expect(creatureService.update).not.toHaveBeenCalled();
     });
   });

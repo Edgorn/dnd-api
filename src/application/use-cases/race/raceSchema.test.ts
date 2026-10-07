@@ -270,4 +270,18 @@ describe("GetRacesQuerySchema playable", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("accepts view summary and an optional ruleset", () => {
+    const result = GetRacesQuerySchema.safeParse({
+      ruleset: "sys-1",
+      view: "summary",
+      playable: "true"
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.view).toBe("summary");
+      expect(result.data.ruleset).toBe("sys-1");
+    }
+  });
 });

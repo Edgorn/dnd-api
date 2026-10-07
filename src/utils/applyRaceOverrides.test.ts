@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { RaceApi } from "../domain/types/race.types";
 import { EntityOverrideApi } from "../domain/types/entityOverride.types";
 import {
+  applyRaceNameOverrides,
   applyRaceOverrides,
-  mergeFlavorPatch
+  mergeFlavorPatch,
+  raceDescriptionTeaser
 } from "./applyRaceOverrides";
 
 function makeRace(partial: Partial<RaceApi> & Pick<RaceApi, "id" | "name" | "ruleset">): RaceApi {
@@ -185,5 +187,41 @@ describe("applyRaceOverrides", () => {
     const localRace = makeRace({ id: "orc1", name: "Orc", ruleset: "sys-y" });
     const [result] = applyRaceOverrides([localRace], [], ancestryYZ);
     expect(result.inherited).toBe(false);
+  });
+});
+
+describe("applyRaceNameOverrides", () => {
+  it("patches only the name on catalog items", () => {
+    const items = [
+      { id: "elf1", name: "Elf", creatureTypeId: "humanoid", ruleset: "sys-x" }
+    ];
+    const overlays: EntityOverrideApi[] = [
+      {
+        id: "ov-1",
+        ruleset: "sys-y",
+        entityType: "race",
+        sourceId: "elf1",
+        patch: { name: "Elfo", description: ["ignored"] }
+      }
+    ];
+
+    const [result] = applyRaceNameOverrides(items, overlays, [
+      { id: "sys-y", name: "Y" },
+      { id: "sys-x", name: "X" }
+    ]);
+
+    expect(result).toEqual({
+      id: "elf1",
+      name: "Elfo",
+      creatureTypeId: "humanoid",
+      ruleset: "sys-x"
+    });
+  });
+});
+
+describe("raceDescriptionTeaser", () => {
+  it("uses the first non-empty paragraph and truncates long text", () => {
+    expect(raceDescriptionTeaser(["", "  Hello world  "])).toBe("Hello world");
+    expect(raceDescriptionTeaser([`${"A".repeat(201)}`])).toBe(`${"A".repeat(200)}…`);
   });
 });

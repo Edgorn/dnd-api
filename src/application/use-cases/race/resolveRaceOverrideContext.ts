@@ -28,7 +28,7 @@ export async function resolveRaceOverrideContext(
     throw new AppError("No tienes permisos para modificar parches en este sistema", 403);
   }
 
-  const race = await raceService.obtenerPorId(sourceId);
+  const race = await raceService.getById(sourceId);
   if (!race) {
     throw new AppError("Raza no encontrada", 404);
   }

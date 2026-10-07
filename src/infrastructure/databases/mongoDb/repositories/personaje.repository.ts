@@ -1344,7 +1344,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       return mergeClassAndRaceLevelUp(classTraits, classTraitsData, [], undefined);
     }
 
-    const raceLevel = await this.raceRepository.dataLevelUp(personaje.raceId, characterLevel);
+    const raceLevel = await this.raceRepository.getLevelUpData(personaje.raceId, characterLevel);
 
     return mergeClassAndRaceLevelUp(classTraits, classTraitsData, [], raceLevel?.traits_data);
   }
@@ -1400,8 +1400,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     if (!personaje.raceId) return [];
 
     const [raceLevel, previousRaceLevel] = await Promise.all([
-      this.raceRepository.dataLevelUp(personaje.raceId, characterLevel),
-      this.raceRepository.dataLevelUp(personaje.raceId, characterLevel - 1)
+      this.raceRepository.getLevelUpData(personaje.raceId, characterLevel),
+      this.raceRepository.getLevelUpData(personaje.raceId, characterLevel - 1)
     ]);
     return traitIdsWithChangedData(raceLevel?.traits_data, previousRaceLevel?.traits_data);
   }
