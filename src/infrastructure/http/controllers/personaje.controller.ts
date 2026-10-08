@@ -249,7 +249,17 @@ export class PersonajeController {
         throw new ValidationError("Se requiere el ID del personaje");
       }
 
-      const { class: classId, hpIncrease, spells, subclass, abilityScore, feat, traitChoices } = req.body;
+      const {
+        class: classId,
+        hpIncrease,
+        spells,
+        subclass,
+        abilityScore,
+        feat,
+        traitChoices,
+        skillPicks,
+        proficiencyPicks,
+      } = req.body;
       const data = await this.levelUpUseCase.execute({
         id,
         classId,
@@ -260,6 +270,8 @@ export class PersonajeController {
         abilityScore,
         feat,
         traitChoices,
+        skillPicks,
+        proficiencyPicks,
       });
       res.status(200).json(data);
     } catch (e) {

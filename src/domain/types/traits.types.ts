@@ -217,6 +217,15 @@ export interface TraitDamageChoiceRef {
   grantsResistance?: boolean;
 }
 
+export const TRAIT_STACK_POLICIES = ["exclusive", "max"] as const;
+export type TraitStackPolicy = typeof TRAIT_STACK_POLICIES[number];
+
+export interface TraitStackGroup {
+  key: string;
+  policy: TraitStackPolicy;
+  rank?: number;
+}
+
 export type TraitHitPointScope = "class" | "character";
 
 export interface TraitHitPoints {
@@ -280,6 +289,7 @@ export interface TraitMongo {
   hitPoints?: TraitHitPoints,
   action?: TraitAction,
   innateSpells?: TraitInnateSpells,
+  stackGroup?: TraitStackGroup,
   deletedAt?: Date | null
 }
 
@@ -327,7 +337,8 @@ export interface TraitApi {
   catalogChoice?: ResolvedCatalogChoice[],
   hitPoints?: TraitHitPoints,
   action?: TraitActionApi,
-  innateSpells?: TraitInnateSpellsApi
+  innateSpells?: TraitInnateSpellsApi,
+  stackGroup?: TraitStackGroup
 }
 
 export interface TraitsOptionsApi {
@@ -357,7 +368,8 @@ export interface CreateTrait {
   damageChoiceRef?: TraitDamageChoiceRef | null,
   hitPoints?: TraitHitPoints | null,
   action?: TraitAction | null,
-  innateSpells?: TraitInnateSpells | null
+  innateSpells?: TraitInnateSpells | null,
+  stackGroup?: TraitStackGroup | null
 }
 
 export interface UpdateTrait {
@@ -383,5 +395,6 @@ export interface UpdateTrait {
   damageChoiceRef?: TraitDamageChoiceRef | null,
   hitPoints?: TraitHitPoints | null,
   action?: TraitAction | null,
-  innateSpells?: TraitInnateSpells | null
+  innateSpells?: TraitInnateSpells | null,
+  stackGroup?: TraitStackGroup | null
 }

@@ -1,11 +1,11 @@
 import { ObjectId } from "mongoose"
 import { PendingCatalogChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
-import { SkillPersonajeApi } from "./skill.types"
+import { SkillApi, SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceApi, Damage, Speed } from "."
 import { CharacterEquipmentApi, CharacterEquipmentMongo } from "./equipment.types"
-import { FeatApi } from "./feat.types"
+import { FeatApi, FeatRequirements } from "./feat.types"
 import { SpellApi } from "./spell.types"
 import { ConditionApi } from "./condition.types"
 import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
@@ -170,6 +170,8 @@ export interface TypeLevelUp {
   abilityScore?: { increases: AbilityScoreIncreaseInput[] };
   feat?: string;
   traitChoices?: TraitChoices;
+  skillPicks?: string[];
+  proficiencyPicks?: string[][];
 }
 
 export interface TypeAddEquipment {
@@ -400,6 +402,14 @@ export interface PersonajeApi {
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
 export type Abilities = Record<AbilityKey, number>;
 
+export interface LevelUpDipData {
+  requirements?: FeatRequirements;
+  requirementsMet: boolean;
+  proficiencies: ProficiencyApi[];
+  skill_choices?: ChoiceApi<SkillApi>;
+  proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
+}
+
 export interface LevelUpData {
   class: string;
   hit_die: number;
@@ -411,4 +421,7 @@ export interface LevelUpData {
   ability_score: boolean;
   feats?: ChoiceApi<FeatApi>;
   catalogChoices?: PendingCatalogChoice[];
+  newClass: boolean;
+  requirementsMet?: boolean;
+  dip?: LevelUpDipData;
 }

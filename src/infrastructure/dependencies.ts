@@ -384,7 +384,7 @@ export const authMiddleware = createAuthMiddleware(validateTokenUseCase)
 
 const raceService = new RaceService(raceRepository)
 const backgroundService = new BackgroundService(backgroundRepository)
-const characterClassService = new CharacterClassService(characterClassRepository)
+const characterClassService = new CharacterClassService(characterClassRepository, attributeService)
 const equipmentService = new EquipmentService(equipmentRepository)
 const personajeService = new PersonajeService(personajeRepository)
 const spellService = new SpellService(spellRepository)

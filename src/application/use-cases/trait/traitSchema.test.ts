@@ -957,3 +957,39 @@ describe("UpdateTraitSchema innateSpells", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("CreateTraitSchema stackGroup", () => {
+  it("accepts exclusive without rank", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Defensa sin Armadura",
+      stackGroup: { key: "unarmored-defense", policy: "exclusive" }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts max with rank", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Ataque Adicional",
+      stackGroup: { key: "extra-attack", policy: "max", rank: 2 }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects max without rank", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Ataque Adicional",
+      stackGroup: { key: "extra-attack", policy: "max" }
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema stackGroup", () => {
+  it("accepts null to clear stackGroup", () => {
+    const result = UpdateTraitSchema.safeParse({ stackGroup: null });
+    expect(result.success).toBe(true);
+  });
+});

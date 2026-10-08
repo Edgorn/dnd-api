@@ -27,21 +27,28 @@ export function getOwnedFeatIds(personaje: {
   return [...new Set([...feats, ...dotes].filter((id): id is string => Boolean(id)))];
 }
 
-export function featMeetsRequirements(
-  feat: FeatApi,
+export function meetsAttributeRequirements(
+  requirements: { attributeMode?: "all" | "any"; attributes?: { key: string; min: number }[] } | undefined,
   attributes: CharacterAttributeValue[]
 ): boolean {
-  const requirements = feat.requirements?.attributes ?? [];
-  if (requirements.length === 0) return true;
+  const requiredAttributes = requirements?.attributes ?? [];
+  if (requiredAttributes.length === 0) return true;
 
   const values = new Map(attributes.map(attribute => [attribute.key, attribute.value]));
-  const checks = requirements.map(requirement => (values.get(requirement.key) ?? 0) >= requirement.min);
+  const checks = requiredAttributes.map(requirement => (values.get(requirement.key) ?? 0) >= requirement.min);
 
-  if (feat.requirements?.attributeMode === "any") {
+  if (requirements?.attributeMode === "any") {
     return checks.some(Boolean);
   }
 
   return checks.every(Boolean);
+}
+
+export function featMeetsRequirements(
+  feat: FeatApi,
+  attributes: CharacterAttributeValue[]
+): boolean {
+  return meetsAttributeRequirements(feat.requirements, attributes);
 }
 
 export function filterLevelUpFeatChoices(

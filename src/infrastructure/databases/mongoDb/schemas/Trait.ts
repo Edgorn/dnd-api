@@ -33,6 +33,7 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   hitPoints: { type: Schema.Types.Mixed, default: undefined },
   action: { type: Schema.Types.Mixed, default: undefined },
   innateSpells: { type: Schema.Types.Mixed, default: undefined },
+  stackGroup: { type: Schema.Types.Mixed, default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: 'traits' });
 

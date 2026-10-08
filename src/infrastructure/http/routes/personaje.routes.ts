@@ -1484,6 +1484,12 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       Devuelve la información necesaria para subir de nivel en una clase concreta del personaje
  *       (dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros
  *       y, si toca, mejora de característica).
+ *       Si `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`
+ *       incluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).
+ *       `GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de
+ *       todas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al
+ *       continuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.
+ *       Los rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.
  *       `traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen
  *       elecciones (`traits_options`). Si el nivel de raza cambia `traits_data` respecto al nivel
  *       anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se devuelven con
@@ -1519,7 +1525,7 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de MongoDB de la clase en la que se quiere subir de nivel.
+ *         description: ID de MongoDB de la clase en la que se quiere subir de nivel. Puede ser una clase nueva (dip) de los sistemas del personaje.
  *     responses:
  *       200:
  *         description: Datos de subida de nivel obtenidos exitosamente.
@@ -1532,6 +1538,7 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                 - hit_die
  *                 - prof_bonus
  *                 - ability_score
+ *                 - newClass
  *               properties:
  *                 class:
  *                   type: string
@@ -1596,6 +1603,35 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   description: >
  *                     Dotes disponibles si `ability_score` es true (elige 1 en lugar de los +2).
  *                     Excluye dotes ya poseídas y las que no cumplen requisitos de atributo.
+ *                 newClass:
+ *                   type: boolean
+ *                   description: True si el personaje aún no tiene esta clase (dip de nivel 1).
+ *                 requirementsMet:
+ *                   type: boolean
+ *                   description: >
+ *                     Presente en un dip o al continuar una clase si el personaje ya es multiclase.
+ *                     False si falta algún requisito (p. ej. Fue 13); el GET igual devuelve 200.
+ *                 dip:
+ *                   type: object
+ *                   description: Solo si `newClass` es true. Competencias y requisitos del dip.
+ *                   properties:
+ *                     requirements:
+ *                       $ref: '#/components/schemas/FeatRequirements'
+ *                     requirementsMet:
+ *                       type: boolean
+ *                     proficiencies:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                       description: Competencias fijas concedidas por el dip (sin duplicar las ya poseídas en el POST).
+ *                     skill_choices:
+ *                       type: object
+ *                       description: Elección de habilidades con las opciones ya poseídas recortadas.
+ *                     proficiencies_choices:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                       description: Elecciones de competencias con las opciones ya poseídas recortadas.
  *       400:
  *         description: Datos de entrada inválidos.
  *       401:
@@ -1615,11 +1651,15 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *   post:
  *     summary: Subir de nivel a un personaje
  *     description: |
- *       Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia
- *       según el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema
- *       del personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado
- *       de la tirada o media del dado); el servidor aplica la fórmula del sistema con los
- *       atributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.
+ *       Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`
+ *       a nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los
+ *       puntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo
+ *       el incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es
+ *       el dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).
+ *       El servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la
+ *       mejora de característica, si la hay). Reinicia la XP a 0.
+ *       En un dip une `multiclass.proficiencies` y aplica `skillPicks` / `proficiencyPicks`; no toca
+ *       tiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.
  *       Si `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir
  *       `spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se
  *       guardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y
@@ -1662,7 +1702,7 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *             properties:
  *               class:
  *                 type: string
- *                 description: ID de MongoDB de la clase en la que se sube de nivel.
+ *                 description: ID de MongoDB de la clase en la que se sube de nivel. Puede ser una clase nueva.
  *               hpIncrease:
  *                 type: integer
  *                 minimum: 1
@@ -1735,6 +1775,22 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                       oneOf:
  *                         - type: string
  *                         - $ref: '#/components/schemas/CatalogChoiceEntry'
+ *               skillPicks:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: >
+ *                   Habilidades elegidas en un dip, alineadas con `dip.skill_choices` (misma longitud que `choose`).
+ *                   Omitir si no hay elección de habilidades.
+ *               proficiencyPicks:
+ *                 type: array
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 description: >
+ *                   Competencias elegidas en un dip. `proficiencyPicks[i]` corresponde a
+ *                   `dip.proficiencies_choices[i]` (misma longitud que `choose`).
  *     responses:
  *       200:
  *         description: Personaje actualizado tras la subida de nivel.

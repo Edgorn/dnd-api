@@ -153,4 +153,14 @@ describe("LevelUpSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts optional skillPicks and proficiencyPicks", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      skillPicks: ["acrobatics"],
+      proficiencyPicks: [["light-armor"]],
+    });
+    expect(result.success).toBe(true);
+  });
 });

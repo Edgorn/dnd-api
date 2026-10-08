@@ -263,3 +263,40 @@ describe("CharacterClassSchema abilityScoreProgression", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("CharacterClassSchema multiclass", () => {
+  it("accepts fighter-style dip data on create", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Guerrero",
+      multiclass: {
+        requirements: { attributeMode: "all", attributes: [{ key: "str", min: 13 }] },
+        proficiencies: ["light-armor"],
+        skill_choices: { choose: 1, options: ["skill1", "skill2"] },
+        proficiencies_choices: [{ choose: 1, options: ["prof1"] }]
+      }
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a requirement with min below 1", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Guerrero",
+      multiclass: {
+        requirements: { attributes: [{ key: "str", min: 0 }] }
+      }
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts null on update to clear multiclass", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      multiclass: null
+    });
+
+    expect(result.success).toBe(true);
+  });
+});

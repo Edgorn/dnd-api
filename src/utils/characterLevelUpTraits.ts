@@ -4,20 +4,99 @@ import { TraitApi, TraitChoices, TraitDataMongo } from "../domain/types/traits.t
 import { resolveTraitActions } from "./resolveTraitActions";
 import { resolveCharacterTraitChoices } from "./traitDamageChoices";
 
+export function applyTraitStacking(
+  owned: TraitApi[],
+  incoming: TraitApi[]
+): { granted: TraitApi[]; nextIds: string[] } {
+  const ownedIds: string[] = [];
+  const ownedById = new Map<string, TraitApi>();
+  const stackBest = new Map<string, { id: string; rank: number; exclusive: boolean }>();
+  const ownedIncompatible = new Set<string>();
+
+  for (const trait of owned) {
+    if (!trait.id) continue;
+    ownedIds.push(trait.id);
+    ownedById.set(trait.id, trait);
+    rememberStackGroup(stackBest, trait);
+    for (const incompatible of trait.incompatible_traits ?? []) {
+      if (incompatible.id) ownedIncompatible.add(incompatible.id);
+    }
+  }
+
+  const granted: TraitApi[] = [];
+  const replaced = new Set<string>();
+
+  for (const trait of incoming) {
+    if (!trait.id) continue;
+    if (ownedById.has(trait.id)) continue;
+    if (ownedIncompatible.has(trait.id)) continue;
+    if ((trait.incompatible_traits ?? []).some(item => item.id && ownedById.has(item.id))) continue;
+
+    const group = trait.stackGroup;
+    if (group?.key) {
+      const existing = stackBest.get(group.key);
+      if (existing) {
+        if (group.policy === "exclusive" || existing.exclusive) continue;
+        const rank = group.rank ?? 0;
+        if (rank <= existing.rank) continue;
+        replaced.add(existing.id);
+        ownedById.delete(existing.id);
+      }
+      rememberStackGroup(stackBest, trait);
+    }
+
+    granted.push(trait);
+    ownedById.set(trait.id, trait);
+  }
+
+  return {
+    granted,
+    nextIds: [
+      ...ownedIds.filter(id => !replaced.has(id)),
+      ...granted.map(trait => trait.id).filter((id): id is string => Boolean(id))
+    ]
+  };
+}
+
+function rememberStackGroup(
+  stackBest: Map<string, { id: string; rank: number; exclusive: boolean }>,
+  trait: TraitApi
+): void {
+  const group = trait.stackGroup;
+  if (!group?.key || !trait.id) return;
+  const rank = group.policy === "max" ? (group.rank ?? 0) : 0;
+  const exclusive = group.policy === "exclusive";
+  const previous = stackBest.get(group.key);
+  if (!previous || rank > previous.rank || (exclusive && !previous.exclusive)) {
+    stackBest.set(group.key, { id: trait.id, rank, exclusive });
+  }
+}
+
 export function mergeLevelUpTraits(
   existingIds: string[],
   existingData: TraitDataMongo | undefined,
   levelTraits: TraitApi[],
-  levelTraitsData?: TraitDataMongo
-): { traits: string[]; traits_data: TraitDataMongo } {
-  const owned = new Set(existingIds);
-  const added = levelTraits
-    .map(trait => trait.id)
-    .filter((id): id is string => Boolean(id) && !owned.has(id));
+  levelTraitsData?: TraitDataMongo,
+  ownedTraits?: TraitApi[]
+): { traits: string[]; traits_data: TraitDataMongo; granted: TraitApi[] } {
+  const owned = ownedTraits ?? existingIds.map(id => ({
+    id,
+    name: id,
+    description: [],
+    summary: [],
+    ruleset: "",
+    incompatible_traits: [],
+    resistances: [],
+    conditional_resistances: [],
+    condition_inmunities: [],
+    proficiencies: []
+  }));
+  const stacking = applyTraitStacking(owned, levelTraits);
 
   return {
-    traits: [...existingIds, ...added],
+    traits: stacking.nextIds,
     traits_data: mergeTraitDataMaps(existingData, levelTraitsData),
+    granted: stacking.granted
   };
 }
 

@@ -96,6 +96,14 @@ export const LevelUpSchema = z.object({
     .regex(objectIdRegex, "La dote debe ser un ObjectId válido de MongoDB")
     .optional(),
   traitChoices: TraitChoicesSchema.optional(),
+  skillPicks: z
+    .array(z.string().min(1, "Cada habilidad no puede estar vacía"))
+    .optional(),
+  proficiencyPicks: z
+    .array(
+      z.array(z.string().min(1, "Cada competencia no puede estar vacía"))
+    )
+    .optional(),
 }).superRefine((data, ctx) => {
   if (data.abilityScore !== undefined && data.feat !== undefined) {
     ctx.addIssue({

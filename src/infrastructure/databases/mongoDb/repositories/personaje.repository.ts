@@ -2,7 +2,7 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { CharacterCampaignLink, CharacterSubclassApi, LevelUpData, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from '../../../../domain/types/personajes.types';
+import { CharacterCampaignLink, CharacterSubclassApi, LevelUpData, LevelUpDipData, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from '../../../../domain/types/personajes.types';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -27,7 +27,16 @@ import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTy
 import { PendingCatalogChoice, TraitApi, TraitChoiceValue, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { RaceRef } from '../../../../domain/types/race.types';
-import { closeLevelUpTraitText, damageChoiceSourceIdsToLoad, levelUpTraitIds, mergeClassAndRaceLevelUp, mergeLevelUpTraits, mergeTraitDataMaps, orderTraitsByIds, traitIdsWithChangedData } from '../../../../utils/characterLevelUpTraits';
+import { applyTraitStacking, closeLevelUpTraitText, damageChoiceSourceIdsToLoad, levelUpTraitIds, mergeClassAndRaceLevelUp, mergeLevelUpTraits, mergeTraitDataMaps, orderTraitsByIds, traitIdsWithChangedData } from '../../../../utils/characterLevelUpTraits';
+import {
+  characterMeetsAllClassRequirements,
+  excludeOwnedChoiceOptions,
+  shouldEnforceMulticlassRequirements,
+  unionUnique,
+  validateChoiceListPicks,
+  validateChoicePicks
+} from '../../../../utils/characterMulticlass';
+import { CharacterClassApi } from '../../../../domain/types/characterClass.types';
 import { resolveTraitActions } from '../../../../utils/resolveTraitActions';
 import {
   collectClassGrantedTraitIds,
@@ -503,9 +512,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     await this.assertCanAccessCharacter(personaje, userId);
 
-    const level = personaje.classes?.find(clas => clas.class === classId)?.level ?? 0;
-
-    const nextLevel = level + 1;
+    const { catalog, currentEntry, isNewClass } = await this.resolveLevelUpTargetClass(personaje, classId);
+    const nextLevel = (currentEntry?.level ?? 0) + 1;
     const totalLevels = personaje.classes?.reduce((acc, clas) => acc + clas.level, 0) ?? 0;
     const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
     const classLevel = await this.resolveLevelUpClassData(personaje, classId, nextLevel);
@@ -515,28 +523,31 @@ export default class PersonajeRepository implements IPersonajeRepository {
       classLevel.traits_data,
       totalLevels + 1
     );
+    const ownedTraits = await this.traitRepository.getTraitsByIndexes(personaje.traits ?? []);
+    const stacked = applyTraitStacking(ownedTraits, raceMerged.traits);
     const prof_bonus = rulesConfig.proficiencyProgression?.[totalLevels]
       ?? DEFAULT_PROFICIENCY_PROGRESSION[totalLevels]
       ?? 0;
     const traits = await this.translateLevelUpTraits(
       personaje,
-      raceMerged.traits,
+      stacked.granted,
       mergeTraitDataMaps(personaje.traits_data, raceMerged.traits_data),
       totalLevels + 1,
       prof_bonus
     );
     const traits_data = raceMerged.traits_data;
-    const { hit_die, spell_choices, subclassChoice, ability_score, feats } = classLevel;
+    const { spell_choices, subclassChoice, ability_score, feats } = classLevel;
     const catalogChoices = await this.pendingClassCatalogChoices(
       personaje,
       classId,
       nextLevel,
       traits
     );
+    const requirementsMet = await this.levelUpRequirementsMet(personaje, catalog, isNewClass);
 
     return {
       class: classId,
-      hit_die,
+      hit_die: this.levelUpHitDie(catalog, currentEntry, isNewClass),
       prof_bonus,
       spell_choices,
       traits,
@@ -545,11 +556,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ability_score,
       feats,
       catalogChoices,
+      newClass: isNewClass,
+      ...(requirementsMet !== undefined ? { requirementsMet } : {}),
+      ...(isNewClass ? { dip: this.buildLevelUpDip(personaje, catalog, requirementsMet ?? true) } : {}),
     };
   }
 
   async levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
-    const { id, classId, hpIncrease, userId, spells, subclass, abilityScore, feat, traitChoices } = data;
+    const { id, classId, hpIncrease, userId, spells, subclass, abilityScore, feat, traitChoices, skillPicks, proficiencyPicks } = data;
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
@@ -558,12 +572,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     await this.assertCanAccessCharacter(personaje, userId);
 
-    const characterClass = personaje.classes?.find((clas) => clas.class === classId);
-    if (!characterClass) {
-      throw new ValidationError(`El personaje no tiene la clase con id: ${classId}`);
-    }
-
-    const hitDie = characterClass.hit_die ?? 8;
+    const { catalog, currentEntry, isNewClass } = await this.resolveLevelUpTargetClass(personaje, classId);
+    const hitDie = this.levelUpHitDie(catalog, currentEntry, isNewClass);
     if (hpIncrease > hitDie) {
       throw new ValidationError(
         `El incremento de PG (${hpIncrease}) no puede superar el dado de golpe de la clase (${hitDie})`
@@ -585,7 +595,30 @@ export default class PersonajeRepository implements IPersonajeRepository {
       );
     }
 
-    const nextLevel = (characterClass.level ?? 0) + 1;
+    const requirementsMet = await this.levelUpRequirementsMet(personaje, catalog, isNewClass);
+    if (requirementsMet === false) {
+      throw new ValidationError("El personaje no cumple los requisitos de multiclase");
+    }
+
+    if (!isNewClass && ((skillPicks && skillPicks.length > 0) || (proficiencyPicks && proficiencyPicks.length > 0))) {
+      throw new ValidationError("Las elecciones de competencia de multiclase solo aplican al tomar una clase nueva");
+    }
+
+    let nextSkills = [...(personaje.skills ?? [])];
+    let nextProficiencies = [...(personaje.proficiencies ?? [])];
+    if (isNewClass) {
+      const dipPicks = this.validateDipPicks(personaje, catalog, skillPicks, proficiencyPicks);
+      if ("error" in dipPicks) {
+        throw new ValidationError(dipPicks.error);
+      }
+      nextSkills = unionUnique(nextSkills, dipPicks.skillIds);
+      nextProficiencies = unionUnique(nextProficiencies, [
+        ...(catalog.multiclass?.proficiencies ?? []).map(item => item.id),
+        ...dipPicks.proficiencyIds
+      ]);
+    }
+
+    const nextLevel = (currentEntry?.level ?? 0) + 1;
     const nextSubclassIds = await this.resolveLevelUpSubclassIds(
       personaje,
       classId,
@@ -652,11 +685,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const spellsUpdate = this.mergeClassSpellIds(personaje, classId, pickResult.spellIds);
     const previouslyOwnedTraitIds = personaje.traits ?? [];
-    const { traits: nextTraits, traits_data: nextTraitsData } = mergeLevelUpTraits(
+    const ownedTraits = await this.traitRepository.getTraitsByIndexes(previouslyOwnedTraitIds);
+    const { traits: nextTraits, traits_data: nextTraitsData, granted: stackingGranted } = mergeLevelUpTraits(
       previouslyOwnedTraitIds,
       personaje.traits_data,
       levelTraits,
-      levelTraitsData
+      levelTraitsData,
+      ownedTraits
     );
     const levelUpClassDoc = await this.claseRepository.getById(classId);
     const levelUpSubclasses = await this.getAssignedSubclassesForClass(nextSubclassIds, classId);
@@ -674,8 +709,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       previouslyOwnedIds: previouslyOwnedTraitIds
     });
 
-    const ownedTraitIds = new Set(previouslyOwnedTraitIds);
-    const enteringTraits = (levelTraits ?? []).filter(trait => trait.id && !ownedTraitIds.has(trait.id));
+    const enteringTraits = stackingGranted;
     const catalogChoices = await this.applyGrantedCatalogChoices({
       existing: personaje.traitChoices,
       incoming: traitChoices,
@@ -705,15 +739,26 @@ export default class PersonajeRepository implements IPersonajeRepository {
           ...(spellsUpdate ? { spells: spellsUpdate } : {}),
           ...(nextAttributes ? { attributes: nextAttributes } : {}),
           ...(asiResult.kind === "feat" ? { feats: [...ownedFeatIds, asiResult.featId] } : {}),
+          ...(isNewClass ? { skills: nextSkills, proficiencies: nextProficiencies } : {}),
         },
-        $inc: {
-          "classes.$[elem].level": 1,
-          HPMax: HP,
-          HPActual: HP,
-        },
+        $inc: isNewClass
+          ? { HPMax: HP, HPActual: HP }
+          : { "classes.$[elem].level": 1, HPMax: HP, HPActual: HP },
+        ...(isNewClass
+          ? {
+              $push: {
+                classes: {
+                  class: classId,
+                  name: catalog.name,
+                  level: 1,
+                  hit_die: catalog.hit_die ?? 8
+                }
+              }
+            }
+          : {}),
       },
       {
-        arrayFilters: [{ "elem.class": classId }],
+        ...(isNewClass ? {} : { arrayFilters: [{ "elem.class": classId }] }),
         returnDocument: "after",
       }
     );
@@ -1271,6 +1316,115 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const expanded = await this.systemRepository.getSystemsAndAncestors(systems ?? []);
     const languages = await this.languageRepository.getBySystems(expanded);
     return new Set(languages.map(language => language.id).filter((id): id is string => Boolean(id)));
+  }
+
+  private async resolveLevelUpTargetClass(
+    personaje: PersonajeMongo,
+    classId: string
+  ): Promise<{ catalog: CharacterClassApi; currentEntry?: PersonajeMongo["classes"][number]; isNewClass: boolean }> {
+    const catalog = await this.claseRepository.getById(classId);
+    if (!catalog || catalog.deletedAt) {
+      throw new NotFoundError(`No se encontró la clase con id: ${classId}`);
+    }
+
+    const expanded = await this.systemRepository.getSystemsAndAncestors(personaje.systems ?? []);
+    if (!expanded.includes(catalog.ruleset)) {
+      throw new ValidationError("La clase no pertenece a los sistemas del personaje");
+    }
+
+    const currentEntry = personaje.classes?.find(clas => clas.class === classId);
+    return { catalog, currentEntry, isNewClass: !currentEntry };
+  }
+
+  private levelUpHitDie(
+    catalog: CharacterClassApi,
+    currentEntry: PersonajeMongo["classes"][number] | undefined,
+    isNewClass: boolean
+  ): number {
+    if (isNewClass) return catalog.hit_die ?? 8;
+    const stored = Number(currentEntry?.hit_die);
+    if (Number.isFinite(stored) && stored > 0) return stored;
+    return catalog.hit_die ?? 8;
+  }
+
+  private async levelUpRequirementsMet(
+    personaje: PersonajeMongo,
+    catalog: CharacterClassApi,
+    isNewClass: boolean
+  ): Promise<boolean | undefined> {
+    const ownedCount = personaje.classes?.length ?? 0;
+    if (!shouldEnforceMulticlassRequirements(ownedCount, isNewClass)) return undefined;
+
+    const ownedIds = (personaje.classes ?? []).map(item => item.class);
+    const ids = isNewClass ? [...ownedIds, catalog.id] : ownedIds;
+    const catalogs = await Promise.all(
+      ids.map(id => id === catalog.id ? Promise.resolve(catalog) : this.claseRepository.getById(id))
+    );
+
+    return characterMeetsAllClassRequirements(
+      catalogs.map(item => item?.multiclass),
+      personaje.attributes ?? []
+    );
+  }
+
+  private buildLevelUpDip(
+    personaje: PersonajeMongo,
+    catalog: CharacterClassApi,
+    requirementsMet: boolean
+  ): LevelUpDipData {
+    const granted = catalog.multiclass?.proficiencies ?? [];
+    const skill_choices = excludeOwnedChoiceOptions(
+      catalog.multiclass?.skill_choices,
+      personaje.skills ?? []
+    );
+    const proficiencies_choices = (catalog.multiclass?.proficiencies_choices ?? [])
+      .map(choice => excludeOwnedChoiceOptions(choice, personaje.proficiencies ?? []))
+      .filter((choice): choice is NonNullable<typeof choice> => Boolean(choice));
+
+    return {
+      requirements: catalog.multiclass?.requirements,
+      requirementsMet,
+      proficiencies: granted,
+      skill_choices,
+      ...(proficiencies_choices.length ? { proficiencies_choices } : {})
+    };
+  }
+
+  private validateDipPicks(
+    personaje: PersonajeMongo,
+    catalog: CharacterClassApi,
+    skillPicks: string[] | undefined,
+    proficiencyPicks: string[][] | undefined
+  ): { error: string } | { skillIds: string[]; proficiencyIds: string[] } {
+    const skillChoice = excludeOwnedChoiceOptions(
+      catalog.multiclass?.skill_choices,
+      personaje.skills ?? []
+    );
+    const skillResult = skillChoice
+      ? validateChoicePicks({
+          choose: skillChoice.choose,
+          optionIds: skillChoice.options.map(option => option.id),
+          picks: skillPicks,
+          ownedIds: personaje.skills ?? [],
+          field: "skillPicks"
+        })
+      : skillPicks && skillPicks.length > 0
+        ? { error: "skillPicks no aplica en esta subida" }
+        : { ids: [] as string[] };
+    if ("error" in skillResult) return skillResult;
+
+    const proficiencyChoices = (catalog.multiclass?.proficiencies_choices ?? [])
+      .map(choice => excludeOwnedChoiceOptions(choice, personaje.proficiencies ?? []))
+      .filter((choice): choice is NonNullable<typeof choice> => Boolean(choice));
+    const proficiencyResult = validateChoiceListPicks({
+      choices: proficiencyChoices,
+      picks: proficiencyPicks,
+      ownedIds: personaje.proficiencies ?? [],
+      field: "proficiencyPicks"
+    });
+    if ("error" in proficiencyResult) return proficiencyResult;
+
+    return { skillIds: skillResult.ids, proficiencyIds: proficiencyResult.ids };
   }
 
   private async resolveLevelUpClassData(

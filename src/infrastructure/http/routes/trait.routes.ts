@@ -36,6 +36,11 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/Trait'
  *           description: Lista de rasgos incompatibles.
+ *         stackGroup:
+ *           $ref: '#/components/schemas/TraitStackGroup'
+ *           description: >
+ *             Grupo de acumulación (p. ej. Defensa sin Armadura exclusive, Ataque Adicional max).
+ *             exclusive no se concede si el personaje ya tiene el mismo key; max conserva el rank mayor.
  *         hidden:
  *           type: boolean
  *           description: Si está oculto en la creación.
@@ -749,6 +754,23 @@ const router = Router();
  *           minItems: 1
  *           items:
  *             $ref: '#/components/schemas/TraitInnateSpellGrantInput'
+ *     TraitStackGroup:
+ *       type: object
+ *       required:
+ *         - key
+ *         - policy
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Identificador del grupo (p. ej. extra-attack, unarmored-defense).
+ *         policy:
+ *           type: string
+ *           enum: [exclusive, max]
+ *           description: exclusive no acumula; max se queda el rank mayor y sustituye el rasgo anterior.
+ *         rank:
+ *           type: integer
+ *           minimum: 1
+ *           description: Obligatorio si policy es max (p. ej. Ataque Adicional 2, 3 o 4).
  *     InputCreateTrait:
  *       type: object
  *       required:
@@ -776,6 +798,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de índices o IDs de rasgos incompatibles.
+ *         stackGroup:
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitStackGroup'
+ *           nullable: true
+ *           description: Grupo de acumulación. null borra el campo.
  *         skills:
  *           type: array
  *           items:
@@ -938,6 +965,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de índices o IDs de rasgos incompatibles.
+ *         stackGroup:
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitStackGroup'
+ *           nullable: true
+ *           description: Grupo de acumulación. null borra el campo.
  *         skills:
  *           type: array
  *           items:

@@ -1,7 +1,7 @@
 import { ChoiceApi, ChoiceMongo } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceSpell, SpellApi } from "./spell.types"
-import { FeatApi } from "./feat.types"
+import { FeatApi, FeatRequirements, FeatRequirementsCreate } from "./feat.types"
 import { EquipmentInstanceApi, CharacterEquipmentMongo, EquipmentChoiceMongo, EquipmentCost, ResolvedEquipmentChoiceApi } from "./equipment.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi } from "./language.types"
@@ -64,6 +64,20 @@ export interface CharacterClassLevelInput {
   traits?: string[];
 }
 
+export interface CharacterClassMulticlassCreate {
+  requirements?: FeatRequirementsCreate;
+  proficiencies?: string[];
+  skill_choices?: ChoiceMongo | null;
+  proficiencies_choices?: ChoiceMongo[] | null;
+}
+
+export interface CharacterClassMulticlassApi {
+  requirements?: FeatRequirements;
+  proficiencies: ProficiencyApi[];
+  skill_choices?: ChoiceApi<SkillApi>;
+  proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
+}
+
 export interface InputCreateCharacterClass {
   ruleset: string;
   name: string;
@@ -73,6 +87,7 @@ export interface InputCreateCharacterClass {
   proficiencies?: string[];
   saving_throws?: string[];
   skill_choices?: ChoiceMongo | null;
+  multiclass?: CharacterClassMulticlassCreate;
   equipment?: CharacterEquipmentMongo[] | null;
   equipment_choices?: EquipmentChoiceMongo[] | null;
   spellcasting?: string | null;
@@ -97,6 +112,7 @@ export interface InputUpdateCharacterClass {
   proficiencies?: string[];
   saving_throws?: string[];
   skill_choices?: ChoiceMongo | null;
+  multiclass?: CharacterClassMulticlassCreate | null;
   equipment?: CharacterEquipmentMongo[] | null;
   equipment_choices?: EquipmentChoiceMongo[] | null;
   /** Attribute ObjectId used as the class spellcasting ability. */
@@ -123,6 +139,7 @@ export interface CharacterClassMongo {
   proficiencies: string[];
   proficiencies_choices?: ChoiceMongo[];
   skill_choices?: ChoiceMongo;
+  multiclass?: CharacterClassMulticlassCreate | null;
   saving_throws: string[];
   equipment: CharacterEquipmentMongo[];
   equipment_choices?: EquipmentChoiceMongo[];
@@ -233,6 +250,7 @@ export interface CharacterClassApi {
   proficiencies: ProficiencyApi[];
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
   skill_choices?: ChoiceApi<SkillApi>;
+  multiclass?: CharacterClassMulticlassApi;
   spells?: SpellApi[];
   spell_choices?: ChoiceApi<SpellApi>[];
   traits: TraitApi[];

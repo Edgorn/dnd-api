@@ -53,6 +53,9 @@ const router = Router();
  *         skill_choices:
  *           type: object
  *           description: Elección de habilidades (choose + options/filter).
+ *         multiclass:
+ *           $ref: '#/components/schemas/CharacterClassMulticlass'
+ *           description: Datos de dip (requisitos y competencias recortadas). No reutiliza las de clase inicial.
  *         spells:
  *           type: array
  *           items:
@@ -249,6 +252,46 @@ const router = Router();
  *         recoverPreparedOnLoss:
  *           type: boolean
  *           description: Si se pierde el repositorio, se pueden transcribir los conjuros preparados actuales.
+ *     CharacterClassMulticlass:
+ *       type: object
+ *       properties:
+ *         requirements:
+ *           $ref: '#/components/schemas/FeatRequirements'
+ *           description: Requisitos de atributo para tomar o mantener esta clase en un personaje multiclase. Hidratados con nombre e icono.
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: object
+ *           description: Competencias fijas que concede el dip (hidratadas). Distintas de las de clase inicial.
+ *         skill_choices:
+ *           type: object
+ *           description: Elección de habilidades del dip (choose + options hidratadas).
+ *         proficiencies_choices:
+ *           type: array
+ *           items:
+ *             type: object
+ *           description: Elecciones de competencias del dip.
+ *     CharacterClassMulticlassInput:
+ *       type: object
+ *       properties:
+ *         requirements:
+ *           $ref: '#/components/schemas/FeatRequirementsInput'
+ *           description: Requisitos de atributo (misma forma que las dotes).
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de competencias fijas del dip.
+ *         skill_choices:
+ *           $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
+ *           nullable: true
+ *           description: Elección de habilidades del dip.
+ *         proficiencies_choices:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
+ *           description: Elecciones de competencias del dip.
  *     InputCreateCharacterClass:
  *       type: object
  *       required:
@@ -287,6 +330,9 @@ const router = Router();
  *         skill_choices:
  *           $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
  *           description: Elección de habilidades (choose + options o filter).
+ *         multiclass:
+ *           $ref: '#/components/schemas/CharacterClassMulticlassInput'
+ *           description: Datos de dip. Opcional al crear.
  *         equipment:
  *           type: array
  *           items:
@@ -374,6 +420,11 @@ const router = Router();
  *         skill_choices:
  *           $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
  *           description: Elección de habilidades (choose + options o filter).
+ *         multiclass:
+ *           allOf:
+ *             - $ref: '#/components/schemas/CharacterClassMulticlassInput'
+ *           nullable: true
+ *           description: Datos de dip. Enviar null para eliminarlos.
  *         equipment:
  *           type: array
  *           items:

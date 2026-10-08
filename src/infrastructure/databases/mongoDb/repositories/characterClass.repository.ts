@@ -19,9 +19,12 @@ import {
   ClaseLevelUp,
   InputCreateCharacterClass,
   InputUpdateCharacterClass,
+  CharacterClassMulticlassApi,
+  CharacterClassMulticlassCreate,
   SpellcastingLevelSource,
   SubclassChoiceMenuApi
 } from '../../../../domain/types/characterClass.types';
+import { FeatRequirements, FeatRequirementsCreate } from '../../../../domain/types/feat.types';
 import { ChoiceSpell } from '../../../../domain/types/spell.types';
 import { FeatApi } from '../../../../domain/types/feat.types';
 import { EquipmentApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from '../../../../domain/types/equipment.types';
@@ -93,6 +96,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       proficiencies: data.proficiencies ?? [],
       saving_throws: data.saving_throws ?? [],
       skill_choices: data.skill_choices ?? undefined,
+      multiclass: this.normalizeMulticlass(data.multiclass),
       equipment: data.equipment ?? [],
       equipment_choices: data.equipment_choices ?? undefined,
       spellcasting: data.spellcasting ?? null,
@@ -138,6 +142,15 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       (updateFields as Record<string, unknown>).abilityScoreProgression = null;
     }
 
+    const unsetFields: Record<string, 1> = {};
+    if (updateFields.multiclass === null) {
+      delete (updateFields as { multiclass?: unknown }).multiclass;
+      unsetFields.multiclass = 1;
+    } else if (updateFields.multiclass) {
+      (updateFields as { multiclass?: CharacterClassMulticlassCreate }).multiclass =
+        this.normalizeMulticlass(updateFields.multiclass);
+    }
+
     const setFields: Record<string, unknown> = { ...updateFields };
 
     if (levels !== undefined) {
@@ -148,9 +161,17 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       setFields.levels = this.mergeLevels(existing.levels ?? [], levels);
     }
 
+    const updateQuery: Record<string, unknown> = {};
+    if (Object.keys(setFields).length > 0) {
+      updateQuery.$set = setFields;
+    }
+    if (Object.keys(unsetFields).length > 0) {
+      updateQuery.$unset = unsetFields;
+    }
+
     const updatedClass = await CharacterClassModel.findByIdAndUpdate(
       id,
-      { $set: setFields },
+      updateQuery,
       { returnDocument: 'after' }
     ).lean<CharacterClassMongo>();
 
@@ -419,7 +440,80 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       god: characterClass.god ?? false,
       traits,
       traits_data: dataLevel?.traits_data ?? {},
-      deletedAt: characterClass.deletedAt
+      deletedAt: characterClass.deletedAt,
+      ...(await this.formatMulticlass(characterClass))
+    };
+  }
+
+  private normalizeMulticlass(
+    multiclass?: CharacterClassMulticlassCreate | null
+  ): CharacterClassMulticlassCreate | undefined {
+    if (!multiclass) return undefined;
+    return {
+      ...(multiclass.requirements
+        ? {
+            requirements: {
+              attributeMode: multiclass.requirements.attributeMode ?? "all",
+              attributes: multiclass.requirements.attributes ?? []
+            }
+          }
+        : {}),
+      ...(multiclass.proficiencies ? { proficiencies: multiclass.proficiencies } : {}),
+      ...(multiclass.skill_choices ? { skill_choices: multiclass.skill_choices } : {}),
+      ...(multiclass.proficiencies_choices
+        ? { proficiencies_choices: multiclass.proficiencies_choices }
+        : {})
+    };
+  }
+
+  private async formatMulticlass(
+    characterClass: CharacterClassMongo
+  ): Promise<{ multiclass?: CharacterClassMulticlassApi }> {
+    const raw = characterClass.multiclass;
+    if (!raw) return {};
+
+    const [proficiencies, skill_choices, proficiencies_choices, requirements] = await Promise.all([
+      this.proficiencyRepository
+        ? this.proficiencyRepository.getProficienciesByIndices(raw.proficiencies ?? [])
+        : [],
+      this.skillService ? this.skillService.formatSkillChoices(raw.skill_choices ?? undefined) : undefined,
+      this.proficiencyRepository
+        ? this.proficiencyRepository.formatProficiencyChoices(raw.proficiencies_choices ?? [])
+        : [],
+      this.formatMulticlassRequirements(raw.requirements, characterClass.ruleset || "")
+    ]);
+
+    return {
+      multiclass: {
+        requirements,
+        proficiencies,
+        skill_choices,
+        proficiencies_choices: proficiencies_choices.length ? proficiencies_choices : undefined
+      }
+    };
+  }
+
+  private async formatMulticlassRequirements(
+    requirements: FeatRequirementsCreate | null | undefined,
+    ruleset: string
+  ): Promise<FeatRequirements> {
+    const rawAttributes = Array.isArray(requirements?.attributes) ? requirements.attributes : [];
+    const attributes = ruleset && this.attributeService
+      ? await this.attributeService.getBySystems([ruleset])
+      : [];
+    const attributeMap = new Map(attributes.map(attribute => [attribute.key, attribute]));
+
+    return {
+      attributeMode: requirements?.attributeMode ?? "all",
+      attributes: rawAttributes.map(requirement => {
+        const attribute = attributeMap.get(requirement.key);
+        return {
+          key: requirement.key,
+          name: attribute?.name || requirement.key,
+          min: requirement.min,
+          icon: attribute?.icon
+        };
+      })
     };
   }
 

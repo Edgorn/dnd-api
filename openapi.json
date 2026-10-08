@@ -153,6 +153,10 @@
             },
             "description": "Lista de rasgos incompatibles."
           },
+          "stackGroup": {
+            "$ref": "#/components/schemas/TraitStackGroup",
+            "description": "Grupo de acumulación (p. ej. Defensa sin Armadura exclusive, Ataque Adicional max). exclusive no se concede si el personaje ya tiene el mismo key; max conserva el rank mayor.\n"
+          },
           "hidden": {
             "type": "boolean",
             "description": "Si está oculto en la creación."
@@ -6597,6 +6601,10 @@
             "type": "object",
             "description": "Elección de habilidades (choose + options/filter)."
           },
+          "multiclass": {
+            "$ref": "#/components/schemas/CharacterClassMulticlass",
+            "description": "Datos de dip (requisitos y competencias recortadas). No reutiliza las de clase inicial."
+          },
           "spells": {
             "type": "array",
             "items": {
@@ -6835,6 +6843,62 @@
           }
         }
       },
+      "CharacterClassMulticlass": {
+        "type": "object",
+        "properties": {
+          "requirements": {
+            "$ref": "#/components/schemas/FeatRequirements",
+            "description": "Requisitos de atributo para tomar o mantener esta clase en un personaje multiclase. Hidratados con nombre e icono."
+          },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Competencias fijas que concede el dip (hidratadas). Distintas de las de clase inicial."
+          },
+          "skill_choices": {
+            "type": "object",
+            "description": "Elección de habilidades del dip (choose + options hidratadas)."
+          },
+          "proficiencies_choices": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Elecciones de competencias del dip."
+          }
+        }
+      },
+      "CharacterClassMulticlassInput": {
+        "type": "object",
+        "properties": {
+          "requirements": {
+            "$ref": "#/components/schemas/FeatRequirementsInput",
+            "description": "Requisitos de atributo (misma forma que las dotes)."
+          },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de competencias fijas del dip."
+          },
+          "skill_choices": {
+            "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput",
+            "nullable": true,
+            "description": "Elección de habilidades del dip."
+          },
+          "proficiencies_choices": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput"
+            },
+            "description": "Elecciones de competencias del dip."
+          }
+        }
+      },
       "InputCreateCharacterClass": {
         "type": "object",
         "required": [
@@ -6889,6 +6953,10 @@
           "skill_choices": {
             "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput",
             "description": "Elección de habilidades (choose + options o filter)."
+          },
+          "multiclass": {
+            "$ref": "#/components/schemas/CharacterClassMulticlassInput",
+            "description": "Datos de dip. Opcional al crear."
           },
           "equipment": {
             "type": "array",
@@ -7017,6 +7085,15 @@
           "skill_choices": {
             "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput",
             "description": "Elección de habilidades (choose + options o filter)."
+          },
+          "multiclass": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CharacterClassMulticlassInput"
+              }
+            ],
+            "nullable": true,
+            "description": "Datos de dip. Enviar null para eliminarlos."
           },
           "equipment": {
             "type": "array",
@@ -11882,7 +11959,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`). Si el nivel de raza cambia `traits_data` respecto al nivel\nanterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se devuelven con\nla descripción y el resumen sustituidos con el `traits_data` del personaje fusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`). Si el nivel de raza cambia `traits_data` respecto al nivel\nanterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se devuelven con\nla descripción y el resumen sustituidos con el `traits_data` del personaje fusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
         "tags": [
           "Personajes"
         ],
@@ -11908,7 +11985,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "ID de MongoDB de la clase en la que se quiere subir de nivel."
+            "description": "ID de MongoDB de la clase en la que se quiere subir de nivel. Puede ser una clase nueva (dip) de los sistemas del personaje."
           }
         ],
         "responses": {
@@ -11922,7 +11999,8 @@
                     "class",
                     "hit_die",
                     "prof_bonus",
-                    "ability_score"
+                    "ability_score",
+                    "newClass"
                   ],
                   "properties": {
                     "class": {
@@ -11998,6 +12076,44 @@
                         }
                       ],
                       "description": "Dotes disponibles si `ability_score` es true (elige 1 en lugar de los +2). Excluye dotes ya poseídas y las que no cumplen requisitos de atributo.\n"
+                    },
+                    "newClass": {
+                      "type": "boolean",
+                      "description": "True si el personaje aún no tiene esta clase (dip de nivel 1)."
+                    },
+                    "requirementsMet": {
+                      "type": "boolean",
+                      "description": "Presente en un dip o al continuar una clase si el personaje ya es multiclase. False si falta algún requisito (p. ej. Fue 13); el GET igual devuelve 200.\n"
+                    },
+                    "dip": {
+                      "type": "object",
+                      "description": "Solo si `newClass` es true. Competencias y requisitos del dip.",
+                      "properties": {
+                        "requirements": {
+                          "$ref": "#/components/schemas/FeatRequirements"
+                        },
+                        "requirementsMet": {
+                          "type": "boolean"
+                        },
+                        "proficiencies": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          },
+                          "description": "Competencias fijas concedidas por el dip (sin duplicar las ya poseídas en el POST)."
+                        },
+                        "skill_choices": {
+                          "type": "object",
+                          "description": "Elección de habilidades con las opciones ya poseídas recortadas."
+                        },
+                        "proficiencies_choices": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          },
+                          "description": "Elecciones de competencias con las opciones ya poseídas recortadas."
+                        }
+                      }
                     }
                   }
                 }
@@ -12025,7 +12141,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, recalcula el bono de competencia\nsegún el sistema y aumenta los puntos de golpe usando `hpLevelUpFormula` del sistema\ndel personaje. El cliente envía solo el incremento base de PG (`hpIncrease`, resultado\nde la tirada o media del dado); el servidor aplica la fórmula del sistema con los\natributos del personaje (tras aplicar la mejora de característica, si la hay). Reinicia la XP a 0.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `skillPicks` / `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
         "tags": [
           "Personajes"
         ],
@@ -12058,7 +12174,7 @@
                 "properties": {
                   "class": {
                     "type": "string",
-                    "description": "ID de MongoDB de la clase en la que se sube de nivel."
+                    "description": "ID de MongoDB de la clase en la que se sube de nivel. Puede ser una clase nueva."
                   },
                   "hpIncrease": {
                     "type": "integer",
@@ -12138,6 +12254,23 @@
                         }
                       }
                     }
+                  },
+                  "skillPicks": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Habilidades elegidas en un dip, alineadas con `dip.skill_choices` (misma longitud que `choose`). Omitir si no hay elección de habilidades.\n"
+                  },
+                  "proficiencyPicks": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "description": "Competencias elegidas en un dip. `proficiencyPicks[i]` corresponde a `dip.proficiencies_choices[i]` (misma longitud que `choose`).\n"
                   }
                 }
               }

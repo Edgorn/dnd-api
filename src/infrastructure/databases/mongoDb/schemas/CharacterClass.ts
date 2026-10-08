@@ -11,6 +11,7 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
   proficiencies: { type: [String], default: [] },
   proficiencies_choices: { type: [], default: [] },
   skill_choices: { type: Schema.Types.Mixed, default: {} },
+  multiclass: { type: Schema.Types.Mixed, default: undefined },
   saving_throws: { type: [String], default: [] },
   equipment: [
     {

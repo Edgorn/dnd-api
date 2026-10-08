@@ -51,6 +51,23 @@ const SpellRepositoryConfigSchema = z.object({
 
 const PreparedFromSchema = z.enum(["known", "classList"]);
 
+const multiclassAttributeRequirementSchema = z.object({
+  key: z.string().min(1, "La clave del atributo no puede estar vacía"),
+  min: z.number().int().min(1, "El valor mínimo debe ser al menos 1")
+});
+
+const multiclassRequirementsSchema = z.object({
+  attributeMode: z.enum(["all", "any"]).optional(),
+  attributes: z.array(multiclassAttributeRequirementSchema).optional()
+});
+
+const CharacterClassMulticlassSchema = z.object({
+  requirements: multiclassRequirementsSchema.optional(),
+  proficiencies: z.array(z.string()).optional(),
+  skill_choices: ChoiceMongoSchema.nullable().optional(),
+  proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional()
+});
+
 const uniqueLevelsRefinement = (
   levels: Array<{ level: number }> | undefined,
   ctx: z.RefinementCtx
@@ -90,6 +107,7 @@ const characterClassFields = {
   proficiencies: z.array(z.string()).optional(),
   saving_throws: z.array(z.string().min(1)).optional(),
   skill_choices: ChoiceMongoSchema.nullable().optional(),
+  multiclass: CharacterClassMulticlassSchema.optional(),
   equipment: GrantedEquipmentListSchema.nullable().optional(),
   equipment_choices: z.array(EquipmentChoiceMongoSchema).nullable().optional(),
   spellcasting: z.string().min(1).nullable().optional(),
@@ -125,7 +143,8 @@ export const UpdateCharacterClassSchema = z.object({
   description: z.union([z.string(), z.array(z.string())]).optional(),
   img: z.string().optional(),
   ...characterClassFields,
-  abilityScoreProgression: abilityScoreProgressionSchema.nullable().optional()
+  abilityScoreProgression: abilityScoreProgressionSchema.nullable().optional(),
+  multiclass: CharacterClassMulticlassSchema.nullable().optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
   spellPreparationPairRefinement(data, ctx);

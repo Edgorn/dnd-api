@@ -284,7 +284,8 @@ export default class TraitRepository implements ITraitRepository {
         ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {}),
         ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {}),
         ...this.formatAction(trait.action),
-        ...this.formatInnateSpells(trait.innateSpells, spellMap, saveAttributeMap)
+        ...this.formatInnateSpells(trait.innateSpells, spellMap, saveAttributeMap),
+        ...(trait.stackGroup ? { stackGroup: trait.stackGroup } : {})
       };
     });
   }
@@ -295,7 +296,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, innateSpells, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, innateSpells, stackGroup, ...rest } = trait;
     return {
       ...rest,
       ...(typeof acFormula === "string" ? { acFormula } : {}),
@@ -308,7 +309,8 @@ export default class TraitRepository implements ITraitRepository {
       ...(damageChoiceRef ? { damageChoiceRef } : {}),
       ...(hitPoints ? { hitPoints } : {}),
       ...(action ? { action } : {}),
-      ...(innateSpells ? { innateSpells } : {})
+      ...(innateSpells ? { innateSpells } : {}),
+      ...(stackGroup ? { stackGroup } : {})
     };
   }
 
@@ -328,6 +330,7 @@ export default class TraitRepository implements ITraitRepository {
       hitPoints,
       action,
       innateSpells,
+      stackGroup,
       ...rest
     } = updateFields;
     const $set: Record<string, unknown> = { ...rest };
@@ -359,6 +362,7 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "hitPoints", hitPoints);
     this.assignNullable($set, $unset, "action", action);
     this.assignNullable($set, $unset, "innateSpells", innateSpells);
+    this.assignNullable($set, $unset, "stackGroup", stackGroup);
 
     return { $set, $unset };
   }

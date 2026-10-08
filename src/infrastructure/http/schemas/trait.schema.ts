@@ -7,7 +7,8 @@ import {
   EQUIPMENT_RESTRICTION_SCOPES,
   SPELL_PRIVILEGE_RECHARGES,
   TRAIT_ACTIVATIONS,
-  TRAIT_AREA_SHAPES
+  TRAIT_AREA_SHAPES,
+  TRAIT_STACK_POLICIES
 } from "../../../domain/types/traits.types";
 
 const SpellPrivilegeLevelFilterSchema = z.union([
@@ -382,6 +383,20 @@ export const TraitInnateSpellGrantSchema = z.object({
   }
 });
 
+export const TraitStackGroupSchema = z.object({
+  key: z.string().min(1, "La clave del grupo de acumulación no puede estar vacía"),
+  policy: z.enum(TRAIT_STACK_POLICIES),
+  rank: z.number().int("El rango debe ser un entero").min(1, "El rango debe ser al menos 1").optional()
+}).strict().superRefine((group, ctx) => {
+  if (group.policy === "max" && group.rank === undefined) {
+    ctx.addIssue({
+      code: "custom",
+      message: "rank es obligatorio si policy es max",
+      path: ["rank"]
+    });
+  }
+});
+
 export const TraitInnateSpellsSchema = z.object({
   abilityId: mongoObjectId("El atributo debe ser un ID de Mongo válido"),
   grants: z.array(TraitInnateSpellGrantSchema).min(1, "Debe indicar al menos un conjuro innato")
@@ -421,7 +436,8 @@ export const CreateTraitSchema = z.object({
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
   hitPoints: TraitHitPointsSchema.nullish(),
   action: TraitActionSchema.nullish(),
-  innateSpells: TraitInnateSpellsSchema.nullish()
+  innateSpells: TraitInnateSpellsSchema.nullish(),
+  stackGroup: TraitStackGroupSchema.nullish()
 });
 
 export const UpdateTraitSchema = z.object({
@@ -446,7 +462,8 @@ export const UpdateTraitSchema = z.object({
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
   hitPoints: TraitHitPointsSchema.nullish(),
   action: TraitActionSchema.nullish(),
-  innateSpells: TraitInnateSpellsSchema.nullish()
+  innateSpells: TraitInnateSpellsSchema.nullish(),
+  stackGroup: TraitStackGroupSchema.nullish()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

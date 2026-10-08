@@ -4,6 +4,7 @@ import { CharacterAttributeApi } from "../domain/types/attribute.types";
 import { RaceRef } from "../domain/types/race.types";
 import { TraitApi } from "../domain/types/traits.types";
 import {
+  applyTraitStacking,
   closeLevelUpTraitText,
   damageChoiceSourceIdsToLoad,
   mergeClassAndRaceLevelUp,
@@ -26,6 +27,48 @@ const trait = (id: string, extra: Partial<TraitApi> = {}): TraitApi => ({
   condition_inmunities: [],
   proficiencies: [],
   ...extra
+});
+
+describe("applyTraitStacking", () => {
+  it("skips an exclusive stackGroup already owned", () => {
+    const owned = [trait("monk-ac", { stackGroup: { key: "unarmored-defense", policy: "exclusive" } })];
+    const incoming = [trait("barb-ac", { stackGroup: { key: "unarmored-defense", policy: "exclusive" } })];
+
+    const result = applyTraitStacking(owned, incoming);
+
+    expect(result.granted).toEqual([]);
+    expect(result.nextIds).toEqual(["monk-ac"]);
+  });
+
+  it("replaces a lower-rank max stackGroup with the higher rank", () => {
+    const owned = [trait("extra-2", { stackGroup: { key: "extra-attack", policy: "max", rank: 2 } })];
+    const incoming = [trait("extra-3", { stackGroup: { key: "extra-attack", policy: "max", rank: 3 } })];
+
+    const result = applyTraitStacking(owned, incoming);
+
+    expect(result.granted.map(item => item.id)).toEqual(["extra-3"]);
+    expect(result.nextIds).toEqual(["extra-3"]);
+  });
+
+  it("keeps the owned max stackGroup when the incoming rank is lower or equal", () => {
+    const owned = [trait("extra-3", { stackGroup: { key: "extra-attack", policy: "max", rank: 3 } })];
+    const incoming = [trait("extra-2", { stackGroup: { key: "extra-attack", policy: "max", rank: 2 } })];
+
+    const result = applyTraitStacking(owned, incoming);
+
+    expect(result.granted).toEqual([]);
+    expect(result.nextIds).toEqual(["extra-3"]);
+  });
+
+  it("skips an incoming trait incompatible with one already owned", () => {
+    const owned = [trait("path-light")];
+    const incoming = [trait("path-dark", { incompatible_traits: [trait("path-light")] })];
+
+    const result = applyTraitStacking(owned, incoming);
+
+    expect(result.granted).toEqual([]);
+    expect(result.nextIds).toEqual(["path-light"]);
+  });
 });
 
 describe("mergeLevelUpTraits", () => {
