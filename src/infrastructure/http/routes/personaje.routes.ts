@@ -690,6 +690,17 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/ConditionImmunity'
+ *           description: >
+ *             Inmunidades permanentes más, en la ficha de juego, las condicionales
+ *             del grupo de cada stance activa. El PDF no incluye las de stance.
+ *         conditionalConditionImmunities:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ConditionImmunity'
+ *           description: >
+ *             Inmunidades a estados agrupadas por conditionalResistanceGroup
+ *             (p. ej. Furia). Siempre visibles; en juego se suman a condition_inmunities
+ *             si la stance del grupo está activa.
  *         prof_bonus:
  *           type: number
  *         saving_throws:
@@ -952,10 +963,10 @@ router.post('/character', authMiddleware, personajeController.createCharacter);
  *     summary: Obtener el detalle completo de un personaje por su ID
  *     description: |
  *       Devuelve la ficha de juego. Las stances activas (p. ej. Furia) aplican overlays:
- *       resistencias del grupo `conditionalResistanceGroup` y bono de daño melee si el
- *       ataque se resuelve con las `abilityKeys` del rasgo. La Defensa sin Armadura
- *       (`acFormula`) es permanente y no depende de una stance. El PDF usa datos base,
- *       sin estos overlays.
+ *       resistencias e inmunidades a estados del grupo `conditionalResistanceGroup` y
+ *       bono de daño melee si el ataque se resuelve con las `abilityKeys` del rasgo.
+ *       La Defensa sin Armadura (`acFormula`) es permanente y no depende de una stance.
+ *       El PDF usa datos base, sin estos overlays.
  *     tags:
  *       - Personajes
  *     security:

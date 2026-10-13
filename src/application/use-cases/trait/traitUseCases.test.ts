@@ -14,6 +14,7 @@ describe("Trait Use Cases armor type suppression", () => {
   let creatureTypeServiceMock: any;
   let attributeServiceMock: any;
   let spellServiceMock: any;
+  let conditionServiceMock: any;
 
   beforeEach(() => {
     traitServiceMock = {
@@ -45,6 +46,9 @@ describe("Trait Use Cases armor type suppression", () => {
     spellServiceMock = {
       getById: vi.fn()
     };
+    conditionServiceMock = {
+      getById: vi.fn()
+    };
   });
 
   const createUseCase = () => new CreateTraitUseCase(
@@ -55,7 +59,8 @@ describe("Trait Use Cases armor type suppression", () => {
     damageServiceMock,
     creatureTypeServiceMock,
     attributeServiceMock,
-    spellServiceMock
+    spellServiceMock,
+    conditionServiceMock
   );
 
   const updateUseCase = () => new UpdateTraitUseCase(
@@ -66,7 +71,8 @@ describe("Trait Use Cases armor type suppression", () => {
     damageServiceMock,
     creatureTypeServiceMock,
     attributeServiceMock,
-    spellServiceMock
+    spellServiceMock,
+    conditionServiceMock
   );
 
   const baseTrait = {
@@ -273,6 +279,53 @@ describe("Trait Use Cases armor type suppression", () => {
         statusCode: 400
       });
       expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("persists conditionalConditionImmunities when the condition belongs to the system or an ancestor", async () => {
+      const conditionId = "507f1f77bcf86cd799439014";
+      conditionServiceMock.getById.mockResolvedValue({ id: conditionId, ruleset: "parent" });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        name: "Furia Irracional",
+        conditionalConditionImmunities: [conditionId],
+        conditionalResistanceGroup: "Furia"
+      }, "user1");
+
+      expect(conditionServiceMock.getById).toHaveBeenCalledWith(conditionId);
+      expect(traitServiceMock.create).toHaveBeenCalledWith(expect.objectContaining({
+        conditionalConditionImmunities: [conditionId],
+        conditionalResistanceGroup: "Furia"
+      }));
+    });
+
+    it("rejects conditionalConditionImmunities when the condition is outside the system and its ancestors", async () => {
+      const conditionId = "507f1f77bcf86cd799439014";
+      conditionServiceMock.getById.mockResolvedValue({ id: conditionId, ruleset: "other" });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        conditionalConditionImmunities: [conditionId]
+      }, "user1")).rejects.toMatchObject({
+        message: "El estado no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("updates conditionalConditionImmunities when the condition belongs to the trait system", async () => {
+      const conditionId = "507f1f77bcf86cd799439014";
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      conditionServiceMock.getById.mockResolvedValue({ id: conditionId, ruleset: "sys1" });
+
+      await updateUseCase().execute({
+        id: "trait1",
+        conditionalConditionImmunities: [conditionId]
+      }, "user1");
+
+      expect(traitServiceMock.update).toHaveBeenCalledWith(expect.objectContaining({
+        conditionalConditionImmunities: [conditionId]
+      }));
     });
 
     it("updates conditional_resistances when the damage type belongs to the trait system", async () => {

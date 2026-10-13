@@ -411,6 +411,10 @@ const damageTypeIdArraySchema = z.array(
   z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada resistencia debe ser un ID de Mongo válido" })
 );
 
+const conditionIdArraySchema = z.array(
+  z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada estado debe ser un ID de Mongo válido" })
+);
+
 const conditionalResistanceGroupSchema = z
   .string()
   .min(1, "El grupo de resistencia condicional no puede estar vacío")
@@ -511,6 +515,7 @@ export const CreateTraitSchema = z.object({
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
   resistances: damageTypeIdArraySchema.optional().default([]),
   conditional_resistances: damageTypeIdArraySchema.optional().default([]),
+  conditionalConditionImmunities: conditionIdArraySchema.optional().default([]),
   spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
   companionRoster: TraitCompanionRosterSchema.optional(),
   speed: TraitSpeedSchema.optional(),
@@ -541,6 +546,7 @@ export const UpdateTraitSchema = z.object({
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
   resistances: damageTypeIdArraySchema.optional(),
   conditional_resistances: damageTypeIdArraySchema.optional(),
+  conditionalConditionImmunities: conditionIdArraySchema.optional(),
   spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
   companionRoster: TraitCompanionRosterSchema.optional(),
   speed: TraitSpeedSchema.optional(),

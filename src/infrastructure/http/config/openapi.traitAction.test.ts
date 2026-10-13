@@ -58,6 +58,13 @@ describe("OpenAPI trait action schemas", () => {
     expect(schemas.TraitDamageChoiceRef?.properties?.traitId?.description).not.toMatch(/index/i);
   });
 
+  it("documents conditionalConditionImmunities on Trait write and read schemas", () => {
+    expect(schemas.Trait?.properties?.conditionalConditionImmunities).toBeDefined();
+    expect(schemas.InputCreateTrait?.properties?.conditionalConditionImmunities).toBeDefined();
+    expect(schemas.InputUpdateTrait?.properties?.conditionalConditionImmunities).toBeDefined();
+    expect(schemas.Trait?.properties?.conditionalResistanceGroup?.description).toMatch(/inmunidades/i);
+  });
+
   it("documents abilityScores on Trait write and read schemas", () => {
     expect(schemas.TraitAbilityScore?.required).toEqual(["key", "bonus"]);
     expect(schemas.Trait?.properties?.abilityScores).toBeDefined();

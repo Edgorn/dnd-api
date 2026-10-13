@@ -48,6 +48,30 @@ function mergeConditionalResistancesFromGroups(
   return next;
 }
 
+function mergeConditionalConditionImmunitiesFromGroups(
+  traits: TraitApi[],
+  groupKeys: Set<string>,
+  current: PersonajeApi["condition_inmunities"]
+): PersonajeApi["condition_inmunities"] {
+  const next = current.map(group => ({ name: group.name, estados: [...group.estados] }));
+  for (const trait of traits) {
+    if (!groupKeys.has(stanceGroupKey(trait))) continue;
+    const list = trait.conditionalConditionImmunities ?? [];
+    if (!list.length) continue;
+    const name = stanceGroupKey(trait);
+    let group = next.find(item => item.name === name);
+    if (!group) {
+      group = { name, estados: [] };
+      next.push(group);
+    }
+    for (const condition of list) {
+      if (condition.id && group.estados.some(item => item.id === condition.id)) continue;
+      group.estados.push(condition);
+    }
+  }
+  return next;
+}
+
 function applyWeaponDamageOverlays(
   equipment: CharacterEquipmentApi[],
   stances: TraitApi[],
@@ -94,6 +118,11 @@ export function applyActiveTraitOverlays(
     groupKeys,
     character.resistances ?? []
   );
+  const condition_inmunities = mergeConditionalConditionImmunitiesFromGroups(
+    character.traits ?? [],
+    groupKeys,
+    character.condition_inmunities ?? []
+  );
   const equipment = applyWeaponDamageOverlays(
     character.equipment ?? [],
     stances,
@@ -104,6 +133,7 @@ export function applyActiveTraitOverlays(
   return {
     ...character,
     resistances,
+    condition_inmunities,
     equipment
   };
 }

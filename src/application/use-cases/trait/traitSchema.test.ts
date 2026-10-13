@@ -758,6 +758,37 @@ describe("CreateTraitSchema conditional_resistances", () => {
   });
 });
 
+describe("CreateTraitSchema conditionalConditionImmunities", () => {
+  it("accepts valid condition ids and defaults to an empty array", () => {
+    const withIds = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia Irracional",
+      conditionalConditionImmunities: [damageTypeId],
+      conditionalResistanceGroup: "Furia"
+    });
+    const omitted = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia Irracional"
+    });
+
+    expect(withIds.success).toBe(true);
+    expect(omitted.success).toBe(true);
+    if (withIds.success) {
+      expect(withIds.data.conditionalConditionImmunities).toEqual([damageTypeId]);
+    }
+    if (omitted.success) expect(omitted.data.conditionalConditionImmunities).toEqual([]);
+  });
+
+  it("rejects an invalid condition id", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia Irracional",
+      conditionalConditionImmunities: ["not-an-id"]
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("UpdateTraitSchema conditional_resistances", () => {
   it("accepts an empty array to clear conditional_resistances", () => {
     const result = UpdateTraitSchema.safeParse({ conditional_resistances: [] });
@@ -769,6 +800,14 @@ describe("UpdateTraitSchema conditional_resistances", () => {
     const result = UpdateTraitSchema.safeParse({ conditionalResistanceGroup: null });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.conditionalResistanceGroup).toBeNull();
+  });
+});
+
+describe("UpdateTraitSchema conditionalConditionImmunities", () => {
+  it("accepts an empty array to clear conditionalConditionImmunities", () => {
+    const result = UpdateTraitSchema.safeParse({ conditionalConditionImmunities: [] });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.conditionalConditionImmunities).toEqual([]);
   });
 });
 

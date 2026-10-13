@@ -408,6 +408,7 @@ export interface PersonajeApi {
   resistances: Damage[],
   conditional_resistances: { name: string, resistances: Damage[] }[],
   condition_inmunities: { name: string, estados: ConditionApi[] }[],
+  conditionalConditionImmunities: { name: string, estados: ConditionApi[] }[],
   prof_bonus: number,
   saving_throws: string[],
   equipment: CharacterEquipmentApi[],

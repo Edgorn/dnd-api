@@ -3,6 +3,7 @@ import DamageService from "../../../domain/services/damage.service";
 import CreatureTypeService from "../../../domain/services/creatureType.service";
 import AttributeService from "../../../domain/services/attribute.service";
 import SpellService from "../../../domain/services/spell.service";
+import ConditionService from "../../../domain/services/condition.service";
 import SystemService from "../../../domain/services/system.service";
 import TraitService from "../../../domain/services/trait.service";
 import { AppError } from "../../../domain/errors/AppError";
@@ -20,6 +21,7 @@ export async function assertTraitCatalogRefs(input: {
   languages?: TraitLanguages | null;
   resistances?: string[] | null;
   conditional_resistances?: string[] | null;
+  conditionalConditionImmunities?: string[] | null;
   damageChoices?: TraitDamageChoice[] | null;
   catalogChoices?: TraitCatalogChoice[] | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
@@ -30,6 +32,7 @@ export async function assertTraitCatalogRefs(input: {
   creatureTypeService: CreatureTypeService;
   attributeService: AttributeService;
   spellService: SpellService;
+  conditionService: ConditionService;
   systemService: SystemService;
   traitService: TraitService;
 }): Promise<{
@@ -60,9 +63,10 @@ export async function assertTraitCatalogRefs(input: {
   const spellIds = uniqueIds(
     (input.innateSpells?.grants ?? []).map(grant => grant.spellId)
   );
+  const conditionIds = uniqueIds(input.conditionalConditionImmunities ?? []);
   const publicLanguageIds = new Map<string, string>();
 
-  if (languageIds.length || damageIds.length || creatureTypeIds.length || attributeIds.length || spellIds.length) {
+  if (languageIds.length || damageIds.length || creatureTypeIds.length || attributeIds.length || spellIds.length || conditionIds.length) {
     const allowedRulesets = await input.systemService.getSystemsAndAncestors([input.ruleset]);
 
     for (const languageId of languageIds) {
@@ -103,6 +107,16 @@ export async function assertTraitCatalogRefs(input: {
       }
       if (!allowedRulesets.includes(attribute.ruleset)) {
         throw new AppError("El atributo no pertenece a este sistema ni a sus ancestros", 400);
+      }
+    }
+
+    for (const conditionId of conditionIds) {
+      const condition = await input.conditionService.getById(conditionId);
+      if (!condition || condition.deletedAt) {
+        throw new AppError("Estado no encontrado", 404);
+      }
+      if (!allowedRulesets.includes(condition.ruleset)) {
+        throw new AppError("El estado no pertenece a este sistema ni a sus ancestros", 400);
       }
     }
 

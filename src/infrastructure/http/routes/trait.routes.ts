@@ -62,12 +62,20 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/Damage'
  *           description: Resistencias condicionales (p. ej. mientras estás enfurecido). En GET van hidratadas.
+ *         conditionalConditionImmunities:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Estado'
+ *           description: >
+ *             Inmunidades a estados condicionales (p. ej. mientras estás enfurecido).
+ *             En GET van hidratadas. En ficha se suman a condition_inmunities si hay
+ *             una stance activa del mismo conditionalResistanceGroup.
  *         conditionalResistanceGroup:
  *           type: string
  *           description: >
  *             Nombre de agrupación en la ficha. Varios rasgos con el mismo valor
- *             unen sus resistencias condicionales (p. ej. Furia y el espíritu tótem oso).
- *             Si falta, se usa el nombre del rasgo.
+ *             unen sus resistencias e inmunidades condicionales (p. ej. Furia y
+ *             Furia Irracional). Si falta, se usa el nombre del rasgo.
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -963,9 +971,18 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de daño condicionales del sistema o de sus ancestros. Si se omite, queda vacío.
+ *         conditionalConditionImmunities:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: >
+ *             IDs de estados del sistema o de sus ancestros. Inmunidades que aplican
+ *             en ficha si hay una stance activa del mismo grupo. Si se omite, queda vacío.
  *         conditionalResistanceGroup:
  *           type: string
- *           description: Nombre de agrupación de resistencias condicionales en la ficha (p. ej. Furia).
+ *           description: >
+ *             Nombre de agrupación de resistencias e inmunidades condicionales en la ficha
+ *             (p. ej. Furia).
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -1159,10 +1176,17 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de daño condicionales. Omitirlo no modifica el valor guardado. Un array vacío borra la lista.
+ *         conditionalConditionImmunities:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: >
+ *             IDs de estados condicionales. Omitirlo no modifica el valor guardado.
+ *             Un array vacío borra la lista.
  *         conditionalResistanceGroup:
  *           type: string
  *           nullable: true
- *           description: Nombre de agrupación de resistencias condicionales. null borra el campo.
+ *           description: Nombre de agrupación de resistencias e inmunidades condicionales. null borra el campo.
  *         spellPrivileges:
  *           type: array
  *           items:

@@ -142,6 +142,7 @@ export default class TraitRepository implements ITraitRepository {
       (trait.skills ?? []).forEach(s => allSkills.add(s));
       (trait.spells ?? []).forEach(s => allSpells.add(s));
       (trait.condition_inmunities ?? []).forEach(ci => allConditionInmunities.add(ci));
+      (trait.conditionalConditionImmunities ?? []).forEach(ci => allConditionInmunities.add(ci));
       (trait.incompatible_traits ?? []).forEach(it => allIncompatibleTraits.add(it));
       this.languageIds(trait.languages).forEach(id => allLanguages.add(id));
       this.damageChoiceTypeIds(trait).forEach(id => allChoiceDamages.add(id));
@@ -222,6 +223,10 @@ export default class TraitRepository implements ITraitRepository {
         .map(idx => conditionInmunityMap.get(idx))
         .filter((item): item is ConditionApi => !!item);
 
+      const conditionalConditionImmunities = (trait.conditionalConditionImmunities ?? [])
+        .map(idx => conditionInmunityMap.get(idx))
+        .filter((item): item is ConditionApi => !!item);
+
       const incompatible_traits = (trait.incompatible_traits ?? [])
         .map(idx => incompatibleTraitMap.get(idx))
         .filter((item): item is TraitApi => !!item);
@@ -263,6 +268,7 @@ export default class TraitRepository implements ITraitRepository {
         resistances,
         conditional_resistances,
         condition_inmunities,
+        ...(conditionalConditionImmunities.length ? { conditionalConditionImmunities } : {}),
         proficiencies,
         skills,
         spells,

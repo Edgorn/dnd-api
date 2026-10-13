@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Damage } from "../domain/types";
-import { aggregateConditionalResistances } from "./aggregateConditionalResistances";
+import { ConditionApi } from "../domain/types/condition.types";
+import { aggregateConditionalConditionImmunities, aggregateConditionalResistances } from "./aggregateConditionalResistances";
 
 const damage = (id: string, name: string): Damage => ({
   id,
@@ -71,6 +72,45 @@ describe("aggregateConditionalResistances", () => {
     ])).toEqual([{
       name: "Furia",
       resistances: [bludgeoning]
+    }]);
+  });
+});
+
+const condition = (id: string, name: string): ConditionApi => ({
+  id,
+  name,
+  ruleset: "sys1"
+});
+
+const frightened = condition("frightened", "Asustado");
+const charmed = condition("charmed", "Hechizado");
+
+describe("aggregateConditionalConditionImmunities", () => {
+  it("unions immunities of the same group without duplicating ids", () => {
+    expect(aggregateConditionalConditionImmunities([
+      {
+        name: "Furia",
+        conditionalResistanceGroup: "Furia",
+        conditionalConditionImmunities: [frightened]
+      },
+      {
+        name: "Furia Irracional",
+        conditionalResistanceGroup: "Furia",
+        conditionalConditionImmunities: [frightened, charmed]
+      }
+    ])).toEqual([{
+      name: "Furia",
+      estados: [frightened, charmed]
+    }]);
+  });
+
+  it("skips traits without conditional immunities", () => {
+    expect(aggregateConditionalConditionImmunities([
+      { name: "Furia", conditionalConditionImmunities: [] },
+      { name: "Furia Irracional", conditionalConditionImmunities: [charmed] }
+    ])).toEqual([{
+      name: "Furia Irracional",
+      estados: [charmed]
     }]);
   });
 });

@@ -11,6 +11,7 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   resistances: [String],
   condition_inmunities: [String],
   conditional_resistances: [String],
+  conditionalConditionImmunities: [String],
   proficiencies: [],
   skills: [],
   speed: { type: Schema.Types.Mixed, default: undefined },

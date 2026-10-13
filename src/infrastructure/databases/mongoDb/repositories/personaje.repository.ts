@@ -127,7 +127,7 @@ import {
   DEFAULT_XP_PROGRESSION,
 } from '../../../../utils/systemRulesMerge';
 import { SpellcastingLevel, SubclassChoiceMenuApi } from '../../../../domain/types/characterClass.types';
-import { aggregateConditionalResistances } from '../../../../utils/aggregateConditionalResistances';
+import { aggregateConditionalConditionImmunities, aggregateConditionalResistances } from '../../../../utils/aggregateConditionalResistances';
 import { applyActiveTraitOverlays } from '../../../../utils/applyActiveTraitOverlays';
 import { normalizeActiveTraitIds, normalizeTraitResources } from '../../../../utils/traitResources';
 import {
@@ -2071,6 +2071,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     })
 
     const conditional_resistances = aggregateConditionalResistances(traits)
+    const conditionalConditionImmunities = aggregateConditionalConditionImmunities(traits)
 
     for (const damage of resolvedSheet.grantedResistances) {
       if (damage.id && resistances.some(item => item.id === damage.id)) continue
@@ -2393,6 +2394,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       resistances,
       conditional_resistances,
       condition_inmunities,
+      conditionalConditionImmunities,
       prof_bonus: personaje.prof_bonus,
       saving_throws: personaje.saving_throws,
       equipment: equipmentWithCombatBonuses,
