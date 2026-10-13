@@ -146,6 +146,18 @@ function copyRaceLevel(row: RaceLevelMongo): RaceLevelMongo {
   };
 }
 
+export function mergedTraitsDataAtLevel(
+  sources: Array<Array<{ level: number; traits_data?: TraitDataMongo }>>,
+  level: number
+): TraitDataMongo {
+  let result: TraitDataMongo = {};
+  for (const rows of sources) {
+    const row = rows.find(item => item.level === level);
+    result = mergeTraitDataMaps(result, row?.traits_data);
+  }
+  return result;
+}
+
 export function traitIdsWithChangedData(
   current: TraitDataMongo | undefined,
   previous: TraitDataMongo | undefined

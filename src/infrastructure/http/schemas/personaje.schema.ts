@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CHARACTER_REST_TYPES } from "../../../domain/types/personajes.types";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -153,6 +154,12 @@ export const LearnSpellsSchema = z.object({
       z.string().regex(objectIdRegex, "Cada conjuro debe ser un ObjectId válido de MongoDB")
     )
     .min(1, "Debe indicar al menos un conjuro"),
+});
+
+export const CharacterRestSchema = z.object({
+  type: z.enum(CHARACTER_REST_TYPES, {
+    error: "El descanso debe ser shortRest o longRest",
+  }),
 });
 
 export const BindSpellPrivilegesParamsSchema = z.object({

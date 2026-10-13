@@ -139,7 +139,8 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
         {
           level: 1,
           spellcasting: { cantrips: 3, spellsLearned: 6, slots: { "1": 2 } },
-          traits: [traitId]
+          traits: [traitId],
+          traits_data: { [traitId]: { "{dice}": "2d6" } }
         }
       ]
     });
@@ -165,6 +166,37 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
       ruleset: "sys1",
       name: "Mago",
       levels: [{ level: 1, traits: ["tu-libro-de-conjuros"] }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts traits_data on a level", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      levels: [
+        {
+          level: 1,
+          traits: [traitId],
+          traits_data: { [traitId]: { "{dice}": "2d6", uses: "1" } }
+        }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects traits_data values that are not string maps", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      levels: [
+        {
+          level: 1,
+          traits_data: { [traitId]: { uses: 1 } }
+        }
+      ]
     });
 
     expect(result.success).toBe(false);
@@ -203,6 +235,28 @@ describe("UpdateCharacterClassSchema spellRepository", () => {
 
   it("rejects god when it is not a boolean on update", () => {
     const result = UpdateCharacterClassSchema.safeParse({ god: 1 });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts traits_data on a level", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      levels: [
+        {
+          level: 6,
+          traits: [traitId],
+          traits_data: { [traitId]: { "{dice}": "3d6" } }
+        }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects traits_data values that are not string maps", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      levels: [{ level: 6, traits_data: { [traitId]: ["2d6"] } }]
+    });
+
     expect(result.success).toBe(false);
   });
 });

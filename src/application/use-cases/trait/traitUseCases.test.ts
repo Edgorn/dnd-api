@@ -39,7 +39,8 @@ describe("Trait Use Cases armor type suppression", () => {
       getById: vi.fn()
     };
     attributeServiceMock = {
-      getById: vi.fn()
+      getById: vi.fn(),
+      getBySystems: vi.fn()
     };
     spellServiceMock = {
       getById: vi.fn()
@@ -241,6 +242,50 @@ describe("Trait Use Cases armor type suppression", () => {
 
       expect(traitServiceMock.update).toHaveBeenCalledWith(expect.objectContaining({
         resistances: [damageId]
+      }));
+    });
+
+    it("persists conditional_resistances when the damage type belongs to the system or an ancestor", async () => {
+      damageServiceMock.getById.mockResolvedValue({ id: damageId, ruleset: "parent" });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        name: "Furia",
+        conditional_resistances: [damageId],
+        conditionalResistanceGroup: "Furia"
+      }, "user1");
+
+      expect(damageServiceMock.getById).toHaveBeenCalledWith(damageId);
+      expect(traitServiceMock.create).toHaveBeenCalledWith(expect.objectContaining({
+        conditional_resistances: [damageId],
+        conditionalResistanceGroup: "Furia"
+      }));
+    });
+
+    it("rejects conditional_resistances when the damage type is outside the system and its ancestors", async () => {
+      damageServiceMock.getById.mockResolvedValue({ id: damageId, ruleset: "other" });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        conditional_resistances: [damageId]
+      }, "user1")).rejects.toMatchObject({
+        message: "El tipo de daño no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("updates conditional_resistances when the damage type belongs to the trait system", async () => {
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      damageServiceMock.getById.mockResolvedValue({ id: damageId, ruleset: "sys1" });
+
+      await updateUseCase().execute({
+        id: "trait1",
+        conditional_resistances: [damageId]
+      }, "user1");
+
+      expect(traitServiceMock.update).toHaveBeenCalledWith(expect.objectContaining({
+        conditional_resistances: [damageId]
       }));
     });
 
@@ -544,6 +589,49 @@ describe("Trait Use Cases armor type suppression", () => {
         statusCode: 404
       });
       expect(traitServiceMock.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("abilityScores", () => {
+    const abilityScores = [
+      { key: "str", bonus: 4, max: 24 },
+      { key: "con", bonus: 4, max: 24 }
+    ];
+
+    beforeEach(() => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      traitServiceMock.create.mockResolvedValue({ id: "trait1" });
+      traitServiceMock.update.mockResolvedValue({ id: "trait1" });
+    });
+
+    it("persists abilityScores when the keys belong to the system", async () => {
+      attributeServiceMock.getBySystems.mockResolvedValue([
+        { key: "str" },
+        { key: "con" },
+        { key: "dex" }
+      ]);
+
+      await createUseCase().execute({
+        ...baseTrait,
+        abilityScores
+      }, "user1");
+
+      expect(attributeServiceMock.getBySystems).toHaveBeenCalledWith(["sys1"]);
+      expect(traitServiceMock.create).toHaveBeenCalledWith(expect.objectContaining({ abilityScores }));
+    });
+
+    it("rejects a key that is not in the system", async () => {
+      attributeServiceMock.getBySystems.mockResolvedValue([{ key: "str" }]);
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        abilityScores
+      }, "user1")).rejects.toMatchObject({
+        message: "La característica con no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
     });
   });
 });

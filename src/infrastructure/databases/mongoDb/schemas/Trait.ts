@@ -2,7 +2,6 @@ import mongoose, { Schema } from "mongoose";
 import { TraitMongo } from "../../../../domain/types/traits.types";
 
 const traitSchema: Schema = new Schema<TraitMongo>({
-  index: String,
   name: String,
   description: [String],
   summary: [String],
@@ -32,8 +31,11 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   damageChoiceRef: { type: Schema.Types.Mixed, default: undefined },
   hitPoints: { type: Schema.Types.Mixed, default: undefined },
   action: { type: Schema.Types.Mixed, default: undefined },
+  weaponDamageBonus: { type: Schema.Types.Mixed, default: undefined },
   innateSpells: { type: Schema.Types.Mixed, default: undefined },
+  abilityScores: { type: Schema.Types.Mixed, default: undefined },
   stackGroup: { type: Schema.Types.Mixed, default: undefined },
+  conditionalResistanceGroup: { type: String, default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: 'traits' });
 

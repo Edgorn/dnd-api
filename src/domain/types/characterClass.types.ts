@@ -62,6 +62,8 @@ export interface CharacterClassLevelInput {
   spell_choices?: ChoiceMongo[];
   /** Trait ObjectIds granted at this class level. Omitted on update leaves existing traits. */
   traits?: string[];
+  /** Dynamic trait placeholders for this class level. Omitted on update leaves existing traits_data. */
+  traits_data?: TraitDataMongo;
 }
 
 export interface CharacterClassMulticlassCreate {

@@ -371,7 +371,9 @@ const router = Router();
  *               description: Bono de ataque calculado por el sistema. Solo presente en armas cuando el sistema define attackBonusFormula.
  *             damageBonus:
  *               type: number
- *               description: Bono de daño calculado por el sistema. Solo presente en armas cuando el sistema define damageBonusFormula.
+ *               description: >
+ *                 Bono de daño de la fórmula del sistema. En la ficha de juego se suma el
+ *                 overlay de stances activas (p. ej. Furia en melee con Fuerza). El PDF usa el valor base.
  *     InputCreateEquipment:
  *       type: object
  *       required:

@@ -11,7 +11,9 @@ export default class GenerateCharacterPdf {
   ) {}
 
   async execute(idCharacter: string, userId: string): Promise<Uint8Array> {
-    const character = await this.personajeService.consultarPersonaje(idCharacter, userId);
+    const character = await this.personajeService.consultarPersonaje(idCharacter, userId, {
+      applyActiveTraits: false
+    });
     const link = await this.personajeService.getCampaignLink(idCharacter);
     if (!link) {
       throw new NotFoundError("Personaje no encontrado");

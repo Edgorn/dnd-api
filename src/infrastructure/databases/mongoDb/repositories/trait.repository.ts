@@ -11,7 +11,7 @@ import IAttributeRepository from '../../../../domain/repositories/IAttributeRepo
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait, SPELL_PRIVILEGE_RECHARGES, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUses, TraitWeaponDamageBonus, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait, SPELL_PRIVILEGE_RECHARGES, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import { Damage } from "../../../../domain/types";
@@ -20,6 +20,7 @@ import { SpellApi } from "../../../../domain/types/spell.types";
 import { ConditionApi } from "../../../../domain/types/condition.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import { normalizeTraitSpeed } from "../../../../utils/applyTraitSpeed";
+import { storedSummary, summaryToPersist } from "../../../../utils/traitSummary";
 import { Types } from 'mongoose';
 import { AppError } from '../../../../domain/errors/AppError';
 
@@ -45,14 +46,11 @@ export default class TraitRepository implements ITraitRepository {
     if (!indices.length) return [];
 
     const validMongoIds = indices.filter(item => Types.ObjectId.isValid(item));
-    const stringIndexes = indices.filter(item => !Types.ObjectId.isValid(item));
+    if (!validMongoIds.length) return [];
 
     const traits = await TraitSchema.find({
       deletedAt: null,
-      $or: [
-        { _id: { $in: validMongoIds } as any },
-        { index: { $in: stringIndexes } }
-      ]
+      _id: { $in: validMongoIds } as any
     });
 
     const traitsFormateados = await this.formatearTraits(traits, data);
@@ -232,7 +230,7 @@ export default class TraitRepository implements ITraitRepository {
       let summary_aux = [...(trait.summary ?? [])];
 
       if (data) {
-        const traitData = data[trait.index] ?? data[trait._id.toString()];
+        const traitData = data[trait._id.toString()];
 
         if (traitData) {
           Object.keys(traitData).forEach(d => {
@@ -247,14 +245,14 @@ export default class TraitRepository implements ITraitRepository {
       }
 
       const description = description_aux ?? [];
-      const summary = (summary_aux?.length ? summary_aux : description);
+      const summary = storedSummary(summary_aux);
 
       const skills = (trait.skills ?? [])
         .map(idx => skillMap.get(idx)?.id)
         .filter((item): item is string => !!item);
 
       return {
-        id: trait.index ?? trait._id.toString(),
+        id: trait._id.toString(),
         name: trait.name,
         description: description,
         summary: summary,
@@ -284,8 +282,13 @@ export default class TraitRepository implements ITraitRepository {
         ...(trait.damageChoiceRef ? { damageChoiceRef: trait.damageChoiceRef } : {}),
         ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {}),
         ...this.formatAction(trait.action),
+        ...this.formatWeaponDamageBonus(trait.weaponDamageBonus),
         ...this.formatInnateSpells(trait.innateSpells, spellMap, saveAttributeMap),
-        ...(trait.stackGroup ? { stackGroup: trait.stackGroup } : {})
+        ...(Array.isArray(trait.abilityScores) && trait.abilityScores.length
+          ? { abilityScores: trait.abilityScores }
+          : {}),
+        ...(trait.stackGroup ? { stackGroup: trait.stackGroup } : {}),
+        ...(trait.conditionalResistanceGroup ? { conditionalResistanceGroup: trait.conditionalResistanceGroup } : {})
       };
     });
   }
@@ -296,9 +299,10 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, innateSpells, stackGroup, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, innateSpells, abilityScores, stackGroup, conditionalResistanceGroup, ...rest } = trait;
     return {
       ...rest,
+      summary: summaryToPersist(trait.summary, trait.description),
       ...(typeof acFormula === "string" ? { acFormula } : {}),
       ...(Array.isArray(suppressedByArmorTypeIds) ? { suppressedByArmorTypeIds } : {}),
       ...(Array.isArray(ignoresArmorSpeedPenaltyForTypeIds) ? { ignoresArmorSpeedPenaltyForTypeIds } : {}),
@@ -309,8 +313,11 @@ export default class TraitRepository implements ITraitRepository {
       ...(damageChoiceRef ? { damageChoiceRef } : {}),
       ...(hitPoints ? { hitPoints } : {}),
       ...(action ? { action } : {}),
+      ...(weaponDamageBonus ? { weaponDamageBonus } : {}),
       ...(innateSpells ? { innateSpells } : {}),
-      ...(stackGroup ? { stackGroup } : {})
+      ...(Array.isArray(abilityScores) ? { abilityScores } : {}),
+      ...(stackGroup ? { stackGroup } : {}),
+      ...(typeof conditionalResistanceGroup === "string" ? { conditionalResistanceGroup } : {})
     };
   }
 
@@ -329,11 +336,17 @@ export default class TraitRepository implements ITraitRepository {
       damageChoiceRef,
       hitPoints,
       action,
+      weaponDamageBonus,
       innateSpells,
+      abilityScores,
       stackGroup,
+      conditionalResistanceGroup,
       ...rest
     } = updateFields;
     const $set: Record<string, unknown> = { ...rest };
+    if (Array.isArray(rest.summary) && Array.isArray(rest.description)) {
+      $set.summary = summaryToPersist(rest.summary, rest.description);
+    }
     const $unset: Record<string, 1> = {};
 
     if (typeof acFormula === "string") {
@@ -361,8 +374,11 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "damageChoiceRef", damageChoiceRef);
     this.assignNullable($set, $unset, "hitPoints", hitPoints);
     this.assignNullable($set, $unset, "action", action);
+    this.assignNullable($set, $unset, "weaponDamageBonus", weaponDamageBonus);
     this.assignNullable($set, $unset, "innateSpells", innateSpells);
+    this.assignNullable($set, $unset, "abilityScores", abilityScores);
     this.assignNullable($set, $unset, "stackGroup", stackGroup);
+    this.assignNullable($set, $unset, "conditionalResistanceGroup", conditionalResistanceGroup);
 
     return { $set, $unset };
   }
@@ -614,22 +630,97 @@ export default class TraitRepository implements ITraitRepository {
     if (!action || typeof action !== "object") return {};
     if (!TRAIT_ACTIVATIONS.includes(action.activation)) return {};
 
+    const kind = TRAIT_ACTION_KINDS.includes(action.kind as typeof TRAIT_ACTION_KINDS[number])
+      ? action.kind
+      : "instant";
     const recharge = action.recharge;
     const validRecharge = recharge === null
       || recharge === "shortRest"
       || recharge === "longRest"
       || recharge === "shortOrLongRest";
+    const usesByClassLevel = this.formatUsesByClassLevel(action.usesByClassLevel);
+    const duration = this.formatDuration(action.duration);
 
     return {
       action: {
         activation: action.activation,
+        kind,
+        ...(action.deactivateActivation && TRAIT_ACTIVATIONS.includes(action.deactivateActivation)
+          ? { deactivateActivation: action.deactivateActivation }
+          : {}),
+        ...(duration ? { duration } : {}),
         ...(typeof action.saveDcFormula === "string" && action.saveDcFormula.length > 0
           ? { saveDcFormula: action.saveDcFormula }
           : {}),
-        ...(typeof action.uses === "number" ? { uses: action.uses } : {}),
+        ...(this.isTraitUses(action.uses) ? { uses: action.uses } : {}),
+        ...(usesByClassLevel ? { usesByClassLevel } : {}),
         ...(validRecharge ? { recharge } : {})
       }
     };
+  }
+
+  private formatWeaponDamageBonus(
+    bonus: TraitWeaponDamageBonus | undefined
+  ): { weaponDamageBonus: TraitWeaponDamageBonus } | Record<string, never> {
+    if (!bonus || typeof bonus !== "object") return {};
+    if (!(TRAIT_WEAPON_DAMAGE_BONUS_WHENS as readonly string[]).includes(bonus.when)) return {};
+    if (typeof bonus.melee !== "boolean") return {};
+
+    const amountByClassLevel = this.formatAmountByClassLevel(bonus.amountByClassLevel);
+    const abilityKeys = Array.isArray(bonus.abilityKeys)
+      ? bonus.abilityKeys.filter(key => typeof key === "string" && key.length > 0)
+      : [];
+    const hasAmount = typeof bonus.amount === "number" && Number.isInteger(bonus.amount) && bonus.amount >= 1;
+    if (!hasAmount && !amountByClassLevel) return {};
+
+    return {
+      weaponDamageBonus: {
+        when: bonus.when,
+        melee: bonus.melee,
+        ...(abilityKeys.length ? { abilityKeys } : {}),
+        ...(hasAmount ? { amount: bonus.amount } : {}),
+        ...(amountByClassLevel ? { amountByClassLevel } : {})
+      }
+    };
+  }
+
+  private formatDuration(duration: TraitAction["duration"]): TraitAction["duration"] | undefined {
+    if (!duration || typeof duration !== "object") return undefined;
+    if (typeof duration.value !== "number" || duration.value <= 0) return undefined;
+    if (!(TRAIT_DURATION_UNITS as readonly string[]).includes(duration.unit)) return undefined;
+    return { value: duration.value, unit: duration.unit };
+  }
+
+  private isTraitUses(uses: TraitUses | undefined): uses is TraitUses {
+    return uses === "unlimited" || (typeof uses === "number" && Number.isInteger(uses) && uses >= 1);
+  }
+
+  private formatUsesByClassLevel(
+    map: TraitAction["usesByClassLevel"]
+  ): TraitAction["usesByClassLevel"] | undefined {
+    if (!map || typeof map !== "object") return undefined;
+    const result: TraitAction["usesByClassLevel"] = {};
+    for (const [key, value] of Object.entries(map)) {
+      const level = Number(key);
+      if (!Number.isInteger(level) || level < 1 || level > 20) continue;
+      if (!this.isTraitUses(value)) continue;
+      result[String(level)] = value;
+    }
+    return Object.keys(result).length ? result : undefined;
+  }
+
+  private formatAmountByClassLevel(
+    map: Record<string, number> | undefined
+  ): Record<string, number> | undefined {
+    if (!map || typeof map !== "object") return undefined;
+    const result: Record<string, number> = {};
+    for (const [key, value] of Object.entries(map)) {
+      const level = Number(key);
+      if (!Number.isInteger(level) || level < 1 || level > 20) continue;
+      if (typeof value !== "number" || !Number.isInteger(value) || value < 1) continue;
+      result[String(level)] = value;
+    }
+    return Object.keys(result).length ? result : undefined;
   }
 
   private async formatTraitChoice(choice: ChoiceMongo | undefined): Promise<ChoiceApi<TraitApi> | undefined> {

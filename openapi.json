@@ -122,7 +122,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "ID de MongoDB o clave index del rasgo."
+            "description": "ID de MongoDB del rasgo."
           },
           "ruleset": {
             "type": "string",
@@ -144,7 +144,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Resumen rápido de los efectos del rasgo."
+            "description": "Resumen rápido de los efectos del rasgo. Puede ser un array vacío: el GET de catálogo no lo rellena desde description. En ficha o PDF, si está vacío se usa description.\n"
           },
           "incompatible_traits": {
             "type": "array",
@@ -175,6 +175,17 @@
             },
             "description": "Resistencias fijas a tipos de daño que otorga el rasgo."
           },
+          "conditional_resistances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Damage"
+            },
+            "description": "Resistencias condicionales (p. ej. mientras estás enfurecido). En GET van hidratadas."
+          },
+          "conditionalResistanceGroup": {
+            "type": "string",
+            "description": "Nombre de agrupación en la ficha. Varios rasgos con el mismo valor unen sus resistencias condicionales (p. ej. Furia y el espíritu tótem oso). Si falta, se usa el nombre del rasgo.\n"
+          },
           "spellPrivileges": {
             "type": "array",
             "items": {
@@ -185,6 +196,13 @@
           "innateSpells": {
             "$ref": "#/components/schemas/TraitInnateSpells",
             "description": "Magia innata del rasgo (p. ej. Linaje Infernal). Independiente de spellPrivileges. En GET, ability y cada grant.spell van hidratados.\n"
+          },
+          "abilityScores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraitAbilityScore"
+            },
+            "description": "Bonos de puntuación de característica que aplica el rasgo al leer la ficha (p. ej. Campeón Primordial: +4 a str y con, máximo 24). No se persisten en el personaje. max es el tope de esa característica mientras el rasgo esté activo.\n"
           },
           "speed": {
             "$ref": "#/components/schemas/TraitSpeed",
@@ -265,8 +283,12 @@
             "description": "Bono de puntos de golpe por nivel. scope class suma por nivel de la clase que otorga el rasgo; scope character suma por nivel total del personaje.\n"
           },
           "action": {
-            "$ref": "#/components/schemas/TraitAction",
-            "description": "Acción declarativa del rasgo. En la ficha, si hay saveDcFormula, se calcula saveDc y {dc} de la descripción y del resumen se sustituye por ese número.\n"
+            "$ref": "#/components/schemas/TraitActionSheet",
+            "description": "Acción en lectura. Incluye remaining, active y saveDc calculados. Para POST/PUT use TraitAction (sin esos campos). `{dc}` de la descripción se sustituye por saveDc. remaining es uses resuelto menos spent.\n"
+          },
+          "weaponDamageBonus": {
+            "$ref": "#/components/schemas/TraitWeaponDamageBonus",
+            "description": "Bono de daño a armas mientras el rasgo está activo (p. ej. Furia). No se aplica en el PDF; solo en la ficha de juego cuando la stance está on.\n"
           }
         }
       },
@@ -463,8 +485,70 @@
           }
         }
       },
+      "TraitDuration": {
+        "type": "object",
+        "required": [
+          "value",
+          "unit"
+        ],
+        "properties": {
+          "value": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Cantidad de duración."
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "minute"
+            ],
+            "description": "Unidad de la duración."
+          }
+        }
+      },
+      "TraitWeaponDamageBonus": {
+        "type": "object",
+        "required": [
+          "when",
+          "melee"
+        ],
+        "properties": {
+          "when": {
+            "type": "string",
+            "enum": [
+              "active"
+            ],
+            "description": "Cuándo se aplica el bono. active solo con la stance encendida."
+          },
+          "melee": {
+            "type": "boolean",
+            "description": "Si es true, solo armas cuerpo a cuerpo."
+          },
+          "abilityKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Claves de atributo con las que debe hacerse el ataque (p. ej. str)."
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Bono fijo o valor resuelto en la ficha según amountByClassLevel y el nivel de la clase que otorga el rasgo. Obligatorio si no hay amountByClassLevel.\n"
+          },
+          "amountByClassLevel": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Bono por nivel de la clase que otorga el rasgo (claves \"1\"..\"20\"). Se usa el mayor nivel menor o igual al de esa clase.\n"
+          }
+        }
+      },
       "TraitAction": {
         "type": "object",
+        "description": "Acción de catálogo para POST/PUT /traits. Zod rechaza remaining, active y saveDc (schema strict). En la ficha el GET usa TraitActionSheet.\n",
         "required": [
           "activation"
         ],
@@ -478,9 +562,1233 @@
             ],
             "description": "Tipo de activación."
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "instant",
+              "stance"
+            ],
+            "default": "instant",
+            "description": "instant gasta un uso y acaba. stance se mantiene activa (p. ej. Furia)."
+          },
+          "deactivateActivation": {
+            "type": "string",
+            "enum": [
+              "action",
+              "bonusAction",
+              "reaction"
+            ],
+            "description": "Cómo se apaga una stance. Furia usa bonusAction."
+          },
+          "duration": {
+            "$ref": "#/components/schemas/TraitDuration",
+            "description": "Duración declarativa de la stance. No se temporiza en servidor."
+          },
           "saveDcFormula": {
             "type": "string",
-            "description": "Fórmula de la CD de salvación. Admite @proficiencyBonus y\n"
+            "description": "Fórmula de la CD de salvación. Admite `@proficiencyBonus` y `@attributes.{key}.modifier`. Ejemplo: `8 + @attributes.con.modifier + @proficiencyBonus`\n"
+          },
+          "uses": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "unlimited"
+                ]
+              }
+            ],
+            "description": "Usos del catálogo o unlimited. En la ficha, si hay usesByClassLevel, TraitActionSheet.uses queda resuelto según el nivel de la clase otorgante.\n"
+          },
+          "usesByClassLevel": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "unlimited"
+                  ]
+                }
+              ]
+            },
+            "description": "Usos por nivel de la clase otorgante (claves \"1\"..\"20\"). En la ficha se usa el mayor nivel menor o igual al de esa clase.\n"
+          },
+          "recharge": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "shortRest",
+              "longRest",
+              "shortOrLongRest"
+            ],
+            "description": "Cuándo POST `/character/{id}/rest` pone spent a 0. null si no se recargan o si uses es unlimited.\n"
+          }
+        }
+      },
+      "TraitActionSheet": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TraitAction"
+          },
+          {
+            "type": "object",
+            "description": "Campos solo de lectura en GET de rasgo o ficha.",
+            "properties": {
+              "remaining": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "unlimited"
+                    ]
+                  }
+                ],
+                "description": "uses resuelto menos traitResources[].spent, o unlimited.\n"
+              },
+              "active": {
+                "type": "boolean",
+                "description": "True si kind es stance y el id está en activeTraitIds."
+              },
+              "saveDc": {
+                "type": "number",
+                "description": "CD calculada con saveDcFormula. Sustituye `{dc}`."
+              }
+            }
+          }
+        ]
+      },
+      "TraitCatalogChoice": {
+        "type": "object",
+        "required": [
+          "key",
+          "grants"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave única de la elección dentro del rasgo. El personaje la usa en traitChoices.",
+            "example": "favoredTerrain"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "optional",
+              "required"
+            ],
+            "description": "Si se omite, la elección no admite idioma. optional permite languageId nulo. required exige un idioma del catálogo de los sistemas del personaje.\n"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "creatureTypes"
+            ],
+            "description": "Origen dinámico de las opciones. Con creatureTypes se genera una opción por cada tipo de criatura del sistema del personaje y de sus ancestros. El nombre guardado es el id del tipo. Las options manuales, si se envían, se añaden a las generadas. Si se omite, options es obligatorio.\n"
+          },
+          "creatureTypeRaces": {
+            "type": "array",
+            "description": "Solo con source creatureTypes. Marca qué tipos exigen elegir N razas de ese tipo. El resto de tipos se elige sin razas. Los ids no se repiten.\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "creatureTypeId",
+                "races",
+                "label"
+              ],
+              "properties": {
+                "creatureTypeId": {
+                  "type": "string",
+                  "description": "ID de MongoDB del tipo de criatura que exige razas."
+                },
+                "races": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Cuántas razas de ese tipo hay que elegir.",
+                  "example": 2
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Plantilla de la ficha. Debe incluir {0}, {1}, y así hasta races - 1.\n",
+                  "example": "{0} y {1}"
+                },
+                "creatureType": {
+                  "$ref": "#/components/schemas/CreatureType",
+                  "description": "Tipo de criatura hidratado."
+                }
+              }
+            }
+          },
+          "options": {
+            "type": "array",
+            "description": "Opciones escritas a mano. Obligatorias si no hay source. Con source son opcionales y se suman a las generadas.\n",
+            "items": {
+              "$ref": "#/components/schemas/TraitCatalogOption"
+            }
+          },
+          "grants": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Cuántas opciones nuevas se eligen al alcanzar cada nivel de la clase. Los niveles no se repiten. Si no hay source y ninguna opción es repeatable, la suma de choose no puede superar las opciones.\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "atLevel",
+                "choose"
+              ],
+              "properties": {
+                "atLevel": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Nivel de clase en el que se concede la elección.",
+                  "example": 1
+                },
+                "choose": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Opciones nuevas que hay que añadir en ese nivel.",
+                  "example": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "TraitCatalogOption": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre único de la opción. En una opción simple es el valor que se guarda y la etiqueta de la ficha.",
+            "example": "Bosque"
+          },
+          "inputs": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Cuántos textos libres pide esta opción. Si existe, label es obligatorio y usa {0}, {1}, y así sucesivamente.\n",
+            "example": 2
+          },
+          "repeatable": {
+            "type": "boolean",
+            "description": "Si es true, la misma opción puede elegirse varias veces. Si se omite, no se repite."
+          },
+          "label": {
+            "type": "string",
+            "description": "Plantilla de la ficha. Sustituye {0}, {1}, … por los textos libres o por los nombres de las razas elegidas.\n",
+            "example": "{0} y {1}"
+          },
+          "creatureTypeId": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de criatura. El nombre de la opción sigue siendo la clave que el personaje guarda en traitChoices.\n"
+          },
+          "races": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Cuántas razas de ese tipo de criatura pide esta opción. Es excluyente con inputs. Si existe, label es obligatorio y usa {0}, {1}, y así sucesivamente.\n",
+            "example": 2
+          },
+          "creatureType": {
+            "$ref": "#/components/schemas/CreatureType",
+            "description": "Tipo de criatura hidratado."
+          },
+          "eligibleRaces": {
+            "type": "array",
+            "description": "Razas del sistema que pertenecen a este tipo. Solo aparece en las opciones generadas por source creatureTypes cuando ese tipo exige razas.\n",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID de MongoDB de la raza."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nombre de la raza.",
+                  "example": "Orco"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ResolvedCatalogChoice": {
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Nombre de la opción, o la plantilla label con los textos ya sustituidos.",
+            "example": "Orcos y Trasgos"
+          },
+          "language": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Language"
+              }
+            ],
+            "description": "Idioma hidratado. Solo aparece si la elección admite idioma. Nulo si no hablan o el idioma no está en el catálogo.\n"
+          },
+          "creatureType": {
+            "$ref": "#/components/schemas/CreatureType",
+            "description": "Tipo de criatura de la opción elegida, si la opción lo referencia."
+          },
+          "races": {
+            "type": "array",
+            "description": "Razas elegidas para esa opción, con su id y su nombre.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID de MongoDB de la raza."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nombre de la raza, usado para sustituir la plantilla.",
+                  "example": "Orcos"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TraitDamageChoiceRef": {
+        "type": "object",
+        "required": [
+          "traitId",
+          "choiceKey"
+        ],
+        "properties": {
+          "traitId": {
+            "type": "string",
+            "description": "ID de MongoDB del rasgo que define la tabla."
+          },
+          "choiceKey": {
+            "type": "string",
+            "description": "Clave de la elección en ese rasgo."
+          },
+          "grantsResistance": {
+            "type": "boolean",
+            "description": "Si es true, los daños elegidos se unen a las resistencias del personaje."
+          }
+        }
+      },
+      "ResolvedDamageChoice": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre de la fila elegida."
+          },
+          "damage": {
+            "$ref": "#/components/schemas/Damage"
+          },
+          "area": {
+            "$ref": "#/components/schemas/TraitArea",
+            "description": "Área de la fila elegida."
+          },
+          "saveAttribute": {
+            "$ref": "#/components/schemas/Attribute",
+            "description": "Atributo de salvación de la fila elegida."
+          }
+        }
+      },
+      "TraitCompanionRoster": {
+        "type": "object",
+        "required": [
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "Orientación de UI (no es una regla de servidor)."
+          },
+          "suggestedRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Roles sugeridos; el cliente puede mostrarlos, no son un enumerado."
+          }
+        }
+      },
+      "TraitSpeed": {
+        "type": "object",
+        "description": "Un rasgo define un único efecto de velocidad. `set` aumenta el modo hasta el valor indicado (nunca reduce). `add` suma. `equalToWalk` copia la velocidad de caminar al modo indicado al final. `condition` por ahora solo admite `always` (o puede omitirse).\n",
+        "properties": {
+          "set": {
+            "$ref": "#/components/schemas/MovementSpeeds",
+            "description": "Aumenta cada modo hasta este valor (por ejemplo, Pies Veloces a 35 pies)."
+          },
+          "add": {
+            "$ref": "#/components/schemas/MovementSpeeds",
+            "description": "Suma pies a cada modo indicado."
+          },
+          "equalToWalk": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "fly",
+                "climb",
+                "swim",
+                "burrow"
+              ]
+            },
+            "description": "Tras set y add, esos modos quedan al menos iguales a walk."
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "always"
+            ],
+            "description": "Condición de aplicación. Por ahora el único valor válido es always."
+          }
+        }
+      },
+      "MovementSpeeds": {
+        "type": "object",
+        "properties": {
+          "walk": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "fly": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "climb": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "swim": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "burrow": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      },
+      "SpellPrivilegeRule": {
+        "type": "object",
+        "required": [
+          "choose",
+          "source",
+          "filter",
+          "alwaysPrepared",
+          "countsTowardPreparedCap",
+          "freeCast",
+          "replace"
+        ],
+        "properties": {
+          "choose": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número de conjuros que el personaje debe vincular a esta regla."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "known",
+              "classList"
+            ],
+            "description": "Origen de los conjuros elegibles. `known` exige que estén en los conocidos de la clase (p. ej. libro de conjuros); `classList` usa la lista de la clase.\n"
+          },
+          "filter": {
+            "type": "object",
+            "required": [
+              "level"
+            ],
+            "properties": {
+              "level": {
+                "description": "Nivel de conjuro exigido (número o lista de niveles).",
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "alwaysPrepared": {
+            "type": "boolean",
+            "description": "Si es true, los conjuros vinculados se consideran siempre preparados."
+          },
+          "countsTowardPreparedCap": {
+            "type": "boolean",
+            "description": "Si es false, no cuentan para el tope de conjuros preparables."
+          },
+          "freeCast": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "slotLevel": {
+                "type": "string",
+                "enum": [
+                  "spellLevel"
+                ],
+                "description": "El lanzamiento sin ranura usa el nivel del propio conjuro."
+              },
+              "uses": {
+                "description": "Usos sin ranura (`unlimited` o un entero positivo).",
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "unlimited"
+                    ]
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                ]
+              },
+              "recharge": {
+                "nullable": true,
+                "type": "string",
+                "enum": [
+                  "shortRest",
+                  "longRest",
+                  "shortOrLongRest"
+                ],
+                "description": "Recarga de los usos sin ranura. Nulo si es a voluntad."
+              }
+            }
+          },
+          "replace": {
+            "nullable": true,
+            "type": "object",
+            "description": "Si está presente, se pueden sustituir los conjuros vinculados.",
+            "properties": {
+              "hours": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Horas de estudio que el cliente debe exigir antes de sustituir."
+              },
+              "sameLevel": {
+                "type": "boolean",
+                "description": "Si el sustituto debe ser del mismo nivel."
+              }
+            }
+          }
+        }
+      },
+      "TraitInnateSpellGrant": {
+        "type": "object",
+        "required": [
+          "spellId",
+          "atLevel",
+          "slotLevel",
+          "uses",
+          "recharge"
+        ],
+        "properties": {
+          "spellId": {
+            "type": "string",
+            "description": "ID de MongoDB del conjuro."
+          },
+          "atLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel de personaje a partir del cual se concede el conjuro."
+          },
+          "slotLevel": {
+            "description": "Nivel de ranura al lanzar. spellLevel usa el nivel del conjuro. Los trucos solo admiten spellLevel. Un entero de 1 a 9 fija la ranura.\n",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "spellLevel"
+                ]
+              },
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9
+              }
+            ]
+          },
+          "uses": {
+            "description": "Usos (`unlimited` o un entero positivo).",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "unlimited"
+                ]
+              },
+              {
+                "type": "integer",
+                "minimum": 1
+              }
+            ]
+          },
+          "recharge": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "shortRest",
+              "longRest",
+              "shortOrLongRest"
+            ],
+            "description": "Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad."
+          },
+          "spell": {
+            "$ref": "#/components/schemas/Spell",
+            "description": "Conjuro hidratado. Solo aparece en las respuestas GET."
+          }
+        }
+      },
+      "TraitInnateSpells": {
+        "type": "object",
+        "required": [
+          "abilityId",
+          "grants"
+        ],
+        "properties": {
+          "abilityId": {
+            "type": "string",
+            "description": "ID de MongoDB del atributo de característica para la CD y el ataque."
+          },
+          "ability": {
+            "$ref": "#/components/schemas/Attribute",
+            "description": "Atributo hidratado. Solo aparece en las respuestas GET."
+          },
+          "grants": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitInnateSpellGrant"
+            },
+            "description": "Conjuros concedidos. Un mismo conjuro no puede repetirse."
+          }
+        }
+      },
+      "TraitInnateSpellGrantInput": {
+        "type": "object",
+        "required": [
+          "spellId",
+          "atLevel",
+          "slotLevel",
+          "uses",
+          "recharge"
+        ],
+        "properties": {
+          "spellId": {
+            "type": "string",
+            "description": "ID de MongoDB del conjuro del sistema o de un ancestro."
+          },
+          "atLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel de personaje a partir del cual se concede el conjuro."
+          },
+          "slotLevel": {
+            "description": "Nivel de ranura al lanzar. spellLevel usa el nivel del conjuro. Los trucos solo admiten spellLevel.\n",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "spellLevel"
+                ]
+              },
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9
+              }
+            ]
+          },
+          "uses": {
+            "description": "Usos (`unlimited` o un entero positivo).",
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "unlimited"
+                ]
+              },
+              {
+                "type": "integer",
+                "minimum": 1
+              }
+            ]
+          },
+          "recharge": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "shortRest",
+              "longRest",
+              "shortOrLongRest"
+            ],
+            "description": "Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad."
+          }
+        }
+      },
+      "TraitInnateSpellsInput": {
+        "type": "object",
+        "required": [
+          "abilityId",
+          "grants"
+        ],
+        "properties": {
+          "abilityId": {
+            "type": "string",
+            "description": "ID de MongoDB del atributo de característica del sistema o de un ancestro."
+          },
+          "grants": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitInnateSpellGrantInput"
+            }
+          }
+        }
+      },
+      "TraitStackGroup": {
+        "type": "object",
+        "required": [
+          "key",
+          "policy"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Identificador del grupo (p. ej. extra-attack, unarmored-defense)."
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "exclusive",
+              "max"
+            ],
+            "description": "exclusive no acumula; max se queda el rank mayor y sustituye el rasgo anterior."
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Obligatorio si policy es max (p. ej. Ataque Adicional 2, 3 o 4)."
+          }
+        }
+      },
+      "TraitAbilityScore": {
+        "type": "object",
+        "required": [
+          "key",
+          "bonus"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave de la característica del sistema (p. ej. str, con)."
+          },
+          "bonus": {
+            "type": "integer",
+            "description": "Incremento (o penalización) de la puntuación. No puede ser 0."
+          },
+          "max": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Tope de esa característica mientras el rasgo esté activo (p. ej. 24)."
+          }
+        }
+      },
+      "InputCreateTrait": {
+        "type": "object",
+        "description": "Cuerpo de POST /traits. No use Trait de lectura: IDs, no objetos hidratados. action es TraitAction. damageChoices.options es name y damageTypeId, sin id.\n",
+        "required": [
+          "ruleset",
+          "name"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "ID o nombre del sistema de reglas de destino."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del rasgo."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Párrafos de descripción."
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Párrafos de resumen. Opcional; si falta o es [] no se copia description. Si coincide con description, se persiste como [].\n"
+          },
+          "incompatible_traits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista de índices o IDs de rasgos incompatibles."
+          },
+          "stackGroup": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitStackGroup"
+              }
+            ],
+            "nullable": true,
+            "description": "Grupo de acumulación. null borra el campo."
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista de IDs de habilidades (skills) que otorga el rasgo."
+          },
+          "resistances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de daño del sistema o de sus ancestros. Si se omite, queda vacío."
+          },
+          "conditional_resistances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de daño condicionales del sistema o de sus ancestros. Si se omite, queda vacío."
+          },
+          "conditionalResistanceGroup": {
+            "type": "string",
+            "description": "Nombre de agrupación de resistencias condicionales en la ficha (p. ej. Furia)."
+          },
+          "spellPrivileges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpellPrivilegeRule"
+            },
+            "description": "Reglas de privilegio de conjuro que otorga el rasgo."
+          },
+          "innateSpells": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitInnateSpellsInput"
+              }
+            ],
+            "description": "Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges. null borra el campo. grants no puede estar vacío ni repetir spellId. Si uses es unlimited, recharge debe ser null.\n"
+          },
+          "abilityScores": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitAbilityScore"
+            },
+            "description": "Bonos y topes de característica. Cada key debe existir en el sistema o un ancestro y no repetirse. null borra el campo.\n"
+          },
+          "speed": {
+            "$ref": "#/components/schemas/TraitSpeed",
+            "description": "Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always."
+          },
+          "acFormula": {
+            "type": "string",
+            "nullable": true,
+            "description": "Fórmula de CA sin armadura."
+          },
+          "suppressedByArmorTypeIds": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
+          },
+          "ignoresArmorSpeedPenaltyForTypeIds": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) para los que no se resta la penalización de velocidad al no cumplir el atributo mínimo. null borra el campo."
+          },
+          "equipmentRestriction": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EquipmentRestriction"
+              }
+            ],
+            "description": "Restricción de material al equipar. null borra el campo. block rechaza el equipado; warn lo permite para que el cliente avise.\n"
+          },
+          "companionRoster": {
+            "$ref": "#/components/schemas/TraitCompanionRoster",
+            "description": "Pista de UI. count no se exige al crear o actualizar el personaje."
+          },
+          "languages": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitLanguagesInput"
+              }
+            ],
+            "description": "Idiomas concedidos. null borra el campo."
+          },
+          "damageChoices": {
+            "nullable": true,
+            "type": "array",
+            "description": "Tabla de elecciones de daño. null borra el campo.",
+            "items": {
+              "$ref": "#/components/schemas/TraitDamageChoiceInput"
+            }
+          },
+          "catalogChoices": {
+            "nullable": true,
+            "type": "array",
+            "description": "Elecciones de catálogo por nombre, con concesiones por nivel de clase. null borra el campo. Los nombres son únicos, choose es al menos 1 y los niveles de grants no se repiten. Si ninguna opción es repeatable, la suma de choose no supera las opciones. Una opción con inputs exige label.\n",
+            "items": {
+              "$ref": "#/components/schemas/TraitCatalogChoice"
+            }
+          },
+          "damageChoiceRef": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitDamageChoiceRef"
+              }
+            ],
+            "description": "Referencia a la tabla de otro rasgo. null borra el campo."
+          },
+          "hitPoints": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitHitPoints"
+              }
+            ],
+            "description": "Bono de PG por nivel. null borra el campo."
+          },
+          "action": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitAction"
+              }
+            ],
+            "description": "Acción de catálogo (TraitAction). null borra el campo. saveDcFormula admite `@proficiencyBonus` y `@attributes.{key}.modifier`. kind por defecto es instant.\n"
+          },
+          "weaponDamageBonus": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitWeaponDamageBonus"
+              }
+            ],
+            "description": "Bono de daño a armas mientras la stance está activa. null borra el campo."
+          }
+        }
+      },
+      "TraitLanguagesInput": {
+        "type": "object",
+        "properties": {
+          "speaks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de Mongo de idiomas que el personaje pasa a hablar."
+          },
+          "understands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de Mongo de idiomas que el personaje pasa a entender."
+          }
+        }
+      },
+      "TraitDamageChoiceOptionInput": {
+        "type": "object",
+        "description": "Fila de daño en POST/PUT. La clave es name, no hay id. No envíe damage ni saveAttribute hidratados; Zod strict los rechaza.\n",
+        "required": [
+          "name",
+          "damageTypeId"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre único de la fila dentro del rasgo. Es lo que guarda traitChoices."
+          },
+          "damageTypeId": {
+            "type": "string",
+            "description": "ID de MongoDB del tipo de daño del sistema o de un ancestro."
+          },
+          "area": {
+            "$ref": "#/components/schemas/TraitArea",
+            "description": "Área de la opción. width es obligatorio si shape es line."
+          },
+          "saveAttributeId": {
+            "type": "string",
+            "description": "ID de MongoDB del atributo de salvación del sistema o de un ancestro."
+          }
+        }
+      },
+      "TraitDamageChoiceInput": {
+        "type": "object",
+        "required": [
+          "key",
+          "choose",
+          "options"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "choose": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraitDamageChoiceOptionInput"
+            }
+          }
+        }
+      },
+      "InputUpdateTrait": {
+        "type": "object",
+        "description": "Cuerpo de PUT `/traits/{id}`. El id va en la URL. Igual que InputCreateTrait: IDs, no objetos hidratados. action es TraitAction. Opciones de daño sin id.\n",
+        "properties": {
+          "ruleset": {
+            "type": "string",
+            "description": "ID o nombre del sistema de reglas de destino."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del rasgo."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Párrafos de descripción."
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Párrafos de resumen. Opcional; si falta o es [] no se copia description. Si coincide con description, se persiste como [].\n"
+          },
+          "incompatible_traits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista de índices o IDs de rasgos incompatibles."
+          },
+          "stackGroup": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitStackGroup"
+              }
+            ],
+            "nullable": true,
+            "description": "Grupo de acumulación. null borra el campo."
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista de IDs de habilidades (skills) que otorga el rasgo."
+          },
+          "resistances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de daño del sistema o de sus ancestros. Omitirlo no modifica el valor guardado. Un array vacío borra la lista."
+          },
+          "conditional_resistances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de daño condicionales. Omitirlo no modifica el valor guardado. Un array vacío borra la lista."
+          },
+          "conditionalResistanceGroup": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nombre de agrupación de resistencias condicionales. null borra el campo."
+          },
+          "spellPrivileges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpellPrivilegeRule"
+            },
+            "description": "Reglas de privilegio de conjuro que otorga el rasgo."
+          },
+          "innateSpells": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitInnateSpellsInput"
+              }
+            ],
+            "description": "Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges. null borra el campo.\n"
+          },
+          "abilityScores": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitAbilityScore"
+            },
+            "description": "Bonos y topes de característica. null borra el campo."
+          },
+          "speed": {
+            "$ref": "#/components/schemas/TraitSpeed",
+            "description": "Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always."
+          },
+          "acFormula": {
+            "type": "string",
+            "nullable": true,
+            "description": "Fórmula de CA sin armadura."
+          },
+          "suppressedByArmorTypeIds": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) que desactivan el rasgo si el personaje lleva una pieza de ese tipo."
+          },
+          "ignoresArmorSpeedPenaltyForTypeIds": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de tipos de armadura (del sistema o sus ancestros) para los que no se resta la penalización de velocidad al no cumplir el atributo mínimo. null borra el campo."
+          },
+          "equipmentRestriction": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EquipmentRestriction"
+              }
+            ],
+            "description": "Restricción de material al equipar. null borra el campo. block rechaza el equipado; warn lo permite para que el cliente avise.\n"
+          },
+          "companionRoster": {
+            "$ref": "#/components/schemas/TraitCompanionRoster",
+            "description": "Pista de UI. count no se exige al crear o actualizar el personaje."
+          },
+          "languages": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitLanguagesInput"
+              }
+            ],
+            "description": "Idiomas concedidos. null borra el campo."
+          },
+          "damageChoices": {
+            "nullable": true,
+            "type": "array",
+            "description": "Tabla de elecciones de daño. null borra el campo.",
+            "items": {
+              "$ref": "#/components/schemas/TraitDamageChoiceInput"
+            }
+          },
+          "catalogChoices": {
+            "nullable": true,
+            "type": "array",
+            "description": "Elecciones de catálogo por nombre, con concesiones por nivel de clase. null borra el campo.\n",
+            "items": {
+              "$ref": "#/components/schemas/TraitCatalogChoice"
+            }
+          },
+          "damageChoiceRef": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitDamageChoiceRef"
+              }
+            ],
+            "description": "Referencia a la tabla de otro rasgo. null borra el campo."
+          },
+          "hitPoints": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitHitPoints"
+              }
+            ],
+            "description": "Bono de PG por nivel. null borra el campo."
+          },
+          "action": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitAction"
+              }
+            ],
+            "description": "Acción de catálogo (TraitAction). null borra el campo. `{dc}` de la descripción se sustituye en la ficha por la CD calculada con saveDcFormula.\n"
+          },
+          "weaponDamageBonus": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitWeaponDamageBonus"
+              }
+            ],
+            "description": "Bono de daño a armas mientras la stance está activa. null borra el campo."
           }
         }
       },
@@ -3040,7 +4348,15 @@
           },
           "value": {
             "type": "number",
-            "description": "Valor de la característica para el personaje."
+            "description": "Valor de la característica para el personaje, con bonos de rasgo aplicados."
+          },
+          "modifier": {
+            "type": "number",
+            "description": "Modificador calculado con la fórmula del sistema a partir de value."
+          },
+          "max": {
+            "type": "number",
+            "description": "Tope efectivo. Es el máximo del rasgo si algún rasgo lo declara para esa clave; si no, defaultMaxAttributeValue del sistema.\n"
           }
         }
       },
@@ -3540,6 +4856,25 @@
           }
         }
       },
+      "CharacterTraitResource": {
+        "type": "object",
+        "description": "Usos gastados persistidos. remaining no va aquí; se lee en traits[].action.remaining (uses resuelto menos spent).\n",
+        "required": [
+          "traitId",
+          "spent"
+        ],
+        "properties": {
+          "traitId": {
+            "type": "string",
+            "description": "ID del rasgo cuyos usos se cuentan."
+          },
+          "spent": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Usos gastados desde el último descanso que recarga el rasgo. No es remaining."
+          }
+        }
+      },
       "PersonajeApi": {
         "type": "object",
         "properties": {
@@ -3788,8 +5123,23 @@
             "type": "object",
             "description": "Textos dinámicos de rasgos del personaje. No guarda la fila de daño elegida."
           },
+          "traitResources": {
+            "type": "array",
+            "description": "Persistido: traitId y spent. El máximo está en traits[].action.uses (ya resuelto). Los usos que quedan están en traits[].action.remaining. POST `/character/{id}/traits/{traitId}/use` incrementa spent.\n",
+            "items": {
+              "$ref": "#/components/schemas/CharacterTraitResource"
+            }
+          },
+          "activeTraitIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Stances encendidas (p. ej. Furia). Coincide con traits[].action.active. No altera el PDF. POST use las añade; deactivate y rest las quitan.\n"
+          },
           "resistances": {
             "type": "array",
+            "description": "Resistencias permanentes más, en la ficha de juego, las condicionales del grupo de cada stance activa. El PDF no incluye las de stance.\n",
             "items": {
               "$ref": "#/components/schemas/Damage"
             }
@@ -4328,7 +5678,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Resumen del dote."
+            "description": "Resumen del dote. Puede ser un array vacío: el GET de catálogo no lo rellena desde description. En ficha o PDF, si está vacío se usa description.\n"
           },
           "ruleset": {
             "type": "string",
@@ -4482,7 +5832,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Resumen del dote."
+            "description": "Párrafos de resumen. Opcional; si falta o es [] no se copia description. Si coincide con description, se persiste como [].\n"
           },
           "ruleset": {
             "type": "string",
@@ -4509,7 +5859,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Párrafos de resumen. Opcional; si falta o es [] no se copia description. Si coincide con description, se persiste como [].\n"
           },
           "ruleset": {
             "type": "string"
@@ -5069,7 +6420,7 @@
               },
               "damageBonus": {
                 "type": "number",
-                "description": "Bono de daño calculado por el sistema. Solo presente en armas cuando el sistema define damageBonusFormula."
+                "description": "Bono de daño de la fórmula del sistema. En la ficha de juego se suma el overlay de stances activas (p. ej. Furia en melee con Fuerza). El PDF usa el valor base.\n"
               }
             }
           }
@@ -6677,7 +8028,7 @@
             "items": {
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
-            "description": "Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros y traits)."
+            "description": "Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros, traits y traits_data)."
           },
           "abilityScoreProgression": {
             "type": "array",
@@ -6786,6 +8137,16 @@
               "type": "string"
             },
             "description": "IDs de MongoDB de los rasgos otorgados en este nivel de clase. Si se omite en una actualización, se conservan los traits existentes de ese nivel.\n"
+          },
+          "traits_data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "description": "Datos dinámicos de rasgos de este nivel (usos, interpolación de texto). Si se omite en una actualización, se conservan los traits_data existentes de ese nivel.\n"
           }
         }
       },
@@ -7011,7 +8372,7 @@
             "items": {
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
-            "description": "Niveles con tabla de ranuras, elecciones de conjuros y traits (level, spellcasting, spell_choices, traits)."
+            "description": "Niveles con tabla de ranuras, elecciones de conjuros, traits y traits_data (level, spellcasting, spell_choices, traits, traits_data)."
           },
           "abilityScoreProgression": {
             "type": "array",
@@ -7148,7 +8509,7 @@
             "items": {
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
-            "description": "Niveles con tabla de ranuras, elecciones de conjuros y traits; se fusionan por level. Los traits de un nivel solo se sustituyen si el campo viene definido.\n"
+            "description": "Niveles con tabla de ranuras, elecciones de conjuros, traits y traits_data; se fusionan por level. Los traits y traits_data de un nivel solo se sustituyen si el campo viene definido.\n"
           },
           "abilityScoreProgression": {
             "type": "array",
@@ -8730,6 +10091,7 @@
       },
       "post": {
         "summary": "Crear un nuevo rasgo",
+        "description": "Cree el rasgo con InputCreateTrait (IDs, no el schema Trait de lectura). action.uses, usesByClassLevel y recharge se guardan en el catálogo.\n",
         "tags": [
           "Rasgos"
         ],
@@ -8774,6 +10136,7 @@
     "/traits/{id}": {
       "put": {
         "summary": "Modificar un rasgo existente",
+        "description": "Actualice con InputUpdateTrait. El id va en la URL. No infiera el body desde Trait.\n",
         "tags": [
           "Rasgos"
         ],
@@ -11152,6 +12515,7 @@
     "/character/{id}": {
       "get": {
         "summary": "Obtener el detalle completo de un personaje por su ID",
+        "description": "Devuelve la ficha de juego. Las stances activas (p. ej. Furia) aplican overlays:\nresistencias del grupo `conditionalResistanceGroup` y bono de daño melee si el\nataque se resuelve con las `abilityKeys` del rasgo. La Defensa sin Armadura\n(`acFormula`) es permanente y no depende de una stance. El PDF usa datos base,\nsin estos overlays.\n",
         "tags": [
           "Personajes"
         ],
@@ -11200,7 +12564,7 @@
     "/character/{id}/pdf": {
       "get": {
         "summary": "Generar la hoja de personaje en PDF",
-        "description": "Devuelve un archivo PDF con la hoja de personaje rellenada. Solo el dueño del personaje o el master de su campaña pueden generarlo.",
+        "description": "Devuelve un archivo PDF con la hoja de personaje rellenada (datos base: CA y\ndaño sin overlays de stances). Solo el dueño del personaje o el master de su\ncampaña pueden generarlo.\n",
         "tags": [
           "Personajes"
         ],
@@ -11959,7 +13323,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`). Si el nivel de raza cambia `traits_data` respecto al nivel\nanterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se devuelven con\nla descripción y el resumen sustituidos con el `traits_data` del personaje fusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`). Si el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
         "tags": [
           "Personajes"
         ],
@@ -12017,7 +13381,7 @@
                     },
                     "traits": {
                       "type": "array",
-                      "description": "Rasgos automáticos del nuevo nivel de clase (incluye subclase) y rasgos cuyo texto cambia por el traits_data de la raza. La descripción y el resumen ya incluyen traits_data, las elecciones guardadas y la CD de la acción.",
+                      "description": "Rasgos automáticos del nuevo nivel de clase (incluye subclase) y rasgos cuyo texto cambia por el traits_data de la raza, la clase o la subclase. La descripción y el resumen ya incluyen traits_data, las elecciones guardadas y la CD de la acción.",
                       "items": {
                         "$ref": "#/components/schemas/Trait"
                       }
@@ -12141,7 +13505,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `skillPicks` / `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)\no `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos\nmecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `skillPicks` / `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nLa dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
         "tags": [
           "Personajes"
         ],
@@ -12481,6 +13845,203 @@
           },
           "404": {
             "description": "Personaje o rasgo no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/traits/{traitId}/use": {
+      "post": {
+        "summary": "Usar la acción de un rasgo",
+        "description": "Compara `spent` de `traitResources` con `traits[].action.uses` (resuelto con\n`usesByClassLevel` y el nivel de la clase otorgante). Si no quedan usos, 400.\nIncrementa `spent`. Si `action.kind` es stance, añade el id a `activeTraitIds`\n(400 si ya estaba activa). Falla si `suppressedByArmorTypeIds` coincide con\narmadura equipada. `uses: unlimited` no incrementa `spent`. No recarga PG ni conjuros.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "traitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del rasgo."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado con el uso gastado y la stance, si aplica.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sin usos, stance ya activa, rasgo sin acción o suprimido por armadura."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o rasgo no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/traits/{traitId}/deactivate": {
+      "post": {
+        "summary": "Apagar la stance de un rasgo",
+        "description": "Quita el rasgo de `activeTraitIds` (y `traits[].action.active` pasa a false).\nNo modifica `traitResources[].spent` ni `action.remaining`.\nFalla si la stance no estaba activa.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "traitId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del rasgo."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado con la stance apagada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El rasgo no estaba activo."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/rest": {
+      "post": {
+        "summary": "Descanso corto o largo (usos de rasgos)",
+        "description": "Mira `traits[].action.recharge` de cada rasgo. Si encaja con `type`\n(`shortRest`, `longRest` o `shortOrLongRest`), pone `traitResources[].spent` a 0\n(y `action.remaining` vuelve al máximo). Vacía `activeTraitIds`.\nNo toca puntos de golpe, conjuros ni condiciones.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "shortRest",
+                      "longRest"
+                    ],
+                    "description": "Tipo de descanso."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado tras el descanso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tipo de descanso inválido."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje no encontrado."
           },
           "500": {
             "description": "Error del servidor."

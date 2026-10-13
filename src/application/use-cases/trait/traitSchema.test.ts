@@ -717,6 +717,61 @@ describe("UpdateTraitSchema resistances", () => {
   });
 });
 
+describe("CreateTraitSchema conditional_resistances", () => {
+  it("accepts valid damage type ids and defaults to an empty array", () => {
+    const withIds = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia",
+      conditional_resistances: [damageTypeId],
+      conditionalResistanceGroup: "Furia"
+    });
+    const omitted = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia"
+    });
+
+    expect(withIds.success).toBe(true);
+    expect(omitted.success).toBe(true);
+    if (withIds.success) {
+      expect(withIds.data.conditional_resistances).toEqual([damageTypeId]);
+      expect(withIds.data.conditionalResistanceGroup).toBe("Furia");
+    }
+    if (omitted.success) expect(omitted.data.conditional_resistances).toEqual([]);
+  });
+
+  it("rejects an invalid damage type id", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia",
+      conditional_resistances: ["not-an-id"]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an empty conditionalResistanceGroup", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia",
+      conditionalResistanceGroup: ""
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema conditional_resistances", () => {
+  it("accepts an empty array to clear conditional_resistances", () => {
+    const result = UpdateTraitSchema.safeParse({ conditional_resistances: [] });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.conditional_resistances).toEqual([]);
+  });
+
+  it("accepts null to clear conditionalResistanceGroup", () => {
+    const result = UpdateTraitSchema.safeParse({ conditionalResistanceGroup: null });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.conditionalResistanceGroup).toBeNull();
+  });
+});
+
 const lineageOption = {
   name: "Rojo",
   damageTypeId,
@@ -796,6 +851,64 @@ describe("CreateTraitSchema area, save and action", () => {
 
     expect(action.success).toBe(true);
     expect(cleared.success).toBe(true);
+    if (action.success) expect(action.data.action?.kind).toBe("instant");
+  });
+
+  it("accepts a stance with usesByClassLevel and duration", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia",
+      action: {
+        activation: "bonusAction",
+        kind: "stance",
+        deactivateActivation: "bonusAction",
+        duration: { value: 1, unit: "minute" },
+        usesByClassLevel: { "1": 2, "3": 3, "20": "unlimited" },
+        recharge: "longRest"
+      }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects unlimited uses with a recharge on the action", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia",
+      action: {
+        activation: "bonusAction",
+        uses: "unlimited",
+        recharge: "longRest"
+      }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts weaponDamageBonus with amountByClassLevel", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia",
+      weaponDamageBonus: {
+        when: "active",
+        melee: true,
+        abilityKeys: ["str"],
+        amountByClassLevel: { "1": 2, "9": 3, "16": 4 }
+      }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects weaponDamageBonus without amount or amountByClassLevel", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Furia",
+      weaponDamageBonus: { when: "active", melee: true }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts null to clear weaponDamageBonus", () => {
+    const result = UpdateTraitSchema.safeParse({ weaponDamageBonus: null });
+    expect(result.success).toBe(true);
   });
 
   it("rejects a save DC formula with unknown tokens", () => {
@@ -991,5 +1104,43 @@ describe("UpdateTraitSchema stackGroup", () => {
   it("accepts null to clear stackGroup", () => {
     const result = UpdateTraitSchema.safeParse({ stackGroup: null });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("CreateTraitSchema abilityScores", () => {
+  it("accepts primal champion style bonuses", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Campeón Primordial",
+      abilityScores: [
+        { key: "str", bonus: 4, max: 24 },
+        { key: "con", bonus: 4, max: 24 }
+      ]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a zero bonus, duplicate keys and an empty list", () => {
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      abilityScores: [{ key: "str", bonus: 0 }]
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      abilityScores: [{ key: "str", bonus: 2 }, { key: "str", bonus: 2 }]
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      abilityScores: []
+    }).success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema abilityScores", () => {
+  it("accepts null to clear abilityScores", () => {
+    expect(UpdateTraitSchema.safeParse({ abilityScores: null }).success).toBe(true);
   });
 });

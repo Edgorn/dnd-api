@@ -65,6 +65,7 @@ export function resolveWeaponAttackAttributes(
 
 export interface WeaponAttributeStats {
   attributeKeys: string[];
+  attributeKey?: string;
   attributeModifier: number;
   attributeValue: number;
 }
@@ -76,23 +77,27 @@ export function resolveWeaponAttributeStats(
 ): WeaponAttributeStats {
   const attributeKeys = resolveWeaponAttackAttributes(weapon, rules);
 
+  let attributeKey: string | undefined;
   let attributeModifier = 0;
   let attributeValue = 0;
+  let hasModifier = false;
 
   for (const key of attributeKeys) {
     const attr = attributes.find(a => a.key === key);
     const modifier = attr?.modifier ?? 0;
     const value = attr?.value ?? 0;
 
-    if (modifier > attributeModifier) {
+    if (!hasModifier || modifier > attributeModifier) {
+      attributeKey = key;
       attributeModifier = modifier;
+      hasModifier = true;
     }
     if (value > attributeValue) {
       attributeValue = value;
     }
   }
 
-  return { attributeKeys, attributeModifier, attributeValue };
+  return { attributeKeys, attributeKey, attributeModifier, attributeValue };
 }
 
 export function weaponHasTwoHandedProperty(weapon?: Pick<WeaponApi, "properties">): boolean {

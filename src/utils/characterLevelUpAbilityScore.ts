@@ -86,8 +86,19 @@ export function validateLevelUpAbilityScorePick(params: {
   attributes: CharacterAttributeValue[];
   availableFeatIds: Iterable<string>;
   maxAttributeValue?: number;
+  bonusByKey?: Record<string, number>;
+  maxByKey?: Record<string, number>;
 }): { error: string } | LevelUpAbilityScoreResult {
-  const { abilityScoreGranted, increases, featId, attributes, availableFeatIds, maxAttributeValue } = params;
+  const {
+    abilityScoreGranted,
+    increases,
+    featId,
+    attributes,
+    availableFeatIds,
+    maxAttributeValue,
+    bonusByKey,
+    maxByKey
+  } = params;
   const hasIncreases = Boolean(increases && increases.length > 0);
   const hasFeat = Boolean(featId);
 
@@ -114,13 +125,21 @@ export function validateLevelUpAbilityScorePick(params: {
     return { kind: "feat", featId };
   }
 
-  return validateAbilityScoreIncreases(increases ?? [], attributes, maxAttributeValue);
+  return validateAbilityScoreIncreases(
+    increases ?? [],
+    attributes,
+    maxAttributeValue,
+    bonusByKey,
+    maxByKey
+  );
 }
 
 function validateAbilityScoreIncreases(
   increases: AbilityScoreIncrease[],
   attributes: CharacterAttributeValue[],
-  maxAttributeValue?: number
+  maxAttributeValue?: number,
+  bonusByKey: Record<string, number> = {},
+  maxByKey: Record<string, number> = {}
 ): { error: string } | { kind: "increases"; increases: AbilityScoreIncrease[] } {
   if (increases.length < 1 || increases.length > 2) {
     return { error: "abilityScore.increases debe tener 1 o 2 entradas" };
@@ -145,9 +164,10 @@ function validateAbilityScoreIncreases(
       return { error: `El personaje no tiene la característica ${increase.key}` };
     }
 
-    const nextValue = attribute.value + increase.bonus;
-    if (maxAttributeValue !== undefined && nextValue > maxAttributeValue) {
-      return { error: `${increase.key} no puede superar ${maxAttributeValue}` };
+    const nextValue = attribute.value + increase.bonus + (bonusByKey[increase.key] ?? 0);
+    const cap = maxByKey[increase.key] ?? maxAttributeValue;
+    if (cap !== undefined && nextValue > cap) {
+      return { error: `${increase.key} no puede superar ${cap}` };
     }
 
     total += increase.bonus;

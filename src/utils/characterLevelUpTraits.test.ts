@@ -9,6 +9,8 @@ import {
   damageChoiceSourceIdsToLoad,
   mergeClassAndRaceLevelUp,
   mergeLevelUpTraits,
+  mergedTraitsDataAtLevel,
+  mergeTraitDataMaps,
   levelUpTraitIds,
   mergeRaceLevelRows,
   orderTraitsByIds,
@@ -197,6 +199,47 @@ describe("mergeRaceLevelRows", () => {
     const parent = { level: 6, traits_data: { breath: { "{dice}": "3d6" } } };
     expect(mergeRaceLevelRows(parent, undefined)).toEqual(parent);
     expect(mergeRaceLevelRows(undefined, parent)).toEqual(parent);
+  });
+});
+
+describe("mergedTraitsDataAtLevel", () => {
+  const classLevels = [
+    { level: 5, traits_data: { surge: { uses: "1" }, extra: { attacks: "1" } } },
+    { level: 11, traits_data: { extra: { attacks: "2" } } }
+  ];
+  const subclassLevels = [
+    { level: 6, traits_data: { rage: { uses: "4" } } },
+    { level: 11, traits_data: { extra: { die: "1d8" }, rage: { uses: "5" } } }
+  ];
+
+  it("merges class and subclass tokens at the same level, subclass last", () => {
+    expect(mergedTraitsDataAtLevel([classLevels, subclassLevels], 11)).toEqual({
+      extra: { attacks: "2", die: "1d8" },
+      rage: { uses: "5" }
+    });
+  });
+
+  it("returns an empty object when no source has that level", () => {
+    expect(mergedTraitsDataAtLevel([classLevels, subclassLevels], 7)).toEqual({});
+  });
+
+  it("treats a missing previous class/subclass row as a data change", () => {
+    expect(traitIdsWithChangedData(
+      mergedTraitsDataAtLevel([classLevels, subclassLevels], 5),
+      mergedTraitsDataAtLevel([classLevels, subclassLevels], 4)
+    )).toEqual(["surge", "extra"]);
+  });
+
+  it("includes class and subclass ids whose tokens change and skips unchanged race-like data", () => {
+    const previous = mergeTraitDataMaps(
+      mergedTraitsDataAtLevel([classLevels, subclassLevels], 6),
+      { breath: { "{dice}": "2d6" } }
+    );
+    const current = mergeTraitDataMaps(
+      mergedTraitsDataAtLevel([classLevels, subclassLevels], 11),
+      { breath: { "{dice}": "2d6" } }
+    );
+    expect(traitIdsWithChangedData(current, previous)).toEqual(["extra", "rage"]);
   });
 });
 

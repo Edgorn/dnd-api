@@ -615,7 +615,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       level: level.level,
       proficiencies: [],
       traits: level.traits ?? [],
-      traits_data: {},
+      traits_data: level.traits_data ?? {},
       spellcasting: level.spellcasting,
       ...(level.spell_choices !== undefined ? { spell_choices: level.spell_choices } : {})
     }));
@@ -638,14 +638,15 @@ export default class CharacterClassRepository implements ICharacterClassReposito
           ...current,
           spellcasting: row.spellcasting,
           ...(row.spell_choices !== undefined ? { spell_choices: row.spell_choices } : {}),
-          ...(row.traits !== undefined ? { traits: row.traits } : {})
+          ...(row.traits !== undefined ? { traits: row.traits } : {}),
+          ...(row.traits_data !== undefined ? { traits_data: row.traits_data } : {})
         });
       } else {
         byLevel.set(row.level, {
           level: row.level,
           proficiencies: [],
           traits: row.traits ?? [],
-          traits_data: {},
+          traits_data: row.traits_data ?? {},
           spellcasting: row.spellcasting,
           ...(row.spell_choices !== undefined ? { spell_choices: row.spell_choices } : {})
         });
@@ -670,6 +671,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
         if (level.traits?.length) {
           slim.traits = [...level.traits];
+        }
+
+        if (level.traits_data && Object.keys(level.traits_data).length) {
+          slim.traits_data = { ...level.traits_data };
         }
 
         return slim;

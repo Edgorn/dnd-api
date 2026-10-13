@@ -12,6 +12,9 @@
     "migrate:background-legacy": "tsx scripts/migrate-background-legacy-fields.ts",
     "migrate:system-parents": "tsx scripts/migrate-system-parent-ids.ts",
     "migrate:creature-damage-affinities": "tsx scripts/migrate-creature-damage-affinities.ts",
+    "migrate:clear-duplicate-summaries": "tsx scripts/clear-duplicate-summaries.ts",
+    "migrate:delete-legacy-traits": "tsx scripts/delete-legacy-traits.ts",
+    "migrate:strip-trait-legacy-fields": "tsx scripts/strip-trait-legacy-fields.ts",
     "commit:ai": "git commit -F COMMIT_MESSAGE.md && del COMMIT_MESSAGE.md"
   },
   "keywords": [],

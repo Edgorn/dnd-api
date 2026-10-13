@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyArmorStrengthSpeedPenalty,
   applyAttributeBonus,
+  collectEquippedArmorSuppression,
   collectEquippedArmorTypeIds,
   collectStealthDisadvantageSkillKeys,
   computeArmorClass,
@@ -260,6 +261,14 @@ describe("type ids and side effects", () => {
       equipped: true,
       armor: { type: { id: "heavy-type" } }
     }])).toEqual(["heavy-type"]);
+  });
+
+  it("treats missing equipment as no armor suppression", () => {
+    expect(collectEquippedArmorSuppression([])).toEqual({ typeIds: [] });
+    expect(isTraitSuppressedByArmor(
+      { id: "rage", suppressedByArmorTypeIds: ["heavy-type"] },
+      collectEquippedArmorSuppression([])
+    )).toBe(false);
   });
 
   it("suppresses traits only by type ids", () => {

@@ -6,6 +6,7 @@ import { FeatApi } from "../domain/types/feat.types";
 import { TraitApi } from "../domain/types/traits.types";
 import { Ideal } from "../domain/types/background.types";
 import { computeArmorPieceAc } from "./armorRules";
+import { displaySummary } from "./traitSummary";
 
 const abilities: { [key: string]: string } = {
   str: 'FUE',
@@ -149,7 +150,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
     })?.forEach((trait: TraitApi | FeatApi) => {
       const { textY, actualHeight: actualHeight1 } = escribirParrafo({
         titulo: trait?.name,
-        descripcion: trait?.summary?.join('\n') ?? trait?.description?.join('\n'),
+        descripcion: displaySummary(trait?.summary, trait?.description).join('\n'),
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth: 178,  //174
@@ -162,7 +163,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
       if (maxHeight1 === actualHeight1) {
         const { textY, actualHeight: actualHeight2 } = escribirParrafo({
           titulo: trait?.name,
-          descripcion: trait?.summary?.join('\n'),
+          descripcion: displaySummary(trait?.summary, trait?.description).join('\n'),
           fontTitle: fontBold,
           fontText: fontRegular,
           maxWidth: 182,
@@ -175,7 +176,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
         if (maxHeight2 === actualHeight2) {
           const { textY } = escribirParrafo({
             titulo: trait?.name,
-            descripcion: trait?.summary?.join('\n'),
+            descripcion: displaySummary(trait?.summary, trait?.description).join('\n'),
             fontTitle: fontBold,
             fontText: fontRegular,
             maxWidth: 182, 
@@ -201,7 +202,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
     ?.forEach((trait: TraitApi) => {
       const { textY } = escribirParrafo({
         titulo: trait?.name,
-        descripcion: trait?.summary,
+        descripcion: displaySummary(trait?.summary, trait?.description).join('\n'),
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth: 182,

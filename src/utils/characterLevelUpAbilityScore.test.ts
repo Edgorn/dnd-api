@@ -239,6 +239,31 @@ describe("validateLevelUpAbilityScorePick", () => {
     })).toEqual({ kind: "increases", increases: [{ key: "str", bonus: 2 }] });
   });
 
+  it("uses trait max and owned bonus for the final score", () => {
+    expect(validateLevelUpAbilityScorePick({
+      abilityScoreGranted: true,
+      increases: [{ key: "str", bonus: 2 }],
+      attributes: [{ key: "str", value: 16 }],
+      availableFeatIds,
+      maxAttributeValue: 20,
+      bonusByKey: { str: 4 },
+      maxByKey: { str: 24 }
+    })).toEqual({ kind: "increases", increases: [{ key: "str", bonus: 2 }] });
+  });
+
+  it("rejects when stored plus trait bonus plus ASI exceeds the trait max", () => {
+    const result = validateLevelUpAbilityScorePick({
+      abilityScoreGranted: true,
+      increases: [{ key: "str", bonus: 2 }],
+      attributes: [{ key: "str", value: 20 }],
+      availableFeatIds,
+      maxAttributeValue: 20,
+      bonusByKey: { str: 4 },
+      maxByKey: { str: 24 }
+    });
+    expect(result).toEqual({ error: "str no puede superar 24" });
+  });
+
   it("accepts a feat from the filtered options", () => {
     expect(validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,

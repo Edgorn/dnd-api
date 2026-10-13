@@ -1,9 +1,9 @@
-import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, ConsultarPersonajeOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]>
   crear(data: TypeCrearPersonaje): Promise<PersonajeBasico | null>
-  consultarPorId(idCharacter: string, user: string): Promise<PersonajeApi>
+  consultarPorId(idCharacter: string, user: string, options?: ConsultarPersonajeOptions): Promise<PersonajeApi>
   addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse>
   deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse>
   equipEquipment(data: TypeEquipEquipment): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }>
@@ -19,6 +19,9 @@ export default interface IPersonajeRepository {
   learnSpells(data: TypeLearnSpells): Promise<PersonajeApi>
   prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi>
   bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<PersonajeApi>
+  useTrait(data: TypeUseTrait): Promise<PersonajeApi>
+  deactivateTrait(data: TypeUseTrait): Promise<PersonajeApi>
+  restCharacter(data: TypeRestCharacter): Promise<PersonajeApi>
   añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null>
   updateCompanions(id: string, companions: CharacterCompanionInput[], userId: string): Promise<UpdateCharacterCompanionsResponse>
 }

@@ -54,7 +54,8 @@ describe("GenerateCharacterPdf", () => {
 
     expect(personajeServiceMock.consultarPersonaje).toHaveBeenCalledWith(
       "507f1f77bcf86cd799439011",
-      "user1"
+      "user1",
+      { applyActiveTraits: false }
     );
     expect(personajeServiceMock.getCampaignLink).toHaveBeenCalledWith(
       "507f1f77bcf86cd799439011"

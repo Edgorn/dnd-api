@@ -41,6 +41,15 @@ export interface PersonajeEquipmentMongo {
 
 export type CharacterStartingEquipmentInput = CharacterEquipmentMongo;
 
+export interface CharacterTraitResource {
+  traitId: string;
+  spent: number;
+}
+
+export interface ConsultarPersonajeOptions {
+  applyActiveTraits?: boolean;
+}
+
 export interface CharacterCompanion {
   id: string;
   name: string;
@@ -139,6 +148,21 @@ export interface TypeBindSpellPrivileges {
   traitId: string;
   classId: string;
   selections: string[][];
+  userId: string;
+}
+
+export const CHARACTER_REST_TYPES = ["shortRest", "longRest"] as const;
+export type CharacterRestType = typeof CHARACTER_REST_TYPES[number];
+
+export interface TypeUseTrait {
+  id: string;
+  traitId: string;
+  userId: string;
+}
+
+export interface TypeRestCharacter {
+  id: string;
+  type: CharacterRestType;
   userId: string;
 }
 
@@ -323,7 +347,9 @@ export interface PersonajeMongo {
   forms: string[],
   preparedSpells?: Record<string, string[]>,
   spellPrivileges?: CharacterSpellPrivilegeMongo[],
-  companions?: CharacterCompanion[]
+  companions?: CharacterCompanion[],
+  traitResources?: CharacterTraitResource[],
+  activeTraitIds?: string[]
 }
 
 export interface PersonajeApi {
@@ -396,7 +422,9 @@ export interface PersonajeApi {
   invocations?: InvocacionApi[],
   forms?: CreatureApi[],
   spellPrivileges?: CharacterSpellPrivilegeApi[],
-  companions: CharacterCompanion[]
+  companions: CharacterCompanion[],
+  traitResources: CharacterTraitResource[],
+  activeTraitIds: string[]
 }
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";

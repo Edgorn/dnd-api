@@ -123,7 +123,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros y traits).
+ *           description: Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros, traits y traits_data).
  *         abilityScoreProgression:
  *           type: array
  *           items:
@@ -212,6 +212,15 @@ const router = Router();
  *           description: >
  *             IDs de MongoDB de los rasgos otorgados en este nivel de clase.
  *             Si se omite en una actualización, se conservan los traits existentes de ese nivel.
+ *         traits_data:
+ *           type: object
+ *           additionalProperties:
+ *             type: object
+ *             additionalProperties:
+ *               type: string
+ *           description: >
+ *             Datos dinámicos de rasgos de este nivel (usos, interpolación de texto).
+ *             Si se omite en una actualización, se conservan los traits_data existentes de ese nivel.
  *     SpellCopyCost:
  *       type: object
  *       required:
@@ -369,7 +378,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles con tabla de ranuras, elecciones de conjuros y traits (level, spellcasting, spell_choices, traits).
+ *           description: Niveles con tabla de ranuras, elecciones de conjuros, traits y traits_data (level, spellcasting, spell_choices, traits, traits_data).
  *         abilityScoreProgression:
  *           type: array
  *           items:
@@ -462,8 +471,8 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
  *           description: >
- *             Niveles con tabla de ranuras, elecciones de conjuros y traits;
- *             se fusionan por level. Los traits de un nivel solo se sustituyen si el campo viene definido.
+ *             Niveles con tabla de ranuras, elecciones de conjuros, traits y traits_data;
+ *             se fusionan por level. Los traits y traits_data de un nivel solo se sustituyen si el campo viene definido.
  *         abilityScoreProgression:
  *           type: array
  *           items:

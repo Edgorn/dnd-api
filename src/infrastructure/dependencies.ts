@@ -73,6 +73,9 @@ import LearnSpells from "../application/use-cases/personaje/learnSpells.use-case
 import PrepareSpells from "../application/use-cases/personaje/prepareSpells.use-case";
 import BindSpellPrivileges from "../application/use-cases/personaje/bindSpellPrivileges.use-case";
 import UpdateCompanions from "../application/use-cases/personaje/updateCompanions.use-case";
+import UseTrait from "../application/use-cases/personaje/useTrait.use-case";
+import DeactivateTrait from "../application/use-cases/personaje/deactivateTrait.use-case";
+import RestCharacter from "../application/use-cases/personaje/restCharacter.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 import CreateSystem from "../application/use-cases/system/createSystem.use-case";
 import GetSystemsByUser from "../application/use-cases/system/getSystemsByUser.use-case";
@@ -461,6 +464,9 @@ const learnSpells = new LearnSpells(personajeService);
 const prepareSpells = new PrepareSpells(personajeService);
 const bindSpellPrivileges = new BindSpellPrivileges(personajeService);
 const updateCompanions = new UpdateCompanions(personajeService);
+const useTrait = new UseTrait(personajeService);
+const deactivateTrait = new DeactivateTrait(personajeService);
+const restCharacter = new RestCharacter(personajeService);
 const añadirForma = new AñadirForma(personajeService);
 const createSystem = new CreateSystem(systemService, buildSystemSummary);
 const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, raceRepository);
@@ -615,7 +621,10 @@ export const personajeController = new PersonajeController(
   toggleFavoriteEquipment,
   prepareSpells,
   bindSpellPrivileges,
-  updateCompanions
+  updateCompanions,
+  useTrait,
+  deactivateTrait,
+  restCharacter
 )
 
 export const spellController = new SpellController(

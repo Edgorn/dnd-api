@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -102,7 +102,15 @@ const router = Router();
  *           description: Abreviatura (e.g. FUE).
  *         value:
  *           type: number
- *           description: Valor de la característica para el personaje.
+ *           description: Valor de la característica para el personaje, con bonos de rasgo aplicados.
+ *         modifier:
+ *           type: number
+ *           description: Modificador calculado con la fórmula del sistema a partir de value.
+ *         max:
+ *           type: number
+ *           description: >
+ *             Tope efectivo. Es el máximo del rasgo si algún rasgo lo declara para esa clave;
+ *             si no, defaultMaxAttributeValue del sistema.
  *
  *     SkillPersonajeApi:
  *       type: object
@@ -465,6 +473,23 @@ const router = Router();
  *           type: string
  *           description: ID del rasgo que sugirió el roster (orientación de UI; el servidor no lo exige).
  *
+ *     CharacterTraitResource:
+ *       type: object
+ *       description: >
+ *         Usos gastados persistidos. remaining no va aquí; se lee en
+ *         traits[].action.remaining (uses resuelto menos spent).
+ *       required:
+ *         - traitId
+ *         - spent
+ *       properties:
+ *         traitId:
+ *           type: string
+ *           description: ID del rasgo cuyos usos se cuentan.
+ *         spent:
+ *           type: integer
+ *           minimum: 0
+ *           description: Usos gastados desde el último descanso que recarga el rasgo. No es remaining.
+ *
  *     PersonajeApi:
  *       type: object
  *       properties:
@@ -635,8 +660,26 @@ const router = Router();
  *         traits_data:
  *           type: object
  *           description: Textos dinámicos de rasgos del personaje. No guarda la fila de daño elegida.
+ *         traitResources:
+ *           type: array
+ *           description: >
+ *             Persistido: traitId y spent. El máximo está en traits[].action.uses
+ *             (ya resuelto). Los usos que quedan están en traits[].action.remaining.
+ *             POST `/character/{id}/traits/{traitId}/use` incrementa spent.
+ *           items:
+ *             $ref: '#/components/schemas/CharacterTraitResource'
+ *         activeTraitIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: >
+ *             Stances encendidas (p. ej. Furia). Coincide con traits[].action.active.
+ *             No altera el PDF. POST use las añade; deactivate y rest las quitan.
  *         resistances:
  *           type: array
+ *           description: >
+ *             Resistencias permanentes más, en la ficha de juego, las condicionales
+ *             del grupo de cada stance activa. El PDF no incluye las de stance.
  *           items:
  *             $ref: '#/components/schemas/Damage'
  *         conditional_resistances:
@@ -907,6 +950,12 @@ router.post('/character', authMiddleware, personajeController.createCharacter);
  * /character/{id}:
  *   get:
  *     summary: Obtener el detalle completo de un personaje por su ID
+ *     description: |
+ *       Devuelve la ficha de juego. Las stances activas (p. ej. Furia) aplican overlays:
+ *       resistencias del grupo `conditionalResistanceGroup` y bono de daño melee si el
+ *       ataque se resuelve con las `abilityKeys` del rasgo. La Defensa sin Armadura
+ *       (`acFormula`) es permanente y no depende de una stance. El PDF usa datos base,
+ *       sin estos overlays.
  *     tags:
  *       - Personajes
  *     security:
@@ -941,7 +990,10 @@ router.get('/character/:id', authMiddleware, personajeController.getCharacter);
  * /character/{id}/pdf:
  *   get:
  *     summary: Generar la hoja de personaje en PDF
- *     description: Devuelve un archivo PDF con la hoja de personaje rellenada. Solo el dueño del personaje o el master de su campaña pueden generarlo.
+ *     description: |
+ *       Devuelve un archivo PDF con la hoja de personaje rellenada (datos base: CA y
+ *       daño sin overlays de stances). Solo el dueño del personaje o el master de su
+ *       campaña pueden generarlo.
  *     tags:
  *       - Personajes
  *     security:
@@ -1491,9 +1543,10 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       continuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.
  *       Los rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.
  *       `traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen
- *       elecciones (`traits_options`). Si el nivel de raza cambia `traits_data` respecto al nivel
- *       anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se devuelven con
- *       la descripción y el resumen sustituidos con el `traits_data` del personaje fusionado con el del nivel.
+ *       elecciones (`traits_options`). Si el nivel de raza, clase o subclase cambia `traits_data`
+ *       respecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se
+ *       devuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje
+ *       fusionado con el del nivel.
  *       Después se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,
  *       `{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos
  *       actuales y el bono de competencia del nivel siguiente. La mejora de característica de este
@@ -1551,7 +1604,7 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   description: Bono de competencia correspondiente al nivel total tras la subida.
  *                 traits:
  *                   type: array
- *                   description: Rasgos automáticos del nuevo nivel de clase (incluye subclase) y rasgos cuyo texto cambia por el traits_data de la raza. La descripción y el resumen ya incluyen traits_data, las elecciones guardadas y la CD de la acción.
+ *                   description: Rasgos automáticos del nuevo nivel de clase (incluye subclase) y rasgos cuyo texto cambia por el traits_data de la raza, la clase o la subclase. La descripción y el resumen ya incluyen traits_data, las elecciones guardadas y la CD de la acción.
  *                   items:
  *                     $ref: '#/components/schemas/Trait'
  *                 traits_data:
@@ -1675,9 +1728,12 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       una opción ya elegida se rechaza.
  *       El nivel que abre la concesión es el de esa clase, no el nivel total del personaje.
  *       Si el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de
- *       `abilityScore` (repartir 2 puntos: un +2 o dos +1, sin superar `defaultMaxAttributeValue`)
- *       o `feat` (ObjectId de una dote de `feats`). La dote se guarda como ID; no aplica efectos
- *       mecánicos. Un +CON afecta el PG de este nivel, no de los anteriores.
+ *       `abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).
+ *       El tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,
+ *       `defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).
+ *       La dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este
+ *       nivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de
+ *       modificador a los PG de los niveles previos.
  *       Si el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).
  *     tags:
  *       - Personajes
@@ -1951,6 +2007,154 @@ router.put('/character/:id/prepared-spells', authMiddleware, validateParams(Char
  *         description: Error del servidor.
  */
 router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateParams(BindSpellPrivilegesParamsSchema), validateSchema(BindSpellPrivilegesSchema), personajeController.bindSpellPrivileges);
+
+/**
+ * @openapi
+ * /character/{id}/traits/{traitId}/use:
+ *   post:
+ *     summary: Usar la acción de un rasgo
+ *     description: |
+ *       Compara `spent` de `traitResources` con `traits[].action.uses` (resuelto con
+ *       `usesByClassLevel` y el nivel de la clase otorgante). Si no quedan usos, 400.
+ *       Incrementa `spent`. Si `action.kind` es stance, añade el id a `activeTraitIds`
+ *       (400 si ya estaba activa). Falla si `suppressedByArmorTypeIds` coincide con
+ *       armadura equipada. `uses: unlimited` no incrementa `spent`. No recarga PG ni conjuros.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: traitId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del rasgo.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado con el uso gastado y la stance, si aplica.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Sin usos, stance ya activa, rasgo sin acción o suprimido por armadura.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o rasgo no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/traits/:traitId/use', authMiddleware, validateParams(BindSpellPrivilegesParamsSchema), personajeController.useTrait);
+
+/**
+ * @openapi
+ * /character/{id}/traits/{traitId}/deactivate:
+ *   post:
+ *     summary: Apagar la stance de un rasgo
+ *     description: |
+ *       Quita el rasgo de `activeTraitIds` (y `traits[].action.active` pasa a false).
+ *       No modifica `traitResources[].spent` ni `action.remaining`.
+ *       Falla si la stance no estaba activa.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: traitId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del rasgo.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado con la stance apagada.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: El rasgo no estaba activo.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validateParams(BindSpellPrivilegesParamsSchema), personajeController.deactivateTrait);
+
+/**
+ * @openapi
+ * /character/{id}/rest:
+ *   post:
+ *     summary: Descanso corto o largo (usos de rasgos)
+ *     description: |
+ *       Mira `traits[].action.recharge` de cada rasgo. Si encaja con `type`
+ *       (`shortRest`, `longRest` o `shortOrLongRest`), pone `traitResources[].spent` a 0
+ *       (y `action.remaining` vuelve al máximo). Vacía `activeTraitIds`.
+ *       No toca puntos de golpe, conjuros ni condiciones.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - type
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [shortRest, longRest]
+ *                 description: Tipo de descanso.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado tras el descanso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Tipo de descanso inválido.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/rest', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(CharacterRestSchema), personajeController.restCharacter);
 
 /**
  * @openapi

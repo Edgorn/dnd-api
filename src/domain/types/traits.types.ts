@@ -243,22 +243,58 @@ export interface ResolvedDamageChoice {
 export const TRAIT_ACTIVATIONS = ["action", "bonusAction", "reaction"] as const;
 export type TraitActivation = typeof TRAIT_ACTIVATIONS[number];
 
+export const TRAIT_ACTION_KINDS = ["instant", "stance"] as const;
+export type TraitActionKind = typeof TRAIT_ACTION_KINDS[number];
+
+export const TRAIT_DURATION_UNITS = ["minute"] as const;
+export type TraitDurationUnit = typeof TRAIT_DURATION_UNITS[number];
+
+export interface TraitDuration {
+  value: number;
+  unit: TraitDurationUnit;
+}
+
+export type TraitUses = number | "unlimited";
+export type TraitUsesByClassLevel = Record<string, TraitUses>;
+
 export interface TraitAction {
   activation: TraitActivation;
+  kind?: TraitActionKind;
+  deactivateActivation?: TraitActivation;
+  duration?: TraitDuration;
   saveDcFormula?: string;
-  uses?: number;
+  uses?: TraitUses;
+  usesByClassLevel?: TraitUsesByClassLevel;
   recharge?: SpellPrivilegeRecharge | null;
 }
 
 export interface TraitActionApi extends TraitAction {
   saveDc?: number;
+  remaining?: TraitUses;
+  active?: boolean;
+}
+
+export const TRAIT_WEAPON_DAMAGE_BONUS_WHENS = ["active"] as const;
+export type TraitWeaponDamageBonusWhen = typeof TRAIT_WEAPON_DAMAGE_BONUS_WHENS[number];
+
+export interface TraitWeaponDamageBonus {
+  when: TraitWeaponDamageBonusWhen;
+  melee: boolean;
+  abilityKeys?: string[];
+  amount?: number;
+  amountByClassLevel?: Record<string, number>;
+}
+
+export interface TraitAbilityScore {
+  key: string;
+  bonus: number;
+  max?: number;
 }
 
 export type TraitChoices = Record<string, Record<string, TraitChoiceValue[]>>;
 
 export interface TraitMongo {
   _id: ObjectId,
-  index: string,
   name: string,
   description?: string[],
   summary?: string[],
@@ -288,8 +324,11 @@ export interface TraitMongo {
   damageChoiceRef?: TraitDamageChoiceRef,
   hitPoints?: TraitHitPoints,
   action?: TraitAction,
+  weaponDamageBonus?: TraitWeaponDamageBonus,
   innateSpells?: TraitInnateSpells,
+  abilityScores?: TraitAbilityScore[],
   stackGroup?: TraitStackGroup,
+  conditionalResistanceGroup?: string,
   deletedAt?: Date | null
 }
 
@@ -337,8 +376,11 @@ export interface TraitApi {
   catalogChoice?: ResolvedCatalogChoice[],
   hitPoints?: TraitHitPoints,
   action?: TraitActionApi,
+  weaponDamageBonus?: TraitWeaponDamageBonus,
   innateSpells?: TraitInnateSpellsApi,
-  stackGroup?: TraitStackGroup
+  abilityScores?: TraitAbilityScore[],
+  stackGroup?: TraitStackGroup,
+  conditionalResistanceGroup?: string
 }
 
 export interface TraitsOptionsApi {
@@ -355,6 +397,7 @@ export interface CreateTrait {
   proficiencies?: string[],
   skills?: string[],
   resistances?: string[],
+  conditional_resistances?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
   speed?: TraitSpeed,
   acFormula?: string | null,
@@ -368,8 +411,11 @@ export interface CreateTrait {
   damageChoiceRef?: TraitDamageChoiceRef | null,
   hitPoints?: TraitHitPoints | null,
   action?: TraitAction | null,
+  weaponDamageBonus?: TraitWeaponDamageBonus | null,
   innateSpells?: TraitInnateSpells | null,
-  stackGroup?: TraitStackGroup | null
+  abilityScores?: TraitAbilityScore[] | null,
+  stackGroup?: TraitStackGroup | null,
+  conditionalResistanceGroup?: string | null
 }
 
 export interface UpdateTrait {
@@ -382,6 +428,7 @@ export interface UpdateTrait {
   proficiencies?: string[],
   skills?: string[],
   resistances?: string[],
+  conditional_resistances?: string[],
   spellPrivileges?: SpellPrivilegeRule[],
   speed?: TraitSpeed,
   acFormula?: string | null,
@@ -395,6 +442,9 @@ export interface UpdateTrait {
   damageChoiceRef?: TraitDamageChoiceRef | null,
   hitPoints?: TraitHitPoints | null,
   action?: TraitAction | null,
+  weaponDamageBonus?: TraitWeaponDamageBonus | null,
   innateSpells?: TraitInnateSpells | null,
-  stackGroup?: TraitStackGroup | null
+  abilityScores?: TraitAbilityScore[] | null,
+  stackGroup?: TraitStackGroup | null,
+  conditionalResistanceGroup?: string | null
 }

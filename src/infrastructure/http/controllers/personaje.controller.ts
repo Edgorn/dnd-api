@@ -18,6 +18,9 @@ import ToggleFavoriteEquipment from "../../../application/use-cases/personaje/to
 import PrepareSpells from "../../../application/use-cases/personaje/prepareSpells.use-case";
 import BindSpellPrivileges from "../../../application/use-cases/personaje/bindSpellPrivileges.use-case";
 import UpdateCompanions from "../../../application/use-cases/personaje/updateCompanions.use-case";
+import UseTrait from "../../../application/use-cases/personaje/useTrait.use-case";
+import DeactivateTrait from "../../../application/use-cases/personaje/deactivateTrait.use-case";
+import RestCharacter from "../../../application/use-cases/personaje/restCharacter.use-case";
 import { ValidationError } from "../../../domain/errors/AppError";
 
 export class PersonajeController {
@@ -39,7 +42,10 @@ export class PersonajeController {
     private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment,
     private readonly prepareSpellsUseCase: PrepareSpells,
     private readonly bindSpellPrivilegesUseCase: BindSpellPrivileges,
-    private readonly updateCompanionsUseCase: UpdateCompanions
+    private readonly updateCompanionsUseCase: UpdateCompanions,
+    private readonly useTraitUseCase: UseTrait,
+    private readonly deactivateTraitUseCase: DeactivateTrait,
+    private readonly restCharacterUseCase: RestCharacter
   ) { }
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -356,6 +362,66 @@ export class PersonajeController {
       const data = await this.añadirForma.execute({ id, form: req.body.form })
       res.status(200).json(data);
     } catch (e) {
+      next(e);
+    }
+  };
+
+  useTrait = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, traitId } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      if (!traitId) {
+        throw new ValidationError("Se requiere el ID del rasgo");
+      }
+      const data = await this.useTraitUseCase.execute({
+        id,
+        traitId,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.useTrait] Error:", e);
+      next(e);
+    }
+  };
+
+  deactivateTrait = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, traitId } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      if (!traitId) {
+        throw new ValidationError("Se requiere el ID del rasgo");
+      }
+      const data = await this.deactivateTraitUseCase.execute({
+        id,
+        traitId,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.deactivateTrait] Error:", e);
+      next(e);
+    }
+  };
+
+  restCharacter = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      const data = await this.restCharacterUseCase.execute({
+        id,
+        type: req.body.type,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.restCharacter] Error:", e);
       next(e);
     }
   };

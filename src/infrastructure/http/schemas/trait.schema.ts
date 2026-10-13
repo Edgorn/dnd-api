@@ -6,9 +6,12 @@ import {
   EQUIPMENT_RESTRICTION_ENFORCEMENTS,
   EQUIPMENT_RESTRICTION_SCOPES,
   SPELL_PRIVILEGE_RECHARGES,
+  TRAIT_ACTION_KINDS,
   TRAIT_ACTIVATIONS,
   TRAIT_AREA_SHAPES,
-  TRAIT_STACK_POLICIES
+  TRAIT_DURATION_UNITS,
+  TRAIT_STACK_POLICIES,
+  TRAIT_WEAPON_DAMAGE_BONUS_WHENS
 } from "../../../domain/types/traits.types";
 
 const SpellPrivilegeLevelFilterSchema = z.union([
@@ -341,15 +344,77 @@ const saveDcFormulaSchema = z.string().min(1, "La fórmula de CD no puede estar 
   }
 });
 
+const classLevelKeySchema = z.string().refine(key => {
+  const level = Number(key);
+  return Number.isInteger(level) && level >= 1 && level <= 20;
+}, { message: "El nivel de clase debe ser un entero entre 1 y 20" });
+
+const traitUsesSchema = z.union([
+  z.literal("unlimited"),
+  z.number().int("Los usos deben ser un entero").min(1, "Los usos deben ser al menos 1")
+]);
+
+const usesByClassLevelSchema = z.record(classLevelKeySchema, traitUsesSchema).superRefine((map, ctx) => {
+  if (Object.keys(map).length === 0) {
+    ctx.addIssue({ code: "custom", message: "usesByClassLevel no puede estar vacío" });
+  }
+});
+
+export const TraitDurationSchema = z.object({
+  value: z.number().positive("La duración debe ser mayor que 0"),
+  unit: z.enum(TRAIT_DURATION_UNITS)
+}).strict();
+
 export const TraitActionSchema = z.object({
   activation: z.enum(TRAIT_ACTIVATIONS),
+  kind: z.enum(TRAIT_ACTION_KINDS).optional().default("instant"),
+  deactivateActivation: z.enum(TRAIT_ACTIVATIONS).optional(),
+  duration: TraitDurationSchema.optional(),
   saveDcFormula: saveDcFormulaSchema.optional(),
-  uses: z.number().int("Los usos deben ser un entero").min(1, "Los usos deben ser al menos 1").optional(),
+  uses: traitUsesSchema.optional(),
+  usesByClassLevel: usesByClassLevelSchema.optional(),
   recharge: z.enum(SPELL_PRIVILEGE_RECHARGES).nullable().optional()
-}).strict();
+}).strict().superRefine((action, ctx) => {
+  if (action.uses === "unlimited" && action.recharge != null) {
+    ctx.addIssue({
+      code: "custom",
+      message: "La recarga debe ser nula si los usos son ilimitados",
+      path: ["recharge"]
+    });
+  }
+});
+
+export const TraitWeaponDamageBonusSchema = z.object({
+  when: z.enum(TRAIT_WEAPON_DAMAGE_BONUS_WHENS),
+  melee: z.boolean(),
+  abilityKeys: z.array(z.string().min(1, "La clave de atributo no puede estar vacía")).min(1).optional(),
+  amount: z.number().int("El bono de daño debe ser un entero").min(1, "El bono de daño debe ser al menos 1").optional(),
+  amountByClassLevel: z.record(
+    classLevelKeySchema,
+    z.number().int("El bono de daño debe ser un entero").min(1, "El bono de daño debe ser al menos 1")
+  ).optional()
+}).strict().superRefine((bonus, ctx) => {
+  const hasAmount = bonus.amount !== undefined;
+  const levelEntries = Object.keys(bonus.amountByClassLevel ?? {}).length;
+  if (!hasAmount && levelEntries === 0) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Debe indicar amount o amountByClassLevel"
+    });
+  }
+});
 
 const mongoObjectId = (message: string) =>
   z.string().refine(val => Types.ObjectId.isValid(val), { message });
+
+const damageTypeIdArraySchema = z.array(
+  z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada resistencia debe ser un ID de Mongo válido" })
+);
+
+const conditionalResistanceGroupSchema = z
+  .string()
+  .min(1, "El grupo de resistencia condicional no puede estar vacío")
+  .nullish();
 
 export const TraitInnateSpellGrantSchema = z.object({
   spellId: mongoObjectId("El conjuro debe ser un ID de Mongo válido"),
@@ -397,6 +462,28 @@ export const TraitStackGroupSchema = z.object({
   }
 });
 
+export const TraitAbilityScoreSchema = z.object({
+  key: z.string().min(1, "La clave de atributo no puede estar vacía"),
+  bonus: z.number().int("El bono debe ser un entero").refine(value => value !== 0, {
+    message: "El bono no puede ser 0"
+  }),
+  max: z.number().int("El máximo debe ser un entero").min(1, "El máximo debe ser al menos 1").optional()
+}).strict();
+
+export const TraitAbilityScoresSchema = z.array(TraitAbilityScoreSchema).min(1, "Debe indicar al menos una característica").superRefine((scores, ctx) => {
+  const keys = new Set<string>();
+  scores.forEach((score, index) => {
+    if (keys.has(score.key)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `La característica ${score.key} está repetida`,
+        path: [index, "key"]
+      });
+    }
+    keys.add(score.key);
+  });
+});
+
 export const TraitInnateSpellsSchema = z.object({
   abilityId: mongoObjectId("El atributo debe ser un ID de Mongo válido"),
   grants: z.array(TraitInnateSpellGrantSchema).min(1, "Debe indicar al menos un conjuro innato")
@@ -422,7 +509,8 @@ export const CreateTraitSchema = z.object({
   incompatible_traits: z.array(z.string()).optional().default([]),
   proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
-  resistances: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada resistencia debe ser un ID de Mongo válido" })).optional().default([]),
+  resistances: damageTypeIdArraySchema.optional().default([]),
+  conditional_resistances: damageTypeIdArraySchema.optional().default([]),
   spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
   companionRoster: TraitCompanionRosterSchema.optional(),
   speed: TraitSpeedSchema.optional(),
@@ -436,8 +524,11 @@ export const CreateTraitSchema = z.object({
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
   hitPoints: TraitHitPointsSchema.nullish(),
   action: TraitActionSchema.nullish(),
+  weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
-  stackGroup: TraitStackGroupSchema.nullish()
+  abilityScores: TraitAbilityScoresSchema.nullish(),
+  stackGroup: TraitStackGroupSchema.nullish(),
+  conditionalResistanceGroup: conditionalResistanceGroupSchema
 });
 
 export const UpdateTraitSchema = z.object({
@@ -448,7 +539,8 @@ export const UpdateTraitSchema = z.object({
   incompatible_traits: z.array(z.string()).optional(),
   proficiencies: z.array(z.string()).optional(),
   skills: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada skill debe ser un ID de Mongo válido" })).optional(),
-  resistances: z.array(z.string().refine(val => Types.ObjectId.isValid(val), { message: "Cada resistencia debe ser un ID de Mongo válido" })).optional(),
+  resistances: damageTypeIdArraySchema.optional(),
+  conditional_resistances: damageTypeIdArraySchema.optional(),
   spellPrivileges: z.array(SpellPrivilegeRuleSchema).optional(),
   companionRoster: TraitCompanionRosterSchema.optional(),
   speed: TraitSpeedSchema.optional(),
@@ -462,8 +554,11 @@ export const UpdateTraitSchema = z.object({
   damageChoiceRef: TraitDamageChoiceRefSchema.nullish(),
   hitPoints: TraitHitPointsSchema.nullish(),
   action: TraitActionSchema.nullish(),
+  weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
-  stackGroup: TraitStackGroupSchema.nullish()
+  abilityScores: TraitAbilityScoresSchema.nullish(),
+  stackGroup: TraitStackGroupSchema.nullish(),
+  conditionalResistanceGroup: conditionalResistanceGroupSchema
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

@@ -27,7 +27,9 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *           description: Resumen del dote.
+ *           description: >
+ *             Resumen del dote. Puede ser un array vacío: el GET de catálogo no
+ *             lo rellena desde description. En ficha o PDF, si está vacío se usa description.
  *         ruleset:
  *           type: string
  *           description: ID del sistema al que pertenece el dote.
@@ -131,7 +133,9 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *           description: Resumen del dote.
+ *           description: >
+ *             Párrafos de resumen. Opcional; si falta o es [] no se copia description.
+ *             Si coincide con description, se persiste como [].
  *         ruleset:
  *           type: string
  *           description: ID del sistema al que pertenece el dote.
@@ -150,6 +154,9 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
+ *           description: >
+ *             Párrafos de resumen. Opcional; si falta o es [] no se copia description.
+ *             Si coincide con description, se persiste como [].
  *         ruleset:
  *           type: string
  *         requirements:

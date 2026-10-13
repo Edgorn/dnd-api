@@ -13,6 +13,7 @@ import {
   escribirTransfondo,
 } from "../../utils/escribirPdf";
 import { characterHasRequiredProficiency } from "../../utils/combatBonuses";
+import { displaySummary } from "../../utils/traitSummary";
 
 const SKILL_FIELD_MAP: Record<string, [string, string]> = {
   acrobatics: ["acroPROF", "Acrobatics"],
@@ -125,7 +126,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
     let unarmedSlot = 0;
 
     if (monkTrait) {
-      const dado = parseInt(monkTrait.summary.join(" ").split("1d")[1][0]);
+      const dado = parseInt(displaySummary(monkTrait.summary, monkTrait.description).join(" ").split("1d")[1][0]);
       const strVal = character?.attributes?.find((a) => a.key === "str")?.value ?? 10;
       const dexVal = character?.attributes?.find((a) => a.key === "dex")?.value ?? 10;
       const max = Math.max(strVal, dexVal);

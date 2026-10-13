@@ -14,6 +14,7 @@ import {
 } from "../../../../domain/types/feat.types";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
 import { ordenarPorNombre } from "../../../../utils/formatters";
+import { storedSummary, summaryToPersist } from "../../../../utils/traitSummary";
 import FeatSchema from "../schemas/Feat";
 
 export default class FeatRepository implements IFeatRepository {
@@ -27,7 +28,7 @@ export default class FeatRepository implements IFeatRepository {
       const newFeat = new FeatSchema({
         name: data.name,
         description: data.description ?? [],
-        summary: data.summary ?? [],
+        summary: summaryToPersist(data.summary, data.description),
         ruleset: data.ruleset,
         requirements: this.normalizeRequirements(data.requirements)
       });
@@ -47,6 +48,9 @@ export default class FeatRepository implements IFeatRepository {
     const { id, ...updateFields } = data;
     if (updateFields.requirements) {
       updateFields.requirements = this.normalizeRequirements(updateFields.requirements);
+    }
+    if (Array.isArray(updateFields.summary) && Array.isArray(updateFields.description)) {
+      updateFields.summary = summaryToPersist(updateFields.summary, updateFields.description);
     }
 
     const updatedFeat = await FeatSchema.findByIdAndUpdate(
@@ -178,9 +182,7 @@ export default class FeatRepository implements IFeatRepository {
     const description = Array.isArray(feat.description) && feat.description.length > 0
       ? feat.description
       : (Array.isArray(feat.desc) ? feat.desc : []);
-    const summary = Array.isArray(feat.summary) && feat.summary.length > 0
-      ? feat.summary
-      : description;
+    const summary = storedSummary(feat.summary);
 
     return {
       id: feat._id.toString(),

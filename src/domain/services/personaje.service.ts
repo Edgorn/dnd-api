@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { CharacterCampaignLink, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, ConsultarPersonajeOptions, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -12,8 +12,12 @@ export default class PersonajeService {
     return this.personajeRepository.crear(data);
   }
 
-  consultarPersonaje(idCharacter: string, user: string): Promise<PersonajeApi> {
-    return this.personajeRepository.consultarPorId(idCharacter, user);
+  consultarPersonaje(
+    idCharacter: string,
+    user: string,
+    options?: ConsultarPersonajeOptions
+  ): Promise<PersonajeApi> {
+    return this.personajeRepository.consultarPorId(idCharacter, user, options);
   }
 
   addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse> {
@@ -74,6 +78,18 @@ export default class PersonajeService {
 
   bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<PersonajeApi> {
     return this.personajeRepository.bindSpellPrivileges(data);
+  }
+
+  useTrait(data: TypeUseTrait): Promise<PersonajeApi> {
+    return this.personajeRepository.useTrait(data);
+  }
+
+  deactivateTrait(data: TypeUseTrait): Promise<PersonajeApi> {
+    return this.personajeRepository.deactivateTrait(data);
+  }
+
+  restCharacter(data: TypeRestCharacter): Promise<PersonajeApi> {
+    return this.personajeRepository.restCharacter(data);
   }
 
   añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null> {

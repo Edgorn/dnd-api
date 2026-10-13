@@ -82,7 +82,16 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
       sourceTraitId: String
     }],
     default: []
-  }
+  },
+  traitResources: {
+    type: [{
+      _id: false,
+      traitId: { type: String, required: true },
+      spent: { type: Number, required: true, min: 0 }
+    }],
+    default: []
+  },
+  activeTraitIds: { type: [String], default: [] }
 }, { collection: 'Personajes' });
 
 const PersonajeModel = mongoose.model<PersonajeMongo>("Personajes", personajeSchema);

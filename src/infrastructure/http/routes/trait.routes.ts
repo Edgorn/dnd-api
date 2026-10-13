@@ -14,7 +14,7 @@ const router = Router();
  *       properties:
  *         id:
  *           type: string
- *           description: ID de MongoDB o clave index del rasgo.
+ *           description: ID de MongoDB del rasgo.
  *         ruleset:
  *           type: string
  *           description: ID o nombre del sistema de reglas asociado.
@@ -30,7 +30,10 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *           description: Resumen rápido de los efectos del rasgo.
+ *           description: >
+ *             Resumen rápido de los efectos del rasgo. Puede ser un array vacío:
+ *             el GET de catálogo no lo rellena desde description. En ficha o PDF,
+ *             si está vacío se usa description.
  *         incompatible_traits:
  *           type: array
  *           items:
@@ -54,6 +57,17 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/Damage'
  *           description: Resistencias fijas a tipos de daño que otorga el rasgo.
+ *         conditional_resistances:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Damage'
+ *           description: Resistencias condicionales (p. ej. mientras estás enfurecido). En GET van hidratadas.
+ *         conditionalResistanceGroup:
+ *           type: string
+ *           description: >
+ *             Nombre de agrupación en la ficha. Varios rasgos con el mismo valor
+ *             unen sus resistencias condicionales (p. ej. Furia y el espíritu tótem oso).
+ *             Si falta, se usa el nombre del rasgo.
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -66,6 +80,14 @@ const router = Router();
  *           description: >
  *             Magia innata del rasgo (p. ej. Linaje Infernal). Independiente de
  *             spellPrivileges. En GET, ability y cada grant.spell van hidratados.
+ *         abilityScores:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/TraitAbilityScore'
+ *           description: >
+ *             Bonos de puntuación de característica que aplica el rasgo al leer la ficha
+ *             (p. ej. Campeón Primordial: +4 a str y con, máximo 24). No se persisten
+ *             en el personaje. max es el tope de esa característica mientras el rasgo esté activo.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo.
@@ -144,10 +166,16 @@ const router = Router();
  *             Bono de puntos de golpe por nivel. scope class suma por nivel de la clase
  *             que otorga el rasgo; scope character suma por nivel total del personaje.
  *         action:
- *           $ref: '#/components/schemas/TraitAction'
+ *           $ref: '#/components/schemas/TraitActionSheet'
  *           description: >
- *             Acción declarativa del rasgo. En la ficha, si hay saveDcFormula, se calcula
- *             saveDc y {dc} de la descripción y del resumen se sustituye por ese número.
+ *             Acción en lectura. Incluye remaining, active y saveDc calculados.
+ *             Para POST/PUT use TraitAction (sin esos campos). `{dc}` de la descripción
+ *             se sustituye por saveDc. remaining es uses resuelto menos spent.
+ *         weaponDamageBonus:
+ *           $ref: '#/components/schemas/TraitWeaponDamageBonus'
+ *           description: >
+ *             Bono de daño a armas mientras el rasgo está activo (p. ej. Furia).
+ *             No se aplica en el PDF; solo en la ficha de juego cuando la stance está on.
  *     EquipmentRestriction:
  *       type: object
  *       required:
@@ -281,8 +309,57 @@ const router = Router();
  *           type: string
  *           enum: [m, ft]
  *           description: Unidad de las medidas.
+ *     TraitDuration:
+ *       type: object
+ *       required:
+ *         - value
+ *         - unit
+ *       properties:
+ *         value:
+ *           type: number
+ *           exclusiveMinimum: 0
+ *           description: Cantidad de duración.
+ *         unit:
+ *           type: string
+ *           enum: [minute]
+ *           description: Unidad de la duración.
+ *     TraitWeaponDamageBonus:
+ *       type: object
+ *       required:
+ *         - when
+ *         - melee
+ *       properties:
+ *         when:
+ *           type: string
+ *           enum: [active]
+ *           description: Cuándo se aplica el bono. active solo con la stance encendida.
+ *         melee:
+ *           type: boolean
+ *           description: Si es true, solo armas cuerpo a cuerpo.
+ *         abilityKeys:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Claves de atributo con las que debe hacerse el ataque (p. ej. str).
+ *         amount:
+ *           type: integer
+ *           minimum: 1
+ *           description: >
+ *             Bono fijo o valor resuelto en la ficha según amountByClassLevel
+ *             y el nivel de la clase que otorga el rasgo. Obligatorio si no hay amountByClassLevel.
+ *         amountByClassLevel:
+ *           type: object
+ *           additionalProperties:
+ *             type: integer
+ *             minimum: 1
+ *           description: >
+ *             Bono por nivel de la clase que otorga el rasgo (claves "1".."20").
+ *             Se usa el mayor nivel menor o igual al de esa clase.
  *     TraitAction:
  *       type: object
+ *       description: >
+ *         Acción de catálogo para POST/PUT /traits. Zod rechaza remaining, active y saveDc
+ *         (schema strict). En la ficha el GET usa TraitActionSheet.
  *       required:
  *         - activation
  *       properties:
@@ -290,23 +367,70 @@ const router = Router();
  *           type: string
  *           enum: [action, bonusAction, reaction]
  *           description: Tipo de activación.
+ *         kind:
+ *           type: string
+ *           enum: [instant, stance]
+ *           default: instant
+ *           description: instant gasta un uso y acaba. stance se mantiene activa (p. ej. Furia).
+ *         deactivateActivation:
+ *           type: string
+ *           enum: [action, bonusAction, reaction]
+ *           description: Cómo se apaga una stance. Furia usa bonusAction.
+ *         duration:
+ *           $ref: '#/components/schemas/TraitDuration'
+ *           description: Duración declarativa de la stance. No se temporiza en servidor.
  *         saveDcFormula:
  *           type: string
  *           description: >
- *             Fórmula de la CD de salvación. Admite @proficiencyBonus y
- *             @attributes.{key}.modifier. Ejemplo: 8 + @attributes.con.modifier + @proficiencyBonus
+ *             Fórmula de la CD de salvación. Admite `@proficiencyBonus` y
+ *             `@attributes.{key}.modifier`. Ejemplo: `8 + @attributes.con.modifier + @proficiencyBonus`
  *         uses:
- *           type: integer
- *           minimum: 1
- *           description: Usos declarados. No se cuenta en servidor.
+ *           oneOf:
+ *             - type: integer
+ *               minimum: 1
+ *             - type: string
+ *               enum: [unlimited]
+ *           description: >
+ *             Usos del catálogo o unlimited. En la ficha, si hay usesByClassLevel,
+ *             TraitActionSheet.uses queda resuelto según el nivel de la clase otorgante.
+ *         usesByClassLevel:
+ *           type: object
+ *           additionalProperties:
+ *             oneOf:
+ *               - type: integer
+ *                 minimum: 1
+ *               - type: string
+ *                 enum: [unlimited]
+ *           description: >
+ *             Usos por nivel de la clase otorgante (claves "1".."20").
+ *             En la ficha se usa el mayor nivel menor o igual al de esa clase.
  *         recharge:
  *           type: string
  *           nullable: true
  *           enum: [shortRest, longRest, shortOrLongRest]
- *           description: Cuándo se recuperan los usos. null si no se recargan.
- *         saveDc:
- *           type: number
- *           description: CD calculada en la ficha. No se envía al crear o actualizar el rasgo. Sustituye {dc}.
+ *           description: >
+ *             Cuándo POST `/character/{id}/rest` pone spent a 0. null si no se recargan o si
+ *             uses es unlimited.
+ *     TraitActionSheet:
+ *       allOf:
+ *         - $ref: '#/components/schemas/TraitAction'
+ *         - type: object
+ *           description: Campos solo de lectura en GET de rasgo o ficha.
+ *           properties:
+ *             remaining:
+ *               oneOf:
+ *                 - type: integer
+ *                   minimum: 0
+ *                 - type: string
+ *                   enum: [unlimited]
+ *               description: >
+ *                 uses resuelto menos traitResources[].spent, o unlimited.
+ *             active:
+ *               type: boolean
+ *               description: True si kind es stance y el id está en activeTraitIds.
+ *             saveDc:
+ *               type: number
+ *               description: CD calculada con saveDcFormula. Sustituye `{dc}`.
  *     TraitCatalogChoice:
  *       type: object
  *       required:
@@ -490,7 +614,7 @@ const router = Router();
  *       properties:
  *         traitId:
  *           type: string
- *           description: ID o index del rasgo que define la tabla.
+ *           description: ID de MongoDB del rasgo que define la tabla.
  *         choiceKey:
  *           type: string
  *           description: Clave de la elección en ese rasgo.
@@ -771,8 +895,27 @@ const router = Router();
  *           type: integer
  *           minimum: 1
  *           description: Obligatorio si policy es max (p. ej. Ataque Adicional 2, 3 o 4).
+ *     TraitAbilityScore:
+ *       type: object
+ *       required:
+ *         - key
+ *         - bonus
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Clave de la característica del sistema (p. ej. str, con).
+ *         bonus:
+ *           type: integer
+ *           description: Incremento (o penalización) de la puntuación. No puede ser 0.
+ *         max:
+ *           type: integer
+ *           minimum: 1
+ *           description: Tope de esa característica mientras el rasgo esté activo (p. ej. 24).
  *     InputCreateTrait:
  *       type: object
+ *       description: >
+ *         Cuerpo de POST /traits. No use Trait de lectura: IDs, no objetos hidratados.
+ *         action es TraitAction. damageChoices.options es name y damageTypeId, sin id.
  *       required:
  *         - ruleset
  *         - name
@@ -792,7 +935,9 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *           description: Párrafos de resumen.
+ *           description: >
+ *             Párrafos de resumen. Opcional; si falta o es [] no se copia description.
+ *             Si coincide con description, se persiste como [].
  *         incompatible_traits:
  *           type: array
  *           items:
@@ -813,6 +958,14 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de daño del sistema o de sus ancestros. Si se omite, queda vacío.
+ *         conditional_resistances:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de daño condicionales del sistema o de sus ancestros. Si se omite, queda vacío.
+ *         conditionalResistanceGroup:
+ *           type: string
+ *           description: Nombre de agrupación de resistencias condicionales en la ficha (p. ej. Furia).
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -826,6 +979,15 @@ const router = Router();
  *             Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges.
  *             null borra el campo. grants no puede estar vacío ni repetir spellId.
  *             Si uses es unlimited, recharge debe ser null.
+ *         abilityScores:
+ *           nullable: true
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             $ref: '#/components/schemas/TraitAbilityScore'
+ *           description: >
+ *             Bonos y topes de característica. Cada key debe existir en el sistema o un ancestro
+ *             y no repetirse. null borra el campo.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
@@ -891,9 +1053,13 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitAction'
  *           description: >
- *             Acción declarativa. null borra el campo. saveDcFormula admite
- *             @proficiencyBonus y @attributes.{key}.modifier. En la ficha, {dc}
- *             se sustituye por la CD calculada.
+ *             Acción de catálogo (TraitAction). null borra el campo. saveDcFormula admite
+ *             `@proficiencyBonus` y `@attributes.{key}.modifier`. kind por defecto es instant.
+ *         weaponDamageBonus:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitWeaponDamageBonus'
+ *           description: Bono de daño a armas mientras la stance está activa. null borra el campo.
  *     TraitLanguagesInput:
  *       type: object
  *       properties:
@@ -907,6 +1073,27 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de Mongo de idiomas que el personaje pasa a entender.
+ *     TraitDamageChoiceOptionInput:
+ *       type: object
+ *       description: >
+ *         Fila de daño en POST/PUT. La clave es name, no hay id. No envíe damage ni
+ *         saveAttribute hidratados; Zod strict los rechaza.
+ *       required:
+ *         - name
+ *         - damageTypeId
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nombre único de la fila dentro del rasgo. Es lo que guarda traitChoices.
+ *         damageTypeId:
+ *           type: string
+ *           description: ID de MongoDB del tipo de daño del sistema o de un ancestro.
+ *         area:
+ *           $ref: '#/components/schemas/TraitArea'
+ *           description: Área de la opción. width es obligatorio si shape es line.
+ *         saveAttributeId:
+ *           type: string
+ *           description: ID de MongoDB del atributo de salvación del sistema o de un ancestro.
  *     TraitDamageChoiceInput:
  *       type: object
  *       required:
@@ -922,27 +1109,12 @@ const router = Router();
  *         options:
  *           type: array
  *           items:
- *             type: object
- *             required:
- *               - id
- *               - name
- *               - damageTypeId
- *             properties:
- *               id:
- *                 type: string
- *               name:
- *                 type: string
- *               damageTypeId:
- *                 type: string
- *                 description: ID de MongoDB del tipo de daño del sistema o de un ancestro.
- *               area:
- *                 $ref: '#/components/schemas/TraitArea'
- *                 description: Área de la opción. width es obligatorio si shape es line.
- *               saveAttributeId:
- *                 type: string
- *                 description: ID de MongoDB del atributo de salvación del sistema o de un ancestro.
+ *             $ref: '#/components/schemas/TraitDamageChoiceOptionInput'
  *     InputUpdateTrait:
  *       type: object
+ *       description: >
+ *         Cuerpo de PUT `/traits/{id}`. El id va en la URL. Igual que InputCreateTrait:
+ *         IDs, no objetos hidratados. action es TraitAction. Opciones de daño sin id.
  *       properties:
  *         ruleset:
  *           type: string
@@ -959,7 +1131,9 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *           description: Párrafos de resumen.
+ *           description: >
+ *             Párrafos de resumen. Opcional; si falta o es [] no se copia description.
+ *             Si coincide con description, se persiste como [].
  *         incompatible_traits:
  *           type: array
  *           items:
@@ -980,6 +1154,15 @@ const router = Router();
  *           items:
  *             type: string
  *           description: IDs de tipos de daño del sistema o de sus ancestros. Omitirlo no modifica el valor guardado. Un array vacío borra la lista.
+ *         conditional_resistances:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de tipos de daño condicionales. Omitirlo no modifica el valor guardado. Un array vacío borra la lista.
+ *         conditionalResistanceGroup:
+ *           type: string
+ *           nullable: true
+ *           description: Nombre de agrupación de resistencias condicionales. null borra el campo.
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -992,6 +1175,13 @@ const router = Router();
  *           description: >
  *             Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges.
  *             null borra el campo.
+ *         abilityScores:
+ *           nullable: true
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             $ref: '#/components/schemas/TraitAbilityScore'
+ *           description: Bonos y topes de característica. null borra el campo.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
@@ -1055,8 +1245,13 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitAction'
  *           description: >
- *             Acción declarativa. null borra el campo. {dc} de la descripción
- *             se sustituye en la ficha por la CD calculada con saveDcFormula.
+ *             Acción de catálogo (TraitAction). null borra el campo. `{dc}` de la
+ *             descripción se sustituye en la ficha por la CD calculada con saveDcFormula.
+ *         weaponDamageBonus:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitWeaponDamageBonus'
+ *           description: Bono de daño a armas mientras la stance está activa. null borra el campo.
  */
 
 /**
@@ -1098,6 +1293,9 @@ router.get('/traits', authMiddleware, traitController.getBySystems);
  * /traits:
  *   post:
  *     summary: Crear un nuevo rasgo
+ *     description: >
+ *       Cree el rasgo con InputCreateTrait (IDs, no el schema Trait de lectura).
+ *       action.uses, usesByClassLevel y recharge se guardan en el catálogo.
  *     tags:
  *       - Rasgos
  *     security:
@@ -1129,6 +1327,8 @@ router.post('/traits', authMiddleware, validateSchema(CreateTraitSchema), traitC
  * /traits/{id}:
  *   put:
  *     summary: Modificar un rasgo existente
+ *     description: >
+ *       Actualice con InputUpdateTrait. El id va en la URL. No infiera el body desde Trait.
  *     tags:
  *       - Rasgos
  *     security:

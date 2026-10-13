@@ -101,6 +101,26 @@ describe("weaponAttackAttributes", () => {
 
     expect(stats.attributeModifier).toBe(3);
     expect(stats.attributeValue).toBe(16);
+    expect(stats.attributeKey).toBe("str");
+  });
+
+  it("picks DEX as the resolved key when finesse DEX is higher", () => {
+    const weapon: Pick<WeaponApi, "range" | "properties"> = {
+      range: "Cuerpo a cuerpo",
+      properties: [{ id: "p1", name: "Sutil", description: "", ruleset: "dnd5e", attackAttributes: ["dex"] }],
+    };
+
+    const stats = resolveWeaponAttributeStats(
+      weapon,
+      { meleeAttackAttributes: ["str"], rangedAttackAttributes: ["dex"] },
+      [
+        { key: "str", name: "Fuerza", value: 12, modifier: 1 },
+        { key: "dex", name: "Destreza", value: 16, modifier: 3 },
+      ] as never
+    );
+
+    expect(stats.attributeKey).toBe("dex");
+    expect(stats.attributeModifier).toBe(3);
   });
 
   it("detects two-handed property names", () => {

@@ -7,6 +7,7 @@ import SystemService from "../../../domain/services/system.service";
 import TraitService from "../../../domain/services/trait.service";
 import { AppError } from "../../../domain/errors/AppError";
 import {
+  TraitAbilityScore,
   TraitCatalogChoice,
   TraitDamageChoice,
   TraitDamageChoiceRef,
@@ -18,10 +19,12 @@ export async function assertTraitCatalogRefs(input: {
   ruleset: string;
   languages?: TraitLanguages | null;
   resistances?: string[] | null;
+  conditional_resistances?: string[] | null;
   damageChoices?: TraitDamageChoice[] | null;
   catalogChoices?: TraitCatalogChoice[] | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
   innateSpells?: TraitInnateSpells | null;
+  abilityScores?: TraitAbilityScore[] | null;
   languageService: LanguageService;
   damageService: DamageService;
   creatureTypeService: CreatureTypeService;
@@ -39,6 +42,7 @@ export async function assertTraitCatalogRefs(input: {
   ]);
   const damageIds = uniqueIds([
     ...(input.resistances ?? []),
+    ...(input.conditional_resistances ?? []),
     ...(input.damageChoices ?? []).flatMap(choice => choice.options.map(option => option.damageTypeId))
   ]);
   const creatureTypeIds = uniqueIds(
@@ -118,6 +122,17 @@ export async function assertTraitCatalogRefs(input: {
       const spell = spellsById.get(grant.spellId);
       if (spell?.level === 0 && grant.slotLevel !== "spellLevel") {
         throw new AppError("Los trucos innatos deben usar slotLevel spellLevel", 400);
+      }
+    }
+  }
+
+  const abilityScoreKeys = uniqueIds((input.abilityScores ?? []).map(score => score.key));
+  if (abilityScoreKeys.length) {
+    const attributes = await input.attributeService.getBySystems([input.ruleset]);
+    const keys = new Set(attributes.map(attribute => attribute.key));
+    for (const key of abilityScoreKeys) {
+      if (!keys.has(key)) {
+        throw new AppError(`La característica ${key} no pertenece a este sistema ni a sus ancestros`, 400);
       }
     }
   }

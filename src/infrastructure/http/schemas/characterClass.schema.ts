@@ -32,7 +32,8 @@ const CharacterClassLevelInputSchema = z.object({
   spell_choices: z.array(ChoiceMongoSchema).optional(),
   traits: z.array(
     z.string().regex(objectIdRegex, "Cada trait debe ser un ObjectId válido de MongoDB")
-  ).optional()
+  ).optional(),
+  traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional()
 });
 
 const SpellCopyCostSchema = z.object({

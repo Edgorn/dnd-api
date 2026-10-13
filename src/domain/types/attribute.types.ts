@@ -56,5 +56,6 @@ export interface AttributeBonus {
 
 export interface CharacterAttributeApi extends Omit<AttributeApi, 'ruleset'> {
   value: number,
-  modifier?: number
+  modifier?: number,
+  max?: number
 }
