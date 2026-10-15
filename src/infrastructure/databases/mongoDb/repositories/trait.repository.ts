@@ -293,6 +293,12 @@ export default class TraitRepository implements ITraitRepository {
         ...(Array.isArray(trait.abilityScores) && trait.abilityScores.length
           ? { abilityScores: trait.abilityScores }
           : {}),
+        ...(Array.isArray(trait.skillProficiencies) && trait.skillProficiencies.length
+          ? { skillProficiencies: trait.skillProficiencies }
+          : {}),
+        ...(Array.isArray(trait.skillProficiencyChoices) && trait.skillProficiencyChoices.length
+          ? { skillProficiencyChoices: trait.skillProficiencyChoices }
+          : {}),
         ...(trait.stackGroup ? { stackGroup: trait.stackGroup } : {}),
         ...(trait.conditionalResistanceGroup ? { conditionalResistanceGroup: trait.conditionalResistanceGroup } : {})
       };
@@ -305,7 +311,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, innateSpells, abilityScores, stackGroup, conditionalResistanceGroup, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, innateSpells, abilityScores, skillProficiencies, skillProficiencyChoices, stackGroup, conditionalResistanceGroup, ...rest } = trait;
     return {
       ...rest,
       summary: summaryToPersist(trait.summary, trait.description),
@@ -322,6 +328,8 @@ export default class TraitRepository implements ITraitRepository {
       ...(weaponDamageBonus ? { weaponDamageBonus } : {}),
       ...(innateSpells ? { innateSpells } : {}),
       ...(Array.isArray(abilityScores) ? { abilityScores } : {}),
+      ...(Array.isArray(skillProficiencies) ? { skillProficiencies } : {}),
+      ...(Array.isArray(skillProficiencyChoices) ? { skillProficiencyChoices } : {}),
       ...(stackGroup ? { stackGroup } : {}),
       ...(typeof conditionalResistanceGroup === "string" ? { conditionalResistanceGroup } : {})
     };
@@ -345,6 +353,8 @@ export default class TraitRepository implements ITraitRepository {
       weaponDamageBonus,
       innateSpells,
       abilityScores,
+      skillProficiencies,
+      skillProficiencyChoices,
       stackGroup,
       conditionalResistanceGroup,
       ...rest
@@ -383,6 +393,8 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "weaponDamageBonus", weaponDamageBonus);
     this.assignNullable($set, $unset, "innateSpells", innateSpells);
     this.assignNullable($set, $unset, "abilityScores", abilityScores);
+    this.assignNullable($set, $unset, "skillProficiencies", skillProficiencies);
+    this.assignNullable($set, $unset, "skillProficiencyChoices", skillProficiencyChoices);
     this.assignNullable($set, $unset, "stackGroup", stackGroup);
     this.assignNullable($set, $unset, "conditionalResistanceGroup", conditionalResistanceGroup);
 

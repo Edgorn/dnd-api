@@ -66,6 +66,7 @@ export default class UpdateTraitUseCase {
       damageChoiceRef: trait.damageChoiceRef,
       innateSpells: trait.innateSpells,
       abilityScores: trait.abilityScores,
+      skillProficiencies: trait.skillProficiencies,
       languageService: this.languageService,
       damageService: this.damageService,
       creatureTypeService: this.creatureTypeService,

@@ -10,7 +10,8 @@ const subclassSchema: Schema = new Schema<SubclassMongo>({
   levels: [{
     level: { type: Number, required: true },
     traits: { type: [String], default: [] },
-    traits_data: { type: Schema.Types.Mixed, default: {} }
+    traits_data: { type: Schema.Types.Mixed, default: {} },
+    skill_choices: { type: Schema.Types.Mixed, default: undefined }
   }],
   deletedAt: { type: Date, default: null }
 }, { collection: "subclasses", timestamps: true });

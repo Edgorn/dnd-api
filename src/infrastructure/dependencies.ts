@@ -278,10 +278,10 @@ const conditionRepository = new ConditionRepository(systemRepository)
 const conditionService = new ConditionService(conditionRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
 const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, conditionRepository, skillRepository, languageRepository, creatureTypeRepository, attributeRepository)
-const subclassRepository = new SubclassRepository(systemRepository, traitRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const featRepository = new FeatRepository(systemRepository, attributeService)
 const skillService = new SkillService(skillRepository)
+const subclassRepository = new SubclassRepository(systemRepository, traitRepository, skillService)
 const invocacionRepository = new InvocacionRepository(spellRepository, traitRepository)
 const characterClassRepository = new CharacterClassRepository(
   systemRepository,

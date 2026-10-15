@@ -211,6 +211,20 @@
             },
             "description": "Bonos de puntuación de característica que aplica el rasgo al leer la ficha (p. ej. Campeón Primordial: +4 a str y con, máximo 24). No se persisten en el personaje. max es el tope de esa característica mientras el rasgo esté activo.\n"
           },
+          "skillProficiencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraitSkillProficiency"
+            },
+            "description": "Overlay de competencia al leer la ficha. Sube el multiplicador de cada skill coincidente (0.5, 1 o 2) sin bajar competencia ni pericia. Sin skillIds ni attributeKeys aplica a todas las skills (p. ej. Aprendiz de Mucho).\n"
+          },
+          "skillProficiencyChoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraitSkillProficiencyChoice"
+            },
+            "description": "Elecciones de competencia (p. ej. Pericia). El personaje guarda los IDs de skill en traitChoices. Las concesiones dependen del nivel de la clase que otorga el rasgo. from proficient solo admite skills ya competentes.\n"
+          },
           "speed": {
             "$ref": "#/components/schemas/TraitSpeed",
             "description": "Efecto de velocidad de movimiento que otorga el rasgo."
@@ -1340,6 +1354,92 @@
           }
         }
       },
+      "TraitSkillProficiency": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "number",
+            "enum": [
+              0.5,
+              1,
+              2
+            ],
+            "description": "Multiplicador de competencia. 0.5 es media competencia, 1 competencia completa y 2 pericia. En ficha se aplica el máximo con el valor actual.\n"
+          },
+          "skillIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de Mongo de las skills afectadas. Si falta, aplica a todas."
+          },
+          "attributeKeys": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "Claves de característica (p. ej. str, dex). Si falta, aplica a todas. Si también hay skillIds, la skill debe cumplir ambos filtros.\n"
+          }
+        }
+      },
+      "TraitSkillProficiencyChoice": {
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "from",
+          "grants"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave en traitChoices (p. ej. expertise). No puede repetirse con catalogChoices ni damageChoices."
+          },
+          "value": {
+            "type": "number",
+            "enum": [
+              0.5,
+              1,
+              2
+            ],
+            "description": "Multiplicador que se aplica a las skills elegidas. Pericia usa 2."
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "proficient"
+            ],
+            "description": "Origen de las opciones. proficient son las skills en las que el personaje ya tiene competencia."
+          },
+          "grants": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "atLevel",
+                "choose"
+              ],
+              "properties": {
+                "atLevel": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "choose": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "description": "Cuántas skills nuevas hay que elegir al alcanzar cada nivel de clase. Los niveles no se repiten."
+          }
+        }
+      },
       "InputCreateTrait": {
         "type": "object",
         "description": "Cuerpo de POST /traits. No use Trait de lectura: IDs, no objetos hidratados. action es TraitAction. damageChoices.options es name y damageTypeId, sin id.\n",
@@ -1442,6 +1542,24 @@
               "$ref": "#/components/schemas/TraitAbilityScore"
             },
             "description": "Bonos y topes de característica. Cada key debe existir en el sistema o un ancestro y no repetirse. null borra el campo.\n"
+          },
+          "skillProficiencies": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitSkillProficiency"
+            },
+            "description": "Overlay de competencia al leer la ficha (0.5, 1 o 2). attributeKeys deben existir en el sistema o un ancestro. null borra el campo.\n"
+          },
+          "skillProficiencyChoices": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitSkillProficiencyChoice"
+            },
+            "description": "Elecciones de competencia (p. ej. Pericia). key no puede coincidir con catalogChoices ni damageChoices. null borra el campo.\n"
           },
           "speed": {
             "$ref": "#/components/schemas/TraitSpeed",
@@ -1711,6 +1829,24 @@
               "$ref": "#/components/schemas/TraitAbilityScore"
             },
             "description": "Bonos y topes de característica. null borra el campo."
+          },
+          "skillProficiencies": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitSkillProficiency"
+            },
+            "description": "Overlay de competencia al leer la ficha. null borra el campo."
+          },
+          "skillProficiencyChoices": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitSkillProficiencyChoice"
+            },
+            "description": "Elecciones de competencia. null borra el campo."
           },
           "speed": {
             "$ref": "#/components/schemas/TraitSpeed",
@@ -2303,6 +2439,10 @@
               }
             },
             "description": "Datos dinámicos de rasgos (usos, interpolación de texto)."
+          },
+          "skill_choices": {
+            "$ref": "#/components/schemas/SkillChoiceApi",
+            "description": "Elección de habilidades concedida en este nivel (p. ej. Competencias Adicionales del Colegio del Conocimiento: choose 3, todas las skills del sistema). Hidratada con query_type all/options/filter.\n"
           }
         }
       },
@@ -2378,6 +2518,15 @@
               }
             },
             "description": "Datos dinámicos de rasgos de este nivel."
+          },
+          "skill_choices": {
+            "nullable": true,
+            "description": "Elección de habilidades de este nivel. Misma forma que ChoiceMongo. Solo `choose` ofrece todas las habilidades del sistema (y ancestros). `options` son identificadores de habilidad. `filter` busca habilidades por criterio. Envíe null en una actualización para borrar la elección de este nivel. Si se omite, se conserva.\n",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChoiceMongo"
+              }
+            ]
           }
         }
       },
@@ -2417,7 +2566,7 @@
             "items": {
               "$ref": "#/components/schemas/SubclassLevelInput"
             },
-            "description": "Progresión de rasgos (level, traits, traits_data)."
+            "description": "Progresión de rasgos y elecciones de habilidades (level, traits, traits_data, skill_choices)."
           }
         }
       },
@@ -2516,20 +2665,24 @@
             },
             "description": "Escuela de magia asociada."
           },
-          "castingTime": {
-            "type": "object",
-            "properties": {
-              "value": {
-                "type": "number"
-              },
-              "unit": {
-                "type": "string"
-              },
-              "condition": {
-                "type": "string"
+          "castingTimes": {
+            "type": "array",
+            "description": "Tiempos de lanzamiento. Más de uno indica alternativas (o), p. ej. 1 acción u 8 horas.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "condition": {
+                  "type": "string",
+                  "description": "Disparador de una reacción."
+                }
               }
-            },
-            "description": "Tiempo de lanzamiento detallado."
+            }
           },
           "range": {
             "type": "object",
@@ -2799,17 +2952,22 @@
             "type": "string",
             "description": "ID de la escuela de magia."
           },
-          "castingTime": {
-            "type": "object",
-            "properties": {
-              "value": {
-                "type": "number"
-              },
-              "unit": {
-                "type": "string"
-              },
-              "condition": {
-                "type": "string"
+          "castingTimes": {
+            "type": "array",
+            "description": "Tiempos de lanzamiento. Más de uno indica alternativas (o), p. ej. 1 acción u 8 horas.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "condition": {
+                  "type": "string",
+                  "description": "Disparador de una reacción."
+                }
               }
             }
           },
@@ -3021,17 +3179,22 @@
             "type": "string",
             "description": "ID de la escuela de magia."
           },
-          "castingTime": {
-            "type": "object",
-            "properties": {
-              "value": {
-                "type": "number"
-              },
-              "unit": {
-                "type": "string"
-              },
-              "condition": {
-                "type": "string"
+          "castingTimes": {
+            "type": "array",
+            "description": "Tiempos de lanzamiento. Más de uno indica alternativas (o), p. ej. 1 acción u 8 horas.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "condition": {
+                  "type": "string",
+                  "description": "Disparador de una reacción."
+                }
               }
             }
           },
@@ -3253,6 +3416,35 @@
           }
         }
       },
+      "SkillChoiceApi": {
+        "type": "object",
+        "properties": {
+          "choose": {
+            "type": "number",
+            "description": "Cantidad de opciones a seleccionar."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Skill"
+            },
+            "description": "Lista de habilidades disponibles para elegir, hidratadas."
+          },
+          "query_type": {
+            "type": "string",
+            "enum": [
+              "all",
+              "options",
+              "filter"
+            ],
+            "description": "Tipo de consulta usada para obtener las opciones. `all` si solo se persistió choose."
+          },
+          "query_filter": {
+            "type": "object",
+            "description": "Filtro aplicado si query_type es filter."
+          }
+        }
+      },
       "InputCreateSkill": {
         "type": "object",
         "required": [
@@ -3342,7 +3534,7 @@
             "type": "object"
           },
           "skill_choices": {
-            "type": "object"
+            "$ref": "#/components/schemas/SkillChoiceApi"
           },
           "feats": {
             "$ref": "#/components/schemas/FeatChoiceApi"
@@ -3434,7 +3626,7 @@
             "type": "object"
           },
           "skill_choices": {
-            "type": "object"
+            "$ref": "#/components/schemas/SkillChoiceApi"
           },
           "traits": {
             "type": "array",
@@ -4299,6 +4491,55 @@
                 }
               ]
             }
+          }
+        }
+      },
+      "PendingSkillProficiencyChoice": {
+        "type": "object",
+        "required": [
+          "traitId",
+          "key",
+          "add",
+          "value",
+          "options",
+          "chosen"
+        ],
+        "properties": {
+          "traitId": {
+            "type": "string",
+            "description": "ID del rasgo con la elección de competencia (p. ej. Pericia)."
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave de la elección en traitChoices (p. ej. expertise)."
+          },
+          "add": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Skills nuevas que hay que añadir en este nivel de clase."
+          },
+          "value": {
+            "type": "number",
+            "enum": [
+              0.5,
+              1,
+              2
+            ],
+            "description": "Multiplicador que se aplicará a las skills elegidas."
+          },
+          "options": {
+            "type": "array",
+            "description": "Skills competentes que aún se pueden elegir.",
+            "items": {
+              "$ref": "#/components/schemas/Skill"
+            }
+          },
+          "chosen": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs ya guardados. La lista enviada debe empezar por estos valores, en el mismo orden."
           }
         }
       },
@@ -5352,12 +5593,6 @@
               "type": "string"
             }
           },
-          "double_skills": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "claseId": {
             "type": "string"
           },
@@ -5397,7 +5632,7 @@
           },
           "traitChoices": {
             "type": "object",
-            "description": "Elecciones al crear el personaje. La clave exterior es el id del rasgo y la interior la clave de la elección. Con damageChoices, la lista tiene tantos nombres de fila como indique choose. Con catalogChoices, la lista incluye las opciones que conceden los grants con atLevel menor o igual al nivel 1 de la clase. Una opción simple es un string. Si la opción pide textos o la elección admite idioma, es un objeto con name, inputs y languageId.\n",
+            "description": "Elecciones al crear el personaje. La clave exterior es el id del rasgo y la interior la clave de la elección. Con damageChoices, la lista tiene tantos nombres de fila como indique choose. Con catalogChoices, la lista incluye las opciones que conceden los grants con atLevel menor o igual al nivel 1 de la clase. Una opción simple es un string. Si la opción pide textos o la elección admite idioma, es un objeto con name, inputs y languageId. Con skillProficiencyChoices, la lista son IDs de skills competentes (p. ej. Pericia: tantas como la suma de grants con atLevel 1).\n",
             "additionalProperties": {
               "type": "object",
               "additionalProperties": {
@@ -7978,8 +8213,8 @@
             "description": "Tiradas de salvación. En persistencia se guardan keys de atributo; en respuesta se hidratan a Attribute."
           },
           "skill_choices": {
-            "type": "object",
-            "description": "Elección de habilidades (choose + options/filter)."
+            "$ref": "#/components/schemas/SkillChoiceApi",
+            "description": "Elección de habilidades hidratada (choose, options y query_type all/options/filter)."
           },
           "multiclass": {
             "$ref": "#/components/schemas/CharacterClassMulticlass",
@@ -8051,6 +8286,10 @@
           "spellRepository": {
             "$ref": "#/components/schemas/SpellRepositoryConfig",
             "description": "Configuración del repositorio de conjuros copiable (p. ej. libro de conjuros). Si está presente, el cliente puede mostrar la acción de copiar o aprender conjuros fuera de la subida de nivel.\n"
+          },
+          "spellReplacement": {
+            "$ref": "#/components/schemas/SpellReplacementConfig",
+            "description": "Si está presente, al subir de nivel en esta clase se puede sustituir hasta `count` conjuros conocidos por otros de la lista de la clase (p. ej. bardo).\n"
           },
           "levels": {
             "type": "array",
@@ -8176,6 +8415,15 @@
               }
             },
             "description": "Datos dinámicos de rasgos de este nivel (usos, interpolación de texto). Si se omite en una actualización, se conservan los traits_data existentes de ese nivel.\n"
+          },
+          "skill_choices": {
+            "nullable": true,
+            "description": "Elección de habilidades concedida al ganar este nivel de clase. Misma forma que ChoiceMongo. Solo `choose` ofrece todas las habilidades del sistema (y ancestros). Envíe null en una actualización para borrar la elección de este nivel. Si se omite, se conserva.\n",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChoiceMongo"
+              }
+            ]
           }
         }
       },
@@ -8233,6 +8481,23 @@
           }
         }
       },
+      "SpellReplacementConfig": {
+        "type": "object",
+        "required": [
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número máximo de conjuros conocidos que se pueden sustituir al ganar un nivel de esta clase."
+          },
+          "includeCantrips": {
+            "type": "boolean",
+            "description": "Si es true, también se pueden sustituir trucos. Si se omite o es false, solo conjuros de un nivel para el que la clase tenga espacios.\n"
+          }
+        }
+      },
       "CharacterClassMulticlass": {
         "type": "object",
         "properties": {
@@ -8248,8 +8513,8 @@
             "description": "Competencias fijas que concede el dip (hidratadas). Distintas de las de clase inicial."
           },
           "skill_choices": {
-            "type": "object",
-            "description": "Elección de habilidades del dip (choose + options hidratadas)."
+            "$ref": "#/components/schemas/SkillChoiceApi",
+            "description": "Elección de habilidades del dip hidratada (choose, options y query_type all/options/filter)."
           },
           "proficiencies_choices": {
             "type": "array",
@@ -8341,8 +8606,21 @@
             "description": "Keys de atributos para las tiradas de salvación (ej. str, dex)."
           },
           "skill_choices": {
-            "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput",
-            "description": "Elección de habilidades (choose + options o filter)."
+            "nullable": true,
+            "description": "Elección de habilidades. Misma forma que ChoiceMongo. Solo `choose` ofrece todas las habilidades del sistema (y ancestros). `options` son identificadores de habilidad. `filter` busca habilidades por criterio. Envíe null para borrar la elección.\n",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChoiceMongo"
+              }
+            ]
+          },
+          "proficiencies_choices": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ChoiceMongo"
+            },
+            "description": "Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type o parentProficiencyId). Envíe null para borrar la lista."
           },
           "multiclass": {
             "$ref": "#/components/schemas/CharacterClassMulticlassInput",
@@ -8396,12 +8674,21 @@
             "nullable": true,
             "description": "Configuración del repositorio de conjuros copiable. Opcional al crear."
           },
+          "spellReplacement": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SpellReplacementConfig"
+              }
+            ],
+            "nullable": true,
+            "description": "Recambio opcional de conjuros conocidos al subir de nivel (p. ej. bardo). Opcional al crear.\n"
+          },
           "levels": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
-            "description": "Niveles con tabla de ranuras, elecciones de conjuros, traits y traits_data (level, spellcasting, spell_choices, traits, traits_data)."
+            "description": "Niveles con tabla de ranuras, elecciones de conjuros, traits, traits_data y skill_choices (level, spellcasting, spell_choices, traits, traits_data, skill_choices)."
           },
           "abilityScoreProgression": {
             "type": "array",
@@ -8473,8 +8760,21 @@
             "description": "Keys de atributos para las tiradas de salvación (ej. str, dex)."
           },
           "skill_choices": {
-            "$ref": "#/components/schemas/BackgroundEquipmentChoiceInput",
-            "description": "Elección de habilidades (choose + options o filter)."
+            "nullable": true,
+            "description": "Elección de habilidades. Misma forma que ChoiceMongo. Solo `choose` ofrece todas las habilidades del sistema (y ancestros). `options` son identificadores de habilidad. `filter` busca habilidades por criterio. Envíe null para borrar la elección.\n",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChoiceMongo"
+              }
+            ]
+          },
+          "proficiencies_choices": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ChoiceMongo"
+            },
+            "description": "Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type o parentProficiencyId). Envíe null para borrar la lista."
           },
           "multiclass": {
             "allOf": [
@@ -8532,6 +8832,15 @@
             ],
             "nullable": true,
             "description": "Configuración del repositorio de conjuros. Enviar null para eliminarla."
+          },
+          "spellReplacement": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SpellReplacementConfig"
+              }
+            ],
+            "nullable": true,
+            "description": "Recambio de conjuros conocidos al subir de nivel. Enviar null para eliminarlo."
           },
           "levels": {
             "type": "array",
@@ -13352,7 +13661,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`). Si el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`). Si el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skill_choices`.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spell_choices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
         "tags": [
           "Personajes"
         ],
@@ -13426,6 +13735,25 @@
                         "$ref": "#/components/schemas/SpellChoiceApi"
                       }
                     },
+                    "spell_changes": {
+                      "type": "object",
+                      "description": "Recambio opcional de conjuros conocidos (p. ej. bardo). `choose` es el máximo de pares. `from` son los conocidos sustituibles; `to` es la lista de destinos (lista de la clase y niveles con espacios, sin los ya conocidos). Omitido si la clase no lo permite, es el nivel 1 o no hay conjuros que sustituir.\n",
+                      "properties": {
+                        "choose": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "from": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Spell"
+                          }
+                        },
+                        "to": {
+                          "$ref": "#/components/schemas/SpellChoiceApi"
+                        }
+                      }
+                    },
                     "subclassChoice": {
                       "type": "object",
                       "nullable": true,
@@ -13457,6 +13785,17 @@
                       "items": {
                         "$ref": "#/components/schemas/PendingCatalogChoice"
                       }
+                    },
+                    "skillProficiencyChoices": {
+                      "type": "array",
+                      "description": "Elecciones de competencia pendientes (p. ej. Pericia) en rasgos de la clase que sube. add es cuántas skills hay que añadir. options son las competencias que quedan. chosen son los IDs ya guardados y deben conservarse al frente.\n",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingSkillProficiencyChoice"
+                      }
+                    },
+                    "skill_choices": {
+                      "$ref": "#/components/schemas/SkillChoiceApi",
+                      "description": "Habilidades nuevas a elegir en este nivel (clase y subclase ya asignada). Distinto de skillProficiencyChoices (Pericia sobre skills ya competentes). Las opciones ya poseídas se recortan. Omitido si no hay elección en este nivel.\n"
                     },
                     "ability_score": {
                       "type": "boolean",
@@ -13534,7 +13873,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `skillPicks` / `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nLa dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\n`skillPicks` cubre el dip y las `skill_choices` del nivel (clase o subclase, incluida la\nenviada en `subclass` en el mismo POST). `proficiencyPicks` solo aplica al tomar una clase nueva.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`.\nSi el GET devolvió `spell_changes`, el body puede incluir `spellReplacements` (0..`choose`\npares `{ from, to }`). Es opcional: omitir o enviar vacío no sustituye. `from` debe estar\nen `spell_changes.from`; `to` en `spell_changes.to` y no puede ser un conjuro ya conocido\nni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se\nquita `from` de `preparedSpells` de esa clase si estaba preparado.\nAplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nLa dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
         "tags": [
           "Personajes"
         ],
@@ -13585,6 +13924,27 @@
                       }
                     }
                   },
+                  "spellReplacements": {
+                    "type": "array",
+                    "description": "Recambio opcional alineado con `spell_changes` del GET level-up-data.\nCada elemento sustituye `from` por `to`. Longitud entre 0 y `choose`.\nSi el GET no devolvió `spell_changes`, no enviar recambios.\n",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "from",
+                        "to"
+                      ],
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "description": "ObjectId del conjuro conocido que se deja."
+                        },
+                        "to": {
+                          "type": "string",
+                          "description": "ObjectId del conjuro de la lista de la clase que se aprende."
+                        }
+                      }
+                    }
+                  },
                   "subclass": {
                     "type": "string",
                     "description": "ObjectId de la subclase elegida. Obligatorio si el GET level-up-data devolvió `subclassChoice`. Si el personaje ya la eligió en la creación, omitir.\n"
@@ -13630,7 +13990,7 @@
                   },
                   "traitChoices": {
                     "type": "object",
-                    "description": "Elecciones de los rasgos de esta subida. Clave exterior: id del rasgo. Clave interior: choiceKey. Con damageChoices, la lista de nombres tiene longitud igual a choose y es obligatoria si el rasgo es nuevo. Con catalogChoices, la lista completa es obligatoria cuando level-up-data devuelve esa elección en catalogChoices: conserva chosen y añade `add` opciones. Una opción simple es un string; si pide textos o idioma, es un objeto. Si no falta ninguna, se puede omitir o repetir la lista guardada.\n",
+                    "description": "Elecciones de los rasgos de esta subida. Clave exterior: id del rasgo. Clave interior: choiceKey. Con damageChoices, la lista de nombres tiene longitud igual a choose y es obligatoria si el rasgo es nuevo. Con catalogChoices, la lista completa es obligatoria cuando level-up-data devuelve esa elección en catalogChoices: conserva chosen y añade `add` opciones. Una opción simple es un string; si pide textos o idioma, es un objeto. Si no falta ninguna, se puede omitir o repetir la lista guardada. Con skillProficiencyChoices, la lista son IDs de skills competentes: conserva chosen y añade `add`.\n",
                     "additionalProperties": {
                       "type": "object",
                       "additionalProperties": {
@@ -13653,7 +14013,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "Habilidades elegidas en un dip, alineadas con `dip.skill_choices` (misma longitud que `choose`). Omitir si no hay elección de habilidades.\n"
+                    "description": "Habilidades nuevas elegidas en esta subida. Cubre el dip (`dip.skill_choices`) y las de nivel (`skill_choices` de clase/subclase, incluida la subclase enviada en `subclass`). Longitud igual a la suma de `choose`. Omitir si no hay elección.\n"
                   },
                   "proficiencyPicks": {
                     "type": "array",

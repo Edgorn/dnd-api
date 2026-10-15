@@ -687,4 +687,46 @@ describe("Trait Use Cases armor type suppression", () => {
       expect(traitServiceMock.create).not.toHaveBeenCalled();
     });
   });
+
+  describe("skillProficiencies", () => {
+    const skillProficiencies = [
+      { value: 0.5 as const, attributeKeys: ["str", "dex", "con"] }
+    ];
+
+    beforeEach(() => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      traitServiceMock.create.mockResolvedValue({ id: "trait1" });
+      traitServiceMock.update.mockResolvedValue({ id: "trait1" });
+    });
+
+    it("persists skillProficiencies when attributeKeys belong to the system", async () => {
+      attributeServiceMock.getBySystems.mockResolvedValue([
+        { key: "str" },
+        { key: "dex" },
+        { key: "con" }
+      ]);
+
+      await createUseCase().execute({
+        ...baseTrait,
+        skillProficiencies
+      }, "user1");
+
+      expect(attributeServiceMock.getBySystems).toHaveBeenCalledWith(["sys1"]);
+      expect(traitServiceMock.create).toHaveBeenCalledWith(expect.objectContaining({ skillProficiencies }));
+    });
+
+    it("rejects an attributeKey that is not in the system", async () => {
+      attributeServiceMock.getBySystems.mockResolvedValue([{ key: "str" }]);
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        skillProficiencies
+      }, "user1")).rejects.toMatchObject({
+        message: "La característica dex no pertenece a este sistema ni a sus ancestros",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+  });
 });

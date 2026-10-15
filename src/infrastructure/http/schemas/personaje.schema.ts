@@ -80,6 +80,14 @@ export const LevelUpSchema = z.object({
       )
     )
     .optional(),
+  spellReplacements: z
+    .array(
+      z.object({
+        from: z.string().regex(objectIdRegex, "Cada conjuro debe ser un ObjectId válido de MongoDB"),
+        to: z.string().regex(objectIdRegex, "Cada conjuro debe ser un ObjectId válido de MongoDB"),
+      })
+    )
+    .optional(),
   subclass: z
     .string()
     .regex(objectIdRegex, "La subclase debe ser un ObjectId válido de MongoDB")

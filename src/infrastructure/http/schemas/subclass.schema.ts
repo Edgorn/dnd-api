@@ -2,6 +2,12 @@ import { z } from "zod";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
+const ChoiceMongoSchema = z.object({
+  choose: z.number().int().min(1, "Debe elegir al menos 1"),
+  options: z.array(z.string()).optional(),
+  filter: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional()
+});
+
 const uniqueLevelsRefinement = (
   levels: Array<{ level: number }> | undefined,
   ctx: z.RefinementCtx
@@ -26,7 +32,8 @@ const SubclassLevelInputSchema = z.object({
   traits: z.array(
     z.string().regex(objectIdRegex, "Cada trait debe ser un ObjectId válido de MongoDB")
   ).optional(),
-  traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional()
+  traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional(),
+  skill_choices: ChoiceMongoSchema.nullable().optional()
 });
 
 export const CreateSubclassSchema = z.object({

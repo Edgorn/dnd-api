@@ -31,7 +31,7 @@ const router = Router();
  *         ability_bonus_choices:
  *           type: object
  *         skill_choices:
- *           type: object
+ *           $ref: '#/components/schemas/SkillChoiceApi'
  *         feats:
  *           $ref: '#/components/schemas/FeatChoiceApi'
  *     Race:
@@ -93,7 +93,7 @@ const router = Router();
  *         ability_bonus_choices:
  *           type: object
  *         skill_choices:
- *           type: object
+ *           $ref: '#/components/schemas/SkillChoiceApi'
  *         traits:
  *           type: array
  *           items:

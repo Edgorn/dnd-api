@@ -51,8 +51,8 @@ const router = Router();
  *             $ref: '#/components/schemas/Attribute'
  *           description: Tiradas de salvación. En persistencia se guardan keys de atributo; en respuesta se hidratan a Attribute.
  *         skill_choices:
- *           type: object
- *           description: Elección de habilidades (choose + options/filter).
+ *           $ref: '#/components/schemas/SkillChoiceApi'
+ *           description: Elección de habilidades hidratada (choose, options y query_type all/options/filter).
  *         multiclass:
  *           $ref: '#/components/schemas/CharacterClassMulticlass'
  *           description: Datos de dip (requisitos y competencias recortadas). No reutiliza las de clase inicial.
@@ -119,6 +119,11 @@ const router = Router();
  *             Configuración del repositorio de conjuros copiable (p. ej. libro de conjuros).
  *             Si está presente, el cliente puede mostrar la acción de copiar o aprender
  *             conjuros fuera de la subida de nivel.
+ *         spellReplacement:
+ *           $ref: '#/components/schemas/SpellReplacementConfig'
+ *           description: >
+ *             Si está presente, al subir de nivel en esta clase se puede sustituir hasta
+ *             `count` conjuros conocidos por otros de la lista de la clase (p. ej. bardo).
  *         levels:
  *           type: array
  *           items:
@@ -221,6 +226,15 @@ const router = Router();
  *           description: >
  *             Datos dinámicos de rasgos de este nivel (usos, interpolación de texto).
  *             Si se omite en una actualización, se conservan los traits_data existentes de ese nivel.
+ *         skill_choices:
+ *           nullable: true
+ *           description: >
+ *             Elección de habilidades concedida al ganar este nivel de clase. Misma forma que ChoiceMongo.
+ *             Solo `choose` ofrece todas las habilidades del sistema (y ancestros).
+ *             Envíe null en una actualización para borrar la elección de este nivel.
+ *             Si se omite, se conserva.
+ *           allOf:
+ *             - $ref: '#/components/schemas/ChoiceMongo'
  *     SpellCopyCost:
  *       type: object
  *       required:
@@ -261,6 +275,20 @@ const router = Router();
  *         recoverPreparedOnLoss:
  *           type: boolean
  *           description: Si se pierde el repositorio, se pueden transcribir los conjuros preparados actuales.
+ *     SpellReplacementConfig:
+ *       type: object
+ *       required:
+ *         - count
+ *       properties:
+ *         count:
+ *           type: integer
+ *           minimum: 1
+ *           description: Número máximo de conjuros conocidos que se pueden sustituir al ganar un nivel de esta clase.
+ *         includeCantrips:
+ *           type: boolean
+ *           description: >
+ *             Si es true, también se pueden sustituir trucos. Si se omite o es false,
+ *             solo conjuros de un nivel para el que la clase tenga espacios.
  *     CharacterClassMulticlass:
  *       type: object
  *       properties:
@@ -273,8 +301,8 @@ const router = Router();
  *             type: object
  *           description: Competencias fijas que concede el dip (hidratadas). Distintas de las de clase inicial.
  *         skill_choices:
- *           type: object
- *           description: Elección de habilidades del dip (choose + options hidratadas).
+ *           $ref: '#/components/schemas/SkillChoiceApi'
+ *           description: Elección de habilidades del dip hidratada (choose, options y query_type all/options/filter).
  *         proficiencies_choices:
  *           type: array
  *           items:
@@ -337,8 +365,20 @@ const router = Router();
  *             type: string
  *           description: Keys de atributos para las tiradas de salvación (ej. str, dex).
  *         skill_choices:
- *           $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
- *           description: Elección de habilidades (choose + options o filter).
+ *           nullable: true
+ *           description: >
+ *             Elección de habilidades. Misma forma que ChoiceMongo.
+ *             Solo `choose` ofrece todas las habilidades del sistema (y ancestros).
+ *             `options` son identificadores de habilidad. `filter` busca habilidades por criterio.
+ *             Envíe null para borrar la elección.
+ *           allOf:
+ *             - $ref: '#/components/schemas/ChoiceMongo'
+ *         proficiencies_choices:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/ChoiceMongo'
+ *           description: Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type o parentProficiencyId). Envíe null para borrar la lista.
  *         multiclass:
  *           $ref: '#/components/schemas/CharacterClassMulticlassInput'
  *           description: Datos de dip. Opcional al crear.
@@ -374,11 +414,18 @@ const router = Router();
  *             - $ref: '#/components/schemas/SpellRepositoryConfig'
  *           nullable: true
  *           description: Configuración del repositorio de conjuros copiable. Opcional al crear.
+ *         spellReplacement:
+ *           allOf:
+ *             - $ref: '#/components/schemas/SpellReplacementConfig'
+ *           nullable: true
+ *           description: >
+ *             Recambio opcional de conjuros conocidos al subir de nivel (p. ej. bardo).
+ *             Opcional al crear.
  *         levels:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles con tabla de ranuras, elecciones de conjuros, traits y traits_data (level, spellcasting, spell_choices, traits, traits_data).
+ *           description: Niveles con tabla de ranuras, elecciones de conjuros, traits, traits_data y skill_choices (level, spellcasting, spell_choices, traits, traits_data, skill_choices).
  *         abilityScoreProgression:
  *           type: array
  *           items:
@@ -427,8 +474,20 @@ const router = Router();
  *             type: string
  *           description: Keys de atributos para las tiradas de salvación (ej. str, dex).
  *         skill_choices:
- *           $ref: '#/components/schemas/BackgroundEquipmentChoiceInput'
- *           description: Elección de habilidades (choose + options o filter).
+ *           nullable: true
+ *           description: >
+ *             Elección de habilidades. Misma forma que ChoiceMongo.
+ *             Solo `choose` ofrece todas las habilidades del sistema (y ancestros).
+ *             `options` son identificadores de habilidad. `filter` busca habilidades por criterio.
+ *             Envíe null para borrar la elección.
+ *           allOf:
+ *             - $ref: '#/components/schemas/ChoiceMongo'
+ *         proficiencies_choices:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/ChoiceMongo'
+ *           description: Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type o parentProficiencyId). Envíe null para borrar la lista.
  *         multiclass:
  *           allOf:
  *             - $ref: '#/components/schemas/CharacterClassMulticlassInput'
@@ -466,6 +525,11 @@ const router = Router();
  *             - $ref: '#/components/schemas/SpellRepositoryConfig'
  *           nullable: true
  *           description: Configuración del repositorio de conjuros. Enviar null para eliminarla.
+ *         spellReplacement:
+ *           allOf:
+ *             - $ref: '#/components/schemas/SpellReplacementConfig'
+ *           nullable: true
+ *           description: Recambio de conjuros conocidos al subir de nivel. Enviar null para eliminarlo.
  *         levels:
  *           type: array
  *           items:

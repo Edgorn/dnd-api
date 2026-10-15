@@ -5,6 +5,7 @@ import {
   SpellcastingLevel,
   SpellcastingLevelSource,
   SpellPreparedFrom,
+  SpellReplacementConfig,
 } from "../domain/types/characterClass.types";
 import { SpellPrivilegeRule } from "../domain/types/traits.types";
 import { CharacterSpellPrivilegeMongo } from "../domain/types/personajes.types";
@@ -219,6 +220,173 @@ export function validateLevelUpSpellPicks(
   }
 
   return { spellIds: flattened };
+}
+
+export interface SpellReplacementPick {
+  from: string;
+  to: string;
+}
+
+export interface SpellReplacementSpellInput {
+  id: string;
+  level: number;
+}
+
+export function shouldOfferSpellReplacement(params: {
+  config?: SpellReplacementConfig | null;
+  nextLevel: number;
+  eligibleFromCount: number;
+}): boolean {
+  const { config, nextLevel, eligibleFromCount } = params;
+  if (!config || config.count < 1) return false;
+  if (nextLevel <= 1) return false;
+  return eligibleFromCount > 0;
+}
+
+export function eligibleSpellReplacementFrom(
+  known: SpellReplacementSpellInput[],
+  includeCantrips: boolean
+): SpellReplacementSpellInput[] {
+  return known.filter(spell => {
+    if (!spell.id) return false;
+    if (spell.level === 0) return includeCantrips;
+    return spell.level >= 1;
+  });
+}
+
+export function buildSpellReplacementToChoice(
+  classId: string,
+  choose: number,
+  castableLevels: number[],
+  includeCantrips: boolean
+): ChoiceMongo | undefined {
+  if (!classId || choose < 1) return undefined;
+
+  const levels = includeCantrips ? [0, ...castableLevels] : [...castableLevels];
+  if (!levels.length) return undefined;
+
+  return {
+    choose,
+    filter: { level: levels, classes: classId },
+  };
+}
+
+export function validateSpellReplacements(params: {
+  offered: boolean;
+  count: number;
+  includeCantrips: boolean;
+  replacements: SpellReplacementPick[] | undefined;
+  known: SpellReplacementSpellInput[];
+  learnedIds: Iterable<string>;
+  toOptionIds: Iterable<string>;
+  toSpells: SpellReplacementSpellInput[];
+}): { error: string } | { replacements: SpellReplacementPick[] } {
+  const {
+    offered,
+    count,
+    includeCantrips,
+    replacements,
+    known,
+    learnedIds,
+    toOptionIds,
+    toSpells,
+  } = params;
+  const pickList = replacements ?? [];
+
+  if (!offered) {
+    if (pickList.length > 0) {
+      return { error: "Este nivel no ofrece recambio de conjuros" };
+    }
+    return { replacements: [] };
+  }
+
+  if (pickList.length === 0) {
+    return { replacements: [] };
+  }
+
+  if (pickList.length > count) {
+    return { error: `No se pueden sustituir más de ${count} conjuro(s)` };
+  }
+
+  const eligible = eligibleSpellReplacementFrom(known, includeCantrips);
+  const eligibleIds = new Set(eligible.map(spell => spell.id));
+  const knownById = new Map(known.map(spell => [spell.id, spell]));
+  const toById = new Map(toSpells.map(spell => [spell.id, spell]));
+  const knownIds = new Set(known.map(spell => spell.id));
+  const learned = new Set(learnedIds);
+  const optionIds = new Set(toOptionIds);
+  const seenFrom = new Set<string>();
+  const seenTo = new Set<string>();
+
+  for (const pick of pickList) {
+    if (seenFrom.has(pick.from)) {
+      return { error: `El conjuro ${pick.from} está duplicado en el recambio` };
+    }
+    seenFrom.add(pick.from);
+
+    if (!eligibleIds.has(pick.from)) {
+      return { error: `El conjuro ${pick.from} no se puede sustituir` };
+    }
+
+    if (seenTo.has(pick.to)) {
+      return { error: `El conjuro ${pick.to} está duplicado en el recambio` };
+    }
+    seenTo.add(pick.to);
+
+    if (pick.from === pick.to) {
+      return { error: `El conjuro ${pick.to} no sustituye a otro distinto` };
+    }
+    if (knownIds.has(pick.to)) {
+      return { error: `El conjuro ${pick.to} ya es conocido` };
+    }
+    if (learned.has(pick.to)) {
+      return { error: `El conjuro ${pick.to} ya se aprende en esta subida` };
+    }
+    if (!optionIds.has(pick.to)) {
+      return { error: `El conjuro ${pick.to} no está entre las opciones de recambio` };
+    }
+
+    const fromSpell = knownById.get(pick.from);
+    const toSpell = toById.get(pick.to);
+    if (!fromSpell || !toSpell) {
+      return { error: `El conjuro ${pick.to} no existe o no está disponible` };
+    }
+
+    const fromIsCantrip = fromSpell.level === 0;
+    const toIsCantrip = toSpell.level === 0;
+    if (fromIsCantrip !== toIsCantrip) {
+      return {
+        error: fromIsCantrip
+          ? `El truco ${pick.from} solo se puede sustituir por otro truco`
+          : `El conjuro ${pick.from} solo se puede sustituir por otro conjuro con espacios`,
+      };
+    }
+    if (toIsCantrip && !includeCantrips) {
+      return { error: `El conjuro ${pick.to} no se puede sustituir por un truco` };
+    }
+  }
+
+  return { replacements: pickList };
+}
+
+export function applySpellReplacements(
+  knownIds: string[],
+  replacements: SpellReplacementPick[],
+  learnedIds: string[]
+): string[] {
+  const fromSet = new Set(replacements.map(pick => pick.from));
+  const next = knownIds.filter(id => !fromSet.has(id));
+  next.push(...replacements.map(pick => pick.to));
+  next.push(...learnedIds);
+  return next;
+}
+
+export function prunePreparedSpellIds(
+  prepared: string[],
+  removedIds: Iterable<string>
+): string[] {
+  const removed = new Set(removedIds);
+  return prepared.filter(id => !removed.has(id));
 }
 
 export function getPreparedSpellIds(

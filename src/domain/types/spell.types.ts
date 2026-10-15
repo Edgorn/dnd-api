@@ -148,6 +148,7 @@ export interface SpellMongo {
   classes: any[];
   typeName?: string;
   school?: any;
+  castingTimes?: CastingTime[];
   castingTime?: CastingTime;
   range?: SpellRange;
   components?: SpellComponents;
@@ -167,7 +168,7 @@ export interface SpellApi {
   classes: SpellClassApi[];
   typeName?: string;
   school?: SpellSchoolApi;
-  castingTime?: CastingTime;
+  castingTimes?: CastingTime[];
   range?: SpellRange;
   components?: SpellComponents;
   duration?: SpellDuration;
@@ -184,7 +185,7 @@ export interface InputCreateSpell {
   level: number;
   classes: string[];
   school?: string;
-  castingTime?: CastingTime;
+  castingTimes?: CastingTime[];
   range?: SpellRange;
   components?: SpellComponents;
   duration?: SpellDuration;
@@ -200,7 +201,7 @@ export interface InputUpdateSpell {
   level?: number;
   classes?: string[];
   school?: string;
-  castingTime?: CastingTime;
+  castingTimes?: CastingTime[];
   range?: SpellRange;
   components?: SpellComponents;
   duration?: SpellDuration;

@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { PendingCatalogChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
+import { PendingCatalogChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo, TraitSkillProficiencyValue } from "./traits.types"
 import { SkillApi, SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
@@ -109,7 +109,6 @@ export interface TypeCrearPersonaje {
   languages: CreatureLanguagesCreate,
   spells: {},
   skills: string[],
-  double_skills: string[],
   claseId: string,
   clase: string,
   saving_throws: string[],
@@ -196,6 +195,7 @@ export interface TypeLevelUp {
   traitChoices?: TraitChoices;
   skillPicks?: string[];
   proficiencyPicks?: string[][];
+  spellReplacements?: { from: string; to: string }[];
 }
 
 export interface TypeAddEquipment {
@@ -322,7 +322,6 @@ export interface PersonajeMongo {
   languages: CreatureLanguagesCreate,
   spells: Record<string, string[]>,
   skills: string[],
-  double_skills: string[],
   classes: { class: string, name: string, level: number, hit_die: number }[],
   saving_throws: string[],
   subclasses: string[],
@@ -439,6 +438,21 @@ export interface LevelUpDipData {
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
 }
 
+export interface LevelUpSpellChanges {
+  choose: number;
+  from: SpellApi[];
+  to: ChoiceApi<SpellApi>;
+}
+
+export interface PendingSkillProficiencyChoice {
+  traitId: string;
+  key: string;
+  add: number;
+  value: TraitSkillProficiencyValue;
+  options: SkillApi[];
+  chosen: string[];
+}
+
 export interface LevelUpData {
   class: string;
   hit_die: number;
@@ -446,10 +460,13 @@ export interface LevelUpData {
   traits?: TraitApi[];
   traits_data?: TraitDataMongo;
   spell_choices?: ChoiceApi<SpellApi>[];
+  spell_changes?: LevelUpSpellChanges;
   subclassChoice?: SubclassChoiceMenuApi | null;
   ability_score: boolean;
   feats?: ChoiceApi<FeatApi>;
   catalogChoices?: PendingCatalogChoice[];
+  skillProficiencyChoices?: PendingSkillProficiencyChoice[];
+  skill_choices?: ChoiceApi<SkillApi>;
   newClass: boolean;
   requirementsMet?: boolean;
   dip?: LevelUpDipData;

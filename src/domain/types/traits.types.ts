@@ -291,6 +291,30 @@ export interface TraitAbilityScore {
   max?: number;
 }
 
+export const TRAIT_SKILL_PROFICIENCY_VALUES = [0.5, 1, 2] as const;
+export type TraitSkillProficiencyValue = typeof TRAIT_SKILL_PROFICIENCY_VALUES[number];
+
+export interface TraitSkillProficiency {
+  value: TraitSkillProficiencyValue;
+  skillIds?: string[];
+  attributeKeys?: string[];
+}
+
+export const TRAIT_SKILL_PROFICIENCY_FROMS = ["proficient"] as const;
+export type TraitSkillProficiencyFrom = typeof TRAIT_SKILL_PROFICIENCY_FROMS[number];
+
+export interface TraitSkillProficiencyGrant {
+  atLevel: number;
+  choose: number;
+}
+
+export interface TraitSkillProficiencyChoice {
+  key: string;
+  value: TraitSkillProficiencyValue;
+  from: TraitSkillProficiencyFrom;
+  grants: TraitSkillProficiencyGrant[];
+}
+
 export type TraitChoices = Record<string, Record<string, TraitChoiceValue[]>>;
 
 export interface TraitMongo {
@@ -328,6 +352,8 @@ export interface TraitMongo {
   weaponDamageBonus?: TraitWeaponDamageBonus,
   innateSpells?: TraitInnateSpells,
   abilityScores?: TraitAbilityScore[],
+  skillProficiencies?: TraitSkillProficiency[],
+  skillProficiencyChoices?: TraitSkillProficiencyChoice[],
   stackGroup?: TraitStackGroup,
   conditionalResistanceGroup?: string,
   deletedAt?: Date | null
@@ -381,6 +407,8 @@ export interface TraitApi {
   weaponDamageBonus?: TraitWeaponDamageBonus,
   innateSpells?: TraitInnateSpellsApi,
   abilityScores?: TraitAbilityScore[],
+  skillProficiencies?: TraitSkillProficiency[],
+  skillProficiencyChoices?: TraitSkillProficiencyChoice[],
   stackGroup?: TraitStackGroup,
   conditionalResistanceGroup?: string
 }
@@ -417,6 +445,8 @@ export interface CreateTrait {
   weaponDamageBonus?: TraitWeaponDamageBonus | null,
   innateSpells?: TraitInnateSpells | null,
   abilityScores?: TraitAbilityScore[] | null,
+  skillProficiencies?: TraitSkillProficiency[] | null,
+  skillProficiencyChoices?: TraitSkillProficiencyChoice[] | null,
   stackGroup?: TraitStackGroup | null,
   conditionalResistanceGroup?: string | null
 }
@@ -449,6 +479,8 @@ export interface UpdateTrait {
   weaponDamageBonus?: TraitWeaponDamageBonus | null,
   innateSpells?: TraitInnateSpells | null,
   abilityScores?: TraitAbilityScore[] | null,
+  skillProficiencies?: TraitSkillProficiency[] | null,
+  skillProficiencyChoices?: TraitSkillProficiencyChoice[] | null,
   stackGroup?: TraitStackGroup | null,
   conditionalResistanceGroup?: string | null
 }

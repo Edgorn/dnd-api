@@ -7,16 +7,22 @@ import {
   castableSpellLevels,
   DEFAULT_SPELL_ATTACK_BONUS_FORMULA,
   DEFAULT_SPELL_SAVE_DC_FORMULA,
+  applySpellReplacements,
+  buildSpellReplacementToChoice,
+  eligibleSpellReplacementFrom,
   excludeKnownSpellOptions,
   hasCantripSpellChoice,
   hasKnownSpellChoice,
+  prunePreparedSpellIds,
   remainingCantripPicks,
   resolveClassSpellSlotsForLevel,
   resolveSpellSlotsTableForLevel,
+  shouldOfferSpellReplacement,
   spellsLearnedAtLevel,
   validateKnownSpellPicks,
   validateLevelUpSpellPicks,
   validatePreparedSpellPicks,
+  validateSpellReplacements,
   validateSpellPrivilegePicks,
   canReplaceSpellPrivileges,
   privilegeSpellIdsExcludedFromCap,
@@ -420,6 +426,176 @@ describe("validateLevelUpSpellPicks", () => {
     expect(
       validateLevelUpSpellPicks(choices, [["cantrip-1"], ["spell-1", "spell-2"]], ["spell-1"])
     ).toHaveProperty("error");
+  });
+});
+
+describe("spell replacement helpers", () => {
+  const known = [
+    { id: "cantrip-1", level: 0 },
+    { id: "spell-1", level: 1 },
+    { id: "spell-2", level: 2 },
+  ];
+  const toSpells = [
+    { id: "spell-3", level: 1 },
+    { id: "spell-4", level: 2 },
+    { id: "cantrip-2", level: 0 },
+  ];
+
+  it("offers replacement only from class level 2 with eligible known spells", () => {
+    expect(shouldOfferSpellReplacement({
+      config: { count: 1 },
+      nextLevel: 2,
+      eligibleFromCount: 2,
+    })).toBe(true);
+    expect(shouldOfferSpellReplacement({
+      config: { count: 1 },
+      nextLevel: 1,
+      eligibleFromCount: 2,
+    })).toBe(false);
+    expect(shouldOfferSpellReplacement({
+      config: { count: 1 },
+      nextLevel: 2,
+      eligibleFromCount: 0,
+    })).toBe(false);
+    expect(shouldOfferSpellReplacement({
+      config: null,
+      nextLevel: 2,
+      eligibleFromCount: 2,
+    })).toBe(false);
+  });
+
+  it("excludes cantrips from from-list unless includeCantrips", () => {
+    expect(eligibleSpellReplacementFrom(known, false).map(spell => spell.id)).toEqual([
+      "spell-1",
+      "spell-2",
+    ]);
+    expect(eligibleSpellReplacementFrom(known, true).map(spell => spell.id)).toEqual([
+      "cantrip-1",
+      "spell-1",
+      "spell-2",
+    ]);
+  });
+
+  it("builds a class-list filter for castable levels", () => {
+    expect(buildSpellReplacementToChoice("c1", 1, [1, 2], false)).toEqual({
+      choose: 1,
+      filter: { level: [1, 2], classes: "c1" },
+    });
+    expect(buildSpellReplacementToChoice("c1", 1, [1], true)).toEqual({
+      choose: 1,
+      filter: { level: [0, 1], classes: "c1" },
+    });
+    expect(buildSpellReplacementToChoice("c1", 1, [], false)).toBeUndefined();
+  });
+
+  it("accepts omitting replacements when offered", () => {
+    expect(validateSpellReplacements({
+      offered: true,
+      count: 1,
+      includeCantrips: false,
+      replacements: undefined,
+      known,
+      learnedIds: [],
+      toOptionIds: ["spell-3"],
+      toSpells,
+    })).toEqual({ replacements: [] });
+  });
+
+  it("rejects replacements when the level does not offer them", () => {
+    expect(validateSpellReplacements({
+      offered: false,
+      count: 1,
+      includeCantrips: false,
+      replacements: [{ from: "spell-1", to: "spell-3" }],
+      known,
+      learnedIds: [],
+      toOptionIds: ["spell-3"],
+      toSpells,
+    })).toEqual({ error: "Este nivel no ofrece recambio de conjuros" });
+  });
+
+  it("accepts a valid leveled swap", () => {
+    expect(validateSpellReplacements({
+      offered: true,
+      count: 1,
+      includeCantrips: false,
+      replacements: [{ from: "spell-1", to: "spell-3" }],
+      known,
+      learnedIds: ["spell-4"],
+      toOptionIds: ["spell-3", "spell-4"],
+      toSpells,
+    })).toEqual({ replacements: [{ from: "spell-1", to: "spell-3" }] });
+  });
+
+  it("rejects swapping a cantrip when includeCantrips is false", () => {
+    const result = validateSpellReplacements({
+      offered: true,
+      count: 1,
+      includeCantrips: false,
+      replacements: [{ from: "cantrip-1", to: "cantrip-2" }],
+      known,
+      learnedIds: [],
+      toOptionIds: ["cantrip-2"],
+      toSpells,
+    });
+    expect(result).toEqual({ error: "El conjuro cantrip-1 no se puede sustituir" });
+  });
+
+  it("rejects replacing a leveled spell with a cantrip", () => {
+    const result = validateSpellReplacements({
+      offered: true,
+      count: 1,
+      includeCantrips: true,
+      replacements: [{ from: "spell-1", to: "cantrip-2" }],
+      known,
+      learnedIds: [],
+      toOptionIds: ["cantrip-2", "spell-3"],
+      toSpells,
+    });
+    expect(result).toHaveProperty("error");
+  });
+
+  it("rejects more replacements than count", () => {
+    const result = validateSpellReplacements({
+      offered: true,
+      count: 1,
+      includeCantrips: false,
+      replacements: [
+        { from: "spell-1", to: "spell-3" },
+        { from: "spell-2", to: "spell-4" },
+      ],
+      known,
+      learnedIds: [],
+      toOptionIds: ["spell-3", "spell-4"],
+      toSpells,
+    });
+    expect(result).toEqual({ error: "No se pueden sustituir más de 1 conjuro(s)" });
+  });
+
+  it("rejects a to spell learned in the same level-up", () => {
+    const result = validateSpellReplacements({
+      offered: true,
+      count: 1,
+      includeCantrips: false,
+      replacements: [{ from: "spell-1", to: "spell-3" }],
+      known,
+      learnedIds: ["spell-3"],
+      toOptionIds: ["spell-3"],
+      toSpells,
+    });
+    expect(result).toEqual({ error: "El conjuro spell-3 ya se aprende en esta subida" });
+  });
+
+  it("applies replacements then appends learned spells", () => {
+    expect(applySpellReplacements(
+      ["spell-1", "spell-2"],
+      [{ from: "spell-1", to: "spell-3" }],
+      ["spell-4"]
+    )).toEqual(["spell-2", "spell-3", "spell-4"]);
+  });
+
+  it("prunes replaced ids from prepared spells", () => {
+    expect(prunePreparedSpellIds(["spell-1", "spell-2"], ["spell-1"])).toEqual(["spell-2"]);
   });
 });
 

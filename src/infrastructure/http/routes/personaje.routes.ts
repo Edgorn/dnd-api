@@ -50,6 +50,40 @@ const router = Router();
  *               - type: string
  *                 example: Bosque
  *               - $ref: '#/components/schemas/CatalogChoiceEntry'
+ *     PendingSkillProficiencyChoice:
+ *       type: object
+ *       required:
+ *         - traitId
+ *         - key
+ *         - add
+ *         - value
+ *         - options
+ *         - chosen
+ *       properties:
+ *         traitId:
+ *           type: string
+ *           description: ID del rasgo con la elección de competencia (p. ej. Pericia).
+ *         key:
+ *           type: string
+ *           description: Clave de la elección en traitChoices (p. ej. expertise).
+ *         add:
+ *           type: integer
+ *           minimum: 1
+ *           description: Skills nuevas que hay que añadir en este nivel de clase.
+ *         value:
+ *           type: number
+ *           enum: [0.5, 1, 2]
+ *           description: Multiplicador que se aplicará a las skills elegidas.
+ *         options:
+ *           type: array
+ *           description: Skills competentes que aún se pueden elegir.
+ *           items:
+ *             $ref: '#/components/schemas/Skill'
+ *         chosen:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs ya guardados. La lista enviada debe empezar por estos valores, en el mismo orden.
  *     CatalogChoiceEntry:
  *       type: object
  *       required:
@@ -820,10 +854,6 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *         double_skills:
- *           type: array
- *           items:
- *             type: string
  *         claseId:
  *           type: string
  *         clase:
@@ -861,6 +891,8 @@ const router = Router();
  *             con atLevel menor o igual al nivel 1 de la clase. Una opción simple es un
  *             string. Si la opción pide textos o la elección admite idioma, es un objeto
  *             con name, inputs y languageId.
+ *             Con skillProficiencyChoices, la lista son IDs de skills competentes
+ *             (p. ej. Pericia: tantas como la suma de grants con atLevel 1).
  *           additionalProperties:
  *             type: object
  *             additionalProperties:
@@ -1566,10 +1598,16 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       origen no se añade a `traits`.
  *       Si el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene
  *       una subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.
+ *       `skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase
+ *       ya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones
+ *       de cada opción van en `subclassChoice.options[].levels[].skill_choices`.
  *       `spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`
  *       de la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos
  *       sintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con
  *       ranuras), más las elecciones persistidas de niveles 1–9.
+ *       Si la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa
+ *       clase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`
+ *       pares from/to). No forma parte de `spell_choices` y se puede omitir.
  *       Si el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes
  *       elegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2
  *       (un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.
@@ -1626,6 +1664,23 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   description: Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips, conjuros conocidos desde spellsLearned y choices persistidas).
  *                   items:
  *                     $ref: '#/components/schemas/SpellChoiceApi'
+ *                 spell_changes:
+ *                   type: object
+ *                   description: >
+ *                     Recambio opcional de conjuros conocidos (p. ej. bardo). `choose` es el máximo
+ *                     de pares. `from` son los conocidos sustituibles; `to` es la lista de destinos
+ *                     (lista de la clase y niveles con espacios, sin los ya conocidos). Omitido si
+ *                     la clase no lo permite, es el nivel 1 o no hay conjuros que sustituir.
+ *                   properties:
+ *                     choose:
+ *                       type: integer
+ *                       minimum: 1
+ *                     from:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Spell'
+ *                     to:
+ *                       $ref: '#/components/schemas/SpellChoiceApi'
  *                 subclassChoice:
  *                   type: object
  *                   nullable: true
@@ -1656,6 +1711,20 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                     y deben conservarse al frente, con sus textos e idioma.
  *                   items:
  *                     $ref: '#/components/schemas/PendingCatalogChoice'
+ *                 skillProficiencyChoices:
+ *                   type: array
+ *                   description: >
+ *                     Elecciones de competencia pendientes (p. ej. Pericia) en rasgos de la clase
+ *                     que sube. add es cuántas skills hay que añadir. options son las competencias
+ *                     que quedan. chosen son los IDs ya guardados y deben conservarse al frente.
+ *                   items:
+ *                     $ref: '#/components/schemas/PendingSkillProficiencyChoice'
+ *                 skill_choices:
+ *                   $ref: '#/components/schemas/SkillChoiceApi'
+ *                   description: >
+ *                     Habilidades nuevas a elegir en este nivel (clase y subclase ya asignada).
+ *                     Distinto de skillProficiencyChoices (Pericia sobre skills ya competentes).
+ *                     Las opciones ya poseídas se recortan. Omitido si no hay elección en este nivel.
  *                 ability_score:
  *                   type: boolean
  *                   description: >
@@ -1722,11 +1791,19 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       el dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).
  *       El servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la
  *       mejora de característica, si la hay). Reinicia la XP a 0.
- *       En un dip une `multiclass.proficiencies` y aplica `skillPicks` / `proficiencyPicks`; no toca
+ *       En un dip une `multiclass.proficiencies` y aplica `proficiencyPicks`; no toca
  *       tiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.
+ *       `skillPicks` cubre el dip y las `skill_choices` del nivel (clase o subclase, incluida la
+ *       enviada en `subclass` en el mismo POST). `proficiencyPicks` solo aplica al tomar una clase nueva.
  *       Si `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir
  *       `spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se
- *       guardan en `spells[classId]`. Aplica los rasgos automáticos del nivel (`traits` y
+ *       guardan en `spells[classId]`.
+ *       Si el GET devolvió `spell_changes`, el body puede incluir `spellReplacements` (0..`choose`
+ *       pares `{ from, to }`). Es opcional: omitir o enviar vacío no sustituye. `from` debe estar
+ *       en `spell_changes.from`; `to` en `spell_changes.to` y no puede ser un conjuro ya conocido
+ *       ni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se
+ *       quita `from` de `preparedSpells` de esa clase si estaba preparado.
+ *       Aplica los rasgos automáticos del nivel (`traits` y
  *       `traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).
  *       Si un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con
  *       esa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.
@@ -1787,6 +1864,24 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                   items:
  *                     type: string
  *                     description: ObjectId de MongoDB del conjuro.
+ *               spellReplacements:
+ *                 type: array
+ *                 description: |
+ *                   Recambio opcional alineado con `spell_changes` del GET level-up-data.
+ *                   Cada elemento sustituye `from` por `to`. Longitud entre 0 y `choose`.
+ *                   Si el GET no devolvió `spell_changes`, no enviar recambios.
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - from
+ *                     - to
+ *                   properties:
+ *                     from:
+ *                       type: string
+ *                       description: ObjectId del conjuro conocido que se deja.
+ *                     to:
+ *                       type: string
+ *                       description: ObjectId del conjuro de la lista de la clase que se aprende.
  *               subclass:
  *                 type: string
  *                 description: >
@@ -1834,6 +1929,8 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                   y añade `add` opciones. Una opción simple es un string; si pide textos
  *                   o idioma, es un objeto. Si no falta ninguna, se puede omitir o repetir
  *                   la lista guardada.
+ *                   Con skillProficiencyChoices, la lista son IDs de skills competentes:
+ *                   conserva chosen y añade `add`.
  *                 additionalProperties:
  *                   type: object
  *                   additionalProperties:
@@ -1847,8 +1944,9 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                 items:
  *                   type: string
  *                 description: >
- *                   Habilidades elegidas en un dip, alineadas con `dip.skill_choices` (misma longitud que `choose`).
- *                   Omitir si no hay elección de habilidades.
+ *                   Habilidades nuevas elegidas en esta subida. Cubre el dip (`dip.skill_choices`)
+ *                   y las de nivel (`skill_choices` de clase/subclase, incluida la subclase enviada
+ *                   en `subclass`). Longitud igual a la suma de `choose`. Omitir si no hay elección.
  *               proficiencyPicks:
  *                 type: array
  *                 items:

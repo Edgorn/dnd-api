@@ -1183,3 +1183,122 @@ describe("UpdateTraitSchema abilityScores", () => {
     expect(UpdateTraitSchema.safeParse({ abilityScores: null }).success).toBe(true);
   });
 });
+
+describe("CreateTraitSchema skillProficiencies", () => {
+  it("accepts jack of all trades style half proficiency", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Aprendiz de Mucho",
+      skillProficiencies: [{ value: 0.5 }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts attribute and skill filters", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Atleta Extraordinario",
+      skillProficiencies: [{
+        value: 0.5,
+        attributeKeys: ["str", "dex", "con"],
+        skillIds: ["507f1f77bcf86cd799439011"]
+      }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid value, empty filters and an empty list", () => {
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      skillProficiencies: [{ value: 0.25 }]
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      skillProficiencies: [{ value: 3 }]
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      skillProficiencies: [{ value: 0.5, skillIds: [] }]
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      skillProficiencies: []
+    }).success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema skillProficiencies", () => {
+  it("accepts null to clear skillProficiencies", () => {
+    expect(UpdateTraitSchema.safeParse({ skillProficiencies: null }).success).toBe(true);
+  });
+});
+
+describe("CreateTraitSchema skillProficiencyChoices", () => {
+  it("accepts bard expertise grants", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pericia",
+      skillProficiencyChoices: [{
+        key: "expertise",
+        value: 2,
+        from: "proficient",
+        grants: [
+          { atLevel: 3, choose: 2 },
+          { atLevel: 10, choose: 2 }
+        ]
+      }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid from, repeated grant levels and a key shared with catalogChoices", () => {
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      skillProficiencyChoices: [{
+        key: "expertise",
+        value: 2,
+        from: "all",
+        grants: [{ atLevel: 3, choose: 2 }]
+      }]
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      skillProficiencyChoices: [{
+        key: "expertise",
+        value: 2,
+        from: "proficient",
+        grants: [
+          { atLevel: 3, choose: 2 },
+          { atLevel: 3, choose: 2 }
+        ]
+      }]
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      catalogChoices: [{
+        key: "expertise",
+        options: [{ name: "Bosque" }],
+        grants: [{ atLevel: 1, choose: 1 }]
+      }],
+      skillProficiencyChoices: [{
+        key: "expertise",
+        value: 2,
+        from: "proficient",
+        grants: [{ atLevel: 3, choose: 2 }]
+      }]
+    }).success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema skillProficiencyChoices", () => {
+  it("accepts null to clear skillProficiencyChoices", () => {
+    expect(UpdateTraitSchema.safeParse({ skillProficiencyChoices: null }).success).toBe(true);
+  });
+});

@@ -33,7 +33,8 @@ const CharacterClassLevelInputSchema = z.object({
   traits: z.array(
     z.string().regex(objectIdRegex, "Cada trait debe ser un ObjectId válido de MongoDB")
   ).optional(),
-  traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional()
+  traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional(),
+  skill_choices: ChoiceMongoSchema.nullable().optional()
 });
 
 const SpellCopyCostSchema = z.object({
@@ -48,6 +49,11 @@ const SpellRepositoryConfigSchema = z.object({
   copy: SpellCopyCostSchema,
   duplicate: SpellCopyCostSchema,
   recoverPreparedOnLoss: z.boolean()
+});
+
+const SpellReplacementConfigSchema = z.object({
+  count: z.number().int().min(1, "Debe poder sustituir al menos 1 conjuro"),
+  includeCantrips: z.boolean().optional()
 });
 
 const PreparedFromSchema = z.enum(["known", "classList"]);
@@ -108,6 +114,7 @@ const characterClassFields = {
   proficiencies: z.array(z.string()).optional(),
   saving_throws: z.array(z.string().min(1)).optional(),
   skill_choices: ChoiceMongoSchema.nullable().optional(),
+  proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   multiclass: CharacterClassMulticlassSchema.optional(),
   equipment: GrantedEquipmentListSchema.nullable().optional(),
   equipment_choices: z.array(EquipmentChoiceMongoSchema).nullable().optional(),
@@ -117,6 +124,7 @@ const characterClassFields = {
   spellsPreparedFormula: classFormulaSchema("spellsPreparedFormula"),
   preparedFrom: PreparedFromSchema.optional(),
   spellRepository: SpellRepositoryConfigSchema.nullable().optional(),
+  spellReplacement: SpellReplacementConfigSchema.nullable().optional(),
   levels: z.array(CharacterClassLevelInputSchema).optional(),
   abilityScoreProgression: abilityScoreProgressionSchema.optional(),
   subclassChoice: z.object({

@@ -43,6 +43,16 @@ export interface SpellRepositoryConfig {
   recoverPreparedOnLoss: boolean;
 }
 
+/**
+ * Optional class config to replace known spells when gaining a class level
+ * (e.g. bard: swap one known class spell for another of a level you have slots for).
+ */
+export interface SpellReplacementConfig {
+  count: number;
+  /** When true, known cantrips may also be replaced. Default false (PHB 2014). */
+  includeCantrips?: boolean;
+}
+
 /** Spell slots table for a class level (create/update input and slim API). */
 export interface ClassSpellSlots {
   cantrips?: number;
@@ -64,6 +74,7 @@ export interface CharacterClassLevelInput {
   traits?: string[];
   /** Dynamic trait placeholders for this class level. Omitted on update leaves existing traits_data. */
   traits_data?: TraitDataMongo;
+  skill_choices?: ChoiceMongo | null;
 }
 
 export interface CharacterClassMulticlassCreate {
@@ -89,6 +100,7 @@ export interface InputCreateCharacterClass {
   proficiencies?: string[];
   saving_throws?: string[];
   skill_choices?: ChoiceMongo | null;
+  proficiencies_choices?: ChoiceMongo[] | null;
   multiclass?: CharacterClassMulticlassCreate;
   equipment?: CharacterEquipmentMongo[] | null;
   equipment_choices?: EquipmentChoiceMongo[] | null;
@@ -98,6 +110,7 @@ export interface InputCreateCharacterClass {
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
+  spellReplacement?: SpellReplacementConfig | null;
   levels?: CharacterClassLevelInput[];
   abilityScoreProgression?: number[] | null;
   subclassChoice?: SubclassChoiceConfig | null;
@@ -114,6 +127,7 @@ export interface InputUpdateCharacterClass {
   proficiencies?: string[];
   saving_throws?: string[];
   skill_choices?: ChoiceMongo | null;
+  proficiencies_choices?: ChoiceMongo[] | null;
   multiclass?: CharacterClassMulticlassCreate | null;
   equipment?: CharacterEquipmentMongo[] | null;
   equipment_choices?: EquipmentChoiceMongo[] | null;
@@ -124,6 +138,7 @@ export interface InputUpdateCharacterClass {
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
+  spellReplacement?: SpellReplacementConfig | null;
   levels?: CharacterClassLevelInput[];
   abilityScoreProgression?: number[] | null;
   subclassChoice?: SubclassChoiceConfig | null;
@@ -152,6 +167,7 @@ export interface CharacterClassMongo {
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig | null;
+  spellReplacement?: SpellReplacementConfig | null;
   subclassChoice?: SubclassChoiceConfig | null;
   abilityScoreProgression?: number[] | null;
   god?: boolean;
@@ -179,7 +195,6 @@ export interface CharacterClassLevelMongo {
   subclasses?: SubclassesMongo;
   ability_score?: boolean;
   spellcasting?: ClassSpellSlots;
-  double_skills?: number;
   skill_choices?: ChoiceMongo;
   invocations?: number;
   invocations_change?: number;
@@ -235,7 +250,6 @@ export interface SubclassMongo {
     options: string[];
   };
   skill_choices?: ChoiceMongo;
-  double_skill_choices?: ChoiceMongo;
   proficiencies?: string[];
   spells?: string[];
   spell_choices?: ChoiceSpell[];
@@ -267,6 +281,7 @@ export interface CharacterClassApi {
   spellsPreparedFormula?: string;
   preparedFrom?: SpellPreparedFrom;
   spellRepository?: SpellRepositoryConfig;
+  spellReplacement?: SpellReplacementConfig;
   levels?: CharacterClassLevelInput[];
   abilityScoreProgression?: number[];
   subclassChoice?: SubclassChoiceConfig;
@@ -295,7 +310,6 @@ export interface EmbeddedSubclassApi {
     options: TraitApi[];
   };
   skill_choices?: ChoiceApi<SkillApi>;
-  double_skill_choices?: ChoiceApi<SkillApi>;
   language_choices?: ChoiceApi<LanguageApi>;
   proficiencies?: ProficiencyApi[];
   spells?: SpellApi[];
@@ -313,7 +327,6 @@ export interface ClaseLevelUp {
   ability_score?: boolean;
   feats?: ChoiceApi<FeatApi>;
   subclassChoice?: SubclassChoiceMenuApi | null;
-  double_skills?: number;
   spells?: SpellApi[];
   spell_choices?: ChoiceApi<SpellApi>[];
   spell_changes?: ChoiceApi<SpellApi>[][];

@@ -52,16 +52,19 @@ const router = Router();
  *             color:
  *               type: string
  *           description: Escuela de magia asociada.
- *         castingTime:
- *           type: object
- *           properties:
- *             value:
- *               type: number
- *             unit:
- *               type: string
- *             condition:
- *               type: string
- *           description: Tiempo de lanzamiento detallado.
+ *         castingTimes:
+ *           type: array
+ *           description: Tiempos de lanzamiento. Más de uno indica alternativas (o), p. ej. 1 acción u 8 horas.
+ *           items:
+ *             type: object
+ *             properties:
+ *               value:
+ *                 type: number
+ *               unit:
+ *                 type: string
+ *               condition:
+ *                 type: string
+ *                 description: Disparador de una reacción.
  *         range:
  *           type: object
  *           properties:
@@ -240,15 +243,19 @@ const router = Router();
  *         school:
  *           type: string
  *           description: ID de la escuela de magia.
- *         castingTime:
- *           type: object
- *           properties:
- *             value:
- *               type: number
- *             unit:
- *               type: string
- *             condition:
- *               type: string
+ *         castingTimes:
+ *           type: array
+ *           description: Tiempos de lanzamiento. Más de uno indica alternativas (o), p. ej. 1 acción u 8 horas.
+ *           items:
+ *             type: object
+ *             properties:
+ *               value:
+ *                 type: number
+ *               unit:
+ *                 type: string
+ *               condition:
+ *                 type: string
+ *                 description: Disparador de una reacción.
  *         range:
  *           type: object
  *           properties:
@@ -385,15 +392,19 @@ const router = Router();
  *         school:
  *           type: string
  *           description: ID de la escuela de magia.
- *         castingTime:
- *           type: object
- *           properties:
- *             value:
- *               type: number
- *             unit:
- *               type: string
- *             condition:
- *               type: string
+ *         castingTimes:
+ *           type: array
+ *           description: Tiempos de lanzamiento. Más de uno indica alternativas (o), p. ej. 1 acción u 8 horas.
+ *           items:
+ *             type: object
+ *             properties:
+ *               value:
+ *                 type: number
+ *               unit:
+ *                 type: string
+ *               condition:
+ *                 type: string
+ *                 description: Disparador de una reacción.
  *         range:
  *           type: object
  *           properties:

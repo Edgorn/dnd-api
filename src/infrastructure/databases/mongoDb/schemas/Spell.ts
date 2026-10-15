@@ -17,6 +17,11 @@ const spellSchema: Schema = new Schema<SpellMongo>({
   classes: [{ type: String, ref: 'character_classes' }],
   typeName: String,
   school: { type: Schema.Types.ObjectId, ref: 'magic_schools' },
+  castingTimes: [{
+    value: Number,
+    unit: String,
+    condition: String
+  }],
   castingTime: {
     value: Number,
     unit: String,

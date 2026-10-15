@@ -155,6 +155,16 @@ export const SpellDamageSchema = z.object({
   scaling: SpellDamageScalingSchema.optional()
 }).superRefine(validateSpellDamage);
 
+const rejectLegacyCastingTime = (data: { castingTime?: unknown }, ctx: z.RefinementCtx) => {
+  if (data.castingTime !== undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Usa castingTimes en lugar de castingTime",
+      path: ["castingTime"]
+    });
+  }
+};
+
 export const CreateSpellSchema = z.object({
   ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -162,13 +172,14 @@ export const CreateSpellSchema = z.object({
   level: z.number().min(0, "El nivel debe ser mayor o igual a 0"),
   classes: z.array(z.string()).default([]),
   school: z.string().optional(),
-  castingTime: CastingTimeSchema.optional(),
+  castingTimes: z.array(CastingTimeSchema).min(1, "Debe indicar al menos un tiempo de lanzamiento").optional(),
+  castingTime: z.unknown().optional(),
   range: SpellRangeSchema.optional(),
   components: SpellComponentsSchema.optional(),
   duration: SpellDurationSchema.optional(),
   damage: SpellDamageSchema.optional(),
   ritual: z.boolean()
-});
+}).superRefine(rejectLegacyCastingTime);
 
 export const UpdateSpellSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío").optional(),
@@ -177,12 +188,13 @@ export const UpdateSpellSchema = z.object({
   level: z.number().min(0).optional(),
   classes: z.array(z.string()).optional(),
   school: z.string().optional(),
-  castingTime: CastingTimeSchema.optional(),
+  castingTimes: z.array(CastingTimeSchema).min(1, "Debe indicar al menos un tiempo de lanzamiento").optional(),
+  castingTime: z.unknown().optional(),
   range: SpellRangeSchema.optional(),
   components: SpellComponentsSchema.optional(),
   duration: SpellDurationSchema.optional(),
   damage: SpellDamageSchema.optional(),
   ritual: z.boolean().optional()
-}).refine(data => Object.keys(data).length > 0, {
+}).superRefine(rejectLegacyCastingTime).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

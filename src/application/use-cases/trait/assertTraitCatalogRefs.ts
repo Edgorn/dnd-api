@@ -13,7 +13,8 @@ import {
   TraitDamageChoice,
   TraitDamageChoiceRef,
   TraitInnateSpells,
-  TraitLanguages
+  TraitLanguages,
+  TraitSkillProficiency
 } from "../../../domain/types/traits.types";
 
 export async function assertTraitCatalogRefs(input: {
@@ -27,6 +28,7 @@ export async function assertTraitCatalogRefs(input: {
   damageChoiceRef?: TraitDamageChoiceRef | null;
   innateSpells?: TraitInnateSpells | null;
   abilityScores?: TraitAbilityScore[] | null;
+  skillProficiencies?: TraitSkillProficiency[] | null;
   languageService: LanguageService;
   damageService: DamageService;
   creatureTypeService: CreatureTypeService;
@@ -141,10 +143,14 @@ export async function assertTraitCatalogRefs(input: {
   }
 
   const abilityScoreKeys = uniqueIds((input.abilityScores ?? []).map(score => score.key));
-  if (abilityScoreKeys.length) {
+  const skillProficiencyAttributeKeys = uniqueIds(
+    (input.skillProficiencies ?? []).flatMap(rule => rule.attributeKeys ?? [])
+  );
+  const attributeKeys = uniqueIds([...abilityScoreKeys, ...skillProficiencyAttributeKeys]);
+  if (attributeKeys.length) {
     const attributes = await input.attributeService.getBySystems([input.ruleset]);
     const keys = new Set(attributes.map(attribute => attribute.key));
-    for (const key of abilityScoreKeys) {
+    for (const key of attributeKeys) {
       if (!keys.has(key)) {
         throw new AppError(`La característica ${key} no pertenece a este sistema ni a sus ancestros`, 400);
       }

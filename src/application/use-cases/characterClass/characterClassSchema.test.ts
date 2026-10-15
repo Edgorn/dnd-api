@@ -74,6 +74,36 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts spellReplacement with count", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      spellReplacement: { count: 1 }
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts spellReplacement with includeCantrips", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      spellReplacement: { count: 1, includeCantrips: true }
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects spellReplacement with count below 1", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      spellReplacement: { count: 0 }
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("accepts spellsPreparedFormula together with preparedFrom", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
@@ -212,6 +242,14 @@ describe("UpdateCharacterClassSchema spellRepository", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts null to clear spellReplacement", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      spellReplacement: null
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("accepts subclassChoice and null to clear it", () => {
     const withChoice = UpdateCharacterClassSchema.safeParse({
       subclassChoice: {
@@ -312,6 +350,162 @@ describe("CharacterClassSchema abilityScoreProgression", () => {
   it("accepts an empty array on update", () => {
     const result = UpdateCharacterClassSchema.safeParse({
       abilityScoreProgression: []
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("CreateCharacterClassSchema proficiencies_choices", () => {
+  const proficiencyId = "507f1f77bcf86cd799439011";
+
+  it("accepts proficiencies_choices with options ids", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      proficiencies_choices: [{ choose: 3, options: [proficiencyId] }]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts proficiencies_choices with a type filter", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      proficiencies_choices: [{ choose: 3, filter: { type: "tool" } }]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects proficiencies_choices when choose is less than 1", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      proficiencies_choices: [{ choose: 0, filter: { type: "tool" } }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateCharacterClassSchema proficiencies_choices", () => {
+  const proficiencyId = "507f1f77bcf86cd799439011";
+
+  it("accepts proficiencies_choices on update", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      proficiencies_choices: [{ choose: 3, filter: { type: "tool" } }]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null on update to clear the list", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      proficiencies_choices: null
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects proficiencies_choices when choose is less than 1", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      proficiencies_choices: [{ choose: 0, options: [proficiencyId] }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("CreateCharacterClassSchema levels.skill_choices", () => {
+  it("accepts choose-only skill_choices on a level", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      levels: [{ level: 3, skill_choices: { choose: 3 } }]
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.levels?.[0].skill_choices).toEqual({ choose: 3 });
+    }
+  });
+
+  it("rejects choose less than 1 on a level", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      levels: [{ level: 3, skill_choices: { choose: 0 } }]
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateCharacterClassSchema levels.skill_choices", () => {
+  it("accepts null on a level to clear the choice", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      levels: [{ level: 3, skill_choices: null }]
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("CreateCharacterClassSchema skill_choices", () => {
+  const skillId = "507f1f77bcf86cd799439011";
+
+  it("accepts choose-only, options, and filter modes", () => {
+    const chooseOnly = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      skill_choices: { choose: 3 }
+    });
+    expect(chooseOnly.success).toBe(true);
+    if (chooseOnly.success) {
+      expect(chooseOnly.data.skill_choices).toEqual({ choose: 3 });
+    }
+
+    const withOptions = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      skill_choices: { choose: 3, options: [skillId] }
+    });
+    expect(withOptions.success).toBe(true);
+    if (withOptions.success) {
+      expect(withOptions.data.skill_choices).toEqual({
+        choose: 3,
+        options: [skillId]
+      });
+    }
+
+    const withFilter = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      skill_choices: { choose: 1, filter: { key: "athletics" } }
+    });
+    expect(withFilter.success).toBe(true);
+    if (withFilter.success) {
+      expect(withFilter.data.skill_choices).toEqual({
+        choose: 1,
+        filter: { key: "athletics" }
+      });
+    }
+  });
+
+  it("rejects choose less than 1", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      skill_choices: { choose: 0 }
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateCharacterClassSchema skill_choices", () => {
+  it("accepts null on update to clear the choice", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      skill_choices: null
     });
 
     expect(result.success).toBe(true);

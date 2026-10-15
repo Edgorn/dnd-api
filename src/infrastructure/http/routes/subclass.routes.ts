@@ -28,6 +28,12 @@ const router = Router();
  *             additionalProperties:
  *               type: string
  *           description: Datos dinámicos de rasgos (usos, interpolación de texto).
+ *         skill_choices:
+ *           $ref: '#/components/schemas/SkillChoiceApi'
+ *           description: >
+ *             Elección de habilidades concedida en este nivel (p. ej. Competencias Adicionales
+ *             del Colegio del Conocimiento: choose 3, todas las skills del sistema).
+ *             Hidratada con query_type all/options/filter.
  *     Subclass:
  *       type: object
  *       properties:
@@ -82,6 +88,16 @@ const router = Router();
  *             additionalProperties:
  *               type: string
  *           description: Datos dinámicos de rasgos de este nivel.
+ *         skill_choices:
+ *           nullable: true
+ *           description: >
+ *             Elección de habilidades de este nivel. Misma forma que ChoiceMongo.
+ *             Solo `choose` ofrece todas las habilidades del sistema (y ancestros).
+ *             `options` son identificadores de habilidad. `filter` busca habilidades por criterio.
+ *             Envíe null en una actualización para borrar la elección de este nivel.
+ *             Si se omite, se conserva.
+ *           allOf:
+ *             - $ref: '#/components/schemas/ChoiceMongo'
  *     InputCreateSubclass:
  *       type: object
  *       required:
@@ -110,7 +126,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/SubclassLevelInput'
- *           description: Progresión de rasgos (level, traits, traits_data).
+ *           description: Progresión de rasgos y elecciones de habilidades (level, traits, traits_data, skill_choices).
  *     InputUpdateSubclass:
  *       type: object
  *       properties:

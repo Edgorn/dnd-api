@@ -265,6 +265,7 @@ export class PersonajeController {
         traitChoices,
         skillPicks,
         proficiencyPicks,
+        spellReplacements,
       } = req.body;
       const data = await this.levelUpUseCase.execute({
         id,
@@ -278,6 +279,7 @@ export class PersonajeController {
         traitChoices,
         skillPicks,
         proficiencyPicks,
+        spellReplacements,
       });
       res.status(200).json(data);
     } catch (e) {

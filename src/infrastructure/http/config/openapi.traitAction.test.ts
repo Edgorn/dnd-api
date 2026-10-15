@@ -72,6 +72,20 @@ describe("OpenAPI trait action schemas", () => {
     expect(schemas.InputUpdateTrait?.properties?.abilityScores).toBeDefined();
   });
 
+  it("documents skillProficiencies on Trait write and read schemas", () => {
+    expect(schemas.TraitSkillProficiency?.required).toEqual(["value"]);
+    expect(schemas.Trait?.properties?.skillProficiencies).toBeDefined();
+    expect(schemas.InputCreateTrait?.properties?.skillProficiencies).toBeDefined();
+    expect(schemas.InputUpdateTrait?.properties?.skillProficiencies).toBeDefined();
+  });
+
+  it("documents skillProficiencyChoices on Trait write and read schemas", () => {
+    expect(schemas.TraitSkillProficiencyChoice?.required).toEqual(["key", "value", "from", "grants"]);
+    expect(schemas.Trait?.properties?.skillProficiencyChoices).toBeDefined();
+    expect(schemas.InputCreateTrait?.properties?.skillProficiencyChoices).toBeDefined();
+    expect(schemas.InputUpdateTrait?.properties?.skillProficiencyChoices).toBeDefined();
+  });
+
   it("defines write schemas instead of leaving dangling InputCreateTrait refs", () => {
     expect(schemas.InputCreateTrait).toBeDefined();
     expect(schemas.InputUpdateTrait).toBeDefined();

@@ -69,7 +69,8 @@ describe("CharacterClass Use Cases", () => {
         hit_die: 10,
         proficiencies: ["prof1"],
         saving_throws: ["str", "con"],
-        skill_choices: { choose: 2, options: ["skill1", "skill2"] },
+        skill_choices: { choose: 3 },
+        proficiencies_choices: [{ choose: 3, filter: { type: "tool" } }],
         equipment: [{ id: "507f1f77bcf86cd799439011", quantity: 1 }],
         equipment_choices: [{ choose: 1, options: ["507f1f77bcf86cd799439012"] }]
       };
@@ -126,6 +127,27 @@ describe("CharacterClass Use Cases", () => {
       const result = await useCase.execute(input, "user1");
 
       expect(result.name).toBe("Mago");
+      expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
+    it("should create class with spellReplacement", async () => {
+      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.create.mockResolvedValue({
+        ...createdClass,
+        name: "Bardo",
+        spellReplacement: { count: 1 }
+      });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Bardo",
+        spellReplacement: { count: 1 }
+      };
+
+      const result = await useCase.execute(input, "user1");
+
+      expect(result.spellReplacement).toEqual({ count: 1 });
       expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
     });
 

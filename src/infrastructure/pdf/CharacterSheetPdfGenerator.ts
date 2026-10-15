@@ -15,6 +15,10 @@ import {
 import { characterHasRequiredProficiency } from "../../utils/combatBonuses";
 import { displaySummary } from "../../utils/traitSummary";
 
+export function isPdfSkillProficiencyChecked(value: number | undefined): boolean {
+  return (value ?? 0) >= 1;
+}
+
 const SKILL_FIELD_MAP: Record<string, [string, string]> = {
   acrobatics: ["acroPROF", "Acrobatics"],
   athletics: ["athPROF", "Athletics"],
@@ -112,7 +116,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
       const fields = SKILL_FIELD_MAP[skill?.key];
       if (!fields) return;
 
-      if (skill?.value) {
+      if (isPdfSkillProficiencyChecked(skill?.value)) {
         form.getCheckBox(fields[0]).check();
       }
       form.getTextField(fields[1]).setText(this.formatNumber(skill?.modifier) + "");

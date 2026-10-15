@@ -45,6 +45,8 @@ import {
   hasAbilityScoreAtLevel,
   resolveAbilityScoreProgression
 } from '../../../../utils/abilityScoreProgression';
+import { mergeSkillChoices } from '../../../../utils/characterMulticlass';
+import { SkillApi } from '../../../../domain/types/skill.types';
 
 export default class CharacterClassRepository implements ICharacterClassRepository {
   constructor(
@@ -96,6 +98,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       proficiencies: data.proficiencies ?? [],
       saving_throws: data.saving_throws ?? [],
       skill_choices: data.skill_choices ?? undefined,
+      proficiencies_choices: data.proficiencies_choices ?? undefined,
       multiclass: this.normalizeMulticlass(data.multiclass),
       equipment: data.equipment ?? [],
       equipment_choices: data.equipment_choices ?? undefined,
@@ -105,6 +108,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellsPreparedFormula: data.spellsPreparedFormula,
       preparedFrom: data.preparedFrom,
       spellRepository: data.spellRepository ?? undefined,
+      spellReplacement: data.spellReplacement ?? undefined,
       abilityScoreProgression: data.abilityScoreProgression ?? undefined,
       subclassChoice: data.subclassChoice ?? undefined,
       god: data.god ?? false,
@@ -130,8 +134,16 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       (updateFields as Record<string, unknown>).skill_choices = undefined;
     }
 
+    if (updateFields.proficiencies_choices === null) {
+      (updateFields as Record<string, unknown>).proficiencies_choices = [];
+    }
+
     if (updateFields.spellRepository === null) {
       (updateFields as Record<string, unknown>).spellRepository = null;
+    }
+
+    if (updateFields.spellReplacement === null) {
+      (updateFields as Record<string, unknown>).spellReplacement = null;
     }
 
     if (updateFields.subclassChoice === null) {
@@ -207,7 +219,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       assigned: _assigned,
       subclassTraits,
       subclassTraitsData,
-      subclassChoiceMenu
+      subclassChoiceMenu,
+      subclassSkillChoices
     } = await this.resolveSubclassLevelData(
       classId,
       level,
@@ -228,6 +241,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
         traits: subclassTraits,
         traits_data: subclassTraitsData,
         subclassChoice: subclassChoiceMenu,
+        ...(subclassSkillChoices ? { skill_choices: subclassSkillChoices } : {}),
         ...abilityScore
       };
     }
@@ -255,7 +269,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     const spell_changes = Array.from({ length: dataLevel?.spell_changes?.number ?? 0 }, () => spell_changes_aux?.map(opt => ({ ...opt })) ?? []);
 
-    const skill_choices = this.skillService ? await this.skillService.formatSkillChoices(dataLevel.skill_choices) : undefined;
+    const classSkillChoices = this.skillService
+      ? await this.skillService.formatSkillChoices(dataLevel.skill_choices, characterClass.ruleset)
+      : undefined;
+    const skill_choices = mergeSkillChoices(classSkillChoices, subclassSkillChoices);
     const invocations_choices = this.invocationRepository ? await this.invocationRepository.obtenerOpciones(dataLevel.invocations ?? 0) : undefined;
     const invocations_change = this.invocationRepository ? await this.invocationRepository.obtenerOpciones(dataLevel.invocations_change ?? 0) : undefined;
 
@@ -284,7 +301,6 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       traits_options,
       subclassChoice: subclassChoiceMenu,
       ...abilityScore,
-      double_skills: dataLevel.double_skills,
       spell_choices,
       spells,
       spell_changes,
@@ -354,7 +370,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       this.traitRepository ? this.traitRepository.getTraitsByIndexes(dataLevel?.traits ?? [], dataLevel?.traits_data) : [],
       this.proficiencyRepository ? this.proficiencyRepository.getProficienciesByIndices([...characterClass.proficiencies ?? [], ...dataLevel?.proficiencies ?? []]) : [],
       this.proficiencyRepository ? this.proficiencyRepository.formatProficiencyChoices(characterClass?.proficiencies_choices ?? []) : [],
-      this.skillService ? this.skillService.formatSkillChoices(characterClass.skill_choices) : undefined,
+      this.skillService ? this.skillService.formatSkillChoices(characterClass.skill_choices, characterClass.ruleset) : undefined,
       dataLevel?.spell_group?.class && this.spellRepository
         ? this.spellRepository.getSpellsByLevelAndClass(
             dataLevel.spell_group.level ?? 0,
@@ -423,6 +439,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellsPreparedFormula: characterClass.spellsPreparedFormula,
       preparedFrom: characterClass.preparedFrom,
       ...(characterClass.spellRepository ? { spellRepository: characterClass.spellRepository } : {}),
+      ...(characterClass.spellReplacement ? { spellReplacement: characterClass.spellReplacement } : {}),
       ...(Array.isArray(characterClass.abilityScoreProgression)
         ? { abilityScoreProgression: characterClass.abilityScoreProgression }
         : {}),
@@ -476,7 +493,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       this.proficiencyRepository
         ? this.proficiencyRepository.getProficienciesByIndices(raw.proficiencies ?? [])
         : [],
-      this.skillService ? this.skillService.formatSkillChoices(raw.skill_choices ?? undefined) : undefined,
+      this.skillService ? this.skillService.formatSkillChoices(raw.skill_choices ?? undefined, characterClass.ruleset) : undefined,
       this.proficiencyRepository
         ? this.proficiencyRepository.formatProficiencyChoices(raw.proficiencies_choices ?? [])
         : [],
@@ -539,6 +556,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     subclassTraits: TraitApi[];
     subclassTraitsData: TraitDataMongo;
     subclassChoiceMenu: SubclassChoiceMenuApi | null;
+    subclassSkillChoices?: ChoiceApi<SkillApi>;
   }> {
     const assigned = this.subclassRepository
       ? (await this.subclassRepository.getByIds(subclassIds)).filter(item => item.classId === classId)
@@ -546,12 +564,14 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     const subclassTraits: TraitApi[] = [];
     const subclassTraitsData: TraitDataMongo = {};
+    let subclassSkillChoices: ChoiceApi<SkillApi> | undefined;
 
     for (const subclass of assigned) {
       const row = subclass.levels.find(item => item.level === level);
       if (!row) continue;
       subclassTraits.push(...row.traits);
       Object.assign(subclassTraitsData, row.traits_data ?? {});
+      subclassSkillChoices = mergeSkillChoices(subclassSkillChoices, row.skill_choices);
     }
 
     const showMenu = Boolean(
@@ -578,7 +598,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       assigned,
       subclassTraits,
       subclassTraitsData,
-      subclassChoiceMenu
+      subclassChoiceMenu,
+      subclassSkillChoices
     };
   }
 
@@ -611,14 +632,14 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   private mapLevelsForCreate(levels?: CharacterClassLevelInput[]): CharacterClassLevelMongo[] {
     if (!levels?.length) return [];
 
-    return levels.map(level => ({
+    return levels.map(level => this.withLevelSkillChoices({
       level: level.level,
       proficiencies: [],
       traits: level.traits ?? [],
       traits_data: level.traits_data ?? {},
       spellcasting: level.spellcasting,
       ...(level.spell_choices !== undefined ? { spell_choices: level.spell_choices } : {})
-    }));
+    }, level.skill_choices));
   }
 
   private mergeLevels(
@@ -633,24 +654,26 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     for (const row of incoming) {
       const current = byLevel.get(row.level);
-      if (current) {
-        byLevel.set(row.level, {
+      const base: CharacterClassLevelMongo = current
+        ? {
           ...current,
           spellcasting: row.spellcasting,
           ...(row.spell_choices !== undefined ? { spell_choices: row.spell_choices } : {}),
           ...(row.traits !== undefined ? { traits: row.traits } : {}),
           ...(row.traits_data !== undefined ? { traits_data: row.traits_data } : {})
-        });
-      } else {
-        byLevel.set(row.level, {
+        }
+        : {
           level: row.level,
           proficiencies: [],
           traits: row.traits ?? [],
           traits_data: row.traits_data ?? {},
           spellcasting: row.spellcasting,
           ...(row.spell_choices !== undefined ? { spell_choices: row.spell_choices } : {})
-        });
-      }
+        };
+      byLevel.set(
+        row.level,
+        row.skill_choices === undefined ? base : this.withLevelSkillChoices(base, row.skill_choices)
+      );
     }
 
     return Array.from(byLevel.values()).sort((a, b) => a.level - b.level);
@@ -677,9 +700,26 @@ export default class CharacterClassRepository implements ICharacterClassReposito
           slim.traits_data = { ...level.traits_data };
         }
 
+        if (level.skill_choices) {
+          slim.skill_choices = { ...level.skill_choices };
+        }
+
         return slim;
       })
       .sort((a, b) => a.level - b.level);
+  }
+
+  private withLevelSkillChoices(
+    row: CharacterClassLevelMongo,
+    skill_choices?: ChoiceMongo | null
+  ): CharacterClassLevelMongo {
+    const next = { ...row };
+    if (skill_choices == null) {
+      delete next.skill_choices;
+      return next;
+    }
+    next.skill_choices = skill_choices;
+    return next;
   }
 
   private toSlimSpellChoice(choice: ChoiceMongo | ChoiceSpell): ChoiceMongo {

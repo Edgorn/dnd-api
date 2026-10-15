@@ -89,10 +89,8 @@ describe("SkillService", () => {
   it("should match skills correctly using IDs (new format)", async () => {
     const skills = await service.getCharacterSkills(
       ["skill-id-athletics"],
-      [],
       mockAttributes,
-      2,
-      false
+      2
     );
 
     const athletics = skills.find(s => s.id === "skill-id-athletics");
@@ -108,10 +106,8 @@ describe("SkillService", () => {
   it("should match skills correctly using Keys (legacy format)", async () => {
     const skills = await service.getCharacterSkills(
       ["athletics"],
-      [],
       mockAttributes,
-      2,
-      false
+      2
     );
 
     const athletics = skills.find(s => s.key === "athletics");
@@ -119,13 +115,12 @@ describe("SkillService", () => {
     expect(athletics?.modifier).toBe(5);
   });
 
-  it("should handle double skills with IDs and Keys", async () => {
+  it("should handle expertise overlays", async () => {
     const skills = await service.getCharacterSkills(
-      [],
       ["skill-id-stealth"],
       mockAttributes,
       2,
-      false
+      [{ value: 2, skillIds: ["skill-id-stealth"] }]
     );
 
     const stealth = skills.find(s => s.id === "skill-id-stealth");
@@ -136,10 +131,9 @@ describe("SkillService", () => {
   it("should apply jack of all trades (half proficiency) for non-proficient skills", async () => {
     const skills = await service.getCharacterSkills(
       ["skill-id-athletics"],
-      [],
       mockAttributes,
       2,
-      true
+      [{ value: 0.5 }]
     );
 
     const athletics = skills.find(s => s.id === "skill-id-athletics");
@@ -149,7 +143,48 @@ describe("SkillService", () => {
     expect(athletics?.modifier).toBe(5);
 
     expect(stealth?.value).toBe(0.5);
-    expect(stealth?.modifier).toBe(3); // 2 (dex) + 0.5 * 2 = 3
+    expect(stealth?.modifier).toBe(3); // 2 (dex) + floor(0.5 * 2) = 3
+  });
+
+  it("floors half proficiency when the bonus is odd", async () => {
+    const skills = await service.getCharacterSkills(
+      [],
+      mockAttributes,
+      3,
+      [{ value: 0.5 }]
+    );
+
+    const stealth = skills.find(s => s.id === "skill-id-stealth");
+    expect(stealth?.value).toBe(0.5);
+    expect(stealth?.modifier).toBe(3); // 2 (dex) + floor(0.5 * 3) = 3
+  });
+
+  it("does not lower expertise when an overlay is half proficiency", async () => {
+    const skills = await service.getCharacterSkills(
+      ["skill-id-stealth"],
+      mockAttributes,
+      2,
+      [{ value: 2, skillIds: ["skill-id-stealth"] }, { value: 0.5 }]
+    );
+
+    const stealth = skills.find(s => s.id === "skill-id-stealth");
+    expect(stealth?.value).toBe(2);
+    expect(stealth?.modifier).toBe(6);
+  });
+
+  it("applies attribute-filtered overlays only to matching skills", async () => {
+    const skills = await service.getCharacterSkills(
+      [],
+      mockAttributes,
+      2,
+      [{ value: 0.5, attributeKeys: ["dex"] }]
+    );
+
+    const stealth = skills.find(s => s.id === "skill-id-stealth");
+    const athletics = skills.find(s => s.id === "skill-id-athletics");
+
+    expect(stealth?.value).toBe(0.5);
+    expect(athletics?.value).toBe(0);
   });
 
   describe("formatSkillChoices", () => {
@@ -170,7 +205,8 @@ describe("SkillService", () => {
       expect(mockRepository.getSkillsByIndices).not.toHaveBeenCalled();
       expect(result).toEqual({
         choose: 2,
-        options: mockSkills
+        options: mockSkills,
+        query_type: "all"
       });
     });
 
@@ -183,6 +219,7 @@ describe("SkillService", () => {
       expect(mockRepository.getAll).toHaveBeenCalled();
       expect(mockRepository.getSkillsByIndices).not.toHaveBeenCalled();
       expect(result?.options).toEqual(mockSkills);
+      expect(result?.query_type).toBe("all");
     });
 
     it("should resolve a single legacy string option by index", async () => {
@@ -196,6 +233,7 @@ describe("SkillService", () => {
       expect(mockRepository.getSkillsByIndices).toHaveBeenCalledWith(["athletics"]);
       expect(mockRepository.getAll).not.toHaveBeenCalled();
       expect(result?.options).toEqual([mockSkills[0]]);
+      expect(result?.query_type).toBe("options");
     });
 
     it("should resolve an array of skill ids via getSkillsByIndices", async () => {
@@ -207,7 +245,8 @@ describe("SkillService", () => {
       expect(mockRepository.getSkillsByIndices).toHaveBeenCalledWith(["skill-id-athletics", "skill-id-stealth"]);
       expect(result).toEqual({
         choose: 2,
-        options: [mockSkills[0], mockSkills[1]]
+        options: [mockSkills[0], mockSkills[1]],
+        query_type: "options"
       });
     });
 
@@ -221,6 +260,8 @@ describe("SkillService", () => {
       expect(mockRepository.getSkillsByIndices).not.toHaveBeenCalled();
       expect(result?.options).toHaveLength(1);
       expect(result?.options[0].key).toBe("athletics");
+      expect(result?.query_type).toBe("filter");
+      expect(result?.query_filter).toEqual({ key: "athletics" });
     });
 
     it("returns undefined when choose is missing or less than 1", async () => {
@@ -243,8 +284,11 @@ describe("SkillService", () => {
       expect(mockRepository.getBySystems).toHaveBeenCalledWith(["5e"], false, true);
       expect(mockRepository.getAll).not.toHaveBeenCalled();
       expect(allFromRuleset?.options).toEqual(mockSkills);
+      expect(allFromRuleset?.query_type).toBe("all");
       expect(filteredFromRuleset?.options).toHaveLength(1);
       expect(filteredFromRuleset?.options[0].key).toBe("athletics");
+      expect(filteredFromRuleset?.query_type).toBe("filter");
+      expect(filteredFromRuleset?.query_filter).toEqual({ key: "athletics" });
     });
   });
 });

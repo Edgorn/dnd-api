@@ -54,6 +54,45 @@ describe("CreateSubclassSchema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("accepts skill_choices with choose-only, options, and filter", () => {
+    const chooseOnly = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Colegio del Conocimiento",
+      levels: [{ level: 3, skill_choices: { choose: 3 } }]
+    });
+    expect(chooseOnly.success).toBe(true);
+    if (chooseOnly.success) {
+      expect(chooseOnly.data.levels?.[0].skill_choices).toEqual({ choose: 3 });
+    }
+
+    const withOptions = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Colegio del Conocimiento",
+      levels: [{ level: 3, skill_choices: { choose: 2, options: [traitId] } }]
+    });
+    expect(withOptions.success).toBe(true);
+
+    const withFilter = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Colegio del Conocimiento",
+      levels: [{ level: 3, skill_choices: { choose: 1, filter: { key: "history" } } }]
+    });
+    expect(withFilter.success).toBe(true);
+  });
+
+  it("rejects skill_choices with choose less than 1", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Colegio del Conocimiento",
+      levels: [{ level: 3, skill_choices: { choose: 0 } }]
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("UpdateSubclassSchema", () => {
@@ -68,5 +107,12 @@ describe("UpdateSubclassSchema", () => {
   it("rejects an empty body", () => {
     const result = UpdateSubclassSchema.safeParse({});
     expect(result.success).toBe(false);
+  });
+
+  it("accepts null skill_choices on a level to clear the choice", () => {
+    const result = UpdateSubclassSchema.safeParse({
+      levels: [{ level: 3, skill_choices: null }]
+    });
+    expect(result.success).toBe(true);
   });
 });

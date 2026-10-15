@@ -2,7 +2,9 @@ import ISkillRepository from "../repositories/ISkillRepository";
 import { SkillApi, SkillPersonajeApi, InputCreateSkill, InputUpdateSkill } from "../types/skill.types";
 import { ChoiceMongo, ChoiceApi } from "../types";
 import { CharacterAttributeApi } from "../types/attribute.types";
+import { TraitSkillProficiency } from "../types/traits.types";
 import { evaluateFormula } from "../../utils/formulaEvaluator";
+import { maxSkillProficiencyValue } from "../../utils/applyTraitSkillProficiencies";
 
 export default class SkillService {
   constructor(private readonly skillRepository: ISkillRepository) { }
@@ -31,6 +33,11 @@ export default class SkillService {
     return this.skillRepository.getById(id);
   }
 
+  getSkillsByIds(ids: string[]): Promise<SkillApi[]> {
+    if (!ids.length) return Promise.resolve([]);
+    return this.skillRepository.getSkillsByIds(ids);
+  }
+
   softDelete(id: string): Promise<void> {
     return this.skillRepository.softDelete(id);
   }
@@ -41,36 +48,31 @@ export default class SkillService {
 
   async getCharacterSkills(
     skillsKeys: string[],
-    doubleSkillsKeys: string[],
     attributes: CharacterAttributeApi[],
     profBonus: number,
-    hasJackOfAllTrades: boolean
+    skillProficiencies: TraitSkillProficiency[] = []
   ): Promise<SkillPersonajeApi[]> {
     const allSkills = await this.skillRepository.getAll();
 
     return allSkills.map(skill => {
-      let value = (doubleSkillsKeys?.includes(skill.id) || doubleSkillsKeys?.includes(skill.key))
-        ? 2
-        : (skillsKeys?.includes(skill.id) || skillsKeys?.includes(skill.key))
-          ? 1
-          : 0;
+      const baseValue = (skillsKeys?.includes(skill.id) || skillsKeys?.includes(skill.key))
+        ? 1
+        : 0;
 
-      if (hasJackOfAllTrades && value === 0) {
-        value = 0.5;
-      }
+      const value = maxSkillProficiencyValue(baseValue, skill, skillProficiencies);
+      const proficiencyContribution = Math.floor(value * profBonus);
 
       let modifier = 0;
       const formula = skill.bonusFormula || '';
       if (formula) {
-        const profBonusVal = value * profBonus;
         modifier = evaluateFormula(formula, attributes, {
-          proficiencyBonus: profBonusVal
+          proficiencyBonus: proficiencyContribution
         });
       } else {
         const primaryAttrKey = skill.attributeScore?.[0];
         const primaryAttr = attributes.find(a => a.key === primaryAttrKey);
         const attrMod = primaryAttr?.modifier ?? 0;
-        modifier = attrMod + value * profBonus;
+        modifier = attrMod + proficiencyContribution;
       }
 
       return {
@@ -105,7 +107,8 @@ export default class SkillService {
 
       return {
         choose: opciones.choose,
-        options: skills
+        options: skills,
+        query_type: isAll ? "all" : "options"
       };
     }
 
@@ -114,7 +117,8 @@ export default class SkillService {
 
       return {
         choose: opciones.choose,
-        options: skills
+        options: skills,
+        query_type: "options"
       };
     }
 
@@ -134,7 +138,9 @@ export default class SkillService {
 
       return {
         choose: opciones.choose,
-        options: filteredSkills
+        options: filteredSkills,
+        query_type: "filter",
+        query_filter: opciones.filter
       };
     }
 
@@ -142,7 +148,8 @@ export default class SkillService {
       const skills = await loadCatalog();
       return {
         choose: opciones.choose,
-        options: skills
+        options: skills,
+        query_type: "all"
       };
     }
 

@@ -154,6 +154,24 @@ describe("LevelUpSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts optional spellReplacements", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      spellReplacements: [{ from: validId, to: validId }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid ObjectIds in spellReplacements", () => {
+    const result = LevelUpSchema.safeParse({
+      class: "class1",
+      hpIncrease: 5,
+      spellReplacements: [{ from: "cure-wounds", to: validId }],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("accepts optional skillPicks and proficiencyPicks", () => {
     const result = LevelUpSchema.safeParse({
       class: "class1",

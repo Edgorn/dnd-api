@@ -10,6 +10,8 @@ import {
   TRAIT_ACTIVATIONS,
   TRAIT_AREA_SHAPES,
   TRAIT_DURATION_UNITS,
+  TRAIT_SKILL_PROFICIENCY_FROMS,
+  TRAIT_SKILL_PROFICIENCY_VALUES,
   TRAIT_STACK_POLICIES,
   TRAIT_WEAPON_DAMAGE_BONUS_WHENS
 } from "../../../domain/types/traits.types";
@@ -488,6 +490,85 @@ export const TraitAbilityScoresSchema = z.array(TraitAbilityScoreSchema).min(1, 
   });
 });
 
+const traitSkillProficiencyValueSchema = z.union([
+  z.literal(TRAIT_SKILL_PROFICIENCY_VALUES[0]),
+  z.literal(TRAIT_SKILL_PROFICIENCY_VALUES[1]),
+  z.literal(TRAIT_SKILL_PROFICIENCY_VALUES[2])
+]);
+
+export const TraitSkillProficiencySchema = z.object({
+  value: traitSkillProficiencyValueSchema,
+  skillIds: z.array(mongoObjectId("Cada skill debe ser un ID de Mongo válido")).min(1, "Debe indicar al menos una skill").optional(),
+  attributeKeys: z.array(z.string().min(1, "La clave de atributo no puede estar vacía")).min(1, "Debe indicar al menos una característica").optional()
+}).strict();
+
+export const TraitSkillProficienciesSchema = z.array(TraitSkillProficiencySchema).min(1, "Debe indicar al menos una regla de competencia");
+
+export const TraitSkillProficiencyChoiceSchema = z.object({
+  key: z.string().min(1, "La clave de la elección no puede estar vacía"),
+  value: traitSkillProficiencyValueSchema,
+  from: z.enum(TRAIT_SKILL_PROFICIENCY_FROMS),
+  grants: z.array(TraitCatalogGrantSchema).min(1, "La elección debe indicar al menos una concesión")
+}).strict().superRefine((choice, ctx) => {
+  const levels = new Set<number>();
+  choice.grants.forEach((grant, index) => {
+    if (levels.has(grant.atLevel)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `El nivel ${grant.atLevel} está repetido`,
+        path: ["grants", index, "atLevel"]
+      });
+    }
+    levels.add(grant.atLevel);
+  });
+});
+
+export const TraitSkillProficiencyChoicesSchema = z.array(TraitSkillProficiencyChoiceSchema).min(1, "Debe indicar al menos una elección de competencia").superRefine((choices, ctx) => {
+  const keys = new Set<string>();
+  choices.forEach((choice, index) => {
+    if (keys.has(choice.key)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `La clave ${choice.key} está repetida`,
+        path: [index, "key"]
+      });
+    }
+    keys.add(choice.key);
+  });
+});
+
+function uniqueTraitChoiceKeys(
+  data: {
+    damageChoices?: Array<{ key: string }> | null;
+    catalogChoices?: Array<{ key: string }> | null;
+    skillProficiencyChoices?: Array<{ key: string }> | null;
+  },
+  ctx: z.RefinementCtx
+): void {
+  const seen = new Set<string>();
+  const register = (key: string, path: (string | number)[]) => {
+    if (seen.has(key)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `La clave ${key} está repetida`,
+        path
+      });
+      return;
+    }
+    seen.add(key);
+  };
+
+  (data.damageChoices ?? []).forEach((choice, index) => {
+    register(choice.key, ["damageChoices", index, "key"]);
+  });
+  (data.catalogChoices ?? []).forEach((choice, index) => {
+    register(choice.key, ["catalogChoices", index, "key"]);
+  });
+  (data.skillProficiencyChoices ?? []).forEach((choice, index) => {
+    register(choice.key, ["skillProficiencyChoices", index, "key"]);
+  });
+}
+
 export const TraitInnateSpellsSchema = z.object({
   abilityId: mongoObjectId("El atributo debe ser un ID de Mongo válido"),
   grants: z.array(TraitInnateSpellGrantSchema).min(1, "Debe indicar al menos un conjuro innato")
@@ -532,9 +613,11 @@ export const CreateTraitSchema = z.object({
   weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
   abilityScores: TraitAbilityScoresSchema.nullish(),
+  skillProficiencies: TraitSkillProficienciesSchema.nullish(),
+  skillProficiencyChoices: TraitSkillProficiencyChoicesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
   conditionalResistanceGroup: conditionalResistanceGroupSchema
-});
+}).superRefine(uniqueTraitChoiceKeys);
 
 export const UpdateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío").optional(),
@@ -563,8 +646,10 @@ export const UpdateTraitSchema = z.object({
   weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
   abilityScores: TraitAbilityScoresSchema.nullish(),
+  skillProficiencies: TraitSkillProficienciesSchema.nullish(),
+  skillProficiencyChoices: TraitSkillProficiencyChoicesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
   conditionalResistanceGroup: conditionalResistanceGroupSchema
-}).refine(data => Object.keys(data).length > 0, {
+}).superRefine(uniqueTraitChoiceKeys).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

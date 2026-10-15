@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SpellDamageSchema } from "./spell.schema";
+import { CreateSpellSchema, SpellDamageSchema } from "./spell.schema";
 
 const energyOptions = ["acid", "cold", "fire", "lightning", "poison", "thunder"];
 
@@ -107,6 +107,65 @@ describe("SpellDamageSchema", () => {
       expect(issuePaths(result.error.issues)).toContain("choices.0.choose");
       expect(result.error.issues.some((issue) =>
         issue.message === "El número de opciones a elegir no puede superar las opciones disponibles"
+      )).toBe(true);
+    }
+  });
+});
+
+const plantGrowthBase = {
+  ruleset: "sys1",
+  name: "Crecimiento vegetal",
+  description: ["Transmutación"],
+  level: 3,
+  classes: [],
+  ritual: false
+};
+
+describe("CreateSpellSchema castingTimes", () => {
+  it("acepta un único tiempo de lanzamiento", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      castingTimes: [{ value: 1, unit: "action" }]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("acepta dos tiempos alternativos", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      castingTimes: [
+        { value: 1, unit: "action" },
+        { value: 8, unit: "hour" }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.castingTimes).toHaveLength(2);
+    }
+  });
+
+  it("rechaza un array vacío", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      castingTimes: []
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rechaza el objeto legado castingTime", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      castingTime: { value: 1, unit: "action" }
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(issuePaths(result.error.issues)).toContain("castingTime");
+      expect(result.error.issues.some((issue) =>
+        issue.message === "Usa castingTimes en lugar de castingTime"
       )).toBe(true);
     }
   });

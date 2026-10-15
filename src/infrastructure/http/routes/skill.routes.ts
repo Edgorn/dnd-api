@@ -37,6 +37,24 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Claves de atributos asociados.
+ *     SkillChoiceApi:
+ *       type: object
+ *       properties:
+ *         choose:
+ *           type: number
+ *           description: Cantidad de opciones a seleccionar.
+ *         options:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Skill'
+ *           description: Lista de habilidades disponibles para elegir, hidratadas.
+ *         query_type:
+ *           type: string
+ *           enum: [all, options, filter]
+ *           description: Tipo de consulta usada para obtener las opciones. `all` si solo se persistió choose.
+ *         query_filter:
+ *           type: object
+ *           description: Filtro aplicado si query_type es filter.
  *     InputCreateSkill:
  *       type: object
  *       required:

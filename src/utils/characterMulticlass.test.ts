@@ -3,6 +3,8 @@ import { FeatRequirements } from "../domain/types/feat.types";
 import {
   characterMeetsAllClassRequirements,
   excludeOwnedChoiceOptions,
+  mergeSkillChoices,
+  resolveLevelSkillPicks,
   shouldEnforceMulticlassRequirements,
   unionUnique,
   validateChoiceListPicks,
@@ -104,6 +106,56 @@ describe("validateChoicePicks", () => {
       field: "skillPicks"
     });
     expect(result).toMatchObject({ error: expect.stringContaining("no está entre") });
+  });
+});
+
+describe("mergeSkillChoices", () => {
+  it("sums choose and unions options from class and subclass", () => {
+    const merged = mergeSkillChoices(
+      { choose: 1, options: [{ id: "a" }, { id: "b" }], query_type: "options" },
+      { choose: 3, options: [{ id: "b" }, { id: "c" }, { id: "d" }], query_type: "all" }
+    );
+    expect(merged?.choose).toBe(4);
+    expect(merged?.query_type).toBe("all");
+    expect(merged?.options.map(option => option.id)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("returns the only defined choice", () => {
+    const only = { choose: 3, options: [{ id: "a" }], query_type: "all" as const };
+    expect(mergeSkillChoices(undefined, only)).toEqual(only);
+  });
+});
+
+describe("resolveLevelSkillPicks", () => {
+  it("accepts subclass skill picks on the same level-up as choosing the subclass", () => {
+    const result = resolveLevelSkillPicks({
+      levelChoice: {
+        choose: 3,
+        options: [{ id: "arcana" }, { id: "history" }, { id: "nature" }, { id: "religion" }],
+        query_type: "all"
+      },
+      ownedIds: ["arcana"],
+      picks: ["history", "nature", "religion"]
+    });
+    expect(result).toEqual({ ids: ["history", "nature", "religion"] });
+  });
+
+  it("adds dip and level chooses into one skillPicks list", () => {
+    const result = resolveLevelSkillPicks({
+      dipChoice: { choose: 1, options: [{ id: "stealth" }, { id: "arcana" }] },
+      levelChoice: { choose: 2, options: [{ id: "stealth" }, { id: "arcana" }, { id: "history" }] },
+      ownedIds: [],
+      picks: ["stealth", "arcana", "history"]
+    });
+    expect(result).toEqual({ ids: ["stealth", "arcana", "history"] });
+  });
+
+  it("rejects skillPicks when there is no choice", () => {
+    const result = resolveLevelSkillPicks({
+      ownedIds: [],
+      picks: ["history"]
+    });
+    expect(result).toMatchObject({ error: expect.stringContaining("no aplica") });
   });
 });
 

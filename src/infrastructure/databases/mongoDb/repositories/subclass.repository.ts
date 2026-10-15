@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import ISubclassRepository from "../../../../domain/repositories/ISubclassRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
+import SkillService from "../../../../domain/services/skill.service";
 import { NotFoundError } from "../../../../domain/errors/AppError";
+import { ChoiceMongo } from "../../../../domain/types";
 import {
   InputCreateSubclass,
   InputUpdateSubclass,
@@ -17,7 +19,8 @@ import SubclassModel from "../schemas/Subclass";
 export default class SubclassRepository implements ISubclassRepository {
   constructor(
     private readonly systemRepository: ISystemRepository,
-    private readonly traitRepository: ITraitRepository
+    private readonly traitRepository: ITraitRepository,
+    private readonly skillService: SkillService
   ) { }
 
   async getBySystems(rulesets: string[], classId?: string): Promise<SubclassApi[]> {
@@ -118,11 +121,11 @@ export default class SubclassRepository implements ISubclassRepository {
     if (!levels?.length) return [];
 
     return levels
-      .map(level => ({
+      .map(level => this.withSkillChoices({
         level: level.level,
         traits: level.traits ?? [],
         traits_data: level.traits_data ?? {}
-      }))
+      }, level.skill_choices))
       .sort((a, b) => a.level - b.level);
   }
 
@@ -138,22 +141,37 @@ export default class SubclassRepository implements ISubclassRepository {
 
     for (const row of incoming) {
       const current = byLevel.get(row.level);
-      if (current) {
-        byLevel.set(row.level, {
+      const base: SubclassLevelMongo = current
+        ? {
           ...current,
           ...(row.traits !== undefined ? { traits: row.traits } : {}),
           ...(row.traits_data !== undefined ? { traits_data: row.traits_data } : {})
-        });
-      } else {
-        byLevel.set(row.level, {
+        }
+        : {
           level: row.level,
           traits: row.traits ?? [],
           traits_data: row.traits_data ?? {}
-        });
-      }
+        };
+      byLevel.set(
+        row.level,
+        row.skill_choices === undefined ? base : this.withSkillChoices(base, row.skill_choices)
+      );
     }
 
     return Array.from(byLevel.values()).sort((a, b) => a.level - b.level);
+  }
+
+  private withSkillChoices(
+    row: SubclassLevelMongo,
+    skill_choices?: ChoiceMongo | null
+  ): SubclassLevelMongo {
+    const next = { ...row };
+    if (skill_choices == null) {
+      delete next.skill_choices;
+      return next;
+    }
+    next.skill_choices = skill_choices;
+    return next;
   }
 
   private formatSubclasses(docs: SubclassMongo[]): Promise<SubclassApi[]> {
@@ -161,7 +179,7 @@ export default class SubclassRepository implements ISubclassRepository {
   }
 
   private async formatSubclass(doc: SubclassMongo): Promise<SubclassApi> {
-    const levels = await this.formatLevels(doc.levels ?? []);
+    const levels = await this.formatLevels(doc.levels ?? [], doc.ruleset);
 
     return {
       id: doc._id ? doc._id.toString() : "",
@@ -175,18 +193,20 @@ export default class SubclassRepository implements ISubclassRepository {
     };
   }
 
-  private async formatLevels(levels: SubclassLevelMongo[]): Promise<SubclassLevelApi[]> {
+  private async formatLevels(levels: SubclassLevelMongo[], ruleset: string): Promise<SubclassLevelApi[]> {
     const formatted = await Promise.all(
       levels.map(async level => {
         const traits = await this.traitRepository.getTraitsByIndexes(
           level.traits ?? [],
           level.traits_data ?? {}
         );
+        const skill_choices = await this.skillService.formatSkillChoices(level.skill_choices, ruleset);
 
         return {
           level: level.level,
           traits,
-          traits_data: level.traits_data ?? {}
+          traits_data: level.traits_data ?? {},
+          ...(skill_choices ? { skill_choices } : {})
         };
       })
     );

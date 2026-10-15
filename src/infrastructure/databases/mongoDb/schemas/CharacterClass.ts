@@ -31,9 +31,9 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
     spell_group: {},
     spell_changes: {},
     spellcasting: { type: Schema.Types.Mixed, default: undefined },
+    skill_choices: { type: Schema.Types.Mixed, default: undefined },
     subclasses_options: {},
     subclasses: {},
-    double_skills: Number,
     ability_score: Boolean,
     invocations: Number,
     invocations_change: Number,
@@ -44,6 +44,7 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
   spellsPreparedFormula: { type: String, default: undefined },
   preparedFrom: { type: String, enum: ["known", "classList"], default: undefined },
   spellRepository: { type: Schema.Types.Mixed, default: undefined },
+  spellReplacement: { type: Schema.Types.Mixed, default: undefined },
   abilityScoreProgression: { type: [Number], default: undefined },
   subclassChoice: { type: Schema.Types.Mixed, default: undefined },
   god: { type: Boolean, default: false }

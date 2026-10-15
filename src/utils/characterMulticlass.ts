@@ -32,6 +32,64 @@ export function excludeOwnedChoiceOptions<T extends { id: string }>(
   };
 }
 
+export function mergeSkillChoices<T extends { id: string }>(
+  ...choices: Array<ChoiceApi<T> | undefined>
+): ChoiceApi<T> | undefined {
+  const present = choices.filter((choice): choice is ChoiceApi<T> => Boolean(choice));
+  if (!present.length) return undefined;
+  if (present.length === 1) return present[0];
+
+  const byId = new Map<string, T>();
+  let choose = 0;
+  let hasAll = false;
+  let hasFilter = false;
+  const filters: Array<NonNullable<ChoiceApi<T>["query_filter"]>> = [];
+
+  for (const choice of present) {
+    choose += choice.choose;
+    if (choice.query_type === "all") hasAll = true;
+    if (choice.query_type === "filter") {
+      hasFilter = true;
+      if (choice.query_filter) filters.push(choice.query_filter);
+    }
+    for (const option of choice.options) {
+      if (option.id) byId.set(option.id, option);
+    }
+  }
+
+  const query_type: ChoiceApi<T>["query_type"] = hasAll ? "all" : hasFilter ? "filter" : "options";
+  return {
+    choose,
+    options: [...byId.values()],
+    query_type,
+    ...(query_type === "filter" && filters.length === 1 ? { query_filter: filters[0] } : {})
+  };
+}
+
+export function resolveLevelSkillPicks<T extends { id: string }>(params: {
+  dipChoice?: ChoiceApi<T>;
+  levelChoice?: ChoiceApi<T>;
+  ownedIds: Iterable<string>;
+  picks?: string[];
+}): { error: string } | { ids: string[] } {
+  const merged = mergeSkillChoices(params.dipChoice, params.levelChoice);
+  const trimmed = excludeOwnedChoiceOptions(merged, params.ownedIds);
+  if (!trimmed) {
+    if (params.picks?.length) {
+      return { error: "skillPicks no aplica en esta subida" };
+    }
+    return { ids: [] };
+  }
+
+  return validateChoicePicks({
+    choose: trimmed.choose,
+    optionIds: trimmed.options.map(option => option.id),
+    picks: params.picks,
+    ownedIds: params.ownedIds,
+    field: "skillPicks"
+  });
+}
+
 export function validateChoicePicks(params: {
   choose: number;
   optionIds: Iterable<string>;

@@ -4,6 +4,7 @@ import ISystemRepository from "../../../../domain/repositories/ISystemRepository
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
 import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi, SpellDamageChoiceApi, SpellDamageTypeApi, DamageComponentApi, SpellClassApi } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
+import { normalizeSpellCastingTimes } from "../../../../utils/normalizeSpellCastingTimes";
 import SpellSchema from "../schemas/Spell";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
 
@@ -23,7 +24,7 @@ export default class SpellRepository implements ISpellRepository {
         classes: data.classes,
         description: data.description,
         school: data.school,
-        castingTime: data.castingTime,
+        castingTimes: data.castingTimes,
         range: data.range,
         components: data.components,
         duration: data.duration,
@@ -325,11 +326,7 @@ export default class SpellRepository implements ISpellRepository {
       classes: classesFormatted,
       typeName: spell.typeName,
       school: schoolFormatted,
-      castingTime: spell.castingTime ? {
-        value: spell.castingTime.value,
-        unit: spell.castingTime.unit,
-        condition: spell.castingTime.condition
-      } : undefined,
+      castingTimes: normalizeSpellCastingTimes(spell),
       range: spell.range ? {
         type: spell.range.type,
         value: spell.range.value,

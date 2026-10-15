@@ -155,9 +155,8 @@ describe("CreateCreatureSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rechaza listas de competencia y competencia doble", () => {
+  it("rechaza listas de competencia", () => {
     expect(CreateCreatureSchema.safeParse({ ...priest, skills: ["medicine"] }).success).toBe(false);
-    expect(CreateCreatureSchema.safeParse({ ...priest, double_skills: ["medicine"] }).success).toBe(false);
   });
 
   it("acepta nivel de lanzador, aptitud mágica, CD y bonificador de ataque", () => {
