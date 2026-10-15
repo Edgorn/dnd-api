@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  LevelSkillProficiencyChoiceSchema,
+  SpellChoiceMongoSchema
+} from "./characterClass.schema";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -33,7 +37,9 @@ const SubclassLevelInputSchema = z.object({
     z.string().regex(objectIdRegex, "Cada trait debe ser un ObjectId válido de MongoDB")
   ).optional(),
   traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional(),
-  skill_choices: ChoiceMongoSchema.nullable().optional()
+  skill_choices: ChoiceMongoSchema.nullable().optional(),
+  skillProficiencyChoices: LevelSkillProficiencyChoiceSchema.nullable().optional(),
+  spell_choices: z.array(SpellChoiceMongoSchema).nullable().optional()
 });
 
 export const CreateSubclassSchema = z.object({

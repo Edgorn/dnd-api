@@ -12,6 +12,10 @@ import ISystemRepository from '../../../../domain/repositories/ISystemRepository
 import AttributeService from '../../../../domain/services/attribute.service';
 import { ChoiceApi, ChoiceMongo } from '../../../../domain/types';
 import {
+  LevelSkillProficiencyChoice,
+  SpellChoiceMongo
+} from '../../../../domain/types/classLevelChoices.types';
+import {
   CharacterClassApi,
   CharacterClassLevelInput,
   CharacterClassLevelMongo,
@@ -45,7 +49,7 @@ import {
   hasAbilityScoreAtLevel,
   resolveAbilityScoreProgression
 } from '../../../../utils/abilityScoreProgression';
-import { mergeSkillChoices } from '../../../../utils/characterMulticlass';
+import { mergeSkillChoices, mergeSkillProficiencyChoices } from '../../../../utils/characterMulticlass';
 import { SkillApi } from '../../../../domain/types/skill.types';
 
 export default class CharacterClassRepository implements ICharacterClassRepository {
@@ -215,12 +219,19 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const hitDie = characterClass.hit_die ?? 8;
     const dataLevel = characterClass.levels?.find(data => data.level === level);
     const dataLevelOld = characterClass.levels?.find(data => data.level === level - 1);
+    const spellChoiceContext = {
+      classId,
+      levels: characterClass.levels ?? [],
+      targetLevel: level
+    };
     const {
       assigned: _assigned,
       subclassTraits,
       subclassTraitsData,
       subclassChoiceMenu,
-      subclassSkillChoices
+      subclassSkillChoices,
+      subclassSkillProficiencyChoices,
+      subclassSpellChoices
     } = await this.resolveSubclassLevelData(
       classId,
       level,
@@ -236,12 +247,20 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     );
 
     if (!dataLevel) {
+      const spell_choices = this.spellRepository && subclassSpellChoices.length
+        ? await this.spellRepository.formatSpellChoices(subclassSpellChoices, spellChoiceContext)
+        : undefined;
+      const skillProficiencyChoices = mergeSkillProficiencyChoices(
+        ...subclassSkillProficiencyChoices
+      );
       return {
         hit_die: hitDie,
         traits: subclassTraits,
         traits_data: subclassTraitsData,
         subclassChoice: subclassChoiceMenu,
         ...(subclassSkillChoices ? { skill_choices: subclassSkillChoices } : {}),
+        ...(skillProficiencyChoices.length ? { skillProficiencyChoices } : {}),
+        ...(spell_choices?.length ? { spell_choices } : {}),
         ...abilityScore
       };
     }
@@ -264,7 +283,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       ? await this.traitRepository.getTraitsByIndexes(uniqueTraitIds, dataLevel?.traits_data)
       : [];
 
-    const spell_choices = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined;
+    const persistedSpellChoices = [
+      ...(dataLevel?.spell_choices ?? []),
+      ...subclassSpellChoices
+    ];
+    const spell_choices = this.spellRepository && persistedSpellChoices.length
+      ? await this.spellRepository.formatSpellChoices(persistedSpellChoices, spellChoiceContext)
+      : undefined;
     const spell_changes_aux = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.spell_changes?.options) : undefined;
 
     const spell_changes = Array.from({ length: dataLevel?.spell_changes?.number ?? 0 }, () => spell_changes_aux?.map(opt => ({ ...opt })) ?? []);
@@ -273,6 +298,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       ? await this.skillService.formatSkillChoices(dataLevel.skill_choices, characterClass.ruleset)
       : undefined;
     const skill_choices = mergeSkillChoices(classSkillChoices, subclassSkillChoices);
+    const skillProficiencyChoices = mergeSkillProficiencyChoices(
+      dataLevel.skillProficiencyChoices,
+      ...subclassSkillProficiencyChoices
+    );
     const invocations_choices = this.invocationRepository ? await this.invocationRepository.obtenerOpciones(dataLevel.invocations ?? 0) : undefined;
     const invocations_change = this.invocationRepository ? await this.invocationRepository.obtenerOpciones(dataLevel.invocations_change ?? 0) : undefined;
 
@@ -305,6 +334,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spells,
       spell_changes,
       skill_choices,
+      ...(skillProficiencyChoices.length ? { skillProficiencyChoices } : {}),
       invocations_choices,
       invocations_change
     };
@@ -378,7 +408,11 @@ export default class CharacterClassRepository implements ICharacterClassReposito
             dataLevel.spell_group.class
           )
         : [],
-      this.spellRepository ? this.spellRepository.formatSpellChoices(dataLevel?.spell_choices) : undefined,
+      this.spellRepository ? this.spellRepository.formatSpellChoices(dataLevel?.spell_choices, {
+        classId: characterClass._id ? characterClass._id.toString() : "",
+        levels: characterClass.levels ?? [],
+        targetLevel: 1
+      }) : undefined,
       this.equipmentRepository ? this.equipmentRepository.getCharacterEquipmentsByIds(characterClass?.equipment) : [],
       this.formatClassEquipmentChoices(characterClass?.equipment_choices, characterClass.ruleset || ""),
       this.formatSavingThrows(characterClass.saving_throws ?? [], characterClass.ruleset || ""),
@@ -557,6 +591,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     subclassTraitsData: TraitDataMongo;
     subclassChoiceMenu: SubclassChoiceMenuApi | null;
     subclassSkillChoices?: ChoiceApi<SkillApi>;
+    subclassSkillProficiencyChoices: LevelSkillProficiencyChoice[];
+    subclassSpellChoices: SpellChoiceMongo[];
   }> {
     const assigned = this.subclassRepository
       ? (await this.subclassRepository.getByIds(subclassIds)).filter(item => item.classId === classId)
@@ -565,6 +601,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const subclassTraits: TraitApi[] = [];
     const subclassTraitsData: TraitDataMongo = {};
     let subclassSkillChoices: ChoiceApi<SkillApi> | undefined;
+    const subclassSkillProficiencyChoices: LevelSkillProficiencyChoice[] = [];
+    const subclassSpellChoices: SpellChoiceMongo[] = [];
 
     for (const subclass of assigned) {
       const row = subclass.levels.find(item => item.level === level);
@@ -572,6 +610,12 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       subclassTraits.push(...row.traits);
       Object.assign(subclassTraitsData, row.traits_data ?? {});
       subclassSkillChoices = mergeSkillChoices(subclassSkillChoices, row.skill_choices);
+      if (row.skillProficiencyChoices) {
+        subclassSkillProficiencyChoices.push(row.skillProficiencyChoices);
+      }
+      if (row.spell_choices?.length) {
+        subclassSpellChoices.push(...row.spell_choices);
+      }
     }
 
     const showMenu = Boolean(
@@ -599,7 +643,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       subclassTraits,
       subclassTraitsData,
       subclassChoiceMenu,
-      subclassSkillChoices
+      subclassSkillChoices,
+      subclassSkillProficiencyChoices,
+      subclassSpellChoices
     };
   }
 
@@ -632,14 +678,17 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   private mapLevelsForCreate(levels?: CharacterClassLevelInput[]): CharacterClassLevelMongo[] {
     if (!levels?.length) return [];
 
-    return levels.map(level => this.withLevelSkillChoices({
-      level: level.level,
-      proficiencies: [],
-      traits: level.traits ?? [],
-      traits_data: level.traits_data ?? {},
-      spellcasting: level.spellcasting,
-      ...(level.spell_choices !== undefined ? { spell_choices: level.spell_choices } : {})
-    }, level.skill_choices));
+    return levels.map(level => this.withLevelSkillProficiencyChoices(
+      this.withLevelSkillChoices({
+        level: level.level,
+        proficiencies: [],
+        traits: level.traits ?? [],
+        traits_data: level.traits_data ?? {},
+        spellcasting: level.spellcasting,
+        ...(level.spell_choices !== undefined ? { spell_choices: level.spell_choices } : {})
+      }, level.skill_choices),
+      level.skillProficiencyChoices
+    ));
   }
 
   private mergeLevels(
@@ -670,9 +719,14 @@ export default class CharacterClassRepository implements ICharacterClassReposito
           spellcasting: row.spellcasting,
           ...(row.spell_choices !== undefined ? { spell_choices: row.spell_choices } : {})
         };
+      const withSkills = row.skill_choices === undefined
+        ? base
+        : this.withLevelSkillChoices(base, row.skill_choices);
       byLevel.set(
         row.level,
-        row.skill_choices === undefined ? base : this.withLevelSkillChoices(base, row.skill_choices)
+        row.skillProficiencyChoices === undefined
+          ? withSkills
+          : this.withLevelSkillProficiencyChoices(withSkills, row.skillProficiencyChoices)
       );
     }
 
@@ -704,6 +758,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
           slim.skill_choices = { ...level.skill_choices };
         }
 
+        if (level.skillProficiencyChoices) {
+          slim.skillProficiencyChoices = { ...level.skillProficiencyChoices };
+        }
+
         return slim;
       })
       .sort((a, b) => a.level - b.level);
@@ -722,13 +780,30 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     return next;
   }
 
-  private toSlimSpellChoice(choice: ChoiceMongo | ChoiceSpell): ChoiceMongo {
-    if ("filter" in choice || "options" in choice) {
-      const mongoChoice = choice as ChoiceMongo;
+  private withLevelSkillProficiencyChoices(
+    row: CharacterClassLevelMongo,
+    skillProficiencyChoices?: LevelSkillProficiencyChoice | null
+  ): CharacterClassLevelMongo {
+    const next = { ...row };
+    if (skillProficiencyChoices == null) {
+      delete next.skillProficiencyChoices;
+      return next;
+    }
+    next.skillProficiencyChoices = skillProficiencyChoices;
+    return next;
+  }
+
+  private toSlimSpellChoice(choice: SpellChoiceMongo | ChoiceSpell): SpellChoiceMongo {
+    if ("filter" in choice || "options" in choice || "source" in choice || "levels" in choice) {
+      const mongoChoice = choice as SpellChoiceMongo;
       return {
         choose: mongoChoice.choose,
         ...(mongoChoice.options !== undefined ? { options: mongoChoice.options } : {}),
-        ...(mongoChoice.filter !== undefined ? { filter: mongoChoice.filter } : {})
+        ...(mongoChoice.filter !== undefined ? { filter: mongoChoice.filter } : {}),
+        ...(mongoChoice.source !== undefined ? { source: mongoChoice.source } : {}),
+        ...(mongoChoice.levels !== undefined ? { levels: mongoChoice.levels } : {}),
+        ...(mongoChoice.includeCantrips !== undefined ? { includeCantrips: mongoChoice.includeCantrips } : {}),
+        ...(mongoChoice.countsTowardKnown !== undefined ? { countsTowardKnown: mongoChoice.countsTowardKnown } : {})
       };
     }
 

@@ -50,18 +50,32 @@ function filterIncludesCantripLevel(filter?: Record<string, unknown>): boolean {
   return Array.isArray(filter.level) && filter.level.includes(0);
 }
 
+function countsTowardKnownCap(choice: {
+  countsTowardKnown?: boolean;
+  source?: string;
+}): boolean {
+  if (choice.countsTowardKnown === false) return false;
+  if (choice.source === "anyClassList") return false;
+  return true;
+}
+
 export function hasCantripSpellChoice(
   choices?: Array<{
     level?: number;
     filter?: Record<string, unknown>;
     query_filter?: Record<string, unknown>;
+    countsTowardKnown?: boolean;
+    source?: string;
   }>
 ): boolean {
   if (!choices?.length) return false;
   return choices.some(choice =>
-    choice.level === 0
-    || filterIncludesCantripLevel(choice.filter)
-    || filterIncludesCantripLevel(choice.query_filter)
+    countsTowardKnownCap(choice)
+    && (
+      choice.level === 0
+      || filterIncludesCantripLevel(choice.filter)
+      || filterIncludesCantripLevel(choice.query_filter)
+    )
   );
 }
 
@@ -97,6 +111,8 @@ type SpellChoiceLike = {
   class?: string;
   filter?: Record<string, unknown>;
   query_filter?: Record<string, unknown>;
+  countsTowardKnown?: boolean;
+  source?: string;
 };
 
 function filterIncludesLeveledSpell(filter?: Record<string, unknown>): boolean {
@@ -119,6 +135,8 @@ export function hasKnownSpellChoice(
   if (!choices?.length || !classId) return false;
 
   return choices.some(choice => {
+    if (!countsTowardKnownCap(choice)) return false;
+
     if (choice.level !== undefined && choice.level >= 1 && choice.class === classId) {
       return true;
     }
@@ -170,13 +188,15 @@ export function excludeKnownSpellOptions<T extends { id?: string }>(
 export interface LevelUpSpellChoicePick {
   choose: number;
   options: Array<{ id?: string }>;
+  countsTowardKnown?: boolean;
+  source?: string;
 }
 
 export function validateLevelUpSpellPicks(
   choices: LevelUpSpellChoicePick[] | undefined,
   picks: string[][] | undefined,
   alreadyKnownIds: Iterable<string>
-): { error: string } | { spellIds: string[] } {
+): { error: string } | { spellIds: string[]; extraSpellIds: string[] } {
   const choiceList = choices ?? [];
   const pickList = picks ?? [];
   const hasNonEmptyPicks = pickList.some(group => group.length > 0);
@@ -185,7 +205,7 @@ export function validateLevelUpSpellPicks(
     if (hasNonEmptyPicks) {
       return { error: "Este nivel no ofrece elecciones de conjuros" };
     }
-    return { spellIds: [] };
+    return { spellIds: [], extraSpellIds: [] };
   }
 
   if (pickList.length !== choiceList.length) {
@@ -194,7 +214,8 @@ export function validateLevelUpSpellPicks(
 
   const known = new Set(alreadyKnownIds);
   const seen = new Set<string>();
-  const flattened: string[] = [];
+  const spellIds: string[] = [];
+  const extraSpellIds: string[] = [];
 
   for (let i = 0; i < choiceList.length; i++) {
     const choice = choiceList[i];
@@ -206,6 +227,7 @@ export function validateLevelUpSpellPicks(
     const optionIds = new Set(
       choice.options.map(opt => opt.id).filter((id): id is string => Boolean(id))
     );
+    const extra = !countsTowardKnownCap(choice);
 
     for (const id of group) {
       if (seen.has(id) || known.has(id)) {
@@ -215,11 +237,12 @@ export function validateLevelUpSpellPicks(
         return { error: `El conjuro ${id} no está entre las opciones de la elección ${i + 1}` };
       }
       seen.add(id);
-      flattened.push(id);
+      if (extra) extraSpellIds.push(id);
+      else spellIds.push(id);
     }
   }
 
-  return { spellIds: flattened };
+  return { spellIds, extraSpellIds };
 }
 
 export interface SpellReplacementPick {

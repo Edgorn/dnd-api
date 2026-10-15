@@ -1,5 +1,6 @@
 import { ChoiceApi } from "../domain/types";
 import { FeatRequirements } from "../domain/types/feat.types";
+import { LevelSkillProficiencyChoice } from "../domain/types/classLevelChoices.types";
 import { CharacterAttributeValue, meetsAttributeRequirements } from "./characterLevelUpAbilityScore";
 
 export function shouldEnforceMulticlassRequirements(
@@ -30,6 +31,25 @@ export function excludeOwnedChoiceOptions<T extends { id: string }>(
     ...choice,
     options: choice.options.filter(option => !owned.has(option.id))
   };
+}
+
+export function mergeSkillProficiencyChoices(
+  ...choices: Array<LevelSkillProficiencyChoice | undefined>
+): LevelSkillProficiencyChoice[] {
+  const merged = new Map<string, LevelSkillProficiencyChoice>();
+
+  for (const choice of choices) {
+    if (!choice) continue;
+    const key = `${choice.from}:${choice.value}`;
+    const current = merged.get(key);
+    if (current) {
+      merged.set(key, { ...current, choose: current.choose + choice.choose });
+    } else {
+      merged.set(key, { ...choice });
+    }
+  }
+
+  return [...merged.values()];
 }
 
 export function mergeSkillChoices<T extends { id: string }>(

@@ -53,37 +53,23 @@ const router = Router();
  *     PendingSkillProficiencyChoice:
  *       type: object
  *       required:
- *         - traitId
- *         - key
  *         - add
  *         - value
  *         - options
- *         - chosen
  *       properties:
- *         traitId:
- *           type: string
- *           description: ID del rasgo con la elección de competencia (p. ej. Pericia).
- *         key:
- *           type: string
- *           description: Clave de la elección en traitChoices (p. ej. expertise).
  *         add:
  *           type: integer
  *           minimum: 1
- *           description: Skills nuevas que hay que añadir en este nivel de clase.
+ *           description: Skills a elegir en este nivel (POST skillProficiencyPicks).
  *         value:
  *           type: number
- *           enum: [0.5, 1, 2]
+ *           enum: [0.5, 1, 2, 3]
  *           description: Multiplicador que se aplicará a las skills elegidas.
  *         options:
  *           type: array
- *           description: Skills competentes que aún se pueden elegir.
+ *           description: Skills competentes que aún no tienen ese multiplicador o uno mayor.
  *           items:
  *             $ref: '#/components/schemas/Skill'
- *         chosen:
- *           type: array
- *           items:
- *             type: string
- *           description: IDs ya guardados. La lista enviada debe empezar por estos valores, en el mismo orden.
  *     CatalogChoiceEntry:
  *       type: object
  *       required:
@@ -218,7 +204,14 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/Spell'
- *           description: Lista de conjuros conocidos de ese grupo (raza o clase).
+ *           description: Lista de conjuros conocidos de ese grupo (raza o clase), incluidos los extra.
+ *         extra:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Spell'
+ *           description: >
+ *             Conjuros que cuentan como de esa clase pero no suman al total conocido
+ *             (p. ej. Secretos Mágicos). Ya van incluidos en list.
  *         prepared:
  *           type: array
  *           items:
@@ -854,6 +847,13 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
+ *         skillProficiencyPicks:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: >
+ *             Skills de nivel 1 que reciben el multiplicador de skillProficiencyChoices
+ *             de la clase o subclase. Deben ser competencias (el array skills ya resuelto).
  *         claseId:
  *           type: string
  *         clase:
@@ -891,8 +891,6 @@ const router = Router();
  *             con atLevel menor o igual al nivel 1 de la clase. Una opción simple es un
  *             string. Si la opción pide textos o la elección admite idioma, es un objeto
  *             con name, inputs y languageId.
- *             Con skillProficiencyChoices, la lista son IDs de skills competentes
- *             (p. ej. Pericia: tantas como la suma de grants con atLevel 1).
  *           additionalProperties:
  *             type: object
  *             additionalProperties:
@@ -1714,16 +1712,16 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                 skillProficiencyChoices:
  *                   type: array
  *                   description: >
- *                     Elecciones de competencia pendientes (p. ej. Pericia) en rasgos de la clase
- *                     que sube. add es cuántas skills hay que añadir. options son las competencias
- *                     que quedan. chosen son los IDs ya guardados y deben conservarse al frente.
+ *                     Multiplicador de competencia de este nivel (p. ej. Pericia). add es
+ *                     cuántas skills hay que enviar en skillProficiencyPicks. options son
+ *                     las competencias que aún no tienen ese multiplicador.
  *                   items:
  *                     $ref: '#/components/schemas/PendingSkillProficiencyChoice'
  *                 skill_choices:
  *                   $ref: '#/components/schemas/SkillChoiceApi'
  *                   description: >
  *                     Habilidades nuevas a elegir en este nivel (clase y subclase ya asignada).
- *                     Distinto de skillProficiencyChoices (Pericia sobre skills ya competentes).
+ *                     Distinto de skillProficiencyChoices (multiplicador sobre skills ya competentes).
  *                     Las opciones ya poseídas se recortan. Omitido si no hay elección en este nivel.
  *                 ability_score:
  *                   type: boolean
@@ -1929,8 +1927,6 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                   y añade `add` opciones. Una opción simple es un string; si pide textos
  *                   o idioma, es un objeto. Si no falta ninguna, se puede omitir o repetir
  *                   la lista guardada.
- *                   Con skillProficiencyChoices, la lista son IDs de skills competentes:
- *                   conserva chosen y añade `add`.
  *                 additionalProperties:
  *                   type: object
  *                   additionalProperties:
@@ -1947,6 +1943,14 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                   Habilidades nuevas elegidas en esta subida. Cubre el dip (`dip.skill_choices`)
  *                   y las de nivel (`skill_choices` de clase/subclase, incluida la subclase enviada
  *                   en `subclass`). Longitud igual a la suma de `choose`. Omitir si no hay elección.
+ *               skillProficiencyPicks:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: >
+ *                   Skills de este nivel que reciben el multiplicador de skillProficiencyChoices.
+ *                   Longitud igual a la suma de add. Solo competencias; no repetir las que ya
+ *                   tienen ese valor o uno mayor. Omitir si no hay elección.
  *               proficiencyPicks:
  *                 type: array
  *                 items:

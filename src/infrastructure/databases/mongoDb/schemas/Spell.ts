@@ -66,6 +66,11 @@ const spellSchema: Schema = new Schema<SpellMongo>({
     }
   },
   description: [String],
+  tables: [{
+    _id: false,
+    headers: [String],
+    rows: [[String]]
+  }],
   ritual: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null }
 }, { collection: 'spells', timestamps: true });

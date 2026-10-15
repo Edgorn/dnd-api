@@ -1,4 +1,5 @@
 import { ChoiceApi, ChoiceMongo } from ".";
+import { LevelSkillProficiencyChoice, SpellChoiceMongo } from "./classLevelChoices.types";
 import { SkillApi } from "./skill.types";
 import { TraitApi, TraitDataMongo } from "./traits.types";
 
@@ -7,6 +8,8 @@ export interface SubclassLevelInput {
   traits?: string[];
   traits_data?: TraitDataMongo;
   skill_choices?: ChoiceMongo | null;
+  skillProficiencyChoices?: LevelSkillProficiencyChoice | null;
+  spell_choices?: SpellChoiceMongo[] | null;
 }
 
 export interface SubclassLevelMongo {
@@ -14,6 +17,8 @@ export interface SubclassLevelMongo {
   traits: string[];
   traits_data: TraitDataMongo;
   skill_choices?: ChoiceMongo;
+  skillProficiencyChoices?: LevelSkillProficiencyChoice;
+  spell_choices?: SpellChoiceMongo[];
 }
 
 export interface SubclassLevelApi {
@@ -21,6 +26,8 @@ export interface SubclassLevelApi {
   traits: TraitApi[];
   traits_data: TraitDataMongo;
   skill_choices?: ChoiceApi<SkillApi>;
+  skillProficiencyChoices?: LevelSkillProficiencyChoice;
+  spell_choices?: SpellChoiceMongo[];
 }
 
 export interface InputCreateSubclass {

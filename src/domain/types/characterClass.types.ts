@@ -1,6 +1,11 @@
 import { ChoiceApi, ChoiceMongo } from "."
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceSpell, SpellApi } from "./spell.types"
+import {
+  LevelSkillProficiencyChoice,
+  SpellChoiceApi,
+  SpellChoiceMongo
+} from "./classLevelChoices.types"
 import { FeatApi, FeatRequirements, FeatRequirementsCreate } from "./feat.types"
 import { EquipmentInstanceApi, CharacterEquipmentMongo, EquipmentChoiceMongo, EquipmentCost, ResolvedEquipmentChoiceApi } from "./equipment.types"
 import { SkillApi } from "./skill.types"
@@ -53,6 +58,21 @@ export interface SpellReplacementConfig {
   includeCantrips?: boolean;
 }
 
+export type {
+  FormatSpellChoicesContext,
+  LevelSkillProficiencyChoice,
+  LevelSkillProficiencyFrom,
+  LevelSkillProficiencyValue,
+  SpellChoiceApi,
+  SpellChoiceMongo,
+  SpellChoiceSource
+} from "./classLevelChoices.types";
+export {
+  LEVEL_SKILL_PROFICIENCY_FROMS,
+  LEVEL_SKILL_PROFICIENCY_VALUES,
+  SPELL_CHOICE_SOURCES
+} from "./classLevelChoices.types";
+
 /** Spell slots table for a class level (create/update input and slim API). */
 export interface ClassSpellSlots {
   cantrips?: number;
@@ -69,12 +89,13 @@ export interface ClassSpellSlots {
 export interface CharacterClassLevelInput {
   level: number;
   spellcasting?: ClassSpellSlots;
-  spell_choices?: ChoiceMongo[];
+  spell_choices?: SpellChoiceMongo[];
   /** Trait ObjectIds granted at this class level. Omitted on update leaves existing traits. */
   traits?: string[];
   /** Dynamic trait placeholders for this class level. Omitted on update leaves existing traits_data. */
   traits_data?: TraitDataMongo;
   skill_choices?: ChoiceMongo | null;
+  skillProficiencyChoices?: LevelSkillProficiencyChoice | null;
 }
 
 export interface CharacterClassMulticlassCreate {
@@ -182,7 +203,7 @@ export interface CharacterClassLevelMongo {
     options: string[];
   };
   traits_data: TraitDataMongo;
-  spell_choices?: (ChoiceMongo | ChoiceSpell)[];
+  spell_choices?: (SpellChoiceMongo | ChoiceSpell)[];
   spell_changes?: {
     number: number;
     options: ChoiceSpell[];
@@ -196,6 +217,7 @@ export interface CharacterClassLevelMongo {
   ability_score?: boolean;
   spellcasting?: ClassSpellSlots;
   skill_choices?: ChoiceMongo;
+  skillProficiencyChoices?: LevelSkillProficiencyChoice;
   invocations?: number;
   invocations_change?: number;
 }
@@ -252,7 +274,7 @@ export interface SubclassMongo {
   skill_choices?: ChoiceMongo;
   proficiencies?: string[];
   spells?: string[];
-  spell_choices?: ChoiceSpell[];
+  spell_choices?: SpellChoiceMongo[];
   language_choices?: ChoiceMongo;
 }
 
@@ -268,7 +290,7 @@ export interface CharacterClassApi {
   skill_choices?: ChoiceApi<SkillApi>;
   multiclass?: CharacterClassMulticlassApi;
   spells?: SpellApi[];
-  spell_choices?: ChoiceApi<SpellApi>[];
+  spell_choices?: SpellChoiceApi[];
   traits: TraitApi[];
   traits_data: TraitDataMongo;
   saving_throws: AttributeApi[];
@@ -313,7 +335,7 @@ export interface EmbeddedSubclassApi {
   language_choices?: ChoiceApi<LanguageApi>;
   proficiencies?: ProficiencyApi[];
   spells?: SpellApi[];
-  spell_choices?: ChoiceApi<SpellApi>[];
+  spell_choices?: SpellChoiceApi[];
 }
 
 export interface ClaseLevelUp {
@@ -328,9 +350,10 @@ export interface ClaseLevelUp {
   feats?: ChoiceApi<FeatApi>;
   subclassChoice?: SubclassChoiceMenuApi | null;
   spells?: SpellApi[];
-  spell_choices?: ChoiceApi<SpellApi>[];
+  spell_choices?: SpellChoiceApi[];
   spell_changes?: ChoiceApi<SpellApi>[][];
   skill_choices?: ChoiceApi<SkillApi>;
+  skillProficiencyChoices?: LevelSkillProficiencyChoice[];
   invocations_choices?: ChoiceApi<InvocacionApi>;
   invocations_change?: ChoiceApi<InvocacionApi>;
 }

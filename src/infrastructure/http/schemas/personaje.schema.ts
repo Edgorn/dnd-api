@@ -108,6 +108,9 @@ export const LevelUpSchema = z.object({
   skillPicks: z
     .array(z.string().min(1, "Cada habilidad no puede estar vacía"))
     .optional(),
+  skillProficiencyPicks: z
+    .array(z.string().min(1, "Cada habilidad no puede estar vacía"))
+    .optional(),
   proficiencyPicks: z
     .array(
       z.array(z.string().min(1, "Cada competencia no puede estar vacía"))

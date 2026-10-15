@@ -1,5 +1,11 @@
 import { ObjectId } from "mongoose"
-import { PendingCatalogChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo, TraitSkillProficiencyValue } from "./traits.types"
+import { PendingCatalogChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
+import { LevelSkillProficiencyValue, SpellChoiceApi } from "./classLevelChoices.types"
+
+export interface CharacterSkillProficiencyOverlay {
+  skillId: string;
+  value: number;
+}
 import { SkillApi, SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
@@ -118,6 +124,7 @@ export interface TypeCrearPersonaje {
   traits: string[],
   traits_data: TraitDataMongo,
   traitChoices?: TraitChoices,
+  skillProficiencyPicks?: string[],
   money: {
     unit: string,
     quantity: number
@@ -194,6 +201,7 @@ export interface TypeLevelUp {
   feat?: string;
   traitChoices?: TraitChoices;
   skillPicks?: string[];
+  skillProficiencyPicks?: string[];
   proficiencyPicks?: string[][];
   spellReplacements?: { from: string; to: string }[];
 }
@@ -328,6 +336,8 @@ export interface PersonajeMongo {
   traits: string[],
   traits_data: TraitDataMongo,
   traitChoices?: TraitChoices,
+  skillProficiencyOverlays?: CharacterSkillProficiencyOverlay[],
+  extraSpells?: Record<string, string[]>,
   money: {
     quantity: number;
     unit: string;
@@ -416,7 +426,7 @@ export interface PersonajeApi {
   money: ({
     quantity: number;
   } & CoinApi)[],
-  spells: Record<string, { list: SpellApi[]; prepared?: SpellApi[]; type?: AttributeApi }>,
+  spells: Record<string, { list: SpellApi[]; extra?: SpellApi[]; prepared?: SpellApi[]; type?: AttributeApi }>,
   maxCarryingCapacity: number,
   spellcasting?: SpellcastingLevel[],
   invocations?: InvocacionApi[],
@@ -445,12 +455,9 @@ export interface LevelUpSpellChanges {
 }
 
 export interface PendingSkillProficiencyChoice {
-  traitId: string;
-  key: string;
   add: number;
-  value: TraitSkillProficiencyValue;
+  value: LevelSkillProficiencyValue;
   options: SkillApi[];
-  chosen: string[];
 }
 
 export interface LevelUpData {
@@ -459,7 +466,7 @@ export interface LevelUpData {
   prof_bonus: number;
   traits?: TraitApi[];
   traits_data?: TraitDataMongo;
-  spell_choices?: ChoiceApi<SpellApi>[];
+  spell_choices?: SpellChoiceApi[];
   spell_changes?: LevelUpSpellChanges;
   subclassChoice?: SubclassChoiceMenuApi | null;
   ability_score: boolean;

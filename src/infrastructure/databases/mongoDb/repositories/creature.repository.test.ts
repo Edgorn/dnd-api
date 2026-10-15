@@ -87,7 +87,8 @@ describe("hydrateSpellcasting", () => {
     name: "Llama sagrada",
     level: 0,
     classes: [],
-    description: []
+    description: [],
+    tables: []
   };
   const cureWounds: SpellApi = {
     id: "cure-wounds",
@@ -95,7 +96,8 @@ describe("hydrateSpellcasting", () => {
     name: "Curar heridas",
     level: 1,
     classes: [],
-    description: []
+    description: [],
+    tables: []
   };
   const spellById = new Map<string, SpellApi>([
     ["cure-wounds", cureWounds],
@@ -171,7 +173,8 @@ describe("hydrateInnateSpellcasting", () => {
     name: "Detectar magia",
     level: 1,
     classes: [],
-    description: []
+    description: [],
+    tables: []
   };
   const levitate: SpellApi = {
     id: "levitate",
@@ -179,7 +182,8 @@ describe("hydrateInnateSpellcasting", () => {
     name: "Levitar",
     level: 2,
     classes: [],
-    description: []
+    description: [],
+    tables: []
   };
   const spellById = new Map<string, SpellApi>([
     ["detect-magic", detectMagic],

@@ -32,6 +32,7 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
     spell_changes: {},
     spellcasting: { type: Schema.Types.Mixed, default: undefined },
     skill_choices: { type: Schema.Types.Mixed, default: undefined },
+    skillProficiencyChoices: { type: Schema.Types.Mixed, default: undefined },
     subclasses_options: {},
     subclasses: {},
     ability_score: Boolean,

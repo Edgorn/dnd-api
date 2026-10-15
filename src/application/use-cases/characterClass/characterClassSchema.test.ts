@@ -29,6 +29,41 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts magical secrets spell_choices and expertise on a level", () => {
+    const secrets = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      levels: [{
+        level: 10,
+        skillProficiencyChoices: { choose: 2, value: 2, from: "proficient" },
+        spell_choices: [{
+          choose: 2,
+          source: "anyClassList",
+          levels: "castable",
+          includeCantrips: true,
+          countsTowardKnown: false
+        }]
+      }]
+    });
+    expect(secrets.success).toBe(true);
+
+    const triple = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Picaro",
+      levels: [{ level: 1, skillProficiencyChoices: { choose: 2, value: 3, from: "proficient" } }]
+    });
+    expect(triple.success).toBe(true);
+  });
+
+  it("rejects an invalid skillProficiencyChoices value", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Bardo",
+      levels: [{ level: 3, skillProficiencyChoices: { choose: 2, value: 4, from: "proficient" } }]
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("accepts spell_choices with options ids", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",

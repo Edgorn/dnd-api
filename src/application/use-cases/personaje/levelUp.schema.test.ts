@@ -177,6 +177,7 @@ describe("LevelUpSchema", () => {
       class: "class1",
       hpIncrease: 5,
       skillPicks: ["acrobatics"],
+      skillProficiencyPicks: [validId],
       proficiencyPicks: [["light-armor"]],
     });
     expect(result.success).toBe(true);

@@ -300,21 +300,6 @@ export interface TraitSkillProficiency {
   attributeKeys?: string[];
 }
 
-export const TRAIT_SKILL_PROFICIENCY_FROMS = ["proficient"] as const;
-export type TraitSkillProficiencyFrom = typeof TRAIT_SKILL_PROFICIENCY_FROMS[number];
-
-export interface TraitSkillProficiencyGrant {
-  atLevel: number;
-  choose: number;
-}
-
-export interface TraitSkillProficiencyChoice {
-  key: string;
-  value: TraitSkillProficiencyValue;
-  from: TraitSkillProficiencyFrom;
-  grants: TraitSkillProficiencyGrant[];
-}
-
 export type TraitChoices = Record<string, Record<string, TraitChoiceValue[]>>;
 
 export interface TraitMongo {
@@ -353,7 +338,6 @@ export interface TraitMongo {
   innateSpells?: TraitInnateSpells,
   abilityScores?: TraitAbilityScore[],
   skillProficiencies?: TraitSkillProficiency[],
-  skillProficiencyChoices?: TraitSkillProficiencyChoice[],
   stackGroup?: TraitStackGroup,
   conditionalResistanceGroup?: string,
   deletedAt?: Date | null
@@ -408,7 +392,6 @@ export interface TraitApi {
   innateSpells?: TraitInnateSpellsApi,
   abilityScores?: TraitAbilityScore[],
   skillProficiencies?: TraitSkillProficiency[],
-  skillProficiencyChoices?: TraitSkillProficiencyChoice[],
   stackGroup?: TraitStackGroup,
   conditionalResistanceGroup?: string
 }
@@ -446,7 +429,6 @@ export interface CreateTrait {
   innateSpells?: TraitInnateSpells | null,
   abilityScores?: TraitAbilityScore[] | null,
   skillProficiencies?: TraitSkillProficiency[] | null,
-  skillProficiencyChoices?: TraitSkillProficiencyChoice[] | null,
   stackGroup?: TraitStackGroup | null,
   conditionalResistanceGroup?: string | null
 }
@@ -480,7 +462,6 @@ export interface UpdateTrait {
   innateSpells?: TraitInnateSpells | null,
   abilityScores?: TraitAbilityScore[] | null,
   skillProficiencies?: TraitSkillProficiency[] | null,
-  skillProficiencyChoices?: TraitSkillProficiencyChoice[] | null,
   stackGroup?: TraitStackGroup | null,
   conditionalResistanceGroup?: string | null
 }

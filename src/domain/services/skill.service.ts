@@ -2,7 +2,6 @@ import ISkillRepository from "../repositories/ISkillRepository";
 import { SkillApi, SkillPersonajeApi, InputCreateSkill, InputUpdateSkill } from "../types/skill.types";
 import { ChoiceMongo, ChoiceApi } from "../types";
 import { CharacterAttributeApi } from "../types/attribute.types";
-import { TraitSkillProficiency } from "../types/traits.types";
 import { evaluateFormula } from "../../utils/formulaEvaluator";
 import { maxSkillProficiencyValue } from "../../utils/applyTraitSkillProficiencies";
 
@@ -50,7 +49,7 @@ export default class SkillService {
     skillsKeys: string[],
     attributes: CharacterAttributeApi[],
     profBonus: number,
-    skillProficiencies: TraitSkillProficiency[] = []
+    skillProficiencies: Array<{ value: number; skillIds?: string[]; attributeKeys?: string[] }> = []
   ): Promise<SkillPersonajeApi[]> {
     const allSkills = await this.skillRepository.getAll();
 

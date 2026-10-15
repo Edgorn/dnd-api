@@ -4,6 +4,7 @@ import {
   characterMeetsAllClassRequirements,
   excludeOwnedChoiceOptions,
   mergeSkillChoices,
+  mergeSkillProficiencyChoices,
   resolveLevelSkillPicks,
   shouldEnforceMulticlassRequirements,
   unionUnique,
@@ -123,6 +124,25 @@ describe("mergeSkillChoices", () => {
   it("returns the only defined choice", () => {
     const only = { choose: 3, options: [{ id: "a" }], query_type: "all" as const };
     expect(mergeSkillChoices(undefined, only)).toEqual(only);
+  });
+});
+
+describe("mergeSkillProficiencyChoices", () => {
+  it("sums choose when class and subclass share the same value", () => {
+    expect(mergeSkillProficiencyChoices(
+      { choose: 2, value: 2, from: "proficient" },
+      { choose: 2, value: 2, from: "proficient" }
+    )).toEqual([{ choose: 4, value: 2, from: "proficient" }]);
+  });
+
+  it("keeps distinct multipliers as separate grants", () => {
+    expect(mergeSkillProficiencyChoices(
+      { choose: 2, value: 2, from: "proficient" },
+      { choose: 1, value: 3, from: "proficient" }
+    )).toEqual([
+      { choose: 2, value: 2, from: "proficient" },
+      { choose: 1, value: 3, from: "proficient" }
+    ]);
   });
 });
 

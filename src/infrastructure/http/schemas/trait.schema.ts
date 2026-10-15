@@ -10,7 +10,6 @@ import {
   TRAIT_ACTIVATIONS,
   TRAIT_AREA_SHAPES,
   TRAIT_DURATION_UNITS,
-  TRAIT_SKILL_PROFICIENCY_FROMS,
   TRAIT_SKILL_PROFICIENCY_VALUES,
   TRAIT_STACK_POLICIES,
   TRAIT_WEAPON_DAMAGE_BONUS_WHENS
@@ -504,44 +503,10 @@ export const TraitSkillProficiencySchema = z.object({
 
 export const TraitSkillProficienciesSchema = z.array(TraitSkillProficiencySchema).min(1, "Debe indicar al menos una regla de competencia");
 
-export const TraitSkillProficiencyChoiceSchema = z.object({
-  key: z.string().min(1, "La clave de la elección no puede estar vacía"),
-  value: traitSkillProficiencyValueSchema,
-  from: z.enum(TRAIT_SKILL_PROFICIENCY_FROMS),
-  grants: z.array(TraitCatalogGrantSchema).min(1, "La elección debe indicar al menos una concesión")
-}).strict().superRefine((choice, ctx) => {
-  const levels = new Set<number>();
-  choice.grants.forEach((grant, index) => {
-    if (levels.has(grant.atLevel)) {
-      ctx.addIssue({
-        code: "custom",
-        message: `El nivel ${grant.atLevel} está repetido`,
-        path: ["grants", index, "atLevel"]
-      });
-    }
-    levels.add(grant.atLevel);
-  });
-});
-
-export const TraitSkillProficiencyChoicesSchema = z.array(TraitSkillProficiencyChoiceSchema).min(1, "Debe indicar al menos una elección de competencia").superRefine((choices, ctx) => {
-  const keys = new Set<string>();
-  choices.forEach((choice, index) => {
-    if (keys.has(choice.key)) {
-      ctx.addIssue({
-        code: "custom",
-        message: `La clave ${choice.key} está repetida`,
-        path: [index, "key"]
-      });
-    }
-    keys.add(choice.key);
-  });
-});
-
 function uniqueTraitChoiceKeys(
   data: {
     damageChoices?: Array<{ key: string }> | null;
     catalogChoices?: Array<{ key: string }> | null;
-    skillProficiencyChoices?: Array<{ key: string }> | null;
   },
   ctx: z.RefinementCtx
 ): void {
@@ -563,9 +528,6 @@ function uniqueTraitChoiceKeys(
   });
   (data.catalogChoices ?? []).forEach((choice, index) => {
     register(choice.key, ["catalogChoices", index, "key"]);
-  });
-  (data.skillProficiencyChoices ?? []).forEach((choice, index) => {
-    register(choice.key, ["skillProficiencyChoices", index, "key"]);
   });
 }
 
@@ -614,7 +576,6 @@ export const CreateTraitSchema = z.object({
   innateSpells: TraitInnateSpellsSchema.nullish(),
   abilityScores: TraitAbilityScoresSchema.nullish(),
   skillProficiencies: TraitSkillProficienciesSchema.nullish(),
-  skillProficiencyChoices: TraitSkillProficiencyChoicesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
   conditionalResistanceGroup: conditionalResistanceGroupSchema
 }).superRefine(uniqueTraitChoiceKeys);
@@ -647,7 +608,6 @@ export const UpdateTraitSchema = z.object({
   innateSpells: TraitInnateSpellsSchema.nullish(),
   abilityScores: TraitAbilityScoresSchema.nullish(),
   skillProficiencies: TraitSkillProficienciesSchema.nullish(),
-  skillProficiencyChoices: TraitSkillProficiencyChoicesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
   conditionalResistanceGroup: conditionalResistanceGroupSchema
 }).superRefine(uniqueTraitChoiceKeys).refine(data => Object.keys(data).length > 0, {

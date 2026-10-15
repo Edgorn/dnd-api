@@ -23,6 +23,8 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   //metamagic: [String],
   traits_data: {},
   traitChoices: { type: Schema.Types.Mixed, default: undefined },
+  skillProficiencyOverlays: { type: [Schema.Types.Mixed], default: undefined },
+  extraSpells: { type: Schema.Types.Mixed, default: undefined },
   //resistances: [String],
   speed: {},
   size: String,

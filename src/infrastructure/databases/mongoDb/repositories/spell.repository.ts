@@ -1,9 +1,15 @@
 import { Types } from "mongoose";
 import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
-import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
+import { ChoiceMongo } from "../../../../domain/types";
+import {
+  FormatSpellChoicesContext,
+  SpellChoiceApi,
+  SpellChoiceMongo
+} from "../../../../domain/types/classLevelChoices.types";
 import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi, SpellDamageChoiceApi, SpellDamageTypeApi, DamageComponentApi, SpellClassApi } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
+import { castableSpellLevels, resolveSpellSlotsTableForLevel } from "../../../../utils/characterSpellcasting";
 import { normalizeSpellCastingTimes } from "../../../../utils/normalizeSpellCastingTimes";
 import SpellSchema from "../schemas/Spell";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
@@ -29,6 +35,7 @@ export default class SpellRepository implements ISpellRepository {
         components: data.components,
         duration: data.duration,
         damage: data.damage,
+        tables: data.tables,
         ritual: data.ritual
       });
 
@@ -95,9 +102,12 @@ export default class SpellRepository implements ISpellRepository {
     await SpellSchema.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
 
-  async formatSpellChoices(choices: (ChoiceMongo | ChoiceSpell)[] | undefined): Promise<ChoiceApi<SpellApi>[] | undefined> {
+  async formatSpellChoices(
+    choices: (ChoiceMongo | ChoiceSpell | SpellChoiceMongo)[] | undefined,
+    context?: FormatSpellChoicesContext
+  ): Promise<SpellChoiceApi[] | undefined> {
     if (!choices) return undefined;
-    return Promise.all(choices.map(choice => this.formatSpellChoice(choice)));
+    return Promise.all(choices.map(choice => this.formatSpellChoice(choice, context)));
   }
 
   private hasClassFilterValue(value: unknown): boolean {
@@ -110,30 +120,91 @@ export default class SpellRepository implements ISpellRepository {
     return value !== null && value !== undefined;
   }
 
-  private async formatSpellChoice(choice: ChoiceMongo | ChoiceSpell | any): Promise<ChoiceApi<SpellApi>> {
+  private spellChoiceFlags(choice: SpellChoiceMongo | ChoiceSpell | ChoiceMongo): Pick<SpellChoiceApi, "source" | "countsTowardKnown"> {
+    const flags: Pick<SpellChoiceApi, "source" | "countsTowardKnown"> = {};
+    const mongo = choice as SpellChoiceMongo;
+    if (mongo.source) flags.source = mongo.source;
+    if (mongo.countsTowardKnown === false) flags.countsTowardKnown = false;
+    return flags;
+  }
+
+  private resolvedCastableLevels(
+    choice: SpellChoiceMongo,
+    context?: FormatSpellChoicesContext
+  ): number[] | undefined {
+    if (choice.levels !== "castable") return undefined;
+    if (!context?.levels || context.targetLevel === undefined) return undefined;
+    const leveled = castableSpellLevels(
+      resolveSpellSlotsTableForLevel(context.levels, context.targetLevel)
+    );
+    return choice.includeCantrips ? [0, ...leveled] : leveled;
+  }
+
+  private async formatSpellChoice(
+    choice: ChoiceMongo | ChoiceSpell | SpellChoiceMongo | any,
+    context?: FormatSpellChoicesContext
+  ): Promise<SpellChoiceApi> {
+    const flags = this.spellChoiceFlags(choice);
+    const mongoChoice = choice as SpellChoiceMongo;
+    const anyClass = mongoChoice.source === "anyClassList";
+    const castableLevels = this.resolvedCastableLevels(mongoChoice, context);
+
     if (choice.options && Array.isArray(choice.options) && choice.options.length > 0) {
       const spells = await this.getSpellsByIndexes(choice.options);
       return {
         choose: choice.choose,
         options: spells,
-        query_type: 'options'
+        query_type: "options",
+        ...flags
       };
     }
 
-    if (choice.filter) {
-      const query: Record<string, unknown> = { deletedAt: null };
+    const filter: Record<string, string | number | (string | number)[]> = {
+      ...(choice.filter ?? {})
+    };
+    if (castableLevels) {
+      filter.level = castableLevels;
+    }
 
-      for (const [key, value] of Object.entries(choice.filter)) {
+    if (anyClass || choice.filter || castableLevels) {
+      if (anyClass && mongoChoice.levels === "castable" && !castableLevels?.length) {
+        return {
+          choose: choice.choose,
+          options: [],
+          query_type: "filter",
+          query_filter: filter,
+          ...flags
+        };
+      }
+
+      const query: Record<string, unknown> = { deletedAt: null };
+      if (anyClass) {
+        query.classes = { $exists: true, $not: { $size: 0 } };
+      }
+
+      for (const [key, value] of Object.entries(filter)) {
         const mongoKey = key === "class" ? "classes" : key;
-        if (mongoKey === "classes" && !this.hasClassFilterValue(value)) {
-          return {
-            choose: choice.choose,
-            options: [],
-            query_type: "filter",
-            query_filter: choice.filter
-          };
+        if (mongoKey === "classes") {
+          if (anyClass) continue;
+          if (!this.hasClassFilterValue(value)) {
+            return {
+              choose: choice.choose,
+              options: [],
+              query_type: "filter",
+              query_filter: filter,
+              ...flags
+            };
+          }
         }
         query[mongoKey] = Array.isArray(value) ? { $in: value } : value;
+      }
+
+      if (Object.keys(query).length <= 1 && !anyClass) {
+        return {
+          choose: choice.choose,
+          options: [],
+          ...flags
+        };
       }
 
       const spells = await SpellSchema.find(query)
@@ -145,26 +216,29 @@ export default class SpellRepository implements ISpellRepository {
         choose: choice.choose,
         options: this.formatSpells(spells),
         query_type: "filter",
-        query_filter: choice.filter
+        query_filter: filter,
+        ...flags
       };
     }
 
-    if ('level' in choice || 'class' in choice) {
+    if ("level" in choice || "class" in choice) {
       const spells = await this.getSpellsByLevelAndClass(choice.level, [], choice.class);
       return {
         choose: choice.choose,
         options: spells,
-        query_type: 'filter',
+        query_type: "filter",
         query_filter: {
           level: choice.level,
           classes: choice.class
-        }
+        },
+        ...flags
       };
     }
 
     return {
       choose: choice.choose,
-      options: []
+      options: [],
+      ...flags
     };
   }
 
@@ -351,6 +425,7 @@ export default class SpellRepository implements ISpellRepository {
       } : undefined,
       damage: damageFormatted,
       description: spell.description || [],
+      tables: Array.isArray(spell.tables) ? spell.tables : [],
       ritual: spell.ritual ?? false,
       deletedAt: spell.deletedAt
     };

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applySkillProficiencyChoices,
-  collectChosenSkillProficiencies,
   collectTraitSkillProficiencies,
-  listPendingSkillProficiencyChoices,
   maxSkillProficiencyValue
 } from "./applyTraitSkillProficiencies";
 
@@ -19,6 +16,10 @@ describe("maxSkillProficiencyValue", () => {
   it("does not lower proficiency or expertise", () => {
     expect(maxSkillProficiencyValue(1, stealth, [{ value: 0.5 }])).toBe(1);
     expect(maxSkillProficiencyValue(2, stealth, [{ value: 0.5 }])).toBe(2);
+  });
+
+  it("keeps a triple overlay", () => {
+    expect(maxSkillProficiencyValue(2, stealth, [{ value: 3, skillIds: ["skill-id-stealth"] }])).toBe(3);
   });
 
   it("filters by attributeKeys", () => {
@@ -53,93 +54,11 @@ describe("maxSkillProficiencyValue", () => {
   });
 });
 
-describe("skillProficiencyChoices", () => {
-  const expertise = {
-    id: "trait-expertise",
-    skillProficiencyChoices: [{
-      key: "expertise",
-      value: 2 as const,
-      from: "proficient" as const,
-      grants: [
-        { atLevel: 3, choose: 2 },
-        { atLevel: 10, choose: 2 }
-      ]
-    }]
-  };
-
-  const proficientIds = ["skill-id-stealth", "skill-id-athletics", "skill-id-arcana", "skill-id-history"];
-
-  it("lists two pending picks at class level 3", () => {
-    const pending = listPendingSkillProficiencyChoices({
-      classLevel: 3,
-      grantedTraits: [expertise],
-      proficientIds
-    });
-    expect(pending).toEqual([{
-      traitId: "trait-expertise",
-      key: "expertise",
-      add: 2,
-      value: 2,
-      chosen: [],
-      optionIds: proficientIds
-    }]);
-  });
-
-  it("adds two more picks at class level 10", () => {
-    const pending = listPendingSkillProficiencyChoices({
-      existing: { "trait-expertise": { expertise: ["skill-id-stealth", "skill-id-athletics"] } },
-      classLevel: 10,
-      grantedTraits: [expertise],
-      proficientIds
-    });
-    expect(pending[0]?.add).toBe(2);
-    expect(pending[0]?.chosen).toEqual(["skill-id-stealth", "skill-id-athletics"]);
-    expect(pending[0]?.optionIds).toEqual(["skill-id-arcana", "skill-id-history"]);
-  });
-
-  it("rejects a skill that is not proficient and a list that drops previous picks", () => {
-    const stored = {
-      existing: { "trait-expertise": { expertise: ["skill-id-stealth", "skill-id-athletics"] } },
-      classLevel: 10,
-      grantedTraits: [expertise],
-      proficientIds
-    };
-    expect(applySkillProficiencyChoices({
-      ...stored,
-      incoming: { "trait-expertise": { expertise: ["skill-id-stealth", "skill-id-athletics", "missing", "skill-id-arcana"] } }
-    })).toEqual({ error: "La skill missing no es una competencia del personaje" });
-    expect(applySkillProficiencyChoices({
-      ...stored,
-      incoming: { "trait-expertise": { expertise: ["skill-id-arcana", "skill-id-history", "skill-id-stealth", "skill-id-athletics"] } }
-    })).toMatchObject({ error: expect.stringMatching(/conservar/) });
-  });
-
-  it("stores growth and builds overlays only for still-proficient skills", () => {
-    const applied = applySkillProficiencyChoices({
-      classLevel: 3,
-      grantedTraits: [expertise],
-      proficientIds,
-      incoming: { "trait-expertise": { expertise: ["skill-id-stealth", "skill-id-athletics"] } }
-    });
-    expect(applied).toEqual({
-      traitChoices: { "trait-expertise": { expertise: ["skill-id-stealth", "skill-id-athletics"] } }
-    });
-    if ("error" in applied) throw new Error(applied.error);
-
-    expect(collectChosenSkillProficiencies(
-      [expertise],
-      applied.traitChoices,
-      ["skill-id-athletics"]
-    )).toEqual([{ value: 2, skillIds: ["skill-id-athletics"] }]);
-  });
-});
-
 describe("collectTraitSkillProficiencies", () => {
   it("flattens overlays from traits", () => {
     const overlays = collectTraitSkillProficiencies([
       { skillProficiencies: [{ value: 0.5 }] },
       { skillProficiencies: [{ value: 2, skillIds: ["skill-id-stealth"] }] },
-      {}
     ]);
     expect(overlays).toEqual([
       { value: 0.5 },

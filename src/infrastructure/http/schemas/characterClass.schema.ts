@@ -2,6 +2,11 @@ import { z } from "zod";
 import { CostSchema, EquipmentChoiceMongoSchema, GrantedEquipmentListSchema } from "./equipment.schema";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
 import { abilityScoreProgressionSchema } from "./system.schema";
+import {
+  LEVEL_SKILL_PROFICIENCY_FROMS,
+  LEVEL_SKILL_PROFICIENCY_VALUES,
+  SPELL_CHOICE_SOURCES
+} from "../../../domain/types/classLevelChoices.types";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -10,6 +15,29 @@ const ChoiceMongoSchema = z.object({
   options: z.array(z.string()).optional(),
   filter: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional()
 });
+
+const levelSkillProficiencyValueSchema = z.union([
+  z.literal(LEVEL_SKILL_PROFICIENCY_VALUES[0]),
+  z.literal(LEVEL_SKILL_PROFICIENCY_VALUES[1]),
+  z.literal(LEVEL_SKILL_PROFICIENCY_VALUES[2]),
+  z.literal(LEVEL_SKILL_PROFICIENCY_VALUES[3])
+]);
+
+export const LevelSkillProficiencyChoiceSchema = z.object({
+  choose: z.number().int().min(1, "Debe elegir al menos 1"),
+  value: levelSkillProficiencyValueSchema,
+  from: z.enum(LEVEL_SKILL_PROFICIENCY_FROMS)
+}).strict();
+
+export const SpellChoiceMongoSchema = z.object({
+  choose: z.number().int().min(1, "Debe elegir al menos 1"),
+  options: z.array(z.string()).optional(),
+  filter: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional(),
+  source: z.enum(SPELL_CHOICE_SOURCES).optional(),
+  levels: z.literal("castable").optional(),
+  includeCantrips: z.boolean().optional(),
+  countsTowardKnown: z.boolean().optional()
+}).strict();
 
 const classFormulaSchema = (fieldLabel: string) =>
   z.string().optional().superRefine((val, ctx) => {
@@ -29,12 +57,13 @@ const ClassSpellSlotsSchema = z.object({
 const CharacterClassLevelInputSchema = z.object({
   level: z.number().int().min(1, "El nivel debe ser al menos 1"),
   spellcasting: ClassSpellSlotsSchema,
-  spell_choices: z.array(ChoiceMongoSchema).optional(),
+  spell_choices: z.array(SpellChoiceMongoSchema).optional(),
   traits: z.array(
     z.string().regex(objectIdRegex, "Cada trait debe ser un ObjectId válido de MongoDB")
   ).optional(),
   traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional(),
-  skill_choices: ChoiceMongoSchema.nullable().optional()
+  skill_choices: ChoiceMongoSchema.nullable().optional(),
+  skillProficiencyChoices: LevelSkillProficiencyChoiceSchema.nullable().optional()
 });
 
 const SpellCopyCostSchema = z.object({

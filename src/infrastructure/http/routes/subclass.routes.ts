@@ -34,6 +34,14 @@ const router = Router();
  *             Elección de habilidades concedida en este nivel (p. ej. Competencias Adicionales
  *             del Colegio del Conocimiento: choose 3, todas las skills del sistema).
  *             Hidratada con query_type all/options/filter.
+ *         skillProficiencyChoices:
+ *           $ref: '#/components/schemas/LevelSkillProficiencyChoice'
+ *           description: Multiplicador de competencia concedido en este nivel.
+ *         spell_choices:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellChoiceMongo'
+ *           description: Configuración de conjuros extra (sin hidratar opciones).
  *     Subclass:
  *       type: object
  *       properties:
@@ -98,6 +106,19 @@ const router = Router();
  *             Si se omite, se conserva.
  *           allOf:
  *             - $ref: '#/components/schemas/ChoiceMongo'
+ *         skillProficiencyChoices:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/LevelSkillProficiencyChoice'
+ *           description: Pericia u otro multiplicador de competencia en este nivel de subclase. null borra el campo.
+ *         spell_choices:
+ *           nullable: true
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellChoiceMongo'
+ *           description: >
+ *             Conjuros extra de este nivel (p. ej. Secretos Mágicos adicionales).
+ *             Misma forma que en la clase. null borra el campo.
  *     InputCreateSubclass:
  *       type: object
  *       required:

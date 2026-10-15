@@ -1238,7 +1238,7 @@ describe("UpdateTraitSchema skillProficiencies", () => {
 });
 
 describe("CreateTraitSchema skillProficiencyChoices", () => {
-  it("accepts bard expertise grants", () => {
+  it("strips the legacy skillProficiencyChoices field", () => {
     const result = CreateTraitSchema.safeParse({
       ruleset: "sys1",
       name: "Pericia",
@@ -1246,59 +1246,12 @@ describe("CreateTraitSchema skillProficiencyChoices", () => {
         key: "expertise",
         value: 2,
         from: "proficient",
-        grants: [
-          { atLevel: 3, choose: 2 },
-          { atLevel: 10, choose: 2 }
-        ]
+        grants: [{ atLevel: 3, choose: 2 }]
       }]
     });
     expect(result.success).toBe(true);
-  });
-
-  it("rejects an invalid from, repeated grant levels and a key shared with catalogChoices", () => {
-    expect(CreateTraitSchema.safeParse({
-      ruleset: "sys1",
-      name: "Rasgo",
-      skillProficiencyChoices: [{
-        key: "expertise",
-        value: 2,
-        from: "all",
-        grants: [{ atLevel: 3, choose: 2 }]
-      }]
-    }).success).toBe(false);
-    expect(CreateTraitSchema.safeParse({
-      ruleset: "sys1",
-      name: "Rasgo",
-      skillProficiencyChoices: [{
-        key: "expertise",
-        value: 2,
-        from: "proficient",
-        grants: [
-          { atLevel: 3, choose: 2 },
-          { atLevel: 3, choose: 2 }
-        ]
-      }]
-    }).success).toBe(false);
-    expect(CreateTraitSchema.safeParse({
-      ruleset: "sys1",
-      name: "Rasgo",
-      catalogChoices: [{
-        key: "expertise",
-        options: [{ name: "Bosque" }],
-        grants: [{ atLevel: 1, choose: 1 }]
-      }],
-      skillProficiencyChoices: [{
-        key: "expertise",
-        value: 2,
-        from: "proficient",
-        grants: [{ atLevel: 3, choose: 2 }]
-      }]
-    }).success).toBe(false);
-  });
-});
-
-describe("UpdateTraitSchema skillProficiencyChoices", () => {
-  it("accepts null to clear skillProficiencyChoices", () => {
-    expect(UpdateTraitSchema.safeParse({ skillProficiencyChoices: null }).success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty("skillProficiencyChoices");
+    }
   });
 });

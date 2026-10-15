@@ -84,6 +84,26 @@ describe("CreateSubclassSchema", () => {
     expect(withFilter.success).toBe(true);
   });
 
+  it("accepts skillProficiencyChoices and extra spell_choices", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Colegio del Saber",
+      levels: [{
+        level: 6,
+        skillProficiencyChoices: { choose: 2, value: 2, from: "proficient" },
+        spell_choices: [{
+          choose: 2,
+          source: "anyClassList",
+          levels: "castable",
+          includeCantrips: true,
+          countsTowardKnown: false
+        }]
+      }]
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects skill_choices with choose less than 1", () => {
     const result = CreateSubclassSchema.safeParse({
       ruleset: "sys1",

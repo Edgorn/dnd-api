@@ -104,14 +104,6 @@ const router = Router();
  *             Overlay de competencia al leer la ficha. Sube el multiplicador de cada
  *             skill coincidente (0.5, 1 o 2) sin bajar competencia ni pericia.
  *             Sin skillIds ni attributeKeys aplica a todas las skills (p. ej. Aprendiz de Mucho).
- *         skillProficiencyChoices:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/TraitSkillProficiencyChoice'
- *           description: >
- *             Elecciones de competencia (p. ej. Pericia). El personaje guarda los IDs
- *             de skill en traitChoices. Las concesiones dependen del nivel de la clase
- *             que otorga el rasgo. from proficient solo admite skills ya competentes.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo.
@@ -960,41 +952,6 @@ const router = Router();
  *           description: >
  *             Claves de característica (p. ej. str, dex). Si falta, aplica a todas.
  *             Si también hay skillIds, la skill debe cumplir ambos filtros.
- *     TraitSkillProficiencyChoice:
- *       type: object
- *       required:
- *         - key
- *         - value
- *         - from
- *         - grants
- *       properties:
- *         key:
- *           type: string
- *           description: Clave en traitChoices (p. ej. expertise). No puede repetirse con catalogChoices ni damageChoices.
- *         value:
- *           type: number
- *           enum: [0.5, 1, 2]
- *           description: Multiplicador que se aplica a las skills elegidas. Pericia usa 2.
- *         from:
- *           type: string
- *           enum: [proficient]
- *           description: Origen de las opciones. proficient son las skills en las que el personaje ya tiene competencia.
- *         grants:
- *           type: array
- *           minItems: 1
- *           items:
- *             type: object
- *             required:
- *               - atLevel
- *               - choose
- *             properties:
- *               atLevel:
- *                 type: integer
- *                 minimum: 1
- *               choose:
- *                 type: integer
- *                 minimum: 1
- *           description: Cuántas skills nuevas hay que elegir al alcanzar cada nivel de clase. Los niveles no se repiten.
  *     InputCreateTrait:
  *       type: object
  *       description: >
@@ -1090,15 +1047,6 @@ const router = Router();
  *           description: >
  *             Overlay de competencia al leer la ficha (0.5, 1 o 2). attributeKeys deben
  *             existir en el sistema o un ancestro. null borra el campo.
- *         skillProficiencyChoices:
- *           nullable: true
- *           type: array
- *           minItems: 1
- *           items:
- *             $ref: '#/components/schemas/TraitSkillProficiencyChoice'
- *           description: >
- *             Elecciones de competencia (p. ej. Pericia). key no puede coincidir con
- *             catalogChoices ni damageChoices. null borra el campo.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.
@@ -1307,13 +1255,6 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/TraitSkillProficiency'
  *           description: Overlay de competencia al leer la ficha. null borra el campo.
- *         skillProficiencyChoices:
- *           nullable: true
- *           type: array
- *           minItems: 1
- *           items:
- *             $ref: '#/components/schemas/TraitSkillProficiencyChoice'
- *           description: Elecciones de competencia. null borra el campo.
  *         speed:
  *           $ref: '#/components/schemas/TraitSpeed'
  *           description: Efecto de velocidad de movimiento que otorga el rasgo. condition solo admite always.

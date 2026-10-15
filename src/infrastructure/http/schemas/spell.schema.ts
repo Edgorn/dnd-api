@@ -155,6 +155,21 @@ export const SpellDamageSchema = z.object({
   scaling: SpellDamageScalingSchema.optional()
 }).superRefine(validateSpellDamage);
 
+export const SpellTableSchema = z.object({
+  headers: z.array(z.string().min(1, "La cabecera no puede estar vacía")).min(1, "La tabla debe incluir al menos una cabecera"),
+  rows: z.array(z.array(z.string()).min(1, "La fila debe incluir al menos una celda")).min(1, "La tabla debe incluir al menos una fila")
+}).superRefine((table, ctx) => {
+  table.rows.forEach((row, index) => {
+    if (row.length !== table.headers.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Cada fila debe tener el mismo número de celdas que las cabeceras",
+        path: ["rows", index]
+      });
+    }
+  });
+});
+
 const rejectLegacyCastingTime = (data: { castingTime?: unknown }, ctx: z.RefinementCtx) => {
   if (data.castingTime !== undefined) {
     ctx.addIssue({
@@ -178,6 +193,7 @@ export const CreateSpellSchema = z.object({
   components: SpellComponentsSchema.optional(),
   duration: SpellDurationSchema.optional(),
   damage: SpellDamageSchema.optional(),
+  tables: z.array(SpellTableSchema).optional(),
   ritual: z.boolean()
 }).superRefine(rejectLegacyCastingTime);
 
@@ -194,6 +210,7 @@ export const UpdateSpellSchema = z.object({
   components: SpellComponentsSchema.optional(),
   duration: SpellDurationSchema.optional(),
   damage: SpellDamageSchema.optional(),
+  tables: z.array(SpellTableSchema).optional(),
   ritual: z.boolean().optional()
 }).superRefine(rejectLegacyCastingTime).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"

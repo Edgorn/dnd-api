@@ -139,6 +139,11 @@ export interface SpellDuration {
   concentration: boolean;
 }
 
+export interface SpellTable {
+  headers: string[];
+  rows: string[][];
+}
+
 export interface SpellMongo {
   _id?: ObjectId;
   ruleset: string;
@@ -155,6 +160,7 @@ export interface SpellMongo {
   duration?: SpellDuration;
   damage?: SpellDamageMongo;
   description: string[];
+  tables?: SpellTable[];
   ritual?: boolean;
   deletedAt?: Date | null;
 }
@@ -174,6 +180,7 @@ export interface SpellApi {
   duration?: SpellDuration;
   damage?: SpellDamageApi;
   description: string[];
+  tables: SpellTable[];
   ritual?: boolean;
   deletedAt?: Date | null;
 }
@@ -190,6 +197,7 @@ export interface InputCreateSpell {
   components?: SpellComponents;
   duration?: SpellDuration;
   damage?: InputSpellDamage;
+  tables?: SpellTable[];
   ritual: boolean;
 }
 
@@ -206,6 +214,7 @@ export interface InputUpdateSpell {
   components?: SpellComponents;
   duration?: SpellDuration;
   damage?: InputSpellDamage;
+  tables?: SpellTable[];
   ritual?: boolean;
 }
 

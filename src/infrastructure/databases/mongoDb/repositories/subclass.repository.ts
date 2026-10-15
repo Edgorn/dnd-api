@@ -5,6 +5,7 @@ import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
 import SkillService from "../../../../domain/services/skill.service";
 import { NotFoundError } from "../../../../domain/errors/AppError";
 import { ChoiceMongo } from "../../../../domain/types";
+import { LevelSkillProficiencyChoice, SpellChoiceMongo } from "../../../../domain/types/classLevelChoices.types";
 import {
   InputCreateSubclass,
   InputUpdateSubclass,
@@ -121,11 +122,17 @@ export default class SubclassRepository implements ISubclassRepository {
     if (!levels?.length) return [];
 
     return levels
-      .map(level => this.withSkillChoices({
-        level: level.level,
-        traits: level.traits ?? [],
-        traits_data: level.traits_data ?? {}
-      }, level.skill_choices))
+      .map(level => this.withSpellChoices(
+        this.withSkillProficiencyChoices(
+          this.withSkillChoices({
+            level: level.level,
+            traits: level.traits ?? [],
+            traits_data: level.traits_data ?? {}
+          }, level.skill_choices),
+          level.skillProficiencyChoices
+        ),
+        level.spell_choices
+      ))
       .sort((a, b) => a.level - b.level);
   }
 
@@ -152,9 +159,17 @@ export default class SubclassRepository implements ISubclassRepository {
           traits: row.traits ?? [],
           traits_data: row.traits_data ?? {}
         };
+      const withSkills = row.skill_choices === undefined
+        ? base
+        : this.withSkillChoices(base, row.skill_choices);
+      const withProficiency = row.skillProficiencyChoices === undefined
+        ? withSkills
+        : this.withSkillProficiencyChoices(withSkills, row.skillProficiencyChoices);
       byLevel.set(
         row.level,
-        row.skill_choices === undefined ? base : this.withSkillChoices(base, row.skill_choices)
+        row.spell_choices === undefined
+          ? withProficiency
+          : this.withSpellChoices(withProficiency, row.spell_choices)
       );
     }
 
@@ -171,6 +186,32 @@ export default class SubclassRepository implements ISubclassRepository {
       return next;
     }
     next.skill_choices = skill_choices;
+    return next;
+  }
+
+  private withSkillProficiencyChoices(
+    row: SubclassLevelMongo,
+    skillProficiencyChoices?: LevelSkillProficiencyChoice | null
+  ): SubclassLevelMongo {
+    const next = { ...row };
+    if (skillProficiencyChoices == null) {
+      delete next.skillProficiencyChoices;
+      return next;
+    }
+    next.skillProficiencyChoices = skillProficiencyChoices;
+    return next;
+  }
+
+  private withSpellChoices(
+    row: SubclassLevelMongo,
+    spell_choices?: SpellChoiceMongo[] | null
+  ): SubclassLevelMongo {
+    const next = { ...row };
+    if (spell_choices == null) {
+      delete next.spell_choices;
+      return next;
+    }
+    next.spell_choices = spell_choices;
     return next;
   }
 
@@ -206,7 +247,9 @@ export default class SubclassRepository implements ISubclassRepository {
           level: level.level,
           traits,
           traits_data: level.traits_data ?? {},
-          ...(skill_choices ? { skill_choices } : {})
+          ...(skill_choices ? { skill_choices } : {}),
+          ...(level.skillProficiencyChoices ? { skillProficiencyChoices: level.skillProficiencyChoices } : {}),
+          ...(level.spell_choices?.length ? { spell_choices: level.spell_choices } : {})
         };
       })
     );

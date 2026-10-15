@@ -264,6 +264,7 @@ export class PersonajeController {
         feat,
         traitChoices,
         skillPicks,
+        skillProficiencyPicks,
         proficiencyPicks,
         spellReplacements,
       } = req.body;
@@ -278,6 +279,7 @@ export class PersonajeController {
         feat,
         traitChoices,
         skillPicks,
+        skillProficiencyPicks,
         proficiencyPicks,
         spellReplacements,
       });

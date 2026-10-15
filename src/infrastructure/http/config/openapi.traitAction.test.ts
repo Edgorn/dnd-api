@@ -79,11 +79,11 @@ describe("OpenAPI trait action schemas", () => {
     expect(schemas.InputUpdateTrait?.properties?.skillProficiencies).toBeDefined();
   });
 
-  it("documents skillProficiencyChoices on Trait write and read schemas", () => {
-    expect(schemas.TraitSkillProficiencyChoice?.required).toEqual(["key", "value", "from", "grants"]);
-    expect(schemas.Trait?.properties?.skillProficiencyChoices).toBeDefined();
-    expect(schemas.InputCreateTrait?.properties?.skillProficiencyChoices).toBeDefined();
-    expect(schemas.InputUpdateTrait?.properties?.skillProficiencyChoices).toBeDefined();
+  it("does not document skillProficiencyChoices on Trait schemas", () => {
+    expect(schemas.TraitSkillProficiencyChoice).toBeUndefined();
+    expect(schemas.Trait?.properties?.skillProficiencyChoices).toBeUndefined();
+    expect(schemas.InputCreateTrait?.properties?.skillProficiencyChoices).toBeUndefined();
+    expect(schemas.InputUpdateTrait?.properties?.skillProficiencyChoices).toBeUndefined();
   });
 
   it("defines write schemas instead of leaving dangling InputCreateTrait refs", () => {

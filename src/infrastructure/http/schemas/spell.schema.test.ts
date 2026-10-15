@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CreateSpellSchema, SpellDamageSchema } from "./spell.schema";
+import { CreateSpellSchema, SpellDamageSchema, UpdateSpellSchema } from "./spell.schema";
 
 const energyOptions = ["acid", "cold", "fire", "lightning", "poison", "thunder"];
 
@@ -167,6 +167,89 @@ describe("CreateSpellSchema castingTimes", () => {
       expect(result.error.issues.some((issue) =>
         issue.message === "Usa castingTimes en lugar de castingTime"
       )).toBe(true);
+    }
+  });
+});
+
+const confusionTable = {
+  headers: ["d10", "Comportamiento"],
+  rows: [
+    ["1", "La criatura emplea todo su movimiento..."],
+    ["2–6", "La criatura no se mueve ni realiza ninguna acción este turno."],
+    ["7–8", "La criatura usa su acción para realizar un ataque..."],
+    ["9–10", "La criatura puede actuar y moverse con normalidad."]
+  ]
+};
+
+describe("CreateSpellSchema tables", () => {
+  it("acepta un conjuro sin tables", () => {
+    const result = CreateSpellSchema.safeParse(plantGrowthBase);
+
+    expect(result.success).toBe(true);
+  });
+
+  it("acepta párrafos y una tabla", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      name: "Confusión",
+      description: [
+        "Un objetivo afectado no podrá llevar a cabo reacciones y deberá tirar 1d10...",
+        "Al final de cada uno de sus turnos, un objetivo afectado puede realizar una tirada de salvación de Sabiduría..."
+      ],
+      tables: [confusionTable]
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tables).toHaveLength(1);
+      expect(result.data.tables?.[0]?.headers).toEqual(["d10", "Comportamiento"]);
+    }
+  });
+
+  it("rechaza cabeceras vacías", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      tables: [{ headers: [], rows: [["1", "Nada"]] }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rechaza una tabla sin filas", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      tables: [{ headers: ["d10", "Comportamiento"], rows: [] }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rechaza una fila con distinto número de celdas", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      tables: [{
+        headers: ["d10", "Comportamiento"],
+        rows: [["1", "Nada"], ["2–6"]]
+      }]
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(issuePaths(result.error.issues)).toContain("tables.0.rows.1");
+      expect(result.error.issues.some((issue) =>
+        issue.message === "Cada fila debe tener el mismo número de celdas que las cabeceras"
+      )).toBe(true);
+    }
+  });
+});
+
+describe("UpdateSpellSchema tables", () => {
+  it("acepta tables vacío para borrarlas", () => {
+    const result = UpdateSpellSchema.safeParse({ tables: [] });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tables).toEqual([]);
     }
   });
 });

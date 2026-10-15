@@ -9,6 +9,25 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
+ *     SpellTable:
+ *       type: object
+ *       required:
+ *         - headers
+ *         - rows
+ *       properties:
+ *         headers:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Cabeceras de la tabla.
+ *         rows:
+ *           type: array
+ *           description: Filas de la tabla. Cada fila debe tener tantas celdas como cabeceras.
+ *           items:
+ *             type: array
+ *             items:
+ *               type: string
+ *       description: Tabla asociada a la descripción del conjuro (se muestra debajo de los párrafos).
  *     Spell:
  *       type: object
  *       properties:
@@ -213,6 +232,11 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Descripción del conjuro dividida en párrafos.
+ *         tables:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellTable'
+ *           description: Tablas del conjuro. Vacío si no hay.
  *         ritual:
  *           type: boolean
  *           description: Indica si el conjuro puede lanzarse como ritual.
@@ -233,6 +257,11 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
+ *         tables:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellTable'
+ *           description: Tablas opcionales del conjuro.
  *         level:
  *           type: number
  *         classes:
@@ -382,6 +411,11 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
+ *         tables:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellTable'
+ *           description: Tablas del conjuro. Envíe un array vacío para borrarlas.
  *         level:
  *           type: number
  *         classes:

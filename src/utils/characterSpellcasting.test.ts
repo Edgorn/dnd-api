@@ -235,6 +235,12 @@ describe("hasCantripSpellChoice", () => {
   it("returns false when there is no cantrip choice", () => {
     expect(hasCantripSpellChoice(undefined)).toBe(false);
     expect(hasCantripSpellChoice([{ choose: 2, filter: { level: 1 } }])).toBe(false);
+    expect(hasCantripSpellChoice([{
+      choose: 2,
+      filter: { level: [0, 1, 2] },
+      countsTowardKnown: false,
+      source: "anyClassList"
+    }])).toBe(false);
   });
 });
 
@@ -305,6 +311,10 @@ describe("hasKnownSpellChoice", () => {
       "c1"
     )).toBe(false);
     expect(hasKnownSpellChoice(undefined, "c1")).toBe(false);
+    expect(hasKnownSpellChoice(
+      [{ choose: 2, filter: { level: [1, 2], classes: "c1" }, countsTowardKnown: false, source: "anyClassList" }],
+      "c1"
+    )).toBe(false);
   });
 });
 
@@ -383,12 +393,27 @@ describe("validateLevelUpSpellPicks", () => {
       [["cantrip-1"], ["spell-1", "spell-2"]],
       []
     );
-    expect(result).toEqual({ spellIds: ["cantrip-1", "spell-1", "spell-2"] });
+    expect(result).toEqual({ spellIds: ["cantrip-1", "spell-1", "spell-2"], extraSpellIds: [] });
+  });
+
+  it("splits extra spells that do not count toward known", () => {
+    const result = validateLevelUpSpellPicks(
+      [
+        { choose: 1, options: [{ id: "spell-1" }] },
+        { choose: 2, options: [{ id: "fireball" }, { id: "cure" }, { id: "shield" }], countsTowardKnown: false, source: "anyClassList" }
+      ],
+      [["spell-1"], ["fireball", "cure"]],
+      []
+    );
+    expect(result).toEqual({
+      spellIds: ["spell-1"],
+      extraSpellIds: ["fireball", "cure"]
+    });
   });
 
   it("allows omitting spells when there are no choices", () => {
-    expect(validateLevelUpSpellPicks(undefined, undefined, [])).toEqual({ spellIds: [] });
-    expect(validateLevelUpSpellPicks([], [], [])).toEqual({ spellIds: [] });
+    expect(validateLevelUpSpellPicks(undefined, undefined, [])).toEqual({ spellIds: [], extraSpellIds: [] });
+    expect(validateLevelUpSpellPicks([], [], [])).toEqual({ spellIds: [], extraSpellIds: [] });
   });
 
   it("rejects extra spells when there are no choices", () => {

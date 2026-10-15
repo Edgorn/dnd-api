@@ -206,10 +206,11 @@ const router = Router();
  *         spell_choices:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/ChoiceMongo'
+ *             $ref: '#/components/schemas/SpellChoiceMongo'
  *           description: >
- *             Elecciones de conjuros de ese nivel (lista de IDs o filtro).
- *             El filtro admite valores únicos o arrays (por ejemplo level: [1, 2, 3, 4]).
+ *             Elecciones de conjuros de ese nivel. Además de IDs o filtro, admite
+ *             source anyClassList, levels castable e includeCantrips (Secretos Mágicos).
+ *             countsTowardKnown false no suma al total de conjuros conocidos.
  *         traits:
  *           type: array
  *           items:
@@ -235,6 +236,60 @@ const router = Router();
  *             Si se omite, se conserva.
  *           allOf:
  *             - $ref: '#/components/schemas/ChoiceMongo'
+ *         skillProficiencyChoices:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/LevelSkillProficiencyChoice'
+ *           description: >
+ *             Elige skills ya competentes y aplica un multiplicador al bonificador
+ *             (2 pericia, 3 triple). Envíe null para borrar la elección de este nivel.
+ *     SpellChoiceMongo:
+ *       type: object
+ *       required:
+ *         - choose
+ *       properties:
+ *         choose:
+ *           type: integer
+ *           minimum: 1
+ *         options:
+ *           type: array
+ *           items:
+ *             type: string
+ *         filter:
+ *           type: object
+ *           additionalProperties: true
+ *         source:
+ *           type: string
+ *           enum: [classList, anyClassList]
+ *           description: classList es la lista de la clase. anyClassList son conjuros de cualquier clase.
+ *         levels:
+ *           type: string
+ *           enum: [castable]
+ *           description: Resuelve los niveles con las ranuras de ese nivel de clase.
+ *         includeCantrips:
+ *           type: boolean
+ *           description: Si levels es castable, incluye trucos (nivel 0).
+ *         countsTowardKnown:
+ *           type: boolean
+ *           description: Si es false, los conjuros van a extraSpells y no cuentan como conocidos.
+ *     LevelSkillProficiencyChoice:
+ *       type: object
+ *       required:
+ *         - choose
+ *         - value
+ *         - from
+ *       properties:
+ *         choose:
+ *           type: integer
+ *           minimum: 1
+ *         value:
+ *           type: number
+ *           enum: [0.5, 1, 2, 3]
+ *           description: Multiplicador del bonificador de competencia.
+ *         from:
+ *           type: string
+ *           enum: [proficient]
+ *           description: Solo skills en las que el personaje ya tiene competencia.
  *     SpellCopyCost:
  *       type: object
  *       required:
@@ -425,7 +480,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles con tabla de ranuras, elecciones de conjuros, traits, traits_data y skill_choices (level, spellcasting, spell_choices, traits, traits_data, skill_choices).
+ *           description: Niveles con tabla de ranuras, elecciones de conjuros, pericia, traits y skill_choices.
  *         abilityScoreProgression:
  *           type: array
  *           items:

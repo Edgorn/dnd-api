@@ -1,5 +1,6 @@
 import ISpellRepository from "../repositories/ISpellRepository";
-import { ChoiceApi } from "../types";
+import { ChoiceMongo } from "../types";
+import { FormatSpellChoicesContext, SpellChoiceApi, SpellChoiceMongo } from "../types/classLevelChoices.types";
 import { ChoiceSpell, InputCreateSpell, InputUpdateSpell, SpellApi } from "../types/spell.types";
 
 export default class SpellService {
@@ -37,8 +38,11 @@ export default class SpellService {
     return this.spellRepository.getRitualSpells(rulesets);
   }
 
-  formatSpellChoices(choices: ChoiceSpell[] | undefined): Promise<ChoiceApi<SpellApi>[] | undefined> {
-    return this.spellRepository.formatSpellChoices(choices);
+  formatSpellChoices(
+    choices: (ChoiceMongo | ChoiceSpell | SpellChoiceMongo)[] | undefined,
+    context?: FormatSpellChoicesContext
+  ): Promise<SpellChoiceApi[] | undefined> {
+    return this.spellRepository.formatSpellChoices(choices, context);
   }
 
   getSpellsByIndexes(indexes: string[]): Promise<SpellApi[]> {

@@ -43,6 +43,28 @@ describe("Spell Use Cases", () => {
       expect(spellServiceMock.create).toHaveBeenCalledWith(input);
     });
 
+    it("forwards tables to the spell service", async () => {
+      const useCase = new CreateSpell(spellServiceMock, systemServiceMock);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      spellServiceMock.create.mockResolvedValue({ id: "spell1", name: "Confusión" });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Confusión",
+        level: 4,
+        description: ["Un objetivo afectado no podrá llevar a cabo reacciones..."],
+        classes: ["wizard"],
+        ritual: false,
+        tables: [{
+          headers: ["d10", "Comportamiento"],
+          rows: [["1", "Se mueve en una dirección aleatoria."]]
+        }]
+      };
+      await useCase.execute(input, "user1");
+
+      expect(spellServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
     it("should throw error if system is not found", async () => {
       const useCase = new CreateSpell(spellServiceMock, systemServiceMock);
       systemServiceMock.getById.mockResolvedValue(null);

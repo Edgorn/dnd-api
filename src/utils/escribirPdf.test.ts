@@ -6,6 +6,7 @@ const spell = (partial: Pick<SpellApi, "name" | "level"> & Partial<SpellApi>): S
   ruleset: "dnd5e",
   classes: [],
   description: [],
+  tables: [],
   ...partial,
 });
 
