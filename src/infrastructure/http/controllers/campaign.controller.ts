@@ -25,7 +25,7 @@ export class CampaignController {
       const userId = req.user;
 
       if (!userId) {
-        throw new ValidationError("User ID is required");
+        throw new ValidationError("El ID del usuario es obligatorio");
       }
 
       const data = await this.getCampaignsByUser.execute(userId)
@@ -41,7 +41,7 @@ export class CampaignController {
       const userId = req.user;
 
       if (!userId) {
-        throw new ValidationError("User ID is required");
+        throw new ValidationError("El ID del usuario es obligatorio");
       }
 
       const { name, description, system, initialLevel, maxPlayers, language } = req.body;
@@ -68,7 +68,7 @@ export class CampaignController {
       const { id } = req.params;
 
       if (!userId) {
-        throw new ValidationError("User ID is required");
+        throw new ValidationError("El ID del usuario es obligatorio");
       }
 
       const data = await this.getCampaignById.execute(userId, id);
@@ -85,7 +85,7 @@ export class CampaignController {
       const { id } = req.params;
 
       if (!userId) {
-        throw new ValidationError("User ID is required");
+        throw new ValidationError("El ID del usuario es obligatorio");
       }
 
       const data = await this.requestJoin.execute(userId, id);
@@ -102,7 +102,7 @@ export class CampaignController {
       const { id, userId } = req.params;
 
       if (!masterId) {
-        throw new ValidationError("User ID is required");
+        throw new ValidationError("El ID del usuario es obligatorio");
       }
 
       const data = await this.denyJoin.execute({ masterId, campaignId: id, userId });
@@ -119,7 +119,7 @@ export class CampaignController {
       const { id, userId } = req.params;
 
       if (!masterId) {
-        throw new ValidationError("User ID is required");
+        throw new ValidationError("El ID del usuario es obligatorio");
       }
 
       const data = await this.acceptJoin.execute({ masterId, campaignId: id, userId });
@@ -137,7 +137,7 @@ export class CampaignController {
       const { characterId } = req.body;
 
       if (!userId) {
-        throw new ValidationError("User ID is required");
+        throw new ValidationError("El ID del usuario es obligatorio");
       }
 
       const data = await this.addCharacter.execute({ userId, campaignId: id, characterId });

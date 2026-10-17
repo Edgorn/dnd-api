@@ -93,7 +93,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
   async update(data: InputUpdateBackground): Promise<BackgroundApi> {
     const existing = await BackgroundModel.findById(data.id).lean<BackgroundMongo>();
     if (!existing) {
-      throw new NotFoundError(`No se encontró el trasfondo con id: ${data.id}`);
+      throw new NotFoundError("Trasfondo no encontrado");
     }
 
     const isVariant = Boolean(data.parentId ?? existing.parentId);
@@ -111,7 +111,7 @@ export default class BackgroundRepository implements IBackgroundRepository {
 
     const updated = await BackgroundModel.findById(data.id).lean<BackgroundMongo>();
     if (!updated) {
-      throw new NotFoundError(`No se encontró el trasfondo con id: ${data.id}`);
+      throw new NotFoundError("Trasfondo no encontrado");
     }
 
     return this.formatearBackground(updated, { nestVariants: !this.hasParent(updated) });

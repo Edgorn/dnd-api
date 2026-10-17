@@ -52,7 +52,7 @@ export class DamageController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Damage ID is required");
+        throw new ValidationError("El ID del tipo de daño es obligatorio");
       }
 
       const data = await this.updateDamageUseCase.execute({
@@ -73,7 +73,7 @@ export class DamageController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Damage ID is required");
+        throw new ValidationError("El ID del tipo de daño es obligatorio");
       }
 
       await this.softDeleteDamageUseCase.execute(id, userId);
@@ -90,7 +90,7 @@ export class DamageController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Damage ID is required");
+        throw new ValidationError("El ID del tipo de daño es obligatorio");
       }
 
       await this.restoreDamageUseCase.execute(id, userId);

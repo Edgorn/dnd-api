@@ -267,7 +267,7 @@ const TraitCatalogChoiceSchema = z.object({
     if (typeIds.has(item.creatureTypeId)) {
       ctx.addIssue({
         code: "custom",
-        message: `El tipo de criatura ${item.creatureTypeId} está repetido`,
+        message: "El tipo de criatura está repetido",
         path: ["creatureTypeRaces", index, "creatureTypeId"]
       });
     }
@@ -540,7 +540,7 @@ export const TraitInnateSpellsSchema = z.object({
     if (spellIds.has(grant.spellId)) {
       ctx.addIssue({
         code: "custom",
-        message: `El conjuro ${grant.spellId} está repetido`,
+        message: "El conjuro está repetido",
         path: ["grants", index, "spellId"]
       });
     }

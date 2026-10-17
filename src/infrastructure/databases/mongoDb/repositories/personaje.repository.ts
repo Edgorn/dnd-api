@@ -383,7 +383,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(idCharacter);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${idCharacter}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     await this.assertCanAccessCharacter(personaje, user);
@@ -396,7 +396,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     const equipment = addToInventory(
@@ -412,7 +412,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     const inventory = this.toInventoryRows(personaje.equipment);
@@ -431,7 +431,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const { id, instanceId, equipped } = data;
     const personaje = await Personaje.findById(id);
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     let inventory = this.toInventoryRows(personaje.equipment);
@@ -469,7 +469,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     let inventory = this.toInventoryRows(personaje.equipment);
@@ -492,7 +492,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
 
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     return {
@@ -518,7 +518,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
 
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     const formattedMoney = await this.normalizeAndFormatMoney(resultado);
@@ -530,7 +530,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     await this.assertCanAccessCharacter(personaje, userId);
@@ -546,7 +546,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     await this.assertCanAccessCharacter(personaje, userId);
@@ -561,7 +561,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     await this.assertCanAccessCharacter(personaje, userId);
@@ -631,7 +631,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     await this.assertCanAccessCharacter(personaje, userId);
@@ -913,7 +913,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
 
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     const completo = await this.formatCharacter(resultado);
@@ -974,7 +974,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     let inventory = this.toInventoryRows(personaje.equipment);
@@ -1003,7 +1003,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id)
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+      throw new NotFoundError("Personaje no encontrado")
     }
 
     await this.assertCanAccessCharacter(personaje, userId)
@@ -1059,7 +1059,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     )
 
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+      throw new NotFoundError("Personaje no encontrado")
     }
 
     return this.formatCharacter(resultado)
@@ -1070,7 +1070,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id)
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+      throw new NotFoundError("Personaje no encontrado")
     }
 
     await this.assertCanAccessCharacter(personaje, userId)
@@ -1147,7 +1147,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     )
 
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+      throw new NotFoundError("Personaje no encontrado")
     }
 
     return this.formatCharacter(resultado)
@@ -1158,7 +1158,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const personaje = await Personaje.findById(id)
 
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+      throw new NotFoundError("Personaje no encontrado")
     }
 
     await this.assertCanAccessCharacter(personaje, userId)
@@ -1223,7 +1223,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     )
 
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`)
+      throw new NotFoundError("Personaje no encontrado")
     }
 
     return this.formatCharacter(resultado)
@@ -1233,7 +1233,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const { id, traitId, userId } = data;
     const personaje = await Personaje.findById(id);
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
     await this.assertCanAccessCharacter(personaje, userId);
 
@@ -1273,7 +1273,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const { id, traitId, userId } = data;
     const personaje = await Personaje.findById(id);
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
     await this.assertCanAccessCharacter(personaje, userId);
 
@@ -1296,7 +1296,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const { id, type, userId } = data;
     const personaje = await Personaje.findById(id);
     if (!personaje) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
     await this.assertCanAccessCharacter(personaje, userId);
 
@@ -1601,7 +1601,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   ): Promise<{ catalog: CharacterClassApi; currentEntry?: PersonajeMongo["classes"][number]; isNewClass: boolean }> {
     const catalog = await this.claseRepository.getById(classId);
     if (!catalog || catalog.deletedAt) {
-      throw new NotFoundError(`No se encontró la clase con id: ${classId}`);
+      throw new NotFoundError("Clase no encontrada");
     }
 
     const expanded = await this.systemRepository.getSystemsAndAncestors(personaje.systems ?? []);
@@ -1926,7 +1926,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       { returnDocument: "after" }
     );
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
     return this.formatCharacter(resultado);
   }
@@ -2723,7 +2723,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
 
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     return {
@@ -2742,7 +2742,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
 
     if (!resultado) {
-      throw new NotFoundError(`No se encontró el personaje con id: ${id}`);
+      throw new NotFoundError("Personaje no encontrado");
     }
 
     const completo = await this.formatCharacter(resultado);

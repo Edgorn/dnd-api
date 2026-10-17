@@ -12,7 +12,7 @@ export default class UpdateSpell {
   async execute(data: InputUpdateSpell, userId: string): Promise<SpellApi> {
     const existingSpell = await this.spellService.getById(data.id);
     if (!existingSpell) {
-      throw new NotFoundError(`No se encontró el conjuro con ID: ${data.id}`);
+      throw new NotFoundError("Conjuro no encontrado");
     }
 
     const system = await this.systemService.getById(existingSpell.ruleset);

@@ -41,7 +41,7 @@ export class PropertyController {
     try {
       const id = req.params.id as string;
       if (!id) {
-        throw new ValidationError("Property ID is required");
+        throw new ValidationError("El ID de la propiedad es obligatorio");
       }
       const data = await this.getPropertyByIdUseCase.execute(id);
       return res.status(200).json(data);
@@ -68,7 +68,7 @@ export class PropertyController {
       const id = req.params.id as string;
 
       if (!id) {
-        throw new ValidationError("Property ID is required");
+        throw new ValidationError("El ID de la propiedad es obligatorio");
       }
 
       const data = await this.updatePropertyUseCase.execute({
@@ -89,7 +89,7 @@ export class PropertyController {
       const id = req.params.id as string;
 
       if (!id) {
-        throw new ValidationError("Property ID is required");
+        throw new ValidationError("El ID de la propiedad es obligatorio");
       }
 
       await this.softDeletePropertyUseCase.execute(id, userId);
@@ -106,7 +106,7 @@ export class PropertyController {
       const id = req.params.id as string;
 
       if (!id) {
-        throw new ValidationError("Property ID is required");
+        throw new ValidationError("El ID de la propiedad es obligatorio");
       }
 
       await this.restorePropertyUseCase.execute(id, userId);

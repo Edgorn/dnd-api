@@ -10,7 +10,7 @@ export default class SoftDeleteProficiency {
 
   async execute(id: string, userEmail: string): Promise<void> {
     const existing = await this.proficiencyService.getProficiencyById(id);
-    if (!existing) throw new AppError("Proficiency not found", 404);
+    if (!existing) throw new AppError("Competencia no encontrada", 404);
 
     const sys = await this.systemService.getByIdWithDeleted(existing.ruleset);
     if (!sys || (sys.publisher !== userEmail && !sys.isOpen)) {
@@ -18,6 +18,6 @@ export default class SoftDeleteProficiency {
     }
 
     const deleted = await this.proficiencyService.softDeleteProficiency(id);
-    if (!deleted) throw new AppError("Failed to soft delete Proficiency", 500);
+    if (!deleted) throw new AppError("No se pudo borrar la competencia", 500);
   }
 }

@@ -8,7 +8,7 @@ export default class GetArmorTypeById {
   async execute(id: string): Promise<ArmorType> {
     const armorType = await this.armorTypeService.getById(id);
     if (!armorType) {
-      throw new NotFoundError(`No se encontró el tipo de armadura con id: ${id}`);
+      throw new NotFoundError("Tipo de armadura no encontrado");
     }
     return armorType;
   }

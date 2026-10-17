@@ -101,7 +101,7 @@ export default class CreatureTypeRepository implements ICreatureTypeRepository {
     ).lean<CreatureTypeMongo>();
 
     if (!updated) {
-      throw new NotFoundError(`No creature type found with id: ${id}`);
+      throw new NotFoundError("Tipo de criatura no encontrado");
     }
 
     return this.formatCreatureType(updated);

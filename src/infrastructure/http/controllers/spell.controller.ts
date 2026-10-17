@@ -45,7 +45,7 @@ export class SpellController {
     try {
       const { id } = req.params;
       if (!id || typeof id !== "string") {
-        throw new ValidationError("Spell ID is required");
+        throw new ValidationError("El ID del conjuro es obligatorio");
       }
 
       const data = await this.getSpellByIdUseCase.execute(id);
@@ -116,7 +116,7 @@ export class SpellController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Spell ID is required");
+        throw new ValidationError("El ID del conjuro es obligatorio");
       }
 
       const data = await this.updateSpellUseCase.execute({
@@ -137,7 +137,7 @@ export class SpellController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Spell ID is required");
+        throw new ValidationError("El ID del conjuro es obligatorio");
       }
 
       await this.softDeleteSpellUseCase.execute(id, userId);
@@ -154,7 +154,7 @@ export class SpellController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Spell ID is required");
+        throw new ValidationError("El ID del conjuro es obligatorio");
       }
 
       await this.restoreSpellUseCase.execute(id, userId);

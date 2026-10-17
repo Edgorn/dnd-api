@@ -22,7 +22,7 @@ export default class MagicSchoolRepository implements IMagicSchoolRepository {
       return this.formatMagicSchool(newMagicSchool);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`A magic school with name '${data.name}' already exists in system '${data.ruleset}'`);
+        throw new ConflictError(`Ya existe una escuela de magia con el nombre '${data.name}'`);
       }
       throw error;
     }
@@ -37,7 +37,7 @@ export default class MagicSchoolRepository implements IMagicSchoolRepository {
     );
 
     if (!updatedMagicSchool) {
-      throw new NotFoundError(`No magic school found with id: ${id}`);
+      throw new NotFoundError("Escuela de magia no encontrada");
     }
 
     return this.formatMagicSchool(updatedMagicSchool);

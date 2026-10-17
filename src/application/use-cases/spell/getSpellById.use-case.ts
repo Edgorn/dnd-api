@@ -8,7 +8,7 @@ export default class GetSpellById {
   async execute(id: string): Promise<SpellApi> {
     const spell = await this.spellService.getById(id);
     if (!spell) {
-      throw new NotFoundError(`No se encontró el conjuro con ID: ${id}`);
+      throw new NotFoundError("Conjuro no encontrado");
     }
     return spell;
   }

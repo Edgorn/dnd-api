@@ -11,7 +11,7 @@ export default class SoftDeleteTraitUseCase {
   async execute(id: string, userId: string): Promise<void> {
     const trait = await this.traitService.getById(id);
     if (!trait) {
-      throw new AppError("Trait no encontrado", 404);
+      throw new AppError("Rasgo no encontrado", 404);
     }
 
     const system = await this.systemService.getById(trait.ruleset);

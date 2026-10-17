@@ -38,7 +38,7 @@ export default class FeatRepository implements IFeatRepository {
     } catch (error: unknown) {
       const mongoError = error as { code?: number };
       if (mongoError?.code === 11000) {
-        throw new ConflictError("A feat with this name already exists");
+        throw new ConflictError(`Ya existe un dote con el nombre '${data.name}'`);
       }
       throw error;
     }
@@ -60,7 +60,7 @@ export default class FeatRepository implements IFeatRepository {
     );
 
     if (!updatedFeat) {
-      throw new NotFoundError(`No feat found with id: ${id}`);
+      throw new NotFoundError("Dote no encontrado");
     }
 
     return this.formatFeat(updatedFeat);

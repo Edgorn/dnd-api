@@ -51,7 +51,7 @@ export class FeatController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Feat ID is required");
+        throw new ValidationError("El ID del dote es obligatorio");
       }
 
       const feat = await this.updateFeatUseCase.execute({ ...req.body, id }, userId);
@@ -68,7 +68,7 @@ export class FeatController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Feat ID is required");
+        throw new ValidationError("El ID del dote es obligatorio");
       }
 
       await this.softDeleteFeatUseCase.execute(id, userId);
@@ -85,7 +85,7 @@ export class FeatController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Feat ID is required");
+        throw new ValidationError("El ID del dote es obligatorio");
       }
 
       await this.restoreFeatUseCase.execute(id, userId);

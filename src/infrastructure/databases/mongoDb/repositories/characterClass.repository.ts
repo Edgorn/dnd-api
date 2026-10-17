@@ -172,7 +172,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     if (levels !== undefined) {
       const existing = await CharacterClassModel.findById(id).lean<CharacterClassMongo>();
       if (!existing) {
-        throw new NotFoundError(`No se encontró la clase con id: ${id}`);
+        throw new NotFoundError("Clase no encontrada");
       }
       setFields.levels = this.mergeLevels(existing.levels ?? [], levels);
     }
@@ -192,7 +192,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     ).lean<CharacterClassMongo>();
 
     if (!updatedClass) {
-      throw new NotFoundError(`No se encontró la clase con id: ${id}`);
+      throw new NotFoundError("Clase no encontrada");
     }
 
     return this.formatClass(updatedClass, updatedClass.ruleset ? [updatedClass.ruleset] : []);

@@ -89,7 +89,7 @@ export default class ConditionRepository implements IConditionRepository {
 
   async update(data: InputUpdateCondition): Promise<ConditionApi> {
     if (!Types.ObjectId.isValid(data.id)) {
-      throw new NotFoundError(`No condition found with id: ${data.id}`);
+      throw new NotFoundError("Estado no encontrado");
     }
 
     const { id, ...updateFields } = data;
@@ -108,7 +108,7 @@ export default class ConditionRepository implements IConditionRepository {
     ).lean<ConditionMongo>();
 
     if (!updated) {
-      throw new NotFoundError(`No condition found with id: ${id}`);
+      throw new NotFoundError("Estado no encontrado");
     }
 
     return this.formatCondition(updated);

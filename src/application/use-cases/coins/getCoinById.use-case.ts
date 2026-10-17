@@ -8,7 +8,7 @@ export default class GetCoinById {
   async execute(id: string): Promise<CoinApi> {
     const coin = await this.coinRepository.getById(id);
     if (!coin) {
-      throw new NotFoundError(`No se encontró la moneda con id: ${id}`);
+      throw new NotFoundError("Moneda no encontrada");
     }
     return coin;
   }

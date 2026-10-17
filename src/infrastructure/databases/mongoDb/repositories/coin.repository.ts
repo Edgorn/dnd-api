@@ -35,7 +35,7 @@ export default class CoinRepository implements ICoinRepository {
     );
 
     if (!updatedCoin) {
-      throw new NotFoundError(`No se encontró la moneda con id: ${id}`);
+      throw new NotFoundError("Moneda no encontrada");
     }
 
     return this.formatCoin(updatedCoin);
@@ -89,14 +89,14 @@ export default class CoinRepository implements ICoinRepository {
   async softDelete(id: string): Promise<void> {
     const result = await CoinModel.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } });
     if (!result) {
-      throw new NotFoundError(`No se encontró la moneda con id: ${id}`);
+      throw new NotFoundError("Moneda no encontrada");
     }
   }
 
   async restore(id: string): Promise<void> {
     const result = await CoinModel.findByIdAndUpdate(id, { $set: { deletedAt: null } });
     if (!result) {
-      throw new NotFoundError(`No se encontró la moneda con id: ${id}`);
+      throw new NotFoundError("Moneda no encontrada");
     }
   }
 

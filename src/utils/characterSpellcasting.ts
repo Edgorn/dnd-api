@@ -231,10 +231,10 @@ export function validateLevelUpSpellPicks(
 
     for (const id of group) {
       if (seen.has(id) || known.has(id)) {
-        return { error: `El conjuro ${id} está duplicado o ya es conocido` };
+        return { error: "El conjuro está duplicado o ya es conocido" };
       }
       if (!optionIds.has(id)) {
-        return { error: `El conjuro ${id} no está entre las opciones de la elección ${i + 1}` };
+        return { error: `El conjuro no está entre las opciones de la elección ${i + 1}` };
       }
       seen.add(id);
       if (extra) extraSpellIds.push(id);
@@ -343,36 +343,36 @@ export function validateSpellReplacements(params: {
 
   for (const pick of pickList) {
     if (seenFrom.has(pick.from)) {
-      return { error: `El conjuro ${pick.from} está duplicado en el recambio` };
+      return { error: "El conjuro está duplicado en el recambio" };
     }
     seenFrom.add(pick.from);
 
     if (!eligibleIds.has(pick.from)) {
-      return { error: `El conjuro ${pick.from} no se puede sustituir` };
+      return { error: "El conjuro no se puede sustituir" };
     }
 
     if (seenTo.has(pick.to)) {
-      return { error: `El conjuro ${pick.to} está duplicado en el recambio` };
+      return { error: "El conjuro está duplicado en el recambio" };
     }
     seenTo.add(pick.to);
 
     if (pick.from === pick.to) {
-      return { error: `El conjuro ${pick.to} no sustituye a otro distinto` };
+      return { error: "El conjuro no sustituye a otro distinto" };
     }
     if (knownIds.has(pick.to)) {
-      return { error: `El conjuro ${pick.to} ya es conocido` };
+      return { error: "El conjuro ya es conocido" };
     }
     if (learned.has(pick.to)) {
-      return { error: `El conjuro ${pick.to} ya se aprende en esta subida` };
+      return { error: "El conjuro ya se aprende en esta subida" };
     }
     if (!optionIds.has(pick.to)) {
-      return { error: `El conjuro ${pick.to} no está entre las opciones de recambio` };
+      return { error: "El conjuro no está entre las opciones de recambio" };
     }
 
     const fromSpell = knownById.get(pick.from);
     const toSpell = toById.get(pick.to);
     if (!fromSpell || !toSpell) {
-      return { error: `El conjuro ${pick.to} no existe o no está disponible` };
+      return { error: "El conjuro no existe o no está disponible" };
     }
 
     const fromIsCantrip = fromSpell.level === 0;
@@ -380,12 +380,12 @@ export function validateSpellReplacements(params: {
     if (fromIsCantrip !== toIsCantrip) {
       return {
         error: fromIsCantrip
-          ? `El truco ${pick.from} solo se puede sustituir por otro truco`
-          : `El conjuro ${pick.from} solo se puede sustituir por otro conjuro con espacios`,
+          ? "El truco solo se puede sustituir por otro truco"
+          : "El conjuro solo se puede sustituir por otro conjuro con espacios",
       };
     }
     if (toIsCantrip && !includeCantrips) {
-      return { error: `El conjuro ${pick.to} no se puede sustituir por un truco` };
+      return { error: "El conjuro no se puede sustituir por un truco" };
     }
   }
 
@@ -450,25 +450,25 @@ export function validatePreparedSpellPicks(params: {
 
   for (const id of spellIds) {
     if (seen.has(id)) {
-      return { error: `El conjuro ${id} está duplicado` };
+      return { error: "El conjuro está duplicado" };
     }
     seen.add(id);
 
     const spell = byId.get(id);
     if (!spell) {
-      return { error: `El conjuro ${id} no existe o no está disponible` };
+      return { error: "El conjuro no existe o no está disponible" };
     }
     if (spell.level === 0) {
-      return { error: `Los trucos no se preparan (conjuro ${id})` };
+      return { error: "Los trucos no se preparan" };
     }
     if (!castable.has(spell.level)) {
-      return { error: `El conjuro ${id} es de un nivel para el que esta clase no tiene ranuras` };
+      return { error: "El conjuro es de un nivel para el que esta clase no tiene ranuras" };
     }
     if (preparedFrom === "known" && !known.has(id)) {
-      return { error: `El conjuro ${id} no está entre los conjuros conocidos de esta clase` };
+      return { error: "El conjuro no está entre los conjuros conocidos de esta clase" };
     }
     if (preparedFrom === "classList" && !spell.classIds.includes(classId)) {
-      return { error: `El conjuro ${id} no pertenece a la lista de esta clase` };
+      return { error: "El conjuro no pertenece a la lista de esta clase" };
     }
   }
 
@@ -556,23 +556,23 @@ export function validateSpellPrivilegePicks(params: {
     const inGroup = new Set<string>();
     for (const id of group) {
       if (inGroup.has(id) || across.has(id)) {
-        return { error: `El conjuro ${id} está duplicado` };
+        return { error: "El conjuro está duplicado" };
       }
       inGroup.add(id);
       across.add(id);
 
       const spell = byId.get(id);
       if (!spell) {
-        return { error: `El conjuro ${id} no existe o no está disponible` };
+        return { error: "El conjuro no existe o no está disponible" };
       }
       if (!spellLevelMatchesFilter(spell.level, rule.filter.level)) {
-        return { error: `El conjuro ${id} no coincide con el nivel de la regla ${i + 1}` };
+        return { error: `El conjuro no coincide con el nivel de la regla ${i + 1}` };
       }
       if (!spell.classIds.includes(classId)) {
-        return { error: `El conjuro ${id} no pertenece a la lista de esta clase` };
+        return { error: "El conjuro no pertenece a la lista de esta clase" };
       }
       if (rule.source === "known" && !known.has(id)) {
-        return { error: `El conjuro ${id} no está entre los conjuros conocidos de esta clase` };
+        return { error: "El conjuro no está entre los conjuros conocidos de esta clase" };
       }
     }
   }
@@ -690,20 +690,20 @@ export function validateKnownSpellPicks(params: {
 
   for (const id of spellIds) {
     if (seen.has(id)) {
-      return { error: `El conjuro ${id} está duplicado` };
+      return { error: "El conjuro está duplicado" };
     }
     seen.add(id);
 
     if (known.has(id)) {
-      return { error: `El conjuro ${id} ya es conocido` };
+      return { error: "El conjuro ya es conocido" };
     }
 
     const spell = byId.get(id);
     if (!spell) {
-      return { error: `El conjuro ${id} no existe o no está disponible` };
+      return { error: "El conjuro no existe o no está disponible" };
     }
     if (!spell.classIds.includes(classId)) {
-      return { error: `El conjuro ${id} no pertenece a la lista de esta clase` };
+      return { error: "El conjuro no pertenece a la lista de esta clase" };
     }
     if (spell.level === 0) {
       if (cantripCap === undefined || cantripCap <= 0) {
@@ -711,7 +711,7 @@ export function validateKnownSpellPicks(params: {
       }
       newCantrips += 1;
     } else if (!castable.has(spell.level)) {
-      return { error: `El conjuro ${id} es de un nivel para el que esta clase no tiene ranuras` };
+      return { error: "El conjuro es de un nivel para el que esta clase no tiene ranuras" };
     }
   }
 

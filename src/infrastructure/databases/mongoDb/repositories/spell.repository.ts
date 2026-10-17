@@ -44,7 +44,7 @@ export default class SpellRepository implements ISpellRepository {
       return this.formatSpell(newSpell);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`A spell with name '${data.name}' already exists in system '${data.ruleset}'`);
+        throw new ConflictError(`Ya existe un conjuro con el nombre '${data.name}'`);
       }
       throw error;
     }
@@ -61,13 +61,13 @@ export default class SpellRepository implements ISpellRepository {
       ).populate([...SPELL_POPULATE_PATHS]);
 
       if (!updatedSpell) {
-        throw new NotFoundError(`No spell found with id: ${id}`);
+        throw new NotFoundError("Conjuro no encontrado");
       }
 
       return this.formatSpell(updatedSpell);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`A spell with name '${data.name}' already exists in system`);
+        throw new ConflictError(`Ya existe un conjuro con el nombre '${data.name}'`);
       }
       throw error;
     }

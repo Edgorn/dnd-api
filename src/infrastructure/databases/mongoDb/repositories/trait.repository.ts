@@ -93,7 +93,7 @@ export default class TraitRepository implements ITraitRepository {
   async update(trait: UpdateTrait): Promise<TraitApi> {
     const { id, ...updateFields } = trait;
     if (!Types.ObjectId.isValid(id)) {
-      throw new AppError("Trait no encontrado", 404);
+      throw new AppError("Rasgo no encontrado", 404);
     }
     const { $set, $unset } = this.toMongooseUpdateOperators(updateFields);
     const traitUpdated = await TraitSchema.findByIdAndUpdate(
@@ -105,7 +105,7 @@ export default class TraitRepository implements ITraitRepository {
       { returnDocument: 'after' }
     );
     if (!traitUpdated) {
-      throw new AppError("Trait no encontrado", 404);
+      throw new AppError("Rasgo no encontrado", 404);
     }
     return this.formatearTrait(traitUpdated, {});
   }

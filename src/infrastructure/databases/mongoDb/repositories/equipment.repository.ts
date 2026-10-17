@@ -125,7 +125,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     ).lean();
 
     if (!updated) {
-      throw new NotFoundError(`No se encontró el equipamiento con id: ${id}`);
+      throw new NotFoundError("Equipamiento no encontrado");
     }
 
     return await this.formatEquipment(updated);

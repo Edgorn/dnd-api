@@ -13,7 +13,7 @@ export default class UpdateBackground {
   async execute(data: InputUpdateBackground): Promise<BackgroundApi> {
     const existing = await this.backgroundRepository.getById(data.id);
     if (!existing) {
-      throw new NotFoundError(`No se encontró el trasfondo con id: ${data.id}`);
+      throw new NotFoundError("Trasfondo no encontrado");
     }
 
     const parentId = data.parentId !== undefined ? data.parentId : existing.parentId;

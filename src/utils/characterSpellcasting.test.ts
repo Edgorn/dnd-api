@@ -563,7 +563,7 @@ describe("spell replacement helpers", () => {
       toOptionIds: ["cantrip-2"],
       toSpells,
     });
-    expect(result).toEqual({ error: "El conjuro cantrip-1 no se puede sustituir" });
+    expect(result).toEqual({ error: "El conjuro no se puede sustituir" });
   });
 
   it("rejects replacing a leveled spell with a cantrip", () => {
@@ -608,7 +608,7 @@ describe("spell replacement helpers", () => {
       toOptionIds: ["spell-3"],
       toSpells,
     });
-    expect(result).toEqual({ error: "El conjuro spell-3 ya se aprende en esta subida" });
+    expect(result).toEqual({ error: "El conjuro ya se aprende en esta subida" });
   });
 
   it("applies replacements then appends learned spells", () => {

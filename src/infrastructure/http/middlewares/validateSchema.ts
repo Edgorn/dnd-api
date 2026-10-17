@@ -19,7 +19,7 @@ export const validateSchema = (schema: z.ZodTypeAny) => {
         return respondZodError(res, error);
       }
 
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Ocurrió un error inesperado en el servidor" });
     }
   };
 };
@@ -34,7 +34,7 @@ export const validateParams = (schema: z.ZodTypeAny) => {
         return respondZodError(res, error);
       }
 
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Ocurrió un error inesperado en el servidor" });
     }
   };
 };
@@ -49,7 +49,7 @@ export const validateQuery = (schema: z.ZodTypeAny) => {
         return respondZodError(res, error);
       }
 
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Ocurrió un error inesperado en el servidor" });
     }
   };
 };

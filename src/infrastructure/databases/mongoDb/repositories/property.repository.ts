@@ -25,7 +25,7 @@ export default class PropertyRepository implements IPropertyRepository {
       return this.formatProperty(newProperty);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`A property with name '${data.name}' already exists in system '${data.ruleset}'`);
+        throw new ConflictError(`Ya existe una propiedad con el nombre '${data.name}'`);
       }
       throw error;
     }
@@ -40,7 +40,7 @@ export default class PropertyRepository implements IPropertyRepository {
     );
 
     if (!updatedProperty) {
-      throw new NotFoundError(`No property found with id: ${id}`);
+      throw new NotFoundError("Propiedad no encontrada");
     }
 
     return this.formatProperty(updatedProperty);

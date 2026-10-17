@@ -26,7 +26,7 @@ export default class ArmorTypeRepository implements IArmorTypeRepository {
       return this.formatArmorType(created);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`An armor type with name '${data.name}' already exists in system '${data.ruleset}'`);
+        throw new ConflictError(`Ya existe un tipo de armadura con el nombre '${data.name}'`);
       }
       throw error;
     }
@@ -49,7 +49,7 @@ export default class ArmorTypeRepository implements IArmorTypeRepository {
     );
 
     if (!updated) {
-      throw new NotFoundError(`No armor type found with id: ${id}`);
+      throw new NotFoundError("Tipo de armadura no encontrado");
     }
 
     return this.formatArmorType(updated);

@@ -48,7 +48,7 @@ export class SkillController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Skill ID is required");
+        throw new ValidationError("El ID de la habilidad es obligatorio");
       }
 
       const data = await this.updateSkillUseCase.execute({
@@ -68,7 +68,7 @@ export class SkillController {
       const { id } = req.params;
       
       if (!id) {
-        throw new ValidationError("Skill ID is required");
+        throw new ValidationError("El ID de la habilidad es obligatorio");
       }
 
       await this.softDeleteSkillUseCase.execute(id, userId);
@@ -84,7 +84,7 @@ export class SkillController {
       const { id } = req.params;
       
       if (!id) {
-        throw new ValidationError("Skill ID is required");
+        throw new ValidationError("El ID de la habilidad es obligatorio");
       }
 
       await this.restoreSkillUseCase.execute(id, userId);

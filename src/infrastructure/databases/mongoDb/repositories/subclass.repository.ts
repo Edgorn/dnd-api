@@ -90,7 +90,7 @@ export default class SubclassRepository implements ISubclassRepository {
     if (levels !== undefined) {
       const existing = await SubclassModel.findById(id).lean<SubclassMongo>();
       if (!existing) {
-        throw new NotFoundError(`No se encontró la subclase con id: ${id}`);
+        throw new NotFoundError("Subclase no encontrada");
       }
       setFields.levels = this.mergeLevels(existing.levels ?? [], levels);
     }
@@ -102,7 +102,7 @@ export default class SubclassRepository implements ISubclassRepository {
     ).lean<SubclassMongo>();
 
     if (!updated) {
-      throw new NotFoundError(`No se encontró la subclase con id: ${id}`);
+      throw new NotFoundError("Subclase no encontrada");
     }
 
     return this.formatSubclass(updated);

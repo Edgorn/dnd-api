@@ -68,7 +68,7 @@ export default class FeatService {
     const missingKeys = keys.filter(key => !existingKeys.has(key));
 
     if (missingKeys.length > 0) {
-      throw new ValidationError(`Unknown attribute keys for this ruleset: ${missingKeys.join(", ")}`);
+      throw new ValidationError(`Claves de atributo desconocidas para este sistema: ${missingKeys.join(", ")}`);
     }
   }
 }

@@ -53,7 +53,7 @@ export default class LanguageRepository implements ILanguageRepository {
       return this.formatLanguage(newLanguage);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`A language with this name already exists`);
+        throw new ConflictError(`Ya existe un idioma con el nombre '${data.name}'`);
       }
       throw error;
     }
@@ -68,7 +68,7 @@ export default class LanguageRepository implements ILanguageRepository {
     );
 
     if (!updatedLanguage) {
-      throw new NotFoundError(`No language found with id: ${id}`);
+      throw new NotFoundError("Idioma no encontrado");
     }
 
     return this.formatLanguage(updatedLanguage);

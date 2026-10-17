@@ -11,7 +11,7 @@ export default class RestoreProficiency {
   async execute(id: string, userEmail: string): Promise<void> {
     const restored = await this.proficiencyService.restoreProficiency(id);
     if (!restored) {
-       throw new AppError("Proficiency not found or already restored", 404);
+       throw new AppError("Competencia no encontrada", 404);
     }
   }
 }

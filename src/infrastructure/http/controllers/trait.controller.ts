@@ -50,7 +50,7 @@ export class TraitController {
       const userId = req.user!;
       const { id } = req.params;
       if (!id) {
-        throw new ValidationError("Trait ID is required");
+        throw new ValidationError("El ID del rasgo es obligatorio");
       }
       const trait = await this.updateTraitUseCase.execute({ id, ...req.body }, userId);
       return res.status(200).json(trait);
@@ -66,7 +66,7 @@ export class TraitController {
       const { id } = req.params;
       
       if (!id) {
-        throw new ValidationError("Trait ID is required");
+        throw new ValidationError("El ID del rasgo es obligatorio");
       }
 
       await this.softDeleteTraitUseCase.execute(id, userId);
@@ -83,7 +83,7 @@ export class TraitController {
       const { id } = req.params;
       
       if (!id) {
-        throw new ValidationError("Trait ID is required");
+        throw new ValidationError("El ID del rasgo es obligatorio");
       }
 
       await this.restoreTraitUseCase.execute(id, userId);

@@ -52,7 +52,7 @@ export class AttributeController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("Attribute ID is required");
+        throw new ValidationError("El ID del atributo es obligatorio");
       }
 
       const data = await this.updateAttributeUseCase.execute({
@@ -73,7 +73,7 @@ export class AttributeController {
       const { id } = req.params;
       
       if (!id) {
-        throw new ValidationError("Attribute ID is required");
+        throw new ValidationError("El ID del atributo es obligatorio");
       }
 
       await this.softDeleteAttributeUseCase.execute(id, userId);
@@ -90,7 +90,7 @@ export class AttributeController {
       const { id } = req.params;
       
       if (!id) {
-        throw new ValidationError("Attribute ID is required");
+        throw new ValidationError("El ID del atributo es obligatorio");
       }
 
       await this.restoreAttributeUseCase.execute(id, userId);

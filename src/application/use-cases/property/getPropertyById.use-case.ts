@@ -8,7 +8,7 @@ export default class GetPropertyById {
   async execute(id: string): Promise<Property> {
     const property = await this.propertyService.getById(id);
     if (!property) {
-      throw new NotFoundError(`No se encontró la propiedad con id: ${id}`);
+      throw new NotFoundError("Propiedad no encontrada");
     }
     return property;
   }

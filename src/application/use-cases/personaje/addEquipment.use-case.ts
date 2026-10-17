@@ -12,7 +12,7 @@ export default class AddEquipment {
   async execute(data: Omit<TypeAddEquipment, "isMagic">): Promise<UpdateCharacterEquipmentResponse> {
     const catalog = await this.equipmentRepository.getById(data.equipmentId);
     if (!catalog) {
-      throw new NotFoundError(`No se encontró el equipamiento con id: ${data.equipmentId}`);
+      throw new NotFoundError("Equipamiento no encontrado");
     }
 
     return this.personajeService.addEquipment({

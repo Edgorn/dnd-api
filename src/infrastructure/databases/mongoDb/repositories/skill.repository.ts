@@ -29,7 +29,7 @@ export default class SkillRepository implements ISkillRepository {
       return this.formatSkill(newSkill);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`A skill with key '${data.key}' already exists in system '${data.ruleset}'`);
+        throw new ConflictError(`Ya existe una habilidad con la clave '${data.key}'`);
       }
       throw error;
     }
@@ -44,7 +44,7 @@ export default class SkillRepository implements ISkillRepository {
     );
 
     if (!updatedSkill) {
-      throw new NotFoundError(`No skill found with id: ${id}`);
+      throw new NotFoundError("Habilidad no encontrada");
     }
 
     return this.formatSkill(updatedSkill);

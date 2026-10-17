@@ -11,7 +11,7 @@ export default class RestoreSpell {
   async execute(id: string, userId: string): Promise<void> {
     const existingSpell = await this.spellService.getById(id);
     if (!existingSpell) {
-      throw new NotFoundError(`No se encontró el conjuro con ID: ${id}`);
+      throw new NotFoundError("Conjuro no encontrado");
     }
 
     const system = await this.systemService.getById(existingSpell.ruleset);

@@ -52,7 +52,7 @@ export class MagicSchoolController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("MagicSchool ID is required");
+        throw new ValidationError("El ID de la escuela de magia es obligatorio");
       }
 
       const data = await this.updateMagicSchoolUseCase.execute({
@@ -73,7 +73,7 @@ export class MagicSchoolController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("MagicSchool ID is required");
+        throw new ValidationError("El ID de la escuela de magia es obligatorio");
       }
 
       await this.softDeleteMagicSchoolUseCase.execute(id, userId);
@@ -90,7 +90,7 @@ export class MagicSchoolController {
       const { id } = req.params;
 
       if (!id) {
-        throw new ValidationError("MagicSchool ID is required");
+        throw new ValidationError("El ID de la escuela de magia es obligatorio");
       }
 
       await this.restoreMagicSchoolUseCase.execute(id, userId);

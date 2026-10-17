@@ -63,7 +63,7 @@ export class LanguageController {
       const { id } = req.params;
       
       if (!id) {
-        throw new ValidationError("Language ID is required");
+        throw new ValidationError("El ID del idioma es obligatorio");
       }
 
       await this.softDeleteLanguageUseCase.execute(id, userId);
@@ -83,7 +83,7 @@ export class LanguageController {
       const { id } = req.params;
       
       if (!id) {
-        throw new ValidationError("Language ID is required");
+        throw new ValidationError("El ID del idioma es obligatorio");
       }
 
       await this.restoreLanguageUseCase.execute(id, userId);

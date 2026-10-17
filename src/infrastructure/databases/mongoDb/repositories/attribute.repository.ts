@@ -25,7 +25,7 @@ export default class AttributeRepository implements IAttributeRepository {
       return this.formatAttribute(newAttribute);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`An attribute with key '${data.key}' already exists in system '${data.ruleset}'`);
+        throw new ConflictError(`Ya existe un atributo con la clave '${data.key}'`);
       }
       throw error;
     }
@@ -40,7 +40,7 @@ export default class AttributeRepository implements IAttributeRepository {
     );
 
     if (!updatedAttribute) {
-      throw new NotFoundError(`No attribute found with id: ${id}`);
+      throw new NotFoundError("Atributo no encontrado");
     }
 
     return this.formatAttribute(updatedAttribute);

@@ -28,7 +28,7 @@ export default class UpdateTraitUseCase {
   async execute(trait: UpdateTrait, userId: string): Promise<TraitApi> {
     const existingTrait = await this.traitService.getById(trait.id);
     if (!existingTrait) {
-      throw new AppError("Trait no encontrado", 404);
+      throw new AppError("Rasgo no encontrado", 404);
     }
 
     const system = await this.systemService.getById(existingTrait.ruleset);

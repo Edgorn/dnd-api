@@ -24,7 +24,7 @@ export default class DamageRepository implements IDamageRepository {
       return this.formatDamage(newDamage);
     } catch (error: any) {
       if (error?.code === 11000) {
-        throw new ConflictError(`A damage type with name '${data.name}' already exists in system '${data.ruleset}'`);
+        throw new ConflictError(`Ya existe un tipo de daño con el nombre '${data.name}'`);
       }
       throw error;
     }
@@ -39,7 +39,7 @@ export default class DamageRepository implements IDamageRepository {
     );
 
     if (!updatedDamage) {
-      throw new NotFoundError(`No damage type found with id: ${id}`);
+      throw new NotFoundError("Tipo de daño no encontrado");
     }
 
     return this.formatDamage(updatedDamage);

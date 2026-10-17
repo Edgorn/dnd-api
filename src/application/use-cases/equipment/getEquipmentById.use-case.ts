@@ -8,7 +8,7 @@ export default class GetEquipmentById {
   async execute(id: string): Promise<EquipmentApi> {
     const equipment = await this.equipmentService.getById(id);
     if (!equipment) {
-      throw new NotFoundError(`No se encontró el equipamiento con ID: ${id}`);
+      throw new NotFoundError("Equipamiento no encontrado");
     }
     return equipment;
   }

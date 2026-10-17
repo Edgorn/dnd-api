@@ -67,7 +67,7 @@ export default class CrearPersonaje {
 
       const catalog = await this.equipmentRepository.getById(catalogId);
       if (!catalog) {
-        throw new NotFoundError(`No se encontró el equipamiento con id: ${catalogId}`);
+        throw new NotFoundError("Equipamiento no encontrado");
       }
 
       const customization = extractEquipmentCustomization(item);

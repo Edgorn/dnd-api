@@ -11,7 +11,7 @@ export default class UpdateProficiency {
 
   async execute(id: string, proficiency: Partial<Omit<ProficiencyApi, "id" | "deletedAt">>, userEmail: string): Promise<ProficiencyApi> {
     const existing = await this.proficiencyService.getProficiencyById(id);
-    if (!existing) throw new AppError("Proficiency not found", 404);
+    if (!existing) throw new AppError("Competencia no encontrada", 404);
 
     const sys = await this.systemService.getByIdWithDeleted(existing.ruleset);
     if (!sys || (sys.publisher !== userEmail && !sys.isOpen)) {
@@ -26,7 +26,7 @@ export default class UpdateProficiency {
     }
 
     const updated = await this.proficiencyService.updateProficiency(id, proficiency);
-    if (!updated) throw new AppError("Failed to update Proficiency", 500);
+    if (!updated) throw new AppError("No se pudo actualizar la competencia", 500);
 
     return updated;
   }

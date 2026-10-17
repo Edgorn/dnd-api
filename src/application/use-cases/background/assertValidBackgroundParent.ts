@@ -10,7 +10,7 @@ export async function assertValidBackgroundParent(
 ): Promise<void> {
   const parent = await backgroundRepository.getById(parentId);
   if (!parent || parent.deletedAt) {
-    throw new NotFoundError(`No se encontró el trasfondo padre con id: ${parentId}`);
+    throw new NotFoundError("Trasfondo padre no encontrado");
   }
 
   if (parent.parentId) {
