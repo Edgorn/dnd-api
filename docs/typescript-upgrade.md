@@ -1,102 +1,144 @@
 # Plan de upgrade TypeScript 5.9 → 6 → 7
 
-Documento de trabajo para subir el compilador **más adelante**. No instala TypeScript 6 ni 7: el `package.json` se queda en `typescript` ^5.9.3 hasta que se ejecute este plan a propósito.
+Documento de trabajo. Las fases 0, 1 y 2 están hechas. El `package.json` está en `typescript` ^7.0.2. Queda la fase 3 (cierre / verificación).
 
-Fuera de este upgrade: cambios de dominio, migraciones de datos, o mezclar el bump del compilador con un cambio de CommonJS a ESM en el mismo PR.
+Trabajo en **esta rama**. Fuera de este upgrade: ESM, Node 24/26 (`docs/nodejs-upgrade.md`), y saltar de 5.9 a 7 de un golpe.
 
-## Contexto actual
+## Contexto actual (oct 2026)
 
 | Pieza | Valor |
 | --- | --- |
-| Compilador | `typescript` ^5.9.3 (`tsc` + `tsx` en desarrollo) |
-| `tsconfig.json` | `target: ES2021`, `module: CommonJS`, `strict: true` |
-| `moduleResolution` | **no declarado** → con `module: CommonJS` equivale a `node10` (deprecado en TS 6) |
-| Runtime | Node.js >= 22.12 (`engines` y README) |
-| Tests | Vitest 5; `**/*.test.ts` está en `exclude` de `tsc` |
-| Herramientas TS | No hay API de compilador propia; solo `tsc` y `tsx` |
+| Compilador instalado | `typescript` ^7.0.2 (`tsc` nativo + `tsx` en desarrollo) |
+| Destino siguiente | — (ESM / `nodenext` aparcado; Node 24/26 aparte) |
+| `tsconfig.json` | `target: ES2021`, `module: CommonJS`, `moduleResolution: bundler`, `types: ["node"]`, `strict: true`, `rootDir: ./src` |
+| `moduleResolution` | `bundler` (explícito; el implícito `node10` ya no aplica) |
+| `types` | `["node"]` |
+| Runtime | Node.js >= 22.12 (`engines` y README). `@types/node` ^22 ya está |
+| Tests | Vitest 5; `**/*.test.ts` está en `exclude` de `tsc`; no hay `vitest.config` |
+| Herramientas TS | No hay compiler API, `ts-node` ni transformers; solo `tsc` y `tsx` |
 
-Otras opciones relevantes: `esModuleInterop`, `skipLibCheck`, `resolveJsonModule`, `sourceMap`, `forceConsistentCasingInFileNames`, `rootDir: ./src`, `outDir: ./dist`.
-
----
-
-## Fase 1 — Inventario (sin subir el compilador)
-
-Objetivo: saber qué va a avisar o romper TS 6 **antes** de cambiar la versión.
-
-1. Comparar `tsconfig.json` con las deprecaciones de TypeScript 6, en especial:
-   - `moduleResolution` implícito `node10`.
-   - Cualquier opción marcada como deprecated en 6.0 (revisar release notes oficiales al ejecutar esta fase).
-2. Listar imports relativos en `src/` (hoy sin extensión `.js`). Un salto a `node16` / `nodenext` puede exigir esas extensiones o forzar ESM.
-3. Comprobar usos de tipos de Node (`process`, `Buffer`, `fs`, etc.). En TS 6 el default de `types` pasa a vacío: hará falta `"types": ["node"]` (y, si Vitest lo necesita en archivos de test, alinear el `tsconfig` de tests).
-4. **No** dejar `ignoreDeprecations: "6.0"` como estado final: TypeScript 7 elimina esa bandera.
-
-Entregable: lista corta de cambios de `tsconfig` y riesgos de módulos. Sin bump de `typescript`.
+Otras opciones ya presentes: `esModuleInterop`, `skipLibCheck`, `resolveJsonModule`, `sourceMap`, `forceConsistentCasingInFileNames`, `outDir: ./dist`.
 
 ---
 
-## Fase 2 — TypeScript 6.0.x
+## Fase 0 — Inventario (hecho)
 
-Objetivo: que el repo compile y testee con TS 6, **sin** migrar a la vez la resolución de módulos.
+Objetivo: saber qué avisa o rompe TS 6 **antes** de cambiar la versión. Entregable: esta sección.
 
-1. `pnpm add -D typescript@6`
-2. Ajustar defaults nuevos si pisan el proyecto:
-   - `"types": ["node"]` para tipos de Node en `src/`.
-   - Revisar otros defaults de 6.0 en las notas de la versión instalada.
-3. `pnpm run build` y `pnpm test`.
-4. Si `node10` dispara deprecaciones: se puede usar `ignoreDeprecations: "6.0"` **solo de forma temporal** en este PR.
+### `tsconfig` frente a TS 6
 
-**No mezclar** en este PR el cambio `moduleResolution` → `node16` / `nodenext`. Eso puede exigir extensiones `.js` en imports o empujar a `"type": "module"`. Primero hacer compilar con 6; la migración de módulos va en un PR aparte.
+| Opción | Hoy | En 6.0 | Acción |
+| --- | --- | --- | --- |
+| `strict` | `true` | default `true` | Nada |
+| `rootDir` | `./src` | default pasa a `.` (directorio del tsconfig) | Dejar explícito |
+| `module` | `CommonJS` | default pasa a `esnext` | Dejar explícito |
+| `target` | `ES2021` | default flotante (`es2025` hoy) | **No subir**; el runtime sigue en Node 22 |
+| `types` | implícito (todo `@types`) | default `[]` | `"types": ["node"]` |
+| `moduleResolution` | implícito `node10` | `node10` deprecado; con `module: commonjs` el camino soportado es `bundler` | `"moduleResolution": "bundler"` |
+| `esModuleInterop` | `true` | `false` deprecado; interop siempre on | Dejar `true` o quitar (redundante) |
+| `skipLibCheck` | `true` | sigue válido | Dejar |
+| `ignoreDeprecations` | no está | parche temporal; **TS 7 lo rechaza** | **No usarlo**: `bundler` + `types` cubren las deprecaciones de este repo |
+
+`resolveJsonModule` está activo; **cero** `import` de `.json` (OpenAPI se lee con `fs` + `JSON.parse`).
+
+### Imports y módulos
+
+- ~2399 imports relativos **sin extensión** (0 con `.js` / `.ts`).
+- `__dirname` en `src/infrastructure/http/config/loadOpenApiSpec.ts`.
+- Dos `require()` relativos sin extensión (`disciplina.repository.ts`, `metamagia.repository.ts`).
+- No hay `"type": "module"` ni mapa `exports`/`imports` en `package.json`.
+
+`moduleResolution: nodenext` o ESM exigiría extensiones `.js` y rompería `__dirname`. **No entra en este upgrade.**
+
+**Decisión:** quedarse en CommonJS y declarar:
+
+```json
+"module": "CommonJS",
+"moduleResolution": "bundler"
+```
+
+Camino oficial de TS 6 para quien emitía CJS con `node10` ([Allow `--module commonjs --moduleResolution bundler`](https://github.com/microsoft/TypeScript/pull/62320)). No exige `.js` en imports y quita la deprecación de `node10`. ESM (`"type": "module"` + `nodenext`) queda para más adelante.
+
+### Tipos de Node
+
+TS 6 deja de incluir todo `node_modules/@types`. Archivos que usan APIs de Node (`process`, `fs`, `path`, `Buffer`, `crypto`, `os`, `__dirname`):
+
+- `src/app.ts`
+- `src/infrastructure/config/config.ts`
+- `src/infrastructure/dependencies.ts`
+- `src/infrastructure/http/server.ts`
+- `src/infrastructure/http/config/loadOpenApiSpec.ts`
+- `src/infrastructure/http/config/swagger.ts`
+- `src/infrastructure/http/config/loadOpenApiSpec.test.ts`
+- `src/infrastructure/pdf/CharacterSheetPdfGenerator.ts`
+- `src/infrastructure/http/controllers/personaje.controller.ts`
+- `src/domain/services/auth.service.ts`
+- `src/utils/generate_hash.ts`
+
+No hay `NodeJS.*` ni `IncomingMessage` en app. Tests importan `vitest` (no hace falta `@types/jest`). Si Vitest se queja de tipos de Node en un `.test.ts`, alinear `types`; no typecheckear tests si `pnpm test` ya pasa.
+
+### Herramientas y scripts
+
+- `pnpm build` = `tsc`; `pnpm start` = `node dist/app.js`; `pnpm dev` = `tsx watch src/app.ts`.
+- `docs:openapi` usa `tsx` sobre `src/`.
+- Scripts `migrate:*` apuntan a `scripts/`, que **no está en disco**. Fuera de este upgrade.
+- ~100 `as any`; 0 `@ts-ignore` / `@ts-expect-error`. No es riesgo de compiler API.
+- `pnpm-workspace.yaml` solo tiene `allowBuilds`; no es un monorepo.
 
 ---
 
-## Fase 3 — Dejar el tsconfig listo para TS 7
+## Fase 1 — TypeScript 6.0.x (hecho)
 
-Objetivo: quitar parches temporales y decidir el sistema de módulos **antes** del compilador nativo.
+`pnpm run build` (tsc 6.0.3) y `pnpm test` (142 archivos, 1287 tests) verdes. `pnpm docs:openapi` con `tsx` también. Sin `ignoreDeprecations`.
 
-1. Quitar `ignoreDeprecations` (TS 7 ya no lo acepta).
-2. En un PR **aparte** de la fase 2, elegir una de estas líneas y aplicarla:
-   - Seguir en CommonJS con una `moduleResolution` soportada en 6/7 (documentar la opción concreta al ejecutarlo).
-   - Pasar a ESM (`"type": "module"`, `module`/`moduleResolution` nodenext) y adaptar imports, `tsx` y el arranque (`dist/app.js`).
-3. Opcional, solo para comparar 6 vs 7: `stableTypeOrdering`. Puede ralentizar hasta ~25%; no dejarlo permanente.
-4. Confirmar que `skipLibCheck` sigue siendo aceptable (dependencias con tipos flojos).
+Objetivo: `pnpm run build` y `pnpm test` verdes con `typescript@6`, **sin** `ignoreDeprecations`.
 
-Entregable: `tsconfig` sin flags de deprecación y decisión explícita CJS vs ESM.
+1. `pnpm add -D typescript@6` (hoy 6.0.3).
+2. En `tsconfig.json`:
+   - `"types": ["node"]`
+   - `"moduleResolution": "bundler"`
+   - dejar explícitos `module: CommonJS`, `target: ES2021`, `rootDir: ./src`, `strict: true`
+   - no tocar `skipLibCheck`
+   - no subir `target`
+3. `pnpm run build` y `pnpm test`. Corregir solo errores de tipos nuevos (defaults 6.0, inferencia, `noUncheckedSideEffectImports`).
+4. Comprobar `pnpm docs:openapi` (`tsx`).
+5. Append en `COMMIT_MESSAGE.md`. Sin commit ni push.
 
----
-
-## Fase 4 — TypeScript 7.0.x (compilador nativo)
-
-Objetivo: `typescript@7` (implementación en Go). El comportamiento de tipos debe alinearse con TS 6 si la fase 3 está limpia.
-
-1. `pnpm add -D typescript@7`
-2. `pnpm run build` y `pnpm test`. Esperar compilaciones más rápidas.
-3. El API de TypeScript 6 para herramientas raras **puede no aplicar**. En este repo solo se usa `tsc` + `tsx`; no hay wrappers del compiler API.
-4. Verificar el IDE: Cursor/VS Code debe usar el TypeScript del workspace. Si el editor no sigue a TS 7, instalar/activar la extensión de TypeScript 7.
-
-No mezclar este bump con refactors de dominio.
+No entra: ESM, `nodenext`, extensiones `.js`, Node 24/26.
 
 ---
 
-## Fase 5 — Verificación
+## Fase 2 — TypeScript 7.0.x (hecho)
+
+`tsc --version` = 7.0.2. `pnpm run build` y `pnpm test` (142 archivos, 1287 tests) verdes. `pnpm docs:openapi` con `tsx` también. Sin `@typescript/typescript6` (este repo no usa el compiler API).
+
+El editor puede seguir en el language service 6.x: activar la extensión de TypeScript 7 del workspace para que coincida con `tsc`. `pnpm start` sigue siendo `node dist/app.js`. No se instaló `@typescript/typescript6`. No se cambió `engines` ni el README de Node.
+
+---
+
+## Fase 3 — Verificación
 
 1. `pnpm test`, `pnpm run build`, `pnpm dev`.
-2. Actualizar README / `engines` solo si el runtime mínimo de Node cambia por el compilador o por ESM.
-3. Regenerar o revisar scripts (`docs:openapi`, migraciones `tsx`) si el módulo system cambió.
-4. Append en `COMMIT_MESSAGE.md` (no sobrescribir) y dejar el diff acotado al upgrade.
+2. Actualizar README / `engines` solo si el runtime mínimo de Node cambia (no debería).
+3. Regenerar `openapi.json` solo si `tsx` / swagger fallan.
+4. Dejar este documento como hecho (versiones instaladas y `tsconfig` final). ESM sigue aparcado.
 
 ---
 
-## Resumen de PRs sugeridos
+## Resumen de pasos
 
-| PR | Qué entra | Qué no entra |
+| Paso | Qué entra | Qué no entra |
 | --- | --- | --- |
-| 1 | Inventario / notas (esta fase 1) | Cambio de `typescript` |
-| 2 | `typescript@6` + `types: ["node"]` y defaults | `moduleResolution` node16/nodenext, ESM |
-| 3 | Quitar `ignoreDeprecations`; CJS estable o migración ESM | Bump a TS 7 |
-| 4 | `typescript@7` + chequeo IDE | Refactors de dominio |
+| 0 | Inventario (hecho) | Cambio de `typescript` |
+| 1 | `typescript@6.0.3` + `"types": ["node"]` + `"moduleResolution": "bundler"` (hecho) | `nodenext`, ESM, `ignoreDeprecations` |
+| 2 | `typescript@7.0.2` + chequeo IDE (hecho) | Compiler API 6, Node 24/26 |
+| 3 | Verificación y cierre del doc | Subir `target`, ESM |
 
 ## Referencias
 
-- [TypeScript 6 iteration plan](https://github.com/microsoft/TypeScript/issues/62686)
-- [TypeScript 7 (native) announcement](https://devblogs.microsoft.com/typescript/typescript-native-port/)
-- `tsconfig.json` y `package.json` de este repositorio (fuente de verdad de versiones instaladas).
+- [TypeScript 6.0 release notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html)
+- [Announcing TypeScript 6.0](https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/)
+- [Announcing TypeScript 7.0](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)
+- [Allow `--module commonjs --moduleResolution bundler`](https://github.com/microsoft/TypeScript/pull/62320)
+- `tsconfig.json` y `package.json` (fuente de verdad de lo instalado)
+- `docs/nodejs-upgrade.md` (upgrade de runtime aparte)

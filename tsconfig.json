@@ -2,6 +2,8 @@
   "compilerOptions": {
     "target": "ES2021",
     "module": "CommonJS",
+    "moduleResolution": "bundler",
+    "types": ["node"],
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
