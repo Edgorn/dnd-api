@@ -1,7 +1,17 @@
-import { CharacterClassApi, ClaseLevelUp, InputCreateCharacterClass, InputUpdateCharacterClass, SpellcastingLevelSource } from "../types/characterClass.types";
+import {
+  CharacterClassApi,
+  CharacterClassCatalogItem,
+  CharacterClassSummaryDraft,
+  ClaseLevelUp,
+  InputCreateCharacterClass,
+  InputUpdateCharacterClass,
+  SpellcastingLevelSource
+} from "../types/characterClass.types";
 
 export default interface ICharacterClassRepository {
   getBySystems(rulesets: string[], includeDeleted?: boolean): Promise<CharacterClassApi[]>;
+  getSummaries(rulesets: string[]): Promise<CharacterClassSummaryDraft[]>;
+  getCatalog(rulesets: string[], includeMulticlass?: boolean): Promise<CharacterClassCatalogItem[]>;
   getById(id: string): Promise<CharacterClassApi | null>;
   create(data: InputCreateCharacterClass): Promise<CharacterClassApi>;
   update(data: InputUpdateCharacterClass): Promise<CharacterClassApi>;

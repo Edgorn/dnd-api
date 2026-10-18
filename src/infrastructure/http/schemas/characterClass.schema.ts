@@ -190,3 +190,22 @@ export const UpdateCharacterClassSchema = z.object({
   .refine(data => Object.keys(data).length > 0, {
     message: "Debe proporcionar al menos un campo para actualizar"
   });
+
+export const GetCharacterClassesQuerySchema = z.object({
+  ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío").optional()
+});
+
+export const GetCharacterClassCatalogQuerySchema = z.object({
+  ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío").optional(),
+  include: z.enum(["multiclass"], {
+    error: "include debe ser multiclass"
+  }).optional()
+});
+
+export const GetCharacterClassByIdQuerySchema = z.object({
+  ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío").optional()
+});
+
+export type GetCharacterClassesQuery = z.infer<typeof GetCharacterClassesQuerySchema>;
+export type GetCharacterClassCatalogQuery = z.infer<typeof GetCharacterClassCatalogQuerySchema>;
+export type GetCharacterClassByIdQuery = z.infer<typeof GetCharacterClassByIdQuerySchema>;

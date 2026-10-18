@@ -14,7 +14,6 @@ import {
   RaceMongo,
   RaceRef,
   RaceSummaryDraft,
-  SubracesApi,
   UpdateRace,
   VariantApi,
   VariantMongo
@@ -67,43 +66,11 @@ export default class RaceRepository implements IRaceRepository {
     private readonly systemRepository?: ISystemRepository
   ) { }
 
-  async getAll(playable?: boolean): Promise<RaceApi[]> {
-    try {
-      const races = await RaceModel.find({ parentId: null, deletedAt: null, ...this.playableCondition(playable) })
-        .collation({ locale: 'es', strength: 1 })
-        .sort({ name: 1 });
-
-      return this.formatRaces(races, undefined, playable);
-    } catch (error) {
-      console.error("Error getting races:", error);
-      throw new Error("No se pudieron obtener los razas");
-    }
-  }
-
-  async getBySystem(ruleset: string, playable?: boolean): Promise<RaceApi[]> {
-    try {
-      const expandedRulesets = await this.expandRulesets(ruleset);
-      const races = await RaceModel.find({
-        ruleset: { $in: expandedRulesets },
-        parentId: null,
-        deletedAt: null,
-        ...this.playableCondition(playable)
-      })
-        .collation({ locale: 'es', strength: 1 })
-        .sort({ name: 1 });
-
-      return this.formatRaces(races, expandedRulesets, playable);
-    } catch (error) {
-      console.error("Error getting races:", error);
-      throw new Error("No se pudieron obtener los razas");
-    }
-  }
-
-  async getById(id: string, allowedRulesets?: string[]): Promise<RaceApi | undefined> {
+  async getById(id: string, _allowedRulesets?: string[]): Promise<RaceApi | undefined> {
     try {
       const race = await RaceModel.findById(id).exec();
       if (!race || race.deletedAt) return undefined;
-      return this.formatRace(race, allowedRulesets, undefined, "none");
+      return this.formatRace(race);
     } catch (error) {
       console.error("Error getting race by id:", error);
       throw new Error("No se pudo obtener la raza");
@@ -172,7 +139,7 @@ export default class RaceRepository implements IRaceRepository {
 
     await created.save()
 
-    return this.formatRace(created, undefined, undefined, "none")
+    return this.formatRace(created)
   }
 
   async update(race: UpdateRace): Promise<RaceApi | undefined> {
@@ -220,7 +187,7 @@ export default class RaceRepository implements IRaceRepository {
         { returnDocument: 'after' }
       ).exec();
 
-      return updated ? this.formatRace(updated, undefined, undefined, "none") : undefined
+      return updated ? this.formatRace(updated) : undefined
     } catch (error) {
       console.error("Error updating race:", error);
       throw new Error("No se pudo actualizar la raza");
@@ -247,16 +214,7 @@ export default class RaceRepository implements IRaceRepository {
     }
   }
 
-  formatRaces(races: RaceMongo[], allowedRulesets?: string[], playable?: boolean): Promise<RaceApi[]> {
-    return Promise.all(races.map(race => this.formatRace(race, allowedRulesets, playable)));
-  }
-
-  async formatRace(
-    race: RaceMongo,
-    allowedRulesets?: string[],
-    playable?: boolean,
-    subracesMode: "full" | "none" = "full"
-  ): Promise<RaceApi> {
+  async formatRace(race: RaceMongo): Promise<RaceApi> {
     const levels = this.normalizeLevels(race?.levels);
     const dataLevel = levels.find(level => level.level === 1)
     const ruleset = race.ruleset;
@@ -266,7 +224,7 @@ export default class RaceRepository implements IRaceRepository {
 
     const [
       traits, ability_bonuses, ability_bonus_choices, skill_choices, catalogLanguages,
-      proficiencies_choices, subraces, variants, spell_choices,
+      proficiencies_choices, variants, spell_choices,
       formattedLanguageChoices, spellcasting, equipment, creatureType
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(race?.traits ?? [], { ...dataLevel?.traits_data, ...race.traits_data }),
@@ -275,9 +233,6 @@ export default class RaceRepository implements IRaceRepository {
       this.skillService.formatSkillChoices(race.skill_choices, ruleset),
       this.languageRepository.getByIds(collectCatalogLanguageIds(understandRaw, speakRaw)),
       this.proficiencyRepository.formatProficiencyChoices(race?.proficiencies_choices),
-      subracesMode === "full"
-        ? this.formatSubraces(race, { ...dataLevel?.traits_data, ...race.traits_data }, allowedRulesets, playable)
-        : Promise.resolve(undefined),
       this.formatVariants(race?.variants ?? [], ruleset),
       this.spellRepository.formatSpellChoices(race?.spell_choices),
       this.languageRepository.formatLanguageChoices(race.language_choices, ruleset),
@@ -311,7 +266,6 @@ export default class RaceRepository implements IRaceRepository {
       },
       language_choices: formattedLanguageChoices,
       proficiencies_choices,
-      subraces,
       parentId: race.parentId ? race.parentId.toString() : null,
       variants,
       spell_choices,
@@ -320,37 +274,6 @@ export default class RaceRepository implements IRaceRepository {
       playable: race.playable !== false,
       equipment: equipment ?? [],
       ...(Array.isArray(race.levels) ? { levels } : {})
-    };
-  }
-
-  async formatSubraces(
-    race: RaceMongo,
-    _traitsData?: TraitDataMongo,
-    allowedRulesets?: string[],
-    playable?: boolean
-  ): Promise<SubracesApi | undefined> {
-    const childQuery: {
-      parentId: RaceMongo["_id"];
-      deletedAt: null;
-      ruleset?: { $in: string[] };
-      playable?: false | { $ne: false };
-    } = {
-      parentId: race._id,
-      deletedAt: null,
-      ...this.playableCondition(playable),
-    };
-    if (allowedRulesets) {
-      childQuery.ruleset = { $in: allowedRulesets };
-    }
-
-    const childRaces = await RaceModel.find(childQuery);
-    if (childRaces.length === 0) return undefined;
-
-    const formatted = await Promise.all(childRaces.map(child => this.formatRace(child, allowedRulesets, playable)));
-
-    return {
-      name: race.subraces_name ?? 'Subrazas',
-      list: ordenarPorNombre(formatted)
     };
   }
 

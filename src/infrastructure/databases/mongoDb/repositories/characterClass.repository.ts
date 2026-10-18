@@ -17,9 +17,12 @@ import {
 } from '../../../../domain/types/classLevelChoices.types';
 import {
   CharacterClassApi,
+  CharacterClassCatalogItem,
   CharacterClassLevelInput,
   CharacterClassLevelMongo,
   CharacterClassMongo,
+  CharacterClassSummaryChoice,
+  CharacterClassSummaryDraft,
   ClaseLevelUp,
   InputCreateCharacterClass,
   InputUpdateCharacterClass,
@@ -84,6 +87,67 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       console.error("Error obteniendo clases:", error);
       throw new Error("No se pudieron obtener las clases");
     }
+  }
+
+  async getSummaries(rulesets: string[]): Promise<CharacterClassSummaryDraft[]> {
+    if (!rulesets.length) return [];
+
+    const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
+    const docs = await CharacterClassModel.find({
+      ruleset: { $in: expandedRulesets },
+      deletedAt: null
+    })
+      .select("_id name description img ruleset hit_die spellcasting subclassChoice")
+      .collation({ locale: "es", strength: 1 })
+      .sort({ name: 1 })
+      .lean<Pick<CharacterClassMongo, "_id" | "name" | "description" | "img" | "ruleset" | "hit_die" | "spellcasting" | "subclassChoice">[]>();
+
+    return docs.map(doc => ({
+      id: doc._id ? doc._id.toString() : "",
+      name: doc.name,
+      img: doc.img || "",
+      description: doc.description ?? [],
+      ruleset: doc.ruleset || "",
+      hit_die: doc.hit_die ?? 8,
+      hasSpellcasting: Boolean(doc.spellcasting),
+      subclassChoice: this.toSummarySubclassChoice(doc.subclassChoice)
+    }));
+  }
+
+  async getCatalog(rulesets: string[], includeMulticlass: boolean = false): Promise<CharacterClassCatalogItem[]> {
+    if (!rulesets.length) return [];
+
+    const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
+    const projection = includeMulticlass
+      ? "_id name ruleset multiclass.requirements"
+      : "_id name ruleset";
+    const docs = await CharacterClassModel.find({
+      ruleset: { $in: expandedRulesets },
+      deletedAt: null
+    })
+      .select(projection)
+      .collation({ locale: "es", strength: 1 })
+      .sort({ name: 1 })
+      .lean<Pick<CharacterClassMongo, "_id" | "name" | "ruleset" | "multiclass">[]>();
+
+    const items: CharacterClassCatalogItem[] = [];
+    for (const doc of docs) {
+      const item: CharacterClassCatalogItem = {
+        id: doc._id ? doc._id.toString() : "",
+        name: doc.name,
+        ruleset: doc.ruleset || ""
+      };
+      if (includeMulticlass && doc.multiclass?.requirements) {
+        item.multiclass = {
+          requirements: await this.formatMulticlassRequirements(
+            doc.multiclass.requirements,
+            doc.ruleset || ""
+          )
+        };
+      }
+      items.push(item);
+    }
+    return items;
   }
 
   async getById(id: string): Promise<CharacterClassApi | null> {
@@ -382,7 +446,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     );
   }
 
-  private async formatClass(characterClass: CharacterClassMongo, rulesets: string[] = []): Promise<CharacterClassApi> {
+  private async formatClass(characterClass: CharacterClassMongo, _rulesets: string[] = []): Promise<CharacterClassApi> {
     const dataLevel = characterClass?.levels?.find(level => level.level === 1);
 
     const [
@@ -422,10 +486,6 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     ]);
 
     const classId = characterClass._id ? characterClass._id.toString() : "";
-    const hydrationRulesets = rulesets.length ? rulesets : (characterClass.ruleset ? [characterClass.ruleset] : []);
-    const subclasses = classId && this.subclassRepository
-      ? await this.subclassRepository.getByClassAndSystems(classId, hydrationRulesets)
-      : [];
     const cantripCap = resolveClassSpellSlotsForLevel(characterClass.levels ?? [], 1)?.cantrips;
     const cantripPicks = remainingCantripPicks(cantripCap, 0);
     const synthesizedChoices: ChoiceMongo[] = [];
@@ -478,7 +538,6 @@ export default class CharacterClassRepository implements ICharacterClassReposito
         ? { abilityScoreProgression: characterClass.abilityScoreProgression }
         : {}),
       ...(characterClass.subclassChoice ? { subclassChoice: characterClass.subclassChoice } : {}),
-      subclasses,
       levels: this.toSlimLevels(characterClass.levels ?? []),
       proficiencies,
       proficiencies_choices,
@@ -494,6 +553,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       deletedAt: characterClass.deletedAt,
       ...(await this.formatMulticlass(characterClass))
     };
+  }
+
+  private toSummarySubclassChoice(
+    subclassChoice?: CharacterClassMongo["subclassChoice"]
+  ): CharacterClassSummaryChoice | null {
+    if (!subclassChoice?.name || !subclassChoice.level) return null;
+    return { name: subclassChoice.name, level: subclassChoice.level };
   }
 
   private normalizeMulticlass(

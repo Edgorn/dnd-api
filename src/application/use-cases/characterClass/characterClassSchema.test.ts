@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { CreateCharacterClassSchema, UpdateCharacterClassSchema } from "../../../infrastructure/http/schemas/characterClass.schema";
+import {
+  CreateCharacterClassSchema,
+  UpdateCharacterClassSchema,
+  GetCharacterClassesQuerySchema,
+  GetCharacterClassCatalogQuerySchema,
+  GetCharacterClassByIdQuerySchema
+} from "../../../infrastructure/http/schemas/characterClass.schema";
 
 const coinId = "507f1f77bcf86cd799439011";
 const traitId = "507f1f77bcf86cd799439012";
@@ -581,5 +587,27 @@ describe("CharacterClassSchema multiclass", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe("character class query schemas", () => {
+  it("accepts an optional ruleset on the list query", () => {
+    expect(GetCharacterClassesQuerySchema.safeParse({}).success).toBe(true);
+    expect(GetCharacterClassesQuerySchema.safeParse({ ruleset: "sys1" }).success).toBe(true);
+    expect(GetCharacterClassesQuerySchema.safeParse({ ruleset: "" }).success).toBe(false);
+  });
+
+  it("accepts include=multiclass on the catalog query", () => {
+    expect(GetCharacterClassCatalogQuerySchema.safeParse({ ruleset: "sys1" }).success).toBe(true);
+    expect(GetCharacterClassCatalogQuerySchema.safeParse({
+      ruleset: "sys1",
+      include: "multiclass"
+    }).success).toBe(true);
+    expect(GetCharacterClassCatalogQuerySchema.safeParse({ include: "spells" }).success).toBe(false);
+  });
+
+  it("accepts an optional ruleset on the detail query", () => {
+    expect(GetCharacterClassByIdQuerySchema.safeParse({}).success).toBe(true);
+    expect(GetCharacterClassByIdQuerySchema.safeParse({ ruleset: "sys1" }).success).toBe(true);
   });
 });

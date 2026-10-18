@@ -100,9 +100,6 @@ export const GetRacesQuerySchema = z.object({
   ruleset: z.string().min(1, "El sistema (ruleset) no puede estar vacío").optional(),
   playable: z.enum(["true", "false"], {
     error: "playable debe ser true o false"
-  }).optional(),
-  view: z.enum(["summary", "full"], {
-    error: "view debe ser summary o full"
   }).optional()
 });
 

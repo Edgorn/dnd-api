@@ -13,7 +13,8 @@ import {
   SubclassLevelApi,
   SubclassLevelInput,
   SubclassLevelMongo,
-  SubclassMongo
+  SubclassMongo,
+  SubclassSummaryDraft
 } from "../../../../domain/types/subclass.types";
 import SubclassModel from "../schemas/Subclass";
 
@@ -47,6 +48,52 @@ export default class SubclassRepository implements ISubclassRepository {
   async getByClassAndSystems(classId: string, rulesets: string[]): Promise<SubclassApi[]> {
     if (!classId || !rulesets.length) return [];
     return this.getBySystems(rulesets, classId);
+  }
+
+  async getSummariesByClassAndSystems(classId: string, rulesets: string[]): Promise<SubclassSummaryDraft[]> {
+    if (!classId || !rulesets.length) return [];
+
+    const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
+    const docs = await SubclassModel.find({
+      classId,
+      ruleset: { $in: expandedRulesets },
+      deletedAt: null
+    })
+      .select("_id name img description ruleset classId")
+      .collation({ locale: "es", strength: 1 })
+      .sort({ name: 1 })
+      .lean<Pick<SubclassMongo, "_id" | "name" | "img" | "description" | "ruleset" | "classId">[]>();
+
+    return docs.map(doc => ({
+      id: doc._id ? doc._id.toString() : "",
+      name: doc.name,
+      img: doc.img || "",
+      description: doc.description ?? [],
+      ruleset: doc.ruleset,
+      classId: doc.classId
+    }));
+  }
+
+  async countByClassIds(classIds: string[], rulesets: string[]): Promise<Map<string, number>> {
+    const counts = new Map<string, number>();
+    if (!classIds.length || !rulesets.length) return counts;
+
+    const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
+    const rows = await SubclassModel.aggregate<{ _id: string; count: number }>([
+      {
+        $match: {
+          classId: { $in: classIds },
+          ruleset: { $in: expandedRulesets },
+          deletedAt: null
+        }
+      },
+      { $group: { _id: "$classId", count: { $sum: 1 } } }
+    ]);
+
+    for (const row of rows) {
+      counts.set(row._id, row.count);
+    }
+    return counts;
   }
 
   async getByIds(ids: string[]): Promise<SubclassApi[]> {

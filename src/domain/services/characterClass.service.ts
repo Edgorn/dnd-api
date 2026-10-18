@@ -1,7 +1,9 @@
 import ICharacterClassRepository from "../repositories/ICharacterClassRepository";
 import {
   CharacterClassApi,
+  CharacterClassCatalogItem,
   CharacterClassMulticlassCreate,
+  CharacterClassSummaryDraft,
   InputCreateCharacterClass,
   InputUpdateCharacterClass
 } from "../types/characterClass.types";
@@ -17,6 +19,14 @@ export default class CharacterClassService {
 
   getBySystems(rulesets: string[]): Promise<CharacterClassApi[]> {
     return this.characterClassRepository.getBySystems(rulesets);
+  }
+
+  getSummaries(rulesets: string[]): Promise<CharacterClassSummaryDraft[]> {
+    return this.characterClassRepository.getSummaries(rulesets);
+  }
+
+  getCatalog(rulesets: string[], includeMulticlass?: boolean): Promise<CharacterClassCatalogItem[]> {
+    return this.characterClassRepository.getCatalog(rulesets, includeMulticlass);
   }
 
   getById(id: string): Promise<CharacterClassApi | null> {

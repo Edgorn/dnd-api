@@ -42,7 +42,6 @@ describe("GetSystemApi", () => {
   };
   const userService = { getUserById: vi.fn() };
   const raceRepository = {
-    getBySystem: vi.fn(),
     countRootRacesByRulesets: vi.fn(),
   };
 
@@ -70,7 +69,6 @@ describe("GetSystemApi", () => {
   it("counts root races from ancestry without hydrating races", async () => {
     const result = await useCase.execute(child, "owner-1");
 
-    expect(raceRepository.getBySystem).not.toHaveBeenCalled();
     expect(raceRepository.countRootRacesByRulesets).toHaveBeenCalledTimes(1);
     expect(raceRepository.countRootRacesByRulesets).toHaveBeenCalledWith(
       expect.arrayContaining(["parent", "SRD", "child", "Homebrew"])

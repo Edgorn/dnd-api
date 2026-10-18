@@ -1,7 +1,13 @@
 import { Router } from "express";
 import { characterClassController, authMiddleware } from "../../dependencies";
-import { validateSchema } from "../middlewares/validateSchema";
-import { CreateCharacterClassSchema, UpdateCharacterClassSchema } from "../schemas/characterClass.schema";
+import { validateSchema, validateQuery } from "../middlewares/validateSchema";
+import {
+  CreateCharacterClassSchema,
+  UpdateCharacterClassSchema,
+  GetCharacterClassesQuerySchema,
+  GetCharacterClassCatalogQuerySchema,
+  GetCharacterClassByIdQuerySchema
+} from "../schemas/characterClass.schema";
 
 const router = Router();
 
@@ -142,8 +148,8 @@ const router = Router();
  *         subclasses:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Subclass'
- *           description: Subclases disponibles para esta clase en los sistemas de la petición (incluye ancestros).
+ *             $ref: '#/components/schemas/SubclassSummary'
+ *           description: Subclases ligeras de esta clase (sin rasgos ni niveles hidratados).
  *         god:
  *           type: boolean
  *           description: Indica si la clase exige elegir una deidad.
@@ -152,6 +158,69 @@ const router = Router();
  *           format: date-time
  *           nullable: true
  *           description: Fecha de borrado lógico.
+ *     CharacterClassSummary:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         img:
+ *           type: string
+ *         descriptionTeaser:
+ *           type: string
+ *           description: Primer párrafo de la descripción, recortado a unos 200 caracteres.
+ *         ruleset:
+ *           type: string
+ *         hit_die:
+ *           type: integer
+ *         hasSpellcasting:
+ *           type: boolean
+ *           description: True si la clase tiene característica de lanzamiento persistida.
+ *         subclassChoice:
+ *           type: object
+ *           nullable: true
+ *           properties:
+ *             name:
+ *               type: string
+ *             level:
+ *               type: integer
+ *         subclassCount:
+ *           type: integer
+ *           description: Número de subclases no borradas en el árbol de sistemas consultado.
+ *     CharacterClassCatalogItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         ruleset:
+ *           type: string
+ *         multiclass:
+ *           type: object
+ *           properties:
+ *             requirements:
+ *               $ref: '#/components/schemas/FeatRequirements'
+ *           description: Solo se incluye con include=multiclass.
+ *     SubclassSummary:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         img:
+ *           type: string
+ *         descriptionTeaser:
+ *           type: string
+ *         ruleset:
+ *           type: string
+ *         classId:
+ *           type: string
+ *     CharacterClassDetail:
+ *       allOf:
+ *         - $ref: '#/components/schemas/CharacterClass'
  *     ClassSpellSlots:
  *       type: object
  *       properties:
@@ -614,7 +683,10 @@ const router = Router();
  * @openapi
  * /character-classes:
  *   get:
- *     summary: Obtener clases filtradas por sistema
+ *     summary: Obtener el listado ligero de clases
+ *     description: >
+ *       Devuelve CharacterClassSummary, sin hidratar rasgos, conjuros, equipo ni subclases.
+ *       Sin ruleset la respuesta es una lista vacía.
  *     tags:
  *       - Clases
  *     security:
@@ -627,20 +699,20 @@ const router = Router();
  *         description: ID o nombre del sistema para filtrar (incluye heredados).
  *     responses:
  *       200:
- *         description: Lista de clases devuelta con éxito.
+ *         description: Listado ligero de clases.
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/CharacterClass'
+ *                 $ref: '#/components/schemas/CharacterClassSummary'
  *       401:
  *         description: No autorizado.
  *       500:
  *         description: Error del servidor.
  */
-router.get("/character-classes", authMiddleware, characterClassController.getClasses);
-router.get("/clases", authMiddleware, characterClassController.getClasses);
+router.get("/character-classes", authMiddleware, validateQuery(GetCharacterClassesQuerySchema), characterClassController.getClasses);
+router.get("/clases", authMiddleware, validateQuery(GetCharacterClassesQuerySchema), characterClassController.getClasses);
 
 /**
  * @openapi
@@ -663,7 +735,7 @@ router.get("/clases", authMiddleware, characterClassController.getClasses);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterClass'
+ *               $ref: '#/components/schemas/CharacterClassDetail'
  *       400:
  *         description: Datos de entrada inválidos.
  *       401:
@@ -672,6 +744,84 @@ router.get("/clases", authMiddleware, characterClassController.getClasses);
  *         description: Error del servidor.
  */
 router.post("/character-classes", authMiddleware, validateSchema(CreateCharacterClassSchema), characterClassController.create);
+
+/**
+ * @openapi
+ * /character-classes/catalog:
+ *   get:
+ *     summary: Obtener el catálogo plano de clases
+ *     description: Lista plana (id, name, ruleset) para dropdowns. Con include=multiclass añade requisitos de dip.
+ *     tags:
+ *       - Clases
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema. Incluye clases de ancestros.
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *           enum: [multiclass]
+ *         description: Si es multiclass, añade multiclass.requirements hidratados.
+ *     responses:
+ *       200:
+ *         description: Catálogo obtenido con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/CharacterClassCatalogItem'
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get("/character-classes/catalog", authMiddleware, validateQuery(GetCharacterClassCatalogQuerySchema), characterClassController.getCatalog);
+
+/**
+ * @openapi
+ * /character-classes/{id}:
+ *   get:
+ *     summary: Obtener una clase hidratada por ID
+ *     description: >
+ *       Devuelve el detalle de la clase (CharacterClassDetail). Las subclases van como
+ *       SubclassSummary. Si se indica ruleset, la clase debe pertenecer a ese sistema o a un ancestro.
+ *     tags:
+ *       - Clases
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la clase.
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema consultado.
+ *     responses:
+ *       200:
+ *         description: Clase obtenida con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CharacterClassDetail'
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Clase no encontrada.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get("/character-classes/:id", authMiddleware, validateQuery(GetCharacterClassByIdQuerySchema), characterClassController.getById);
 
 /**
  * @openapi
@@ -701,7 +851,7 @@ router.post("/character-classes", authMiddleware, validateSchema(CreateCharacter
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterClass'
+ *               $ref: '#/components/schemas/CharacterClassDetail'
  *       400:
  *         description: ID o datos inválidos.
  *       401:

@@ -2,7 +2,8 @@ import ISubclassRepository from "../repositories/ISubclassRepository";
 import {
   InputCreateSubclass,
   InputUpdateSubclass,
-  SubclassApi
+  SubclassApi,
+  SubclassSummaryDraft
 } from "../types/subclass.types";
 
 export default class SubclassService {
@@ -14,6 +15,14 @@ export default class SubclassService {
 
   getByClassAndSystems(classId: string, rulesets: string[]): Promise<SubclassApi[]> {
     return this.subclassRepository.getByClassAndSystems(classId, rulesets);
+  }
+
+  getSummariesByClassAndSystems(classId: string, rulesets: string[]): Promise<SubclassSummaryDraft[]> {
+    return this.subclassRepository.getSummariesByClassAndSystems(classId, rulesets);
+  }
+
+  countByClassIds(classIds: string[], rulesets: string[]): Promise<Map<string, number>> {
+    return this.subclassRepository.countByClassIds(classIds, rulesets);
   }
 
   getByIds(ids: string[]): Promise<SubclassApi[]> {

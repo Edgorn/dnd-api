@@ -8307,9 +8307,9 @@
           "subclasses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Subclass"
+              "$ref": "#/components/schemas/SubclassSummary"
             },
-            "description": "Subclases disponibles para esta clase en los sistemas de la petición (incluye ancestros)."
+            "description": "Subclases ligeras de esta clase (sin rasgos ni niveles hidratados)."
           },
           "god": {
             "type": "boolean",
@@ -8322,6 +8322,103 @@
             "description": "Fecha de borrado lógico."
           }
         }
+      },
+      "CharacterClassSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "img": {
+            "type": "string"
+          },
+          "descriptionTeaser": {
+            "type": "string",
+            "description": "Primer párrafo de la descripción, recortado a unos 200 caracteres."
+          },
+          "ruleset": {
+            "type": "string"
+          },
+          "hit_die": {
+            "type": "integer"
+          },
+          "hasSpellcasting": {
+            "type": "boolean",
+            "description": "True si la clase tiene característica de lanzamiento persistida."
+          },
+          "subclassChoice": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "level": {
+                "type": "integer"
+              }
+            }
+          },
+          "subclassCount": {
+            "type": "integer",
+            "description": "Número de subclases no borradas en el árbol de sistemas consultado."
+          }
+        }
+      },
+      "CharacterClassCatalogItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ruleset": {
+            "type": "string"
+          },
+          "multiclass": {
+            "type": "object",
+            "properties": {
+              "requirements": {
+                "$ref": "#/components/schemas/FeatRequirements"
+              }
+            },
+            "description": "Solo se incluye con include=multiclass."
+          }
+        }
+      },
+      "SubclassSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "img": {
+            "type": "string"
+          },
+          "descriptionTeaser": {
+            "type": "string"
+          },
+          "ruleset": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "string"
+          }
+        }
+      },
+      "CharacterClassDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CharacterClass"
+          }
+        ]
       },
       "ClassSpellSlots": {
         "type": "object",
@@ -11869,7 +11966,7 @@
     "/races": {
       "get": {
         "summary": "Obtener el listado de razas (con soporte para herencia del sistema)",
-        "description": "Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor del sistema consultado (el más cercano gana). El parámetro playable filtra razas raíz y subrazas; si se omite, se devuelven todas. Con view=summary se devuelve un árbol ligero (RaceSummary) sin hidratar rasgos, conjuros ni opciones de elección.\n",
+        "description": "Devuelve un árbol ligero (RaceSummary) sin hidratar rasgos, conjuros ni opciones de elección. Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor del sistema consultado (el más cercano gana). El parámetro playable filtra razas raíz y subrazas; si se omite, se devuelven todas.\n",
         "tags": [
           "Razas"
         ],
@@ -11898,36 +11995,17 @@
               ]
             },
             "description": "Si es true, solo razas jugables (incluye las que no tienen el campo). Si es false, solo las no jugables. Si se omite, se devuelven todas."
-          },
-          {
-            "in": "query",
-            "name": "view",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "summary",
-                "full"
-              ]
-            },
-            "description": "summary devuelve RaceSummary. Si se omite o es full, se hidrata el árbol completo (Race)."
           }
         ],
         "responses": {
           "200": {
-            "description": "Listado de razas obtenido exitosamente (ensamblado de forma recursiva).",
+            "description": "Listado ligero de razas (RaceSummary) ensamblado de forma recursiva.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "oneOf": [
-                      {
-                        "$ref": "#/components/schemas/Race"
-                      },
-                      {
-                        "$ref": "#/components/schemas/RaceSummary"
-                      }
-                    ]
+                    "$ref": "#/components/schemas/RaceSummary"
                   }
                 }
               }
@@ -17061,7 +17139,8 @@
     },
     "/character-classes": {
       "get": {
-        "summary": "Obtener clases filtradas por sistema",
+        "summary": "Obtener el listado ligero de clases",
+        "description": "Devuelve CharacterClassSummary, sin hidratar rasgos, conjuros, equipo ni subclases. Sin ruleset la respuesta es una lista vacía.\n",
         "tags": [
           "Clases"
         ],
@@ -17082,13 +17161,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de clases devuelta con éxito.",
+            "description": "Listado ligero de clases.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CharacterClass"
+                    "$ref": "#/components/schemas/CharacterClassSummary"
                   }
                 }
               }
@@ -17128,7 +17207,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterClass"
+                  "$ref": "#/components/schemas/CharacterClassDetail"
                 }
               }
             }
@@ -17145,7 +17224,115 @@
         }
       }
     },
+    "/character-classes/catalog": {
+      "get": {
+        "summary": "Obtener el catálogo plano de clases",
+        "description": "Lista plana (id, name, ruleset) para dropdowns. Con include=multiclass añade requisitos de dip.",
+        "tags": [
+          "Clases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema. Incluye clases de ancestros."
+          },
+          {
+            "in": "query",
+            "name": "include",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "multiclass"
+              ]
+            },
+            "description": "Si es multiclass, añade multiclass.requirements hidratados."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catálogo obtenido con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CharacterClassCatalogItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
     "/character-classes/{id}": {
+      "get": {
+        "summary": "Obtener una clase hidratada por ID",
+        "description": "Devuelve el detalle de la clase (CharacterClassDetail). Las subclases van como SubclassSummary. Si se indica ruleset, la clase debe pertenecer a ese sistema o a un ancestro.\n",
+        "tags": [
+          "Clases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la clase."
+          },
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema consultado."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Clase obtenida con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CharacterClassDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Clase no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
       "put": {
         "summary": "Actualizar una clase existente",
         "tags": [
@@ -17183,7 +17370,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterClass"
+                  "$ref": "#/components/schemas/CharacterClassDetail"
                 }
               }
             }

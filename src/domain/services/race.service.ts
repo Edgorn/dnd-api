@@ -4,14 +4,6 @@ import { CreateRace, RaceApi, RaceCatalogItem, RaceRef, RaceSummaryDraft, Update
 export default class RaceService {
   constructor(private readonly raceRepository: IRaceRepository) { }
 
-  getAll(playable?: boolean): Promise<RaceApi[]> {
-    return this.raceRepository.getAll(playable);
-  }
-
-  getBySystem(ruleset: string, playable?: boolean): Promise<RaceApi[]> {
-    return this.raceRepository.getBySystem(ruleset, playable);
-  }
-
   getById(id: string, allowedRulesets?: string[]): Promise<RaceApi | undefined> {
     return this.raceRepository.getById(id, allowedRulesets);
   }

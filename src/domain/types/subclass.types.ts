@@ -70,3 +70,21 @@ export interface SubclassApi {
   levels: SubclassLevelApi[];
   deletedAt?: Date | null;
 }
+
+export interface SubclassSummaryDraft {
+  id: string;
+  name: string;
+  img: string;
+  description: string[];
+  ruleset: string;
+  classId: string;
+}
+
+export interface SubclassSummary {
+  id: string;
+  name: string;
+  img: string;
+  descriptionTeaser?: string;
+  ruleset: string;
+  classId: string;
+}

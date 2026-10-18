@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import CreateCharacterClass from "./createCharacterClass.use-case";
 import UpdateCharacterClass from "./updateCharacterClass.use-case";
+import GetCharacterClassById from "./getCharacterClassById.use-case";
 import { AppError } from "../../../domain/errors/AppError";
 
 describe("CharacterClass Use Cases", () => {
@@ -11,6 +12,9 @@ describe("CharacterClass Use Cases", () => {
   };
   let systemServiceMock: {
     getById: ReturnType<typeof vi.fn>;
+  };
+  let getCharacterClassByIdMock: {
+    execute: ReturnType<typeof vi.fn>;
   };
 
   const createdClass = {
@@ -37,11 +41,31 @@ describe("CharacterClass Use Cases", () => {
     systemServiceMock = {
       getById: vi.fn()
     };
+    getCharacterClassByIdMock = {
+      execute: vi.fn().mockImplementation(async () => {
+        const created = characterClassServiceMock.create.mock.results.at(-1);
+        if (created?.type === "return") return created.value;
+        const updated = characterClassServiceMock.update.mock.results.at(-1);
+        if (updated?.type === "return") return updated.value;
+      })
+    };
   });
+
+  const createUseCase = () => new CreateCharacterClass(
+    characterClassServiceMock as never,
+    systemServiceMock as never,
+    getCharacterClassByIdMock as unknown as GetCharacterClassById
+  );
+
+  const updateUseCase = () => new UpdateCharacterClass(
+    characterClassServiceMock as never,
+    systemServiceMock as never,
+    getCharacterClassByIdMock as unknown as GetCharacterClassById
+  );
 
   describe("CreateCharacterClass", () => {
     it("should create class with god flag when deity selection is required", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue({ ...createdClass, name: "Clerigo", god: true });
 
@@ -56,10 +80,11 @@ describe("CharacterClass Use Cases", () => {
 
       expect(result.god).toBe(true);
       expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+      expect(getCharacterClassByIdMock.execute).toHaveBeenCalledWith("class1");
     });
 
     it("should create class with hit die, proficiencies, saving throws, skills and equipment", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue(createdClass);
 
@@ -82,7 +107,7 @@ describe("CharacterClass Use Cases", () => {
     });
 
     it("should create class with spellcasting attribute, formulas and spell slot levels", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue({
         ...createdClass,
@@ -131,7 +156,7 @@ describe("CharacterClass Use Cases", () => {
     });
 
     it("should create class with spellReplacement", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue({
         ...createdClass,
@@ -152,7 +177,7 @@ describe("CharacterClass Use Cases", () => {
     });
 
     it("should create class with nested equipment alternatives (item vs subcategory filter)", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue({ ...createdClass, name: "Mago" });
 
@@ -182,7 +207,7 @@ describe("CharacterClass Use Cases", () => {
     });
 
     it("should create class with equipment bundle alternatives (martial+shield vs two martial)", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue(createdClass);
 
@@ -214,7 +239,7 @@ describe("CharacterClass Use Cases", () => {
     });
 
     it("should create class with filter-only equipment choice", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue(createdClass);
 
@@ -229,7 +254,7 @@ describe("CharacterClass Use Cases", () => {
     });
 
     it("should reject create when user is not the system publisher", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "other" });
 
       await expect(
@@ -239,7 +264,7 @@ describe("CharacterClass Use Cases", () => {
     });
 
     it("should create class with abilityScoreProgression override", async () => {
-      const useCase = new CreateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue({
         ...createdClass,
@@ -261,7 +286,7 @@ describe("CharacterClass Use Cases", () => {
 
   describe("UpdateCharacterClass", () => {
     it("should update class fields when user is the publisher", async () => {
-      const useCase = new UpdateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = updateUseCase();
       characterClassServiceMock.getById.mockResolvedValue({ ...createdClass, ruleset: "sys1" });
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.update.mockResolvedValue({ ...createdClass, hit_die: 12 });
@@ -287,7 +312,7 @@ describe("CharacterClass Use Cases", () => {
     });
 
     it("should pass abilityScoreProgression null to clear the class override", async () => {
-      const useCase = new UpdateCharacterClass(characterClassServiceMock as never, systemServiceMock as never);
+      const useCase = updateUseCase();
       characterClassServiceMock.getById.mockResolvedValue({ ...createdClass, ruleset: "sys1" });
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.update.mockResolvedValue(createdClass);

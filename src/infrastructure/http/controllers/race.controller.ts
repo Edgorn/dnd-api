@@ -1,5 +1,4 @@
 import { Response, NextFunction } from 'express';
-import GetAllRacesUseCase from '../../../application/use-cases/race/getAllRaces.use-case';
 import GetRaceSummariesUseCase from '../../../application/use-cases/race/getRaceSummaries.use-case';
 import GetRaceByIdUseCase from '../../../application/use-cases/race/getRaceById.use-case';
 import GetRaceCatalogUseCase from '../../../application/use-cases/race/getRaceCatalog.use-case';
@@ -15,7 +14,6 @@ import { NotFoundError, ValidationError } from '../../../domain/errors/AppError'
 
 export class RaceController {
   constructor(
-    private readonly getAllRaces: GetAllRacesUseCase,
     private readonly getRaceSummaries: GetRaceSummariesUseCase,
     private readonly getRaceByIdUseCase: GetRaceByIdUseCase,
     private readonly getRaceCatalogUseCase: GetRaceCatalogUseCase,
@@ -32,10 +30,7 @@ export class RaceController {
     try {
       const ruleset = this.optionalRuleset(req.query.ruleset);
       const playable = this.parsePlayable(req.query.playable);
-      const viewQuery = Array.isArray(req.query.view) ? req.query.view[0] : req.query.view;
-      const data = viewQuery === "summary"
-        ? await this.getRaceSummaries.execute(ruleset, playable)
-        : await this.getAllRaces.execute(ruleset, playable);
+      const data = await this.getRaceSummaries.execute(ruleset, playable);
       res.status(200).json(data);
     } catch (e) {
       next(e);

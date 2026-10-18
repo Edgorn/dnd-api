@@ -599,10 +599,10 @@ const router = Router();
  *   get:
  *     summary: Obtener el listado de razas (con soporte para herencia del sistema)
  *     description: >
- *       Si se indica ruleset, se incluyen razas de ancestros y se aplican parches de flavor
- *       del sistema consultado (el más cercano gana). El parámetro playable filtra razas raíz
- *       y subrazas; si se omite, se devuelven todas. Con view=summary se devuelve un árbol
- *       ligero (RaceSummary) sin hidratar rasgos, conjuros ni opciones de elección.
+ *       Devuelve un árbol ligero (RaceSummary) sin hidratar rasgos, conjuros ni opciones
+ *       de elección. Si se indica ruleset, se incluyen razas de ancestros y se aplican
+ *       parches de flavor del sistema consultado (el más cercano gana). El parámetro
+ *       playable filtra razas raíz y subrazas; si se omite, se devuelven todas.
  *     tags:
  *       - Razas
  *     security:
@@ -619,23 +619,15 @@ const router = Router();
  *           type: string
  *           enum: ["true", "false"]
  *         description: Si es true, solo razas jugables (incluye las que no tienen el campo). Si es false, solo las no jugables. Si se omite, se devuelven todas.
- *       - in: query
- *         name: view
- *         schema:
- *           type: string
- *           enum: [summary, full]
- *         description: summary devuelve RaceSummary. Si se omite o es full, se hidrata el árbol completo (Race).
  *     responses:
  *       200:
- *         description: Listado de razas obtenido exitosamente (ensamblado de forma recursiva).
+ *         description: Listado ligero de razas (RaceSummary) ensamblado de forma recursiva.
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 oneOf:
- *                   - $ref: '#/components/schemas/Race'
- *                   - $ref: '#/components/schemas/RaceSummary'
+ *                 $ref: '#/components/schemas/RaceSummary'
  *       401:
  *         description: No autorizado.
  *       500:

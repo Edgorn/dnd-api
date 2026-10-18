@@ -7,8 +7,6 @@ export interface RaceSummarySubtree {
 import { AttributeApi } from "../types/attribute.types";
 
 export default interface IRaceRepository {
-  getAll(playable?: boolean): Promise<RaceApi[]>
-  getBySystem(ruleset: string, playable?: boolean): Promise<RaceApi[]>
   getById(id: string, allowedRulesets?: string[]): Promise<RaceApi | undefined>
   getSummaries(ruleset?: string, playable?: boolean): Promise<RaceSummaryDraft[]>
   getSummarySubtree(parentId: string, ruleset?: string): Promise<RaceSummarySubtree | undefined>

@@ -120,12 +120,7 @@ export function applyRaceNameOverrides<T extends { id: string; name: string; rul
   });
 }
 
-export function raceDescriptionTeaser(description: string[] | undefined, maxChars = 200): string | undefined {
-  const first = description?.find(paragraph => typeof paragraph === "string" && paragraph.trim().length > 0)?.trim();
-  if (!first) return undefined;
-  if (first.length <= maxChars) return first;
-  return `${first.slice(0, maxChars).trimEnd()}…`;
-}
+export { descriptionTeaser as raceDescriptionTeaser } from "./descriptionTeaser";
 
 function applyRaceOverride<T extends RaceOverlayTarget>(
   race: T,

@@ -30,7 +30,6 @@ import CreateBackground from "../application/use-cases/background/createBackgrou
 import UpdateBackground from "../application/use-cases/background/updateBackground.use-case";
 import SoftDeleteBackground from "../application/use-cases/background/softDeleteBackground.use-case";
 import RestoreBackground from "../application/use-cases/background/restoreBackground.use-case";
-import GetAllRacesUseCase from "../application/use-cases/race/getAllRaces.use-case";
 import GetRaceSummariesUseCase from "../application/use-cases/race/getRaceSummaries.use-case";
 import GetRaceByIdUseCase from "../application/use-cases/race/getRaceById.use-case";
 import GetRaceCatalogUseCase from "../application/use-cases/race/getRaceCatalog.use-case";
@@ -39,7 +38,9 @@ import DeleteRaceOverride from "../application/use-cases/race/deleteRaceOverride
 import GetRaceOverride from "../application/use-cases/race/getRaceOverride.use-case";
 import EntityOverrideRepository from "./databases/mongoDb/repositories/entityOverride.repository";
 import EntityOverrideService from "../domain/services/entityOverride.service";
-import GetCharacterClassesBySystems from "../application/use-cases/characterClass/getCharacterClassesBySystems.use-case";
+import GetCharacterClassSummaries from "../application/use-cases/characterClass/getCharacterClassSummaries.use-case";
+import GetCharacterClassCatalog from "../application/use-cases/characterClass/getCharacterClassCatalog.use-case";
+import GetCharacterClassById from "../application/use-cases/characterClass/getCharacterClassById.use-case";
 import CreateCharacterClass from "../application/use-cases/characterClass/createCharacterClass.use-case";
 import UpdateCharacterClass from "../application/use-cases/characterClass/updateCharacterClass.use-case";
 import SoftDeleteCharacterClass from "../application/use-cases/characterClass/softDeleteCharacterClass.use-case";
@@ -409,7 +410,6 @@ const acceptJoinCampaign = new AcceptJoinCampaign(campaignService)
 const denyJoinCampaign = new DenyJoinCampaign(campaignService)
 const addCharacterToCampaign = new AddCharacterToCampaign(campaignService, personajeService)
 
-const getAllRaces = new GetAllRacesUseCase(raceService, systemService, entityOverrideService);
 const getRaceSummaries = new GetRaceSummariesUseCase(raceService, systemService, entityOverrideService);
 const getRaceById = new GetRaceByIdUseCase(raceService, systemService, entityOverrideService);
 const getRaceCatalog = new GetRaceCatalogUseCase(raceService, systemService, entityOverrideService);
@@ -426,9 +426,11 @@ const updateBackground = new UpdateBackground(backgroundRepository, systemReposi
 const softDeleteBackground = new SoftDeleteBackground(backgroundRepository);
 const restoreBackground = new RestoreBackground(backgroundRepository);
 
-const getCharacterClassesBySystems = new GetCharacterClassesBySystems(characterClassService);
-const createCharacterClass = new CreateCharacterClass(characterClassService, systemService);
-const updateCharacterClass = new UpdateCharacterClass(characterClassService, systemService);
+const getCharacterClassSummaries = new GetCharacterClassSummaries(characterClassService, subclassService);
+const getCharacterClassCatalog = new GetCharacterClassCatalog(characterClassService);
+const getCharacterClassById = new GetCharacterClassById(characterClassService, subclassService, systemService);
+const createCharacterClass = new CreateCharacterClass(characterClassService, systemService, getCharacterClassById);
+const updateCharacterClass = new UpdateCharacterClass(characterClassService, systemService, getCharacterClassById);
 const softDeleteCharacterClass = new SoftDeleteCharacterClass(characterClassService, systemService);
 const restoreCharacterClass = new RestoreCharacterClass(characterClassService, systemService);
 
@@ -534,7 +536,6 @@ const softDeleteRace = new SoftDeleteRace(raceService, systemService);
 const restoreRace = new RestoreRace(raceService, systemService);
 
 export const raceController = new RaceController(
-  getAllRaces,
   getRaceSummaries,
   getRaceById,
   getRaceCatalog,
@@ -584,7 +585,9 @@ export const backgroundController = new BackgroundController(
 );
 
 export const characterClassController = new CharacterClassController(
-  getCharacterClassesBySystems,
+  getCharacterClassSummaries,
+  getCharacterClassCatalog,
+  getCharacterClassById,
   createCharacterClass,
   updateCharacterClass,
   softDeleteCharacterClass,

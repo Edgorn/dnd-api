@@ -13,7 +13,7 @@ import { LanguageApi } from "./language.types"
 import { InvocacionApi } from "./invocaciones.types"
 import { TraitApi, TraitDataMongo } from "./traits.types"
 import { AttributeApi } from "./attribute.types"
-import { SubclassApi } from "./subclass.types"
+import { SubclassApi, SubclassSummary } from "./subclass.types"
 import { ObjectId } from "mongoose"
 
 export interface SubclassChoiceConfig {
@@ -310,6 +310,47 @@ export interface CharacterClassApi {
   subclasses?: SubclassApi[];
   god: boolean;
   deletedAt?: Date | null;
+}
+
+export interface CharacterClassSummaryChoice {
+  name: string;
+  level: number;
+}
+
+export interface CharacterClassSummaryDraft {
+  id: string;
+  name: string;
+  img: string;
+  description: string[];
+  ruleset: string;
+  hit_die: number;
+  hasSpellcasting: boolean;
+  subclassChoice: CharacterClassSummaryChoice | null;
+}
+
+export interface CharacterClassSummary {
+  id: string;
+  name: string;
+  img: string;
+  descriptionTeaser?: string;
+  ruleset: string;
+  hit_die: number;
+  hasSpellcasting: boolean;
+  subclassChoice: CharacterClassSummaryChoice | null;
+  subclassCount: number;
+}
+
+export interface CharacterClassCatalogItem {
+  id: string;
+  name: string;
+  ruleset: string;
+  multiclass?: {
+    requirements: FeatRequirements;
+  };
+}
+
+export interface CharacterClassDetailApi extends Omit<CharacterClassApi, "subclasses"> {
+  subclasses?: SubclassSummary[];
 }
 
 export interface SubclassesOptionsApi {
