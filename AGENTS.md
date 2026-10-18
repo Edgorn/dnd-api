@@ -4,7 +4,7 @@ API REST para gestionar sistemas de reglas de rol (D&D y derivados), campañas y
 
 ## Stack y estructura
 
-- Node.js >= 22.12 + **pnpm** (nunca `npm` ni `yarn`). TypeScript: `tsx` en desarrollo, `tsc` a CommonJS / ES2021.
+- Node.js >= 22.12 + **pnpm** (nunca `npm` ni `yarn`). TypeScript 7: `tsx` en desarrollo, `tsc` a CommonJS / ES2021.
 - Express 5, MongoDB + Mongoose 9, Zod 4, JWT (`jsonwebtoken`) + `bcrypt`, Vitest. También `pdf-lib` (PDFs) y `swagger-ui-express`. `swagger-jsdoc` es solo de desarrollo (genera `openapi.json`).
 - `src/domain/`: modelos, errores (`AppError`), tipos, servicios de dominio. Sin dependencias de infraestructura.
   - `ports/`: contratos de servicios no ligados a entidades (`IPasswordHasher`, `ITokenService`, `IUserCache`).
