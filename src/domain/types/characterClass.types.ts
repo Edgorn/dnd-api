@@ -73,6 +73,12 @@ export {
   SPELL_CHOICE_SOURCES
 } from "./classLevelChoices.types";
 
+/** Uniform slot pool: `count` slots, all of spell `level` (e.g. warlock-style). */
+export interface UniformSpellSlots {
+  count: number;
+  level: number;
+}
+
 /** Spell slots table for a class level (create/update input and slim API). */
 export interface ClassSpellSlots {
   cantrips?: number;
@@ -81,8 +87,10 @@ export interface ClassSpellSlots {
    * Not inherited from previous levels.
    */
   spellsLearned?: number;
-  /** Spell slot counts keyed by spell level ("1".."9"). */
+  /** Spell slot counts keyed by spell level ("1".."9"). Mutually exclusive with uniformSlots. */
   slots?: Record<string, number>;
+  /** Uniform slot pool. Mutually exclusive with slots. */
+  uniformSlots?: UniformSpellSlots;
 }
 
 /** Slim level row accepted on create/update (does not replace full Mongo level docs). */

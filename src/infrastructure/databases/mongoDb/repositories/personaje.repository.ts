@@ -101,14 +101,16 @@ import {
   buildSynthesizedKnownSpellChoice,
   buildSpellcastingLevel,
   castableSpellLevels,
+  collectExpandedSpells,
   eligibleSpellReplacementFrom,
   excludeKnownSpellOptions,
+  mergeExpandedSpellsIntoChoices,
   getPreparedSpellIds,
   hasCantripSpellChoice,
   prunePreparedSpellIds,
   remainingCantripPicks,
   resolveClassSpellSlotsForLevel,
-  resolveSpellSlotsTableForLevel,
+  resolveSlotProgressionForLevel,
   shouldOfferSpellReplacement,
   validateKnownSpellPicks,
   validateLevelUpSpellPicks,
@@ -1022,9 +1024,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const knownIds = this.getClassSpellIds(personaje, classId)
-    const [loadedSpells, existingSpells] = await Promise.all([
+    const [loadedSpells, existingSpells, extraClassSpellIds] = await Promise.all([
       this.spellRepository.getSpellsByIndexes(spells),
       knownIds.length ? this.spellRepository.getSpellsByIndexes(knownIds) : Promise.resolve([]),
+      this.extraClassSpellIds(personaje, classId),
     ])
 
     const validation = validateKnownSpellPicks({
@@ -1038,9 +1041,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
           level: spell.level,
           classIds: (spell.classes ?? []).map(clas => clas.id)
         })),
-      castableLevels: castableSpellLevels(source.slots?.slots),
+      castableLevels: castableSpellLevels(source.slots),
       cantripCap: source.slots?.cantrips,
       ownedCantripCount: existingSpells.filter(spell => spell.level === 0).length,
+      extraClassSpellIds,
     })
 
     if (validation.error) {
@@ -1111,7 +1115,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const rulesByTraitId = this.buildPrivilegeRulesMap(privilegeTraits, privilegeInstances)
     const excludedFromCap = privilegeSpellIdsExcludedFromCap(privilegeInstances, rulesByTraitId, classId)
     const persistIds = spells.filter(id => !excludedFromCap.has(id))
-    const loadedSpells = persistIds.length ? await this.spellRepository.getSpellsByIndexes(persistIds) : []
+    const [loadedSpells, extraClassSpellIds] = await Promise.all([
+      persistIds.length ? this.spellRepository.getSpellsByIndexes(persistIds) : Promise.resolve([]),
+      this.extraClassSpellIds(personaje, classId)
+    ])
     const validation = validatePreparedSpellPicks({
       spellIds: persistIds,
       cap: spellcastingLevel.spellsPrepared ?? 0,
@@ -1125,8 +1132,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
           level: spell.level,
           classIds: (spell.classes ?? []).map(clas => clas.id)
         })),
-      castableLevels: castableSpellLevels(spellcastingLevel.slots?.slots),
-      excludeFromCap: excludedFromCap
+      castableLevels: castableSpellLevels(spellcastingLevel.slots),
+      excludeFromCap: excludedFromCap,
+      extraClassSpellIds
     })
 
     if (validation.error) {
@@ -1181,9 +1189,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     const selectionIds = selections.flat()
-    const loadedSpells = selectionIds.length
-      ? await this.spellRepository.getSpellsByIndexes(selectionIds)
-      : []
+    const [loadedSpells, extraClassSpellIds] = await Promise.all([
+      selectionIds.length
+        ? this.spellRepository.getSpellsByIndexes(selectionIds)
+        : Promise.resolve([]),
+      this.extraClassSpellIds(personaje, classId)
+    ])
     const classEntry = personaje.classes?.find(clas => clas.class === classId)
     const validation = validateSpellPrivilegePicks({
       hasClass: Boolean(classEntry),
@@ -1198,7 +1209,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
           id: spell.id,
           level: spell.level,
           classIds: (spell.classes ?? []).map(clas => clas.id)
-        }))
+        })),
+      extraClassSpellIds
     })
     if (validation.error) {
       throw new ValidationError(validation.error)
@@ -1703,13 +1715,18 @@ export default class PersonajeRepository implements IPersonajeRepository {
     skill_choices?: ChoiceApi<SkillApi>;
     skillProficiencyChoices?: LevelSkillProficiencyChoice[];
   }> {
-    const dataLevel = await this.claseRepository.dataLevelUp(
-      classId,
-      nextLevel,
-      subclassIds ?? personaje.subclasses ?? [],
-      personaje.systems ?? []
-    );
-    const clase = await this.claseRepository.getById(classId);
+    const assignedSubclassIds = subclassIds ?? personaje.subclasses ?? [];
+    const [dataLevel, clase, assignedSubclasses] = await Promise.all([
+      this.claseRepository.dataLevelUp(
+        classId,
+        nextLevel,
+        assignedSubclassIds,
+        personaje.systems ?? []
+      ),
+      this.claseRepository.getById(classId),
+      this.getAssignedSubclassesForClass(assignedSubclassIds, classId)
+    ]);
+    const expandedSpells = collectExpandedSpells(assignedSubclasses);
     const knownSpellIds = this.getClassSpellIds(personaje, classId);
     const ownedSpellIds = [...knownSpellIds, ...getExtraSpellIds(personaje.extraSpells, classId)];
     const extraSpellIdsForClass = getExtraSpellIds(personaje.extraSpells, classId);
@@ -1718,7 +1735,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       clase?.levels ?? [],
       nextLevel,
       knownSpellIds,
-      dataLevel?.spell_choices
+      dataLevel?.spell_choices,
+      expandedSpells
     );
     const cantripChoices = cantripChoicesRaw
       ? excludeKnownSpellOptions(cantripChoicesRaw, extraSpellIdsForClass)
@@ -1728,7 +1746,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       clase?.levels ?? [],
       nextLevel,
       ownedSpellIds,
-      dataLevel?.spell_choices
+      dataLevel?.spell_choices,
+      expandedSpells
     );
     const extraChoices = dataLevel?.spell_choices?.length
       ? excludeKnownSpellOptions(dataLevel.spell_choices, ownedSpellIds)
@@ -1741,7 +1760,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       classId,
       clase,
       nextLevel,
-      knownSpellIds
+      knownSpellIds,
+      expandedSpells
     );
 
     const ability_score = Boolean(dataLevel?.ability_score);
@@ -1896,6 +1916,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return docs.filter(item => item.classId === classId);
   }
 
+  private async extraClassSpellIds(personaje: PersonajeMongo, classId: string): Promise<string[]> {
+    const subclasses = await this.getAssignedSubclassesForClass(personaje.subclasses ?? [], classId);
+    return collectExpandedSpells(subclasses)
+      .map(spell => spell.id)
+      .filter((id): id is string => Boolean(id));
+  }
+
   private async assertSubclassAvailable(
     subclassId: string,
     classId: string,
@@ -1984,7 +2011,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     levels: { level: number; spellcasting?: { cantrips?: number } }[],
     targetLevel: number,
     knownSpellIds: string[],
-    persistedChoices?: ChoiceApi<SpellApi>[]
+    persistedChoices?: ChoiceApi<SpellApi>[],
+    expandedSpells: SpellApi[] = []
   ): Promise<ChoiceApi<SpellApi>[] | undefined> {
     if (hasCantripSpellChoice(persistedChoices)) return undefined;
 
@@ -2005,7 +2033,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
       .map(spell => spell.id)
       .filter((id): id is string => Boolean(id));
 
-    return excludeKnownSpellOptions(formatted, knownCantripIds);
+    return excludeKnownSpellOptions(
+      mergeExpandedSpellsIntoChoices(formatted, expandedSpells) ?? formatted,
+      knownCantripIds
+    );
   }
 
   private async buildKnownSpellChoices(
@@ -2013,7 +2044,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     levels: { level: number; spellcasting?: { cantrips?: number; spellsLearned?: number; slots?: Record<string, number> } }[],
     targetLevel: number,
     knownSpellIds: string[],
-    persistedChoices?: ChoiceApi<SpellApi>[]
+    persistedChoices?: ChoiceApi<SpellApi>[],
+    expandedSpells: SpellApi[] = []
   ): Promise<ChoiceApi<SpellApi>[] | undefined> {
     const synthesized = buildSynthesizedKnownSpellChoice(
       classId,
@@ -2026,14 +2058,18 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const formatted = await this.spellRepository.formatSpellChoices([synthesized]);
     if (!formatted?.length) return undefined;
 
-    return excludeKnownSpellOptions(formatted, knownSpellIds);
+    return excludeKnownSpellOptions(
+      mergeExpandedSpellsIntoChoices(formatted, expandedSpells) ?? formatted,
+      knownSpellIds
+    );
   }
 
   private async buildSpellReplacementMenu(
     classId: string,
     clase: CharacterClassApi | null,
     nextLevel: number,
-    knownSpellIds: string[]
+    knownSpellIds: string[],
+    expandedSpells: SpellApi[] = []
   ): Promise<LevelUpSpellChanges | undefined> {
     const config = clase?.spellReplacement;
     if (!config) return undefined;
@@ -2057,7 +2093,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const toChoice = buildSpellReplacementToChoice(
       classId,
       config.count,
-      castableSpellLevels(resolveSpellSlotsTableForLevel(clase?.levels ?? [], nextLevel)),
+      castableSpellLevels(resolveSlotProgressionForLevel(clase?.levels ?? [], nextLevel)),
       includeCantrips
     );
     if (!toChoice) return undefined;
@@ -2065,7 +2101,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const formatted = await this.spellRepository.formatSpellChoices([toChoice]);
     if (!formatted?.length) return undefined;
 
-    const [to] = excludeKnownSpellOptions(formatted, knownSpellIds);
+    const [to] = excludeKnownSpellOptions(
+      mergeExpandedSpellsIntoChoices(formatted, expandedSpells) ?? formatted,
+      knownSpellIds
+    );
     if (!to?.options.length) return undefined;
 
     const eligibleIds = new Set(eligible.map(spell => spell.id));

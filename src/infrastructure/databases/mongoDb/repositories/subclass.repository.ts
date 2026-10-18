@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import ISubclassRepository from "../../../../domain/repositories/ISubclassRepository";
+import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
 import SkillService from "../../../../domain/services/skill.service";
@@ -22,7 +23,8 @@ export default class SubclassRepository implements ISubclassRepository {
   constructor(
     private readonly systemRepository: ISystemRepository,
     private readonly traitRepository: ITraitRepository,
-    private readonly skillService: SkillService
+    private readonly skillService: SkillService,
+    private readonly spellRepository: ISpellRepository
   ) { }
 
   async getBySystems(rulesets: string[], classId?: string): Promise<SubclassApi[]> {
@@ -122,7 +124,8 @@ export default class SubclassRepository implements ISubclassRepository {
       name: data.name,
       description: data.description ?? [],
       img: data.img ?? "",
-      levels: this.mapLevelsForCreate(data.levels)
+      levels: this.mapLevelsForCreate(data.levels),
+      ...(data.expandedSpells?.length ? { expandedSpells: data.expandedSpells } : {})
     });
 
     await created.save();
@@ -130,9 +133,16 @@ export default class SubclassRepository implements ISubclassRepository {
   }
 
   async update(data: InputUpdateSubclass): Promise<SubclassApi> {
-    const { id, levels, ...updateFields } = data;
+    const { id, levels, expandedSpells, ...updateFields } = data;
 
     const setFields: Record<string, unknown> = { ...updateFields };
+    const unsetFields: Record<string, 1> = {};
+
+    if (expandedSpells === null) {
+      unsetFields.expandedSpells = 1;
+    } else if (expandedSpells !== undefined) {
+      setFields.expandedSpells = expandedSpells;
+    }
 
     if (levels !== undefined) {
       const existing = await SubclassModel.findById(id).lean<SubclassMongo>();
@@ -142,9 +152,17 @@ export default class SubclassRepository implements ISubclassRepository {
       setFields.levels = this.mergeLevels(existing.levels ?? [], levels);
     }
 
+    const updateQuery: Record<string, unknown> = {};
+    if (Object.keys(setFields).length > 0) {
+      updateQuery.$set = setFields;
+    }
+    if (Object.keys(unsetFields).length > 0) {
+      updateQuery.$unset = unsetFields;
+    }
+
     const updated = await SubclassModel.findByIdAndUpdate(
       id,
-      { $set: setFields },
+      updateQuery,
       { returnDocument: "after" }
     ).lean<SubclassMongo>();
 
@@ -268,6 +286,9 @@ export default class SubclassRepository implements ISubclassRepository {
 
   private async formatSubclass(doc: SubclassMongo): Promise<SubclassApi> {
     const levels = await this.formatLevels(doc.levels ?? [], doc.ruleset);
+    const expandedSpells = doc.expandedSpells?.length
+      ? await this.spellRepository.getSpellsByIndexes(doc.expandedSpells)
+      : [];
 
     return {
       id: doc._id ? doc._id.toString() : "",
@@ -277,6 +298,7 @@ export default class SubclassRepository implements ISubclassRepository {
       description: doc.description ?? [],
       img: doc.img || "",
       levels,
+      ...(expandedSpells.length ? { expandedSpells } : {}),
       deletedAt: doc.deletedAt
     };
   }

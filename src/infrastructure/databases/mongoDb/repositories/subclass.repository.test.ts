@@ -3,18 +3,22 @@ import SubclassRepository from "./subclass.repository";
 import SubclassModel from "../schemas/Subclass";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
+import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import SkillService from "../../../../domain/services/skill.service";
 
 vi.mock("../schemas/Subclass", () => ({
   default: {
     find: vi.fn(),
-    aggregate: vi.fn()
+    aggregate: vi.fn(),
+    findById: vi.fn(),
+    findByIdAndUpdate: vi.fn()
   }
 }));
 
 const SYSTEM_ID = "507f1f77bcf86cd799439011";
 const CLASS_ID = "507f1f77bcf86cd799439013";
 const SUBCLASS_ID = "507f1f77bcf86cd799439015";
+const SPELL_ID = "507f1f77bcf86cd799439017";
 
 describe("SubclassRepository light queries", () => {
   const traitRepository = {
@@ -26,13 +30,21 @@ describe("SubclassRepository light queries", () => {
   const systemRepository = {
     getSystemsAndAncestors: vi.fn().mockResolvedValue([SYSTEM_ID])
   } as unknown as ISystemRepository;
+  const spellRepository = {
+    getSpellsByIndexes: vi.fn()
+  } as unknown as ISpellRepository;
 
   let repository: SubclassRepository;
 
   beforeEach(() => {
     vi.clearAllMocks();
     systemRepository.getSystemsAndAncestors = vi.fn().mockResolvedValue([SYSTEM_ID]);
-    repository = new SubclassRepository(systemRepository, traitRepository, skillService);
+    repository = new SubclassRepository(
+      systemRepository,
+      traitRepository,
+      skillService,
+      spellRepository
+    );
   });
 
   it("getSummariesByClassAndSystems does not format levels or traits", async () => {
@@ -85,5 +97,49 @@ describe("SubclassRepository light queries", () => {
     ]);
     expect(traitRepository.getTraitsByIndexes).not.toHaveBeenCalled();
     expect(counts.get(CLASS_ID)).toBe(4);
+  });
+
+  it("hydrates expandedSpells on getById", async () => {
+    const spell = { id: SPELL_ID, name: "Manos ardientes", level: 1 };
+    vi.mocked(spellRepository.getSpellsByIndexes).mockResolvedValue([spell] as never);
+    vi.mocked(SubclassModel.findById).mockReturnValue({
+      lean: vi.fn().mockResolvedValue({
+        _id: SUBCLASS_ID,
+        name: "El Infernal",
+        img: "",
+        description: [],
+        ruleset: SYSTEM_ID,
+        classId: CLASS_ID,
+        levels: [],
+        expandedSpells: [SPELL_ID]
+      })
+    } as never);
+
+    const result = await repository.getById(SUBCLASS_ID);
+
+    expect(spellRepository.getSpellsByIndexes).toHaveBeenCalledWith([SPELL_ID]);
+    expect(result?.expandedSpells).toEqual([spell]);
+  });
+
+  it("unsets expandedSpells when update receives null", async () => {
+    const lean = vi.fn().mockResolvedValue({
+      _id: SUBCLASS_ID,
+      name: "El Infernal",
+      img: "",
+      description: [],
+      ruleset: SYSTEM_ID,
+      classId: CLASS_ID,
+      levels: []
+    });
+    vi.mocked(SubclassModel.findByIdAndUpdate).mockReturnValue({ lean } as never);
+
+    await repository.update({ id: SUBCLASS_ID, expandedSpells: null });
+
+    expect(SubclassModel.findByIdAndUpdate).toHaveBeenCalledWith(
+      SUBCLASS_ID,
+      { $unset: { expandedSpells: 1 } },
+      { returnDocument: "after" }
+    );
+    expect(spellRepository.getSpellsByIndexes).not.toHaveBeenCalled();
   });
 });

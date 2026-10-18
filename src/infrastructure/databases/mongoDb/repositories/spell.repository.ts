@@ -9,7 +9,7 @@ import {
 } from "../../../../domain/types/classLevelChoices.types";
 import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi, SpellDamageChoiceApi, SpellDamageTypeApi, DamageComponentApi, SpellClassApi } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
-import { castableSpellLevels, resolveSpellSlotsTableForLevel } from "../../../../utils/characterSpellcasting";
+import { castableSpellLevels, resolveSlotProgressionForLevel } from "../../../../utils/characterSpellcasting";
 import { normalizeSpellCastingTimes } from "../../../../utils/normalizeSpellCastingTimes";
 import SpellSchema from "../schemas/Spell";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
@@ -135,7 +135,7 @@ export default class SpellRepository implements ISpellRepository {
     if (choice.levels !== "castable") return undefined;
     if (!context?.levels || context.targetLevel === undefined) return undefined;
     const leveled = castableSpellLevels(
-      resolveSpellSlotsTableForLevel(context.levels, context.targetLevel)
+      resolveSlotProgressionForLevel(context.levels, context.targetLevel)
     );
     return choice.includeCantrips ? [0, ...leveled] : leveled;
   }

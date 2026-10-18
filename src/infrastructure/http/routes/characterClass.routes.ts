@@ -240,7 +240,27 @@ const router = Router();
  *           additionalProperties:
  *             type: integer
  *             minimum: 0
- *           description: Ranuras por nivel de conjuro (clave "1".."9", valor = cantidad).
+ *           description: >
+ *             Ranuras por nivel de conjuro (clave "1".."9", valor = cantidad).
+ *             Excluyente con uniformSlots.
+ *         uniformSlots:
+ *           type: object
+ *           required:
+ *             - count
+ *             - level
+ *           properties:
+ *             count:
+ *               type: integer
+ *               minimum: 1
+ *               description: Número de ranuras, todas del mismo nivel.
+ *             level:
+ *               type: integer
+ *               minimum: 1
+ *               maximum: 9
+ *               description: Nivel de esas ranuras. Permite conocer y preparar conjuros de 1 hasta este nivel.
+ *           description: >
+ *             Progresión uniforme (cantidad + nivel de ranura). Excluyente con slots.
+ *             Toda la clase debe usar un solo modo (tabla o uniforme).
  *     SubclassChoiceConfig:
  *       type: object
  *       required:

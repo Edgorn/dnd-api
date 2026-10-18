@@ -7,6 +7,7 @@ import { TraitApi } from "../domain/types/traits.types";
 import { Ideal } from "../domain/types/background.types";
 import { computeArmorPieceAc } from "./armorRules";
 import { displaySummary } from "./traitSummary";
+import { resolveClassSlotView } from "./characterSpellcasting";
 
 const abilities: { [key: string]: string } = {
   str: 'FUE',
@@ -675,7 +676,7 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
         })
 
         if (index !== 0) {
-          const slots = spellcastingClas.slots?.slots?.[String(index)] ?? 0
+          const slots = resolveClassSlotView(spellcastingClas.slots).table[String(index)] ?? 0
           form.getTextField('SlotsTot' + (index)).setText('' + (slots || 0))
         }
       })

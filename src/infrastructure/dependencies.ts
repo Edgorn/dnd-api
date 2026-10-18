@@ -282,7 +282,7 @@ const traitRepository = new TraitRepository(damageRepository, proficiencyReposit
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const featRepository = new FeatRepository(systemRepository, attributeService)
 const skillService = new SkillService(skillRepository)
-const subclassRepository = new SubclassRepository(systemRepository, traitRepository, skillService)
+const subclassRepository = new SubclassRepository(systemRepository, traitRepository, skillService, spellRepository)
 const invocacionRepository = new InvocacionRepository(spellRepository, traitRepository)
 const characterClassRepository = new CharacterClassRepository(
   systemRepository,

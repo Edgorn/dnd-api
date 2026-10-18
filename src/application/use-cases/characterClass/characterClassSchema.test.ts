@@ -100,6 +100,63 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts uniformSlots on a level spellcasting table", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      levels: [
+        {
+          level: 1,
+          spellcasting: { cantrips: 2, spellsLearned: 2, uniformSlots: { count: 1, level: 1 } }
+        },
+        {
+          level: 3,
+          spellcasting: { spellsLearned: 1, uniformSlots: { count: 2, level: 2 } }
+        }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects slots and uniformSlots on the same level", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      levels: [
+        {
+          level: 1,
+          spellcasting: { slots: { "1": 2 }, uniformSlots: { count: 1, level: 1 } }
+        }
+      ]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects mixing table slots and uniformSlots across levels", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      levels: [
+        { level: 1, spellcasting: { slots: { "1": 2 } } },
+        { level: 2, spellcasting: { uniformSlots: { count: 2, level: 1 } } }
+      ]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects uniformSlots with count below 1", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      levels: [{ level: 1, spellcasting: { uniformSlots: { count: 0, level: 1 } } }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("rejects a negative spellsLearned value", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",

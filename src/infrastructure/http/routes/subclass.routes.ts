@@ -65,6 +65,14 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen representativa.
+ *         expandedSpells:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Spell'
+ *           description: >
+ *             Lista de conjuros ampliada (p. ej. Infernal). No se otorgan solos: se añaden
+ *             a la lista de la clase padre para este personaje al aprender, recambiar o
+ *             preparar conjuros de esa clase. Omitido si está vacía.
  *         levels:
  *           type: array
  *           items:
@@ -143,6 +151,11 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen.
+ *         expandedSpells:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: ObjectIds de conjuros añadidos a la lista de la clase padre para quien tome esta subclase.
  *         levels:
  *           type: array
  *           items:
@@ -168,6 +181,12 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen.
+ *         expandedSpells:
+ *           nullable: true
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: ObjectIds de la lista ampliada. null borra el campo. Si se omite, se conserva.
  *         levels:
  *           type: array
  *           items:

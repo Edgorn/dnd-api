@@ -29,14 +29,95 @@ export function resolveClassSpellSlotsForLevel(
     .sort((a, b) => b.level - a.level)[0]?.spellcasting;
 }
 
-/** Latest `slots` table at or below the class level, even if a later row omits slots. */
+export interface ClassSlotView {
+  table: Record<string, number>;
+  castableLevels: number[];
+}
+
+function hasSlotProgression(spellcasting?: ClassSpellSlots): boolean {
+  return Boolean(spellcasting?.slots || spellcasting?.uniformSlots);
+}
+
+function isSlotCountTable(
+  value: ClassSpellSlots | Record<string, number>
+): value is Record<string, number> {
+  return !("slots" in value)
+    && !("uniformSlots" in value)
+    && !("cantrips" in value)
+    && !("spellsLearned" in value);
+}
+
+function tableCastableLevels(slots?: Record<string, number>): number[] {
+  if (!slots) return [];
+
+  return Object.entries(slots)
+    .map(([level, count]) => ({ level: Number(level), count }))
+    .filter(({ level, count }) => Number.isInteger(level) && level >= 1 && level <= 9 && count > 0)
+    .sort((a, b) => a.level - b.level)
+    .map(({ level }) => level);
+}
+
+/** Display table and learn/prepare levels for a class slot progression. */
+export function resolveClassSlotView(spellcasting?: ClassSpellSlots): ClassSlotView {
+  if (!spellcasting) {
+    return { table: {}, castableLevels: [] };
+  }
+
+  if (spellcasting.uniformSlots) {
+    const { count, level } = spellcasting.uniformSlots;
+    if (count <= 0 || !Number.isInteger(level) || level < 1 || level > 9) {
+      return { table: {}, castableLevels: [] };
+    }
+
+    const castableLevels: number[] = [];
+    for (let spellLevel = 1; spellLevel <= level; spellLevel++) {
+      castableLevels.push(spellLevel);
+    }
+
+    return {
+      table: { [String(level)]: count },
+      castableLevels,
+    };
+  }
+
+  const table = spellcasting.slots ?? {};
+  return { table, castableLevels: tableCastableLevels(table) };
+}
+
+/** Latest table or uniform progression at or below the class level. */
+export function resolveSlotProgressionForLevel(
+  levels: { level: number; spellcasting?: ClassSpellSlots }[],
+  characterLevel: number
+): ClassSpellSlots | undefined {
+  const row = levels
+    .filter(lev => lev.level <= characterLevel && hasSlotProgression(lev.spellcasting))
+    .sort((a, b) => b.level - a.level)[0];
+
+  if (row?.spellcasting?.uniformSlots) {
+    return { uniformSlots: row.spellcasting.uniformSlots };
+  }
+  if (row?.spellcasting?.slots) {
+    return { slots: row.spellcasting.slots };
+  }
+  return undefined;
+}
+
+/** Latest display slot table at or below the class level, even if a later row omits slots. */
 export function resolveSpellSlotsTableForLevel(
   levels: { level: number; spellcasting?: ClassSpellSlots }[],
   characterLevel: number
 ): Record<string, number> | undefined {
-  return levels
-    .filter(lev => lev.level <= characterLevel && lev.spellcasting?.slots)
-    .sort((a, b) => b.level - a.level)[0]?.spellcasting?.slots;
+  const progression = resolveSlotProgressionForLevel(levels, characterLevel);
+  if (!progression) return undefined;
+  return resolveClassSlotView(progression).table;
+}
+
+export function mergeClassSpellSlots(
+  row?: ClassSpellSlots,
+  progression?: ClassSpellSlots
+): ClassSpellSlots | undefined {
+  if (!row && !progression) return undefined;
+  return { ...row, ...progression };
 }
 
 export function remainingCantripPicks(cap: number | undefined, ownedCount: number): number {
@@ -86,14 +167,14 @@ export function buildCantripSpellChoice(classId: string, choose: number): Choice
   };
 }
 
-export function castableSpellLevels(slots?: Record<string, number>): number[] {
+export function castableSpellLevels(
+  slots?: ClassSpellSlots | Record<string, number>
+): number[] {
   if (!slots) return [];
-
-  return Object.entries(slots)
-    .map(([level, count]) => ({ level: Number(level), count }))
-    .filter(({ level, count }) => Number.isInteger(level) && level >= 1 && level <= 9 && count > 0)
-    .sort((a, b) => a.level - b.level)
-    .map(({ level }) => level);
+  if (isSlotCountTable(slots)) {
+    return tableCastableLevels(slots);
+  }
+  return resolveClassSlotView(slots).castableLevels;
 }
 
 export function spellsLearnedAtLevel(
@@ -168,7 +249,7 @@ export function buildSynthesizedKnownSpellChoice(
 
   if (hasKnownSpellChoice(persistedChoices, classId)) return undefined;
 
-  const spellLevels = castableSpellLevels(resolveSpellSlotsTableForLevel(levels, targetLevel));
+  const spellLevels = castableSpellLevels(resolveSlotProgressionForLevel(levels, targetLevel));
   if (!spellLevels.length) return undefined;
 
   return buildKnownSpellChoice(classId, choose, spellLevels);
@@ -183,6 +264,72 @@ export function excludeKnownSpellOptions<T extends { id?: string }>(
     ...choice,
     options: choice.options.filter(opt => !opt.id || !known.has(opt.id)),
   }));
+}
+
+export function spellOnExpandedClassList(
+  spell: { id: string; classIds: string[] },
+  classId: string,
+  extraIds?: Iterable<string>
+): boolean {
+  if (spell.classIds.includes(classId)) return true;
+  if (!extraIds) return false;
+  const extras = extraIds instanceof Set ? extraIds : new Set(extraIds);
+  return extras.has(spell.id);
+}
+
+export function collectExpandedSpells<T extends { id?: string }>(
+  subclasses: Array<{ expandedSpells?: T[] }>
+): T[] {
+  const seen = new Set<string>();
+  const extras: T[] = [];
+  for (const subclass of subclasses) {
+    for (const spell of subclass.expandedSpells ?? []) {
+      if (!spell.id || seen.has(spell.id)) continue;
+      seen.add(spell.id);
+      extras.push(spell);
+    }
+  }
+  return extras;
+}
+
+function spellChoiceAllowedLevels(choice: {
+  query_filter?: Record<string, string | number | (string | number)[]>;
+  filter?: Record<string, string | number | (string | number)[]>;
+}): number[] | undefined {
+  const raw = choice.query_filter?.level ?? choice.filter?.level;
+  if (typeof raw === "number") return [raw];
+  if (Array.isArray(raw)) {
+    return raw.filter((level): level is number => typeof level === "number");
+  }
+  return undefined;
+}
+
+export function mergeExpandedSpellsIntoChoice<T extends { id?: string; level: number }>(
+  choice: ChoiceApi<T>,
+  extras: T[]
+): ChoiceApi<T> {
+  if (!extras.length) return choice;
+  const allowed = spellChoiceAllowedLevels(choice);
+  if (allowed === undefined) return choice;
+
+  const existing = new Set(
+    choice.options.map(opt => opt.id).filter((id): id is string => Boolean(id))
+  );
+  const extra = extras.filter(spell =>
+    Boolean(spell.id)
+    && !existing.has(spell.id as string)
+    && allowed.includes(spell.level)
+  );
+  if (!extra.length) return choice;
+  return { ...choice, options: [...choice.options, ...extra] };
+}
+
+export function mergeExpandedSpellsIntoChoices<T extends { id?: string; level: number }>(
+  choices: ChoiceApi<T>[] | undefined,
+  extras: T[]
+): ChoiceApi<T>[] | undefined {
+  if (!choices?.length || !extras.length) return choices;
+  return choices.map(choice => mergeExpandedSpellsIntoChoice(choice, extras));
 }
 
 export interface LevelUpSpellChoicePick {
@@ -435,8 +582,9 @@ export function validatePreparedSpellPicks(params: {
   spells: PreparedSpellPickInput[];
   castableLevels: number[];
   excludeFromCap?: Iterable<string>;
+  extraClassSpellIds?: Iterable<string>;
 }): { error?: string } {
-  const { spellIds, cap, preparedFrom, knownIds, classId, spells, castableLevels, excludeFromCap } = params;
+  const { spellIds, cap, preparedFrom, knownIds, classId, spells, castableLevels, excludeFromCap, extraClassSpellIds } = params;
   const seen = new Set<string>();
   const known = new Set(knownIds);
   const castable = new Set(castableLevels);
@@ -467,7 +615,7 @@ export function validatePreparedSpellPicks(params: {
     if (preparedFrom === "known" && !known.has(id)) {
       return { error: "El conjuro no está entre los conjuros conocidos de esta clase" };
     }
-    if (preparedFrom === "classList" && !spell.classIds.includes(classId)) {
+    if (preparedFrom === "classList" && !spellOnExpandedClassList(spell, classId, extraClassSpellIds)) {
       return { error: "El conjuro no pertenece a la lista de esta clase" };
     }
   }
@@ -526,8 +674,9 @@ export function validateSpellPrivilegePicks(params: {
   knownIds: string[];
   classId: string;
   spells: SpellPrivilegePickInput[];
+  extraClassSpellIds?: Iterable<string>;
 }): { error?: string } {
-  const { hasClass, hasTrait, rules, selections, knownIds, classId, spells } = params;
+  const { hasClass, hasTrait, rules, selections, knownIds, classId, spells, extraClassSpellIds } = params;
 
   if (!hasClass) {
     return { error: "El personaje no tiene esa clase" };
@@ -568,7 +717,7 @@ export function validateSpellPrivilegePicks(params: {
       if (!spellLevelMatchesFilter(spell.level, rule.filter.level)) {
         return { error: `El conjuro no coincide con el nivel de la regla ${i + 1}` };
       }
-      if (!spell.classIds.includes(classId)) {
+      if (!spellOnExpandedClassList(spell, classId, extraClassSpellIds)) {
         return { error: "El conjuro no pertenece a la lista de esta clase" };
       }
       if (rule.source === "known" && !known.has(id)) {
@@ -667,6 +816,7 @@ export function validateKnownSpellPicks(params: {
   castableLevels: number[];
   cantripCap?: number;
   ownedCantripCount: number;
+  extraClassSpellIds?: Iterable<string>;
 }): { error?: string } {
   const {
     spellIds,
@@ -676,6 +826,7 @@ export function validateKnownSpellPicks(params: {
     castableLevels,
     cantripCap,
     ownedCantripCount,
+    extraClassSpellIds,
   } = params;
 
   if (spellIds.length === 0) {
@@ -702,7 +853,7 @@ export function validateKnownSpellPicks(params: {
     if (!spell) {
       return { error: "El conjuro no existe o no está disponible" };
     }
-    if (!spell.classIds.includes(classId)) {
+    if (!spellOnExpandedClassList(spell, classId, extraClassSpellIds)) {
       return { error: "El conjuro no pertenece a la lista de esta clase" };
     }
     if (spell.level === 0) {
@@ -755,10 +906,15 @@ export function buildSpellcastingLevel(
     )))
     : undefined;
 
+  const sourceSlots = source.slots;
+  const projectedSlots = sourceSlots?.uniformSlots && !sourceSlots.slots
+    ? { ...sourceSlots, slots: resolveClassSlotView(sourceSlots).table }
+    : sourceSlots;
+
   return {
     class: source.class,
     ability,
-    slots: source.slots,
+    slots: projectedSlots,
     spellSaveDc: evaluateFormula(saveFormula, characterAttributes, variables, formulaOptions),
     spellAttackBonus: evaluateFormula(attackFormula, characterAttributes, variables, formulaOptions),
     ...(spellsPrepared !== undefined ? { spellsPrepared, preparedFrom: source.preparedFrom } : {}),

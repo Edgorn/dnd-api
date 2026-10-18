@@ -10,12 +10,18 @@ import {
   applySpellReplacements,
   buildSpellReplacementToChoice,
   eligibleSpellReplacementFrom,
+  collectExpandedSpells,
   excludeKnownSpellOptions,
+  mergeExpandedSpellsIntoChoices,
+  spellOnExpandedClassList,
   hasCantripSpellChoice,
   hasKnownSpellChoice,
   prunePreparedSpellIds,
+  mergeClassSpellSlots,
   remainingCantripPicks,
+  resolveClassSlotView,
   resolveClassSpellSlotsForLevel,
+  resolveSlotProgressionForLevel,
   resolveSpellSlotsTableForLevel,
   shouldOfferSpellReplacement,
   spellsLearnedAtLevel,
@@ -156,6 +162,23 @@ describe("buildSpellcastingLevel", () => {
     expect(DEFAULT_SPELL_SAVE_DC_FORMULA).toContain("@spellcasting.modifier");
     expect(DEFAULT_SPELL_ATTACK_BONUS_FORMULA).toContain("@proficiencyBonus");
   });
+
+  it("projects a slot table from uniformSlots when slots is omitted", () => {
+    const source: SpellcastingLevelSource = {
+      class: "warlock-id",
+      abilityKey: "int",
+      classLevel: 5,
+      slots: { cantrips: 3, uniformSlots: { count: 2, level: 3 } },
+    };
+
+    const result = buildSpellcastingLevel(source, intAbility, characterAttributes, 3);
+
+    expect(result.slots).toEqual({
+      cantrips: 3,
+      uniformSlots: { count: 2, level: 3 },
+      slots: { "3": 2 },
+    });
+  });
 });
 
 describe("resolveClassSpellSlotsForLevel", () => {
@@ -194,6 +217,22 @@ describe("resolveClassSpellSlotsForLevel", () => {
   });
 });
 
+describe("resolveClassSlotView", () => {
+  it("uses table keys with a positive count as castable levels", () => {
+    expect(resolveClassSlotView({ slots: { "2": 2, "1": 4, "3": 0 } })).toEqual({
+      table: { "2": 2, "1": 4, "3": 0 },
+      castableLevels: [1, 2],
+    });
+  });
+
+  it("expands uniform slots to 1..level and a single table key", () => {
+    expect(resolveClassSlotView({ uniformSlots: { count: 2, level: 3 } })).toEqual({
+      table: { "3": 2 },
+      castableLevels: [1, 2, 3],
+    });
+  });
+});
+
 describe("resolveSpellSlotsTableForLevel", () => {
   it("inherits slots from a previous level when the current row omits them", () => {
     const levels = [
@@ -202,6 +241,32 @@ describe("resolveSpellSlotsTableForLevel", () => {
     ];
 
     expect(resolveSpellSlotsTableForLevel(levels, 2)).toEqual({ "1": 2 });
+  });
+
+  it("inherits uniformSlots as a single-level display table", () => {
+    const levels = [
+      { level: 1, spellcasting: { spellsLearned: 2, uniformSlots: { count: 1, level: 1 } } },
+      { level: 5, spellcasting: { spellsLearned: 1, uniformSlots: { count: 2, level: 3 } } },
+      { level: 6, spellcasting: { spellsLearned: 1 } },
+    ];
+
+    expect(resolveSpellSlotsTableForLevel(levels, 6)).toEqual({ "3": 2 });
+    expect(resolveSlotProgressionForLevel(levels, 6)).toEqual({
+      uniformSlots: { count: 2, level: 3 },
+    });
+  });
+});
+
+describe("mergeClassSpellSlots", () => {
+  it("keeps cantrips and spellsLearned while inheriting slot progression", () => {
+    expect(mergeClassSpellSlots(
+      { spellsLearned: 1, cantrips: 3 },
+      { uniformSlots: { count: 2, level: 3 } }
+    )).toEqual({
+      spellsLearned: 1,
+      cantrips: 3,
+      uniformSlots: { count: 2, level: 3 },
+    });
   });
 });
 
@@ -261,6 +326,10 @@ describe("castableSpellLevels", () => {
   it("returns an empty list when there are no slots", () => {
     expect(castableSpellLevels(undefined)).toEqual([]);
     expect(castableSpellLevels({})).toEqual([]);
+  });
+
+  it("returns 1..level for uniformSlots", () => {
+    expect(castableSpellLevels({ uniformSlots: { count: 2, level: 3 } })).toEqual([1, 2, 3]);
   });
 });
 
@@ -357,6 +426,18 @@ describe("buildSynthesizedKnownSpellChoice", () => {
     expect(buildSynthesizedKnownSpellChoice("c1", levels, 1)).toBeUndefined();
   });
 
+  it("synthesizes from inherited uniformSlots using levels 1..slot level", () => {
+    const levels = [
+      { level: 1, spellcasting: { spellsLearned: 2, uniformSlots: { count: 1, level: 1 } } },
+      { level: 5, spellcasting: { spellsLearned: 1, uniformSlots: { count: 2, level: 3 } } },
+    ];
+
+    expect(buildSynthesizedKnownSpellChoice("c1", levels, 5)).toEqual({
+      choose: 1,
+      filter: { level: [1, 2, 3], classes: "c1" },
+    });
+  });
+
   it("does not synthesize when a class-list choice is already persisted", () => {
     const levels = [
       { level: 1, spellcasting: { spellsLearned: 4, slots: { "1": 2 } } },
@@ -378,6 +459,58 @@ describe("excludeKnownSpellOptions", () => {
       ["b"]
     );
     expect(result[0].options.map(opt => opt.id)).toEqual(["a", "c"]);
+  });
+});
+
+describe("expanded class spell list", () => {
+  it("treats extra ids as belonging to the class list", () => {
+    expect(spellOnExpandedClassList(
+      { id: "burning-hands", classIds: ["wizard"] },
+      "warlock",
+      ["burning-hands"]
+    )).toBe(true);
+    expect(spellOnExpandedClassList(
+      { id: "eldritch-blast", classIds: ["warlock"] },
+      "warlock"
+    )).toBe(true);
+    expect(spellOnExpandedClassList(
+      { id: "fireball", classIds: ["wizard"] },
+      "warlock",
+      ["burning-hands"]
+    )).toBe(false);
+  });
+
+  it("collects unique hydrated extras from subclasses", () => {
+    expect(collectExpandedSpells([
+      { expandedSpells: [{ id: "a", level: 1 }, { id: "b", level: 2 }] },
+      { expandedSpells: [{ id: "a", level: 1 }, { id: "c", level: 3 }] },
+      {}
+    ])).toEqual([
+      { id: "a", level: 1 },
+      { id: "b", level: 2 },
+      { id: "c", level: 3 }
+    ]);
+  });
+
+  it("merges extras whose level matches the choice filter and skips duplicates", () => {
+    const merged = mergeExpandedSpellsIntoChoices(
+      [{
+        choose: 1,
+        options: [{ id: "hex", level: 1 }],
+        query_filter: { level: [1, 2], classes: "warlock" }
+      }],
+      [
+        { id: "burning-hands", level: 1 },
+        { id: "hex", level: 1 },
+        { id: "fireball", level: 3 }
+      ]
+    );
+    expect(merged?.[0].options.map(opt => opt.id)).toEqual(["hex", "burning-hands"]);
+  });
+
+  it("does not merge extras when the choice has no level filter", () => {
+    const choice = { choose: 2, options: [{ id: "any-1", level: 1 }] };
+    expect(mergeExpandedSpellsIntoChoices([choice], [{ id: "fireball", level: 3 }])).toEqual([choice]);
   });
 });
 
@@ -734,6 +867,20 @@ describe("validatePreparedSpellPicks", () => {
     expect(result.error).toMatch(/lista de esta clase/);
   });
 
+  it("accepts classList spells from a subclass expanded list", () => {
+    const result = validatePreparedSpellPicks({
+      spellIds: ["other-1"],
+      cap: 5,
+      preparedFrom: "classList",
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      extraClassSpellIds: ["other-1"],
+    });
+    expect(result).toEqual({});
+  });
+
   it("rejects spells above the available slot levels", () => {
     const result = validatePreparedSpellPicks({
       spellIds: ["spell-2"],
@@ -817,6 +964,20 @@ describe("validateKnownSpellPicks", () => {
       cantripCap: 3,
       ownedCantripCount: 0,
     }).error).toMatch(/lista de esta clase/);
+  });
+
+  it("accepts spells from a subclass expanded list", () => {
+    const result = validateKnownSpellPicks({
+      spellIds: ["other-1"],
+      knownIds: [],
+      classId: wizardId,
+      spells: preparedSpells,
+      castableLevels: [1],
+      cantripCap: 3,
+      ownedCantripCount: 0,
+      extraClassSpellIds: ["other-1"],
+    });
+    expect(result).toEqual({});
   });
 
   it("rejects cantrips when the class has no cantrip cap", () => {

@@ -1603,6 +1603,9 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       de la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos
  *       sintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con
  *       ranuras), más las elecciones persistidas de niveles 1–9.
+ *       Si el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de
+ *       clase (trucos, conocidos y `spell_changes.to`) incluyen `expandedSpells`. Si aún debe elegir
+ *       subclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.
  *       Si la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa
  *       clase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`
  *       pares from/to). No forma parte de `spell_choices` y se puede omitir.
@@ -1659,7 +1662,10 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   description: Datos dinámicos de rasgos del nuevo nivel (usos, valores numéricos, etc.).
  *                 spell_choices:
  *                   type: array
- *                   description: Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips, conjuros conocidos desde spellsLearned y choices persistidas).
+ *                   description: >
+ *                     Elecciones de conjuros para el nuevo nivel (trucos inferidos desde cantrips,
+ *                     conjuros conocidos desde spellsLearned y choices persistidas). Con subclase
+ *                     asignada, las sintetizadas de lista de clase incluyen expandedSpells.
  *                   items:
  *                     $ref: '#/components/schemas/SpellChoiceApi'
  *                 spell_changes:

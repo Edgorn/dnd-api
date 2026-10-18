@@ -1,6 +1,7 @@
 import { ChoiceApi, ChoiceMongo } from ".";
 import { LevelSkillProficiencyChoice, SpellChoiceMongo } from "./classLevelChoices.types";
 import { SkillApi } from "./skill.types";
+import { SpellApi } from "./spell.types";
 import { TraitApi, TraitDataMongo } from "./traits.types";
 
 export interface SubclassLevelInput {
@@ -37,6 +38,7 @@ export interface InputCreateSubclass {
   description?: string[];
   img?: string;
   levels?: SubclassLevelInput[];
+  expandedSpells?: string[];
 }
 
 export interface InputUpdateSubclass {
@@ -47,6 +49,7 @@ export interface InputUpdateSubclass {
   description?: string[];
   img?: string;
   levels?: SubclassLevelInput[];
+  expandedSpells?: string[] | null;
 }
 
 export interface SubclassMongo {
@@ -57,6 +60,7 @@ export interface SubclassMongo {
   description: string[];
   img: string;
   levels: SubclassLevelMongo[];
+  expandedSpells?: string[];
   deletedAt?: Date | null;
 }
 
@@ -68,6 +72,7 @@ export interface SubclassApi {
   description: string[];
   img: string;
   levels: SubclassLevelApi[];
+  expandedSpells?: SpellApi[];
   deletedAt?: Date | null;
 }
 

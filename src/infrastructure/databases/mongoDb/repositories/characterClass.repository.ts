@@ -45,8 +45,10 @@ import {
   buildCantripSpellChoice,
   buildSynthesizedKnownSpellChoice,
   hasCantripSpellChoice,
+  mergeClassSpellSlots,
   remainingCantripPicks,
   resolveClassSpellSlotsForLevel,
+  resolveSlotProgressionForLevel,
 } from '../../../../utils/characterSpellcasting';
 import {
   hasAbilityScoreAtLevel,
@@ -421,7 +423,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     if (!level) return null;
 
-    const rawSpellcasting = resolveClassSpellSlotsForLevel(characterClass.levels ?? [], level);
+    const rawSpellcasting = mergeClassSpellSlots(
+      resolveClassSpellSlotsForLevel(characterClass.levels ?? [], level),
+      resolveSlotProgressionForLevel(characterClass.levels ?? [], level)
+    );
 
     if (!rawSpellcasting) return null;
 

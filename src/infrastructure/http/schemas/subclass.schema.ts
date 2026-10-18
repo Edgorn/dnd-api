@@ -6,6 +6,10 @@ import {
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
+const ExpandedSpellIdsSchema = z.array(
+  z.string().regex(objectIdRegex, "Cada conjuro ampliado debe ser un ObjectId válido de MongoDB")
+);
+
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
   options: z.array(z.string()).optional(),
@@ -48,7 +52,8 @@ export const CreateSubclassSchema = z.object({
   name: z.string().min(1, "El nombre no puede estar vacío"),
   description: z.array(z.string()).optional(),
   img: z.string().optional(),
-  levels: z.array(SubclassLevelInputSchema).optional()
+  levels: z.array(SubclassLevelInputSchema).optional(),
+  expandedSpells: ExpandedSpellIdsSchema.optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
 });
@@ -59,7 +64,8 @@ export const UpdateSubclassSchema = z.object({
   name: z.string().min(1, "El nombre no puede estar vacío").optional(),
   description: z.array(z.string()).optional(),
   img: z.string().optional(),
-  levels: z.array(SubclassLevelInputSchema).optional()
+  levels: z.array(SubclassLevelInputSchema).optional(),
+  expandedSpells: ExpandedSpellIdsSchema.nullable().optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
 }).refine(data => Object.keys(data).length > 0, {

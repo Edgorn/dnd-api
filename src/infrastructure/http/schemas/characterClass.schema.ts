@@ -48,10 +48,24 @@ const classFormulaSchema = (fieldLabel: string) =>
     }
   });
 
+const UniformSpellSlotsSchema = z.object({
+  count: z.number().int().min(1, "Debe haber al menos 1 ranura"),
+  level: z.number().int().min(1, "El nivel de ranura debe ser al menos 1").max(9, "El nivel de ranura no puede superar 9")
+}).strict();
+
 const ClassSpellSlotsSchema = z.object({
   cantrips: z.number().int().min(0).optional(),
   spellsLearned: z.number().int().min(0).optional(),
-  slots: z.record(z.string(), z.number().int().min(0)).optional()
+  slots: z.record(z.string(), z.number().int().min(0)).optional(),
+  uniformSlots: UniformSpellSlotsSchema.optional()
+}).superRefine((data, ctx) => {
+  if (data.slots !== undefined && data.uniformSlots !== undefined) {
+    ctx.addIssue({
+      code: "custom",
+      message: "slots y uniformSlots no pueden indicarse juntos",
+      path: ["uniformSlots"]
+    });
+  }
 }).optional();
 
 const CharacterClassLevelInputSchema = z.object({
@@ -138,6 +152,42 @@ const spellPreparationPairRefinement = (
   });
 };
 
+type SlotProgressionMode = "table" | "uniform";
+
+function slotProgressionMode(
+  spellcasting?: { slots?: unknown; uniformSlots?: unknown } | null
+): SlotProgressionMode | undefined {
+  if (!spellcasting) return undefined;
+  if (spellcasting.uniformSlots !== undefined) return "uniform";
+  if (spellcasting.slots !== undefined) return "table";
+  return undefined;
+}
+
+const consistentSlotProgressionRefinement = (
+  levels: Array<{
+    spellcasting?: { slots?: unknown; uniformSlots?: unknown };
+  }> | undefined,
+  ctx: z.RefinementCtx
+) => {
+  if (!levels) return;
+  let mode: SlotProgressionMode | undefined;
+  for (let i = 0; i < levels.length; i++) {
+    const rowMode = slotProgressionMode(levels[i].spellcasting);
+    if (!rowMode) continue;
+    if (!mode) {
+      mode = rowMode;
+      continue;
+    }
+    if (rowMode !== mode) {
+      ctx.addIssue({
+        code: "custom",
+        message: "levels no puede mezclar ranuras por nivel y ranuras uniformes",
+        path: ["levels", i, "spellcasting"]
+      });
+    }
+  }
+};
+
 const characterClassFields = {
   hit_die: z.number().int().min(1).optional(),
   proficiencies: z.array(z.string()).optional(),
@@ -173,6 +223,7 @@ export const CreateCharacterClassSchema = z.object({
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
   spellPreparationPairRefinement(data, ctx);
+  consistentSlotProgressionRefinement(data.levels, ctx);
 });
 
 export const UpdateCharacterClassSchema = z.object({
@@ -186,6 +237,7 @@ export const UpdateCharacterClassSchema = z.object({
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
   spellPreparationPairRefinement(data, ctx);
+  consistentSlotProgressionRefinement(data.levels, ctx);
 })
   .refine(data => Object.keys(data).length > 0, {
     message: "Debe proporcionar al menos un campo para actualizar"

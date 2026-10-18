@@ -15,6 +15,7 @@ const subclassSchema: Schema = new Schema<SubclassMongo>({
     skillProficiencyChoices: { type: Schema.Types.Mixed, default: undefined },
     spell_choices: { type: Schema.Types.Mixed, default: undefined }
   }],
+  expandedSpells: { type: [String], default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: "subclasses", timestamps: true });
 

@@ -104,6 +104,27 @@ describe("CreateSubclassSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts expandedSpells ObjectIds", () => {
+    const spellId = "507f1f77bcf86cd799439013";
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "El Infernal",
+      expandedSpells: [spellId, traitId]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects expandedSpells that are not ObjectIds", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "El Infernal",
+      expandedSpells: ["manos-ardientes"]
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects skill_choices with choose less than 1", () => {
     const result = CreateSubclassSchema.safeParse({
       ruleset: "sys1",
@@ -132,6 +153,13 @@ describe("UpdateSubclassSchema", () => {
   it("accepts null skill_choices on a level to clear the choice", () => {
     const result = UpdateSubclassSchema.safeParse({
       levels: [{ level: 3, skill_choices: null }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null expandedSpells to clear the list", () => {
+    const result = UpdateSubclassSchema.safeParse({
+      expandedSpells: null
     });
     expect(result.success).toBe(true);
   });
