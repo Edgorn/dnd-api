@@ -1,9 +1,6 @@
 import { CharacterAttributeApi } from "../domain/types/attribute.types";
 import { AttributeApi } from "../domain/types/attribute.types";
-import {
-  CreatureAttack,
-  CreatureSkillBonus
-} from "../domain/types/creature.types";
+import { CreatureSkillBonus } from "../domain/types/creature.types";
 import { SkillApi, SkillPersonajeApi } from "../domain/types/skill.types";
 import { evaluateAttributeModifier } from "./formulaEvaluator";
 
@@ -85,14 +82,4 @@ export function resolveArmorClass(
 
   const dexterity = attributes.find(attribute => attribute.key === "dex");
   return 10 + (dexterity?.modifier ?? 0);
-}
-
-export function resolveAttackBonus(
-  attack: Pick<CreatureAttack, "attributeKey" | "bonus">,
-  attributes: CharacterAttributeApi[],
-  profBonus: number
-): number {
-  if (attack.bonus !== undefined) return attack.bonus;
-  const modifier = attributes.find(attribute => attribute.key === attack.attributeKey)?.modifier ?? 0;
-  return modifier + profBonus;
 }

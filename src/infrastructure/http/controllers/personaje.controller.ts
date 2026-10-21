@@ -14,6 +14,8 @@ import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import BindPactEquipment from "../../../application/use-cases/personaje/bindPactEquipment.use-case";
 import LearnSpells from "../../../application/use-cases/personaje/learnSpells.use-case";
 import AñadirForma from "../../../application/use-cases/personaje/añadirForma.use-case";
+import ActivateCharacterForm from "../../../application/use-cases/personaje/activateCharacterForm.use-case";
+import DeactivateCharacterForm from "../../../application/use-cases/personaje/deactivateCharacterForm.use-case";
 import ToggleFavoriteEquipment from "../../../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import PrepareSpells from "../../../application/use-cases/personaje/prepareSpells.use-case";
 import BindSpellPrivileges from "../../../application/use-cases/personaje/bindSpellPrivileges.use-case";
@@ -39,6 +41,8 @@ export class PersonajeController {
     private readonly bindPactEquipment: BindPactEquipment,
     private readonly learnSpellsUseCase: LearnSpells,
     private readonly añadirForma: AñadirForma,
+    private readonly activateCharacterFormUseCase: ActivateCharacterForm,
+    private readonly deactivateCharacterFormUseCase: DeactivateCharacterForm,
     private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment,
     private readonly prepareSpellsUseCase: PrepareSpells,
     private readonly bindSpellPrivilegesUseCase: BindSpellPrivileges,
@@ -267,6 +271,7 @@ export class PersonajeController {
         skillProficiencyPicks,
         proficiencyPicks,
         spellReplacements,
+        optionPicks,
       } = req.body;
       const data = await this.levelUpUseCase.execute({
         id,
@@ -282,6 +287,7 @@ export class PersonajeController {
         skillProficiencyPicks,
         proficiencyPicks,
         spellReplacements,
+        optionPicks,
       });
       res.status(200).json(data);
     } catch (e) {
@@ -363,9 +369,55 @@ export class PersonajeController {
   addForm = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const data = await this.añadirForma.execute({ id, form: req.body.form })
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      const { creatureId, spellId } = req.body;
+      const data = await this.añadirForma.execute({
+        id,
+        creatureId,
+        spellId,
+        userId: req.user!
+      });
       res.status(200).json(data);
     } catch (e) {
+      console.error("[PersonajeController.addForm] Error:", e);
+      next(e);
+    }
+  };
+
+  activateForm = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, formId } = req.params;
+      if (!id || !formId) {
+        throw new ValidationError("Se requiere el ID del personaje y de la forma");
+      }
+      const data = await this.activateCharacterFormUseCase.execute({
+        id,
+        formId,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.activateForm] Error:", e);
+      next(e);
+    }
+  };
+
+  deactivateForm = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, formId } = req.params;
+      if (!id || !formId) {
+        throw new ValidationError("Se requiere el ID del personaje y de la forma");
+      }
+      const data = await this.deactivateCharacterFormUseCase.execute({
+        id,
+        formId,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.deactivateForm] Error:", e);
       next(e);
     }
   };

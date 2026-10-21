@@ -12,6 +12,8 @@ import { AppError, NotFoundError } from "../../../domain/errors/AppError";
 describe("Spell Use Cases", () => {
   let spellServiceMock: any;
   let systemServiceMock: any;
+  let creatureServiceMock: any;
+  let creatureTypeServiceMock: any;
 
   beforeEach(() => {
     spellServiceMock = {
@@ -26,13 +28,22 @@ describe("Spell Use Cases", () => {
     };
 
     systemServiceMock = {
+      getById: vi.fn(),
+      getSystemsAndAncestors: vi.fn().mockResolvedValue(["sys1"])
+    };
+
+    creatureServiceMock = {
+      getById: vi.fn()
+    };
+
+    creatureTypeServiceMock = {
       getById: vi.fn()
     };
   });
 
   describe("CreateSpell", () => {
     it("should create a spell successfully when system exists and user is publisher", async () => {
-      const useCase = new CreateSpell(spellServiceMock, systemServiceMock);
+      const useCase = new CreateSpell(spellServiceMock, systemServiceMock, creatureServiceMock, creatureTypeServiceMock);
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       spellServiceMock.create.mockResolvedValue({ id: "spell1", name: "Fireball" });
 
@@ -44,7 +55,7 @@ describe("Spell Use Cases", () => {
     });
 
     it("forwards tables to the spell service", async () => {
-      const useCase = new CreateSpell(spellServiceMock, systemServiceMock);
+      const useCase = new CreateSpell(spellServiceMock, systemServiceMock, creatureServiceMock, creatureTypeServiceMock);
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       spellServiceMock.create.mockResolvedValue({ id: "spell1", name: "Confusión" });
 
@@ -66,15 +77,35 @@ describe("Spell Use Cases", () => {
     });
 
     it("should throw error if system is not found", async () => {
-      const useCase = new CreateSpell(spellServiceMock, systemServiceMock);
+      const useCase = new CreateSpell(spellServiceMock, systemServiceMock, creatureServiceMock, creatureTypeServiceMock);
       systemServiceMock.getById.mockResolvedValue(null);
 
       const input = { ruleset: "sys1", name: "Fireball", level: 3, description: ["Boom"], classes: [], ritual: false };
       await expect(useCase.execute(input, "user1")).rejects.toThrow(AppError);
     });
 
+    it("rejects a missing creatureForm creature", async () => {
+      const useCase = new CreateSpell(spellServiceMock, systemServiceMock, creatureServiceMock, creatureTypeServiceMock);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      creatureServiceMock.getById.mockResolvedValue(null);
+
+      await expect(useCase.execute({
+        ruleset: "sys1",
+        name: "Find Familiar",
+        level: 1,
+        description: ["Owl"],
+        classes: [],
+        ritual: true,
+        creatureForm: {
+          purpose: "companion",
+          pool: { mode: "ids", creatureIds: ["507f1f77bcf86cd799439011"] }
+        }
+      }, "user1")).rejects.toThrow("Criatura no encontrada");
+      expect(spellServiceMock.create).not.toHaveBeenCalled();
+    });
+
     it("should throw 403 if user is not system publisher", async () => {
-      const useCase = new CreateSpell(spellServiceMock, systemServiceMock);
+      const useCase = new CreateSpell(spellServiceMock, systemServiceMock, creatureServiceMock, creatureTypeServiceMock);
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "otherUser" });
 
       const input = { ruleset: "sys1", name: "Fireball", level: 3, description: ["Boom"], classes: [], ritual: false };
@@ -112,13 +143,32 @@ describe("Spell Use Cases", () => {
 
   describe("UpdateSpell", () => {
     it("should update spell when found and user has permission", async () => {
-      const useCase = new UpdateSpell(spellServiceMock, systemServiceMock);
+      const useCase = new UpdateSpell(spellServiceMock, systemServiceMock, creatureServiceMock, creatureTypeServiceMock);
       spellServiceMock.getById.mockResolvedValue({ id: "spell1", ruleset: "sys1" });
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       spellServiceMock.update.mockResolvedValue({ id: "spell1", name: "Updated Fireball" });
 
       const result = await useCase.execute({ id: "spell1", name: "Updated Fireball" }, "user1");
       expect(result).toEqual({ id: "spell1", name: "Updated Fireball" });
+    });
+
+    it("rejects a creatureForm creature from another system", async () => {
+      const useCase = new UpdateSpell(spellServiceMock, systemServiceMock, creatureServiceMock, creatureTypeServiceMock);
+      spellServiceMock.getById.mockResolvedValue({ id: "spell1", ruleset: "sys1" });
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      creatureServiceMock.getById.mockResolvedValue({
+        id: "507f1f77bcf86cd799439011",
+        ruleset: "other",
+        deletedAt: null
+      });
+
+      await expect(useCase.execute({
+        id: "spell1",
+        creatureForm: {
+          purpose: "companion",
+          pool: { mode: "ids", creatureIds: ["507f1f77bcf86cd799439011"] }
+        }
+      }, "user1")).rejects.toThrow("La criatura no pertenece a este sistema ni a sus ancestros");
     });
   });
 

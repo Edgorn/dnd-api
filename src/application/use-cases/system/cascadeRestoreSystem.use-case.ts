@@ -9,6 +9,8 @@ import IArmorTypeRepository from "../../../domain/repositories/IArmorTypeReposit
 import ICreatureTypeRepository from "../../../domain/repositories/ICreatureTypeRepository";
 import ICreatureRepository from "../../../domain/repositories/ICreatureRepository";
 import IConditionRepository from "../../../domain/repositories/IConditionRepository";
+import IOptionGroupRepository from "../../../domain/repositories/IOptionGroupRepository";
+import IGroupOptionRepository from "../../../domain/repositories/IGroupOptionRepository";
 import { AppError } from "../../../domain/errors/AppError";
 import { parentIdStrings } from "../../../domain/services/systemHierarchy";
 import BuildSystemSummary from "./buildSystemSummary.use-case";
@@ -27,7 +29,9 @@ export default class CascadeRestoreSystem {
     private readonly armorTypeRepository?: IArmorTypeRepository,
     private readonly creatureTypeRepository?: ICreatureTypeRepository,
     private readonly creatureRepository?: ICreatureRepository,
-    private readonly conditionRepository?: IConditionRepository
+    private readonly conditionRepository?: IConditionRepository,
+    private readonly optionGroupRepository?: IOptionGroupRepository,
+    private readonly groupOptionRepository?: IGroupOptionRepository
   ) {}
 
   async execute(id: string, userId: string): Promise<SystemSummary> {
@@ -112,6 +116,14 @@ export default class CascadeRestoreSystem {
 
     if (this.conditionRepository) {
       cascadePromises.push(this.conditionRepository.restoreByRuleset(id, deletedAt));
+    }
+
+    if (this.optionGroupRepository) {
+      cascadePromises.push(this.optionGroupRepository.restoreByRuleset(id, deletedAt));
+    }
+
+    if (this.groupOptionRepository) {
+      cascadePromises.push(this.groupOptionRepository.restoreByRuleset(id, deletedAt));
     }
 
     await Promise.all(cascadePromises);

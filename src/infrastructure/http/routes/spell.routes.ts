@@ -28,6 +28,70 @@ const router = Router();
  *             items:
  *               type: string
  *       description: Tabla asociada a la descripción del conjuro (se muestra debajo de los párrafos).
+ *     SpellCreatureForm:
+ *       type: object
+ *       description: Formas de criatura que elige el lanzador (familiar, polimorfar, etc.).
+ *       required:
+ *         - purpose
+ *         - pool
+ *       properties:
+ *         purpose:
+ *           type: string
+ *           enum: [companion, self, target]
+ *           description: |
+ *             companion no cambia las stats del lanzador.
+ *             self aplica overlay al activar la forma.
+ *             target transforma a una criatura existente; en esta API el overlay solo aplica
+ *             si el dueño de forms activa esa forma (auto-polimorfia).
+ *         choose:
+ *           type: integer
+ *           minimum: 1
+ *           description: Formas simultáneas de este conjuro. Por defecto 1.
+ *         replaceOnRecast:
+ *           type: boolean
+ *           description: Si es true, relanzar sustituye la forma previa de este conjuro.
+ *         pool:
+ *           type: object
+ *           description: |
+ *             Lista fija de criaturas o filtro por tipo, CR, tamaño y etiquetas.
+ *             Un filtro sin criterios admite todas las criaturas del sistema y sus ancestros.
+ *           properties:
+ *             mode:
+ *               type: string
+ *               enum: [ids, filter]
+ *             creatureIds:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             creatures:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Creature'
+ *             creatureTypeIds:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             creatureTypes:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/CreatureType'
+ *             maxCR:
+ *               type: number
+ *             sizes:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             tags:
+ *               type: array
+ *               items:
+ *                 type: string
+ *         extraPools:
+ *           type: array
+ *           description: >
+ *             Pools extra unidos en OR. Solo en la ficha, cuando un rasgo amplía
+ *             este conjuro y el pool base no se puede concatenar (p. ej. filter + ids).
+ *           items:
+ *             type: object
  *     Spell:
  *       type: object
  *       properties:
@@ -227,6 +291,8 @@ const router = Router();
  *                               type: string
  *                               description: Clave de una elección definida en choices. Excluyente con type.
  *           description: Información de daño del conjuro.
+ *         creatureForm:
+ *           $ref: '#/components/schemas/SpellCreatureForm'
  *         description:
  *           type: array
  *           items:
@@ -397,6 +463,8 @@ const router = Router();
  *                             choice:
  *                               type: string
  *                               description: Clave de una elección definida en choices. Excluyente con type.
+ *         creatureForm:
+ *           $ref: '#/components/schemas/SpellCreatureForm'
  *         ritual:
  *           type: boolean
  *           description: Indica si el conjuro puede lanzarse como ritual.
@@ -551,6 +619,11 @@ const router = Router();
  *                             choice:
  *                               type: string
  *                               description: Clave de una elección definida en choices. Excluyente con type.
+ *         creatureForm:
+ *           allOf:
+ *             - $ref: '#/components/schemas/SpellCreatureForm'
+ *           nullable: true
+ *           description: Envíe null para borrar las formas de criatura del conjuro.
  *         ritual:
  *           type: boolean
  *           description: Indica si el conjuro puede lanzarse como ritual.

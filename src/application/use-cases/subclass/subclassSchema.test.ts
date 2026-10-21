@@ -44,6 +44,42 @@ describe("CreateSubclassSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts optionChoices on a subclass level", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Maestro de batalla",
+      levels: [{
+        level: 3,
+        optionChoices: [{ groupId: classId, choose: 3 }]
+      }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts optionReplacements", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Maestro de batalla",
+      optionReplacements: [{ groupId: classId, count: 1 }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects optionReplacements with a duplicate groupId", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Maestro de batalla",
+      optionReplacements: [
+        { groupId: classId, count: 1 },
+        { groupId: classId, count: 1 }
+      ]
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects traits that are not ObjectIds", () => {
     const result = CreateSubclassSchema.safeParse({
       ruleset: "sys1",
@@ -160,6 +196,13 @@ describe("UpdateSubclassSchema", () => {
   it("accepts null expandedSpells to clear the list", () => {
     const result = UpdateSubclassSchema.safeParse({
       expandedSpells: null
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null optionReplacements to clear the list", () => {
+    const result = UpdateSubclassSchema.safeParse({
+      optionReplacements: null
     });
     expect(result.success).toBe(true);
   });

@@ -7,6 +7,7 @@ import { LanguageApi } from "./language.types"
 import { EquipmentMaterial } from "./equipment.types"
 import { CreatureTypeApi } from "./creatureType.types"
 import { AttributeApi } from "./attribute.types"
+import { CreatureFormPoolApi, CreatureFormPoolStored } from "./creatureForm.types"
 
 export const EQUIPMENT_RESTRICTION_SCOPES = ["armor", "shield"] as const;
 export type EquipmentRestrictionScope = typeof EQUIPMENT_RESTRICTION_SCOPES[number];
@@ -65,6 +66,17 @@ export interface TraitInnateSpellsApi {
   abilityId: string;
   ability?: AttributeApi;
   grants: TraitInnateSpellGrantApi[];
+}
+
+export interface TraitCreatureFormExtension {
+  spellId: string;
+  extraPool: CreatureFormPoolStored;
+}
+
+export interface TraitCreatureFormExtensionApi {
+  spellId: string;
+  spell?: SpellApi;
+  extraPool: CreatureFormPoolApi;
 }
 
 export interface SpellPrivilegeFilter {
@@ -336,6 +348,8 @@ export interface TraitMongo {
   action?: TraitAction,
   weaponDamageBonus?: TraitWeaponDamageBonus,
   innateSpells?: TraitInnateSpells,
+  grantedSpells?: string[],
+  creatureFormExtensions?: TraitCreatureFormExtension[],
   abilityScores?: TraitAbilityScore[],
   skillProficiencies?: TraitSkillProficiency[],
   stackGroup?: TraitStackGroup,
@@ -347,11 +361,6 @@ export interface TraitDataMongo {
   [key: string]: {
     [key: string]: string
   }
-}
-
-export interface TraitsOptionsMongo {
-  name: string,
-  options: string[]
 }
 
 export interface TraitApi {
@@ -390,15 +399,12 @@ export interface TraitApi {
   action?: TraitActionApi,
   weaponDamageBonus?: TraitWeaponDamageBonus,
   innateSpells?: TraitInnateSpellsApi,
+  grantedSpells?: SpellApi[],
+  creatureFormExtensions?: TraitCreatureFormExtensionApi[],
   abilityScores?: TraitAbilityScore[],
   skillProficiencies?: TraitSkillProficiency[],
   stackGroup?: TraitStackGroup,
   conditionalResistanceGroup?: string
-}
-
-export interface TraitsOptionsApi {
-  name: string,
-  options: TraitApi[]
 }
 
 export interface CreateTrait {
@@ -427,6 +433,8 @@ export interface CreateTrait {
   action?: TraitAction | null,
   weaponDamageBonus?: TraitWeaponDamageBonus | null,
   innateSpells?: TraitInnateSpells | null,
+  grantedSpells?: string[] | null,
+  creatureFormExtensions?: TraitCreatureFormExtension[] | null,
   abilityScores?: TraitAbilityScore[] | null,
   skillProficiencies?: TraitSkillProficiency[] | null,
   stackGroup?: TraitStackGroup | null,
@@ -460,6 +468,8 @@ export interface UpdateTrait {
   action?: TraitAction | null,
   weaponDamageBonus?: TraitWeaponDamageBonus | null,
   innateSpells?: TraitInnateSpells | null,
+  grantedSpells?: string[] | null,
+  creatureFormExtensions?: TraitCreatureFormExtension[] | null,
   abilityScores?: TraitAbilityScore[] | null,
   skillProficiencies?: TraitSkillProficiency[] | null,
   stackGroup?: TraitStackGroup | null,

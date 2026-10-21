@@ -40,27 +40,38 @@ const priest = {
   }],
   actions: [{
     name: "Maza",
-    description: [],
-    attack: {
-      kind: "melee_weapon",
-      attributeKey: "str",
-      reach: 5,
-      targets: "un objetivo",
-      damage: [{ dice: "1d6", damageTypeId: "bludgeoning" }]
-    }
+    description: [
+      "Ataque con arma cuerpo a cuerpo: +2 a impactar, alcance 5 pies, un objetivo.",
+      "Impacto: 3 (1d6) de daño contundente."
+    ]
   }]
 };
 
 describe("CreateCreatureSchema", () => {
-  it("acepta al sacerdote con velocidad y alcance en pies", () => {
+  it("acepta al sacerdote con velocidad en pies", () => {
     const result = CreateCreatureSchema.safeParse(priest);
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.speed.walk).toBe(25);
-      expect(result.data.actions?.[0]?.attack?.reach).toBe(5);
       expect(result.data.race).toBe("any");
     }
+  });
+
+  it("rechaza attack en acciones por schema estricto", () => {
+    const result = CreateCreatureSchema.safeParse({
+      ...priest,
+      actions: [{
+        name: "Maza",
+        description: [],
+        attack: {
+          kind: "melee_weapon",
+          damage: [{ dice: "1d6", damageTypeId: "bludgeoning" }]
+        }
+      }]
+    });
+
+    expect(result.success).toBe(false);
   });
 
   it("acepta raza nula o un id de catálogo", () => {

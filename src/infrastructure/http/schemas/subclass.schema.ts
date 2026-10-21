@@ -3,6 +3,7 @@ import {
   LevelSkillProficiencyChoiceSchema,
   SpellChoiceMongoSchema
 } from "./characterClass.schema";
+import { OptionChoiceMongoSchema, OptionReplacementsSchema } from "./optionGroup.schema";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -43,7 +44,8 @@ const SubclassLevelInputSchema = z.object({
   traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional(),
   skill_choices: ChoiceMongoSchema.nullable().optional(),
   skillProficiencyChoices: LevelSkillProficiencyChoiceSchema.nullable().optional(),
-  spell_choices: z.array(SpellChoiceMongoSchema).nullable().optional()
+  spell_choices: z.array(SpellChoiceMongoSchema).nullable().optional(),
+  optionChoices: z.array(OptionChoiceMongoSchema).nullable().optional()
 });
 
 export const CreateSubclassSchema = z.object({
@@ -53,7 +55,8 @@ export const CreateSubclassSchema = z.object({
   description: z.array(z.string()).optional(),
   img: z.string().optional(),
   levels: z.array(SubclassLevelInputSchema).optional(),
-  expandedSpells: ExpandedSpellIdsSchema.optional()
+  expandedSpells: ExpandedSpellIdsSchema.optional(),
+  optionReplacements: OptionReplacementsSchema.nullable().optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
 });
@@ -65,7 +68,8 @@ export const UpdateSubclassSchema = z.object({
   description: z.array(z.string()).optional(),
   img: z.string().optional(),
   levels: z.array(SubclassLevelInputSchema).optional(),
-  expandedSpells: ExpandedSpellIdsSchema.nullable().optional()
+  expandedSpells: ExpandedSpellIdsSchema.nullable().optional(),
+  optionReplacements: OptionReplacementsSchema.nullable().optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
 }).refine(data => Object.keys(data).length > 0, {

@@ -115,7 +115,7 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
   return { textY: textY - 1, actualHeight }
 }
 
-export async function escribirRasgos({ traits, invocations, disciplines, metamagic, feats, pdfDoc }: { traits: TraitApi[], invocations: any, disciplines: any, metamagic: any, feats: FeatApi[], pdfDoc: any }) {
+export async function escribirRasgos({ traits, feats, pdfDoc }: { traits: TraitApi[], feats: FeatApi[], pdfDoc: any }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -132,7 +132,7 @@ export async function escribirRasgos({ traits, invocations, disciplines, metamag
   // Ataques y lanzamientos de conjuros
   let textY4 = page1.getHeight() - 460;
 
-  const rasgos = [...traits ?? [], ...invocations ?? [], ...disciplines ?? [], ...metamagic ?? [], ...feats ?? []]
+  const rasgos = [...traits ?? [], ...feats ?? []]
   const rasgosList = rasgos.map(rasg => ("id" in rasg ? rasg.id : undefined) ?? ("index" in rasg ? (rasg as { index?: string }).index : undefined))
 
   rasgos

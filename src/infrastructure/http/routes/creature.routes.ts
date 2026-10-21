@@ -158,14 +158,14 @@ const router = Router();
  *           $ref: '#/components/schemas/CreatureInnateSpellcastingApi'
  *         traits:
  *           type: array
- *           description: Rasgos embebidos de la ficha (nombre, descripción, uso, ataque). No son identificadores del catálogo de rasgos.
+ *           description: Rasgos embebidos de la ficha (nombre, descripción, uso). No son identificadores del catálogo de rasgos.
  *           items:
  *             type: object
  *         actions:
  *           type: array
  *           items:
  *             type: object
- *           description: Acciones. El alcance (reach) y el rango se expresan en pies.
+ *           description: Acciones.
  *         bonus_actions:
  *           type: array
  *           items:
@@ -408,7 +408,7 @@ const router = Router();
  *             type: string
  *         traits:
  *           type: array
- *           description: Rasgos embebidos de la ficha (nombre, descripción, uso, ataque). No son identificadores del catálogo de rasgos.
+ *           description: Rasgos embebidos de la ficha (nombre, descripción, uso). No son identificadores del catálogo de rasgos.
  *           items:
  *             $ref: '#/components/schemas/CreatureFeature'
  *         spellcasting:
@@ -477,42 +477,10 @@ const router = Router();
  *           type: array
  *           items:
  *             type: string
- *         attack:
- *           type: object
- *           description: Alcance y rango en pies.
- *           properties:
- *             kind:
- *               type: string
- *               enum: [melee_weapon, ranged_weapon, melee_spell, ranged_spell]
- *             attributeKey:
- *               type: string
- *             bonus:
- *               type: number
- *               description: Si se omite, se calcula como modificador del atributo más el bono de competencia.
- *             reach:
- *               type: number
- *               description: Alcance en pies.
- *             range:
- *               type: object
- *               description: Distancia en pies.
- *               properties:
- *                 normal:
- *                   type: number
- *                 long:
- *                   type: number
- *             targets:
- *               type: string
- *             damage:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   dice:
- *                     type: string
- *                   bonus:
- *                     type: number
- *                   damageTypeId:
- *                     type: string
+ *         usage:
+ *           $ref: '#/components/schemas/CreatureUsage'
+ *         cost:
+ *           type: number
  *     CreatureUsage:
  *       type: object
  *       required:
@@ -670,7 +638,7 @@ router.get("/creatures/:id", authMiddleware, creatureController.getById);
  * /creatures:
  *   post:
  *     summary: Crear una criatura
- *     description: Las distancias (velocidad, sentidos, alcance y rango) se guardan en pies. El peso del equipo permanece en libras.
+ *     description: Las distancias (velocidad y sentidos) se guardan en pies. El peso del equipo permanece en libras.
  *     tags:
  *       - Criaturas
  *     security:

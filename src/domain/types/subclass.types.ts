@@ -1,5 +1,6 @@
 import { ChoiceApi, ChoiceMongo } from ".";
 import { LevelSkillProficiencyChoice, SpellChoiceMongo } from "./classLevelChoices.types";
+import { OptionChoiceMongo, OptionReplacementConfig } from "./optionGroup.types";
 import { SkillApi } from "./skill.types";
 import { SpellApi } from "./spell.types";
 import { TraitApi, TraitDataMongo } from "./traits.types";
@@ -11,6 +12,7 @@ export interface SubclassLevelInput {
   skill_choices?: ChoiceMongo | null;
   skillProficiencyChoices?: LevelSkillProficiencyChoice | null;
   spell_choices?: SpellChoiceMongo[] | null;
+  optionChoices?: OptionChoiceMongo[] | null;
 }
 
 export interface SubclassLevelMongo {
@@ -20,6 +22,7 @@ export interface SubclassLevelMongo {
   skill_choices?: ChoiceMongo;
   skillProficiencyChoices?: LevelSkillProficiencyChoice;
   spell_choices?: SpellChoiceMongo[];
+  optionChoices?: OptionChoiceMongo[];
 }
 
 export interface SubclassLevelApi {
@@ -29,6 +32,7 @@ export interface SubclassLevelApi {
   skill_choices?: ChoiceApi<SkillApi>;
   skillProficiencyChoices?: LevelSkillProficiencyChoice;
   spell_choices?: SpellChoiceMongo[];
+  optionChoices?: OptionChoiceMongo[];
 }
 
 export interface InputCreateSubclass {
@@ -39,6 +43,7 @@ export interface InputCreateSubclass {
   img?: string;
   levels?: SubclassLevelInput[];
   expandedSpells?: string[];
+  optionReplacements?: OptionReplacementConfig[] | null;
 }
 
 export interface InputUpdateSubclass {
@@ -50,6 +55,7 @@ export interface InputUpdateSubclass {
   img?: string;
   levels?: SubclassLevelInput[];
   expandedSpells?: string[] | null;
+  optionReplacements?: OptionReplacementConfig[] | null;
 }
 
 export interface SubclassMongo {
@@ -61,6 +67,7 @@ export interface SubclassMongo {
   img: string;
   levels: SubclassLevelMongo[];
   expandedSpells?: string[];
+  optionReplacements?: OptionReplacementConfig[];
   deletedAt?: Date | null;
 }
 
@@ -73,6 +80,7 @@ export interface SubclassApi {
   img: string;
   levels: SubclassLevelApi[];
   expandedSpells?: SpellApi[];
+  optionReplacements?: OptionReplacementConfig[];
   deletedAt?: Date | null;
 }
 

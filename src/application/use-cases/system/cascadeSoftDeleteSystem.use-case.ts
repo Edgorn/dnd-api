@@ -9,6 +9,8 @@ import IArmorTypeRepository from "../../../domain/repositories/IArmorTypeReposit
 import ICreatureTypeRepository from "../../../domain/repositories/ICreatureTypeRepository";
 import ICreatureRepository from "../../../domain/repositories/ICreatureRepository";
 import IConditionRepository from "../../../domain/repositories/IConditionRepository";
+import IOptionGroupRepository from "../../../domain/repositories/IOptionGroupRepository";
+import IGroupOptionRepository from "../../../domain/repositories/IGroupOptionRepository";
 import { AppError } from "../../../domain/errors/AppError";
 import { System } from "../../../domain/types/system.types";
 import { parentIdStrings } from "../../../domain/services/systemHierarchy";
@@ -25,7 +27,9 @@ export default class CascadeSoftDeleteSystem {
     private readonly armorTypeRepository?: IArmorTypeRepository,
     private readonly creatureTypeRepository?: ICreatureTypeRepository,
     private readonly creatureRepository?: ICreatureRepository,
-    private readonly conditionRepository?: IConditionRepository
+    private readonly conditionRepository?: IConditionRepository,
+    private readonly optionGroupRepository?: IOptionGroupRepository,
+    private readonly groupOptionRepository?: IGroupOptionRepository
   ) {}
 
   async execute(id: string, userId: string): Promise<void> {
@@ -118,6 +122,14 @@ export default class CascadeSoftDeleteSystem {
 
     if (this.conditionRepository) {
       cascadePromises.push(this.conditionRepository.softDeleteByRuleset(id, deletedAt));
+    }
+
+    if (this.optionGroupRepository) {
+      cascadePromises.push(this.optionGroupRepository.softDeleteByRuleset(id, deletedAt));
+    }
+
+    if (this.groupOptionRepository) {
+      cascadePromises.push(this.groupOptionRepository.softDeleteByRuleset(id, deletedAt));
     }
 
     await Promise.all(cascadePromises);

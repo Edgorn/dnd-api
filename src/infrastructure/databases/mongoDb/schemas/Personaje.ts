@@ -18,9 +18,7 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   campaign: String,
   race: String,
   traits: [String],
-  invocations: [String],
-  //disciplines: [String],
-  //metamagic: [String],
+  optionSelections: { type: [Schema.Types.Mixed], default: undefined },
   traits_data: {},
   traitChoices: { type: Schema.Types.Mixed, default: undefined },
   skillProficiencyOverlays: { type: [Schema.Types.Mixed], default: undefined },
@@ -70,7 +68,17 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
   XP: Number,
   feats: [],
   dotes: [],
-  forms: [String],
+  forms: {
+    type: [{
+      _id: false,
+      id: { type: String, required: true },
+      creatureId: { type: String, required: true },
+      spellId: String,
+      purpose: { type: String, enum: ["companion", "self", "target"] }
+    }],
+    default: []
+  },
+  activeFormId: { type: String, default: null },
   preparedSpells: { type: Schema.Types.Mixed, default: {} },
   spellPrivileges: { type: [Schema.Types.Mixed], default: [] },
   companions: {

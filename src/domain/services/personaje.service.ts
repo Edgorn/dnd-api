@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { CharacterCampaignLink, ConsultarPersonajeOptions, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, ConsultarPersonajeOptions, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -92,8 +92,20 @@ export default class PersonajeService {
     return this.personajeRepository.restCharacter(data);
   }
 
-  añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null> {
-    return this.personajeRepository.añadirForma(data);
+  getOwnedTraitIds(id: string, userId: string): Promise<string[]> {
+    return this.personajeRepository.getOwnedTraitIds(id, userId);
+  }
+
+  addForm(data: TypeAddCharacterFormPersist): Promise<PersonajeApi> {
+    return this.personajeRepository.addForm(data);
+  }
+
+  activateForm(data: TypeSetCharacterFormActive): Promise<PersonajeApi> {
+    return this.personajeRepository.activateForm(data);
+  }
+
+  deactivateForm(data: TypeSetCharacterFormActive): Promise<PersonajeApi> {
+    return this.personajeRepository.deactivateForm(data);
   }
 
   updateCompanions(

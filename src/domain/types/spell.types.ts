@@ -1,6 +1,7 @@
 import { ObjectId } from "mongoose";
 import { MagicSchoolApi } from "./magicSchool.types";
 import { Damage } from "./damage.types";
+import { CreatureFormApi, CreatureFormStored, InputCreatureForm } from "./creatureForm.types";
 
 export type SpellSchoolApi = Pick<MagicSchoolApi, 'id' | 'description' | 'name' | 'color'>;
 export type SpellDamageTypeApi = Pick<Damage, 'id' | 'description' | 'name' | 'color'>;
@@ -159,6 +160,7 @@ export interface SpellMongo {
   components?: SpellComponents;
   duration?: SpellDuration;
   damage?: SpellDamageMongo;
+  creatureForm?: CreatureFormStored;
   description: string[];
   tables?: SpellTable[];
   ritual?: boolean;
@@ -179,6 +181,7 @@ export interface SpellApi {
   components?: SpellComponents;
   duration?: SpellDuration;
   damage?: SpellDamageApi;
+  creatureForm?: CreatureFormApi;
   description: string[];
   tables: SpellTable[];
   ritual?: boolean;
@@ -197,6 +200,7 @@ export interface InputCreateSpell {
   components?: SpellComponents;
   duration?: SpellDuration;
   damage?: InputSpellDamage;
+  creatureForm?: InputCreatureForm;
   tables?: SpellTable[];
   ritual: boolean;
 }
@@ -214,6 +218,7 @@ export interface InputUpdateSpell {
   components?: SpellComponents;
   duration?: SpellDuration;
   damage?: InputSpellDamage;
+  creatureForm?: InputCreatureForm | null;
   tables?: SpellTable[];
   ritual?: boolean;
 }

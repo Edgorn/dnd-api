@@ -1,4 +1,46 @@
+import { Types } from "mongoose";
 import { z } from "zod";
+import { CREATURE_FORM_PURPOSES } from "../../../domain/types/creatureForm.types";
+
+const mongoId = z.string().refine(val => Types.ObjectId.isValid(val), {
+  message: "Debe ser un ID de Mongo válido"
+});
+
+export const CreatureFormPoolIdsSchema = z.object({
+  mode: z.literal("ids"),
+  creatureIds: z.array(mongoId).min(1, "Debe indicar al menos una criatura")
+}).strict().superRefine((pool, ctx) => {
+  if (new Set(pool.creatureIds).size !== pool.creatureIds.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Los IDs de criatura no pueden repetirse",
+      path: ["creatureIds"]
+    });
+  }
+});
+
+export const CreatureFormPoolFilterSchema = z.object({
+  mode: z.literal("filter"),
+  creatureTypeIds: z.array(mongoId).optional(),
+  maxCR: z.number().min(0, "El CR máximo no puede ser negativo").optional(),
+  sizes: z.array(z.string().min(1, "El tamaño no puede estar vacío")).optional(),
+  tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía")).optional()
+}).strict().superRefine((pool, ctx) => {
+  if (pool.creatureTypeIds && new Set(pool.creatureTypeIds).size !== pool.creatureTypeIds.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Los tipos de criatura no pueden repetirse",
+      path: ["creatureTypeIds"]
+    });
+  }
+});
+
+export const CreatureFormSchema = z.object({
+  purpose: z.enum(CREATURE_FORM_PURPOSES),
+  choose: z.number().int().min(1, "Debe poder elegirse al menos una forma").default(1),
+  replaceOnRecast: z.boolean().default(true),
+  pool: z.discriminatedUnion("mode", [CreatureFormPoolIdsSchema, CreatureFormPoolFilterSchema])
+}).strict();
 
 export const CastingTimeSchema = z.object({
   value: z.number().min(0, "El valor del tiempo de lanzamiento debe ser mayor o igual a 0"),
@@ -193,6 +235,7 @@ export const CreateSpellSchema = z.object({
   components: SpellComponentsSchema.optional(),
   duration: SpellDurationSchema.optional(),
   damage: SpellDamageSchema.optional(),
+  creatureForm: CreatureFormSchema.optional(),
   tables: z.array(SpellTableSchema).optional(),
   ritual: z.boolean()
 }).superRefine(rejectLegacyCastingTime);
@@ -210,6 +253,7 @@ export const UpdateSpellSchema = z.object({
   components: SpellComponentsSchema.optional(),
   duration: SpellDurationSchema.optional(),
   damage: SpellDamageSchema.optional(),
+  creatureForm: CreatureFormSchema.nullable().optional(),
   tables: z.array(SpellTableSchema).optional(),
   ritual: z.boolean().optional()
 }).superRefine(rejectLegacyCastingTime).refine(data => Object.keys(data).length > 0, {

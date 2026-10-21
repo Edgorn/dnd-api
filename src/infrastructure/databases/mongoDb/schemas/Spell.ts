@@ -1,6 +1,22 @@
 import mongoose, { Schema } from "mongoose";
 import { SpellMongo } from "../../../../domain/types/spell.types";
 
+const creatureFormPoolSchema = new Schema({
+  mode: { type: String, enum: ["ids", "filter"], required: true },
+  creatureIds: [String],
+  creatureTypeIds: [String],
+  maxCR: Number,
+  sizes: [String],
+  tags: [String]
+}, { _id: false });
+
+const creatureFormSchema = new Schema({
+  purpose: { type: String, enum: ["companion", "self", "target"], required: true },
+  choose: { type: Number, default: 1 },
+  replaceOnRecast: { type: Boolean, default: true },
+  pool: { type: creatureFormPoolSchema, required: true }
+}, { _id: false });
+
 const damageComponentSchemaDef = {
   diceCount: Number,
   diceType: String,
@@ -49,6 +65,7 @@ const spellSchema: Schema = new Schema<SpellMongo>({
     unit: String,
     concentration: Boolean
   },
+  creatureForm: { type: creatureFormSchema, default: undefined },
   damage: {
     choices: [{
       key: String,

@@ -1,5 +1,5 @@
 import ITraitRepository from "../repositories/ITraitRepository";
-import { CreateTrait, TraitApi, UpdateTrait, TraitDataMongo, TraitsOptionsMongo, TraitsOptionsApi } from "../types/traits.types";
+import { CreateTrait, TraitApi, UpdateTrait, TraitDataMongo } from "../types/traits.types";
 
 export default class TraitService {
   constructor(private readonly traitRepository: ITraitRepository) { }
@@ -10,10 +10,6 @@ export default class TraitService {
 
   getTraitsByIndexes(params: string[], data?: TraitDataMongo): Promise<TraitApi[]> {
     return this.traitRepository.getTraitsByIndexes(params, data);
-  }
-
-  getTraitsOptions(traitsOptions: TraitsOptionsMongo | undefined): Promise<TraitsOptionsApi | undefined> {
-    return this.traitRepository.getTraitsOptions(traitsOptions);
   }
 
   getById(id: string): Promise<TraitApi | null> {

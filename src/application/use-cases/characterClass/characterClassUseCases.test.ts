@@ -205,6 +205,28 @@ describe("CharacterClass Use Cases", () => {
       expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
     });
 
+    it("should create class with optionReplacements", async () => {
+      const useCase = createUseCase();
+      const optionReplacements = [{ groupId: "507f1f77bcf86cd799439011", count: 1 }];
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      characterClassServiceMock.create.mockResolvedValue({
+        ...createdClass,
+        name: "Brujo",
+        optionReplacements
+      });
+
+      const input = {
+        ruleset: "sys1",
+        name: "Brujo",
+        optionReplacements
+      };
+
+      const result = await useCase.execute(input, "user1");
+
+      expect(result.optionReplacements).toEqual(optionReplacements);
+      expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
     it("should create class with nested equipment alternatives (item vs subcategory filter)", async () => {
       const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });

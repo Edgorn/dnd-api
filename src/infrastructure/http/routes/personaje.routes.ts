@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema, AddCharacterFormSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -276,118 +276,73 @@ const router = Router();
  *               $ref: '#/components/schemas/Spell'
  *           description: Conjuros vinculados, un grupo por cada regla del rasgo.
  *
- *     Invocacion:
+ *     CharacterOptionSelection:
  *       type: object
  *       properties:
- *         index:
+ *         optionId:
  *           type: string
- *           description: Identificador de la invocación.
- *         name:
+ *         groupId:
  *           type: string
- *           description: Nombre de la invocación.
- *         description:
- *           type: array
- *           items:
- *             type: string
- *           description: Descripción detallada de la invocación.
- *         summary:
- *           type: array
- *           items:
- *             type: string
- *           description: Resumen de la invocación.
- *         spells:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/Spell'
- *           description: Conjuros otorgados por la invocación.
- *         skills:
- *           type: array
- *           items:
- *             type: string
- *           description: IDs de habilidades otorgadas.
- *         requirements:
- *           type: object
- *           properties:
- *             level:
- *               type: number
- *               description: Nivel mínimo requerido.
- *             spells:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   index:
- *                     type: string
- *                   name:
- *                     type: string
- *               description: Conjuros prerequisito.
- *             traits:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   index:
- *                     type: string
- *                   name:
- *                     type: string
- *               description: Rasgos prerequisito.
- *
- *     CriaturaForm:
+ *         traitId:
+ *           type: string
+ *         classId:
+ *           type: string
+ *         level:
+ *           type: integer
+ *         groupName:
+ *           type: string
+ *         trait:
+ *           $ref: '#/components/schemas/Trait'
+ *     PendingOptionChoice:
  *       type: object
- *       description: Forma alternativa del personaje (criatura transformada).
+ *       properties:
+ *         groupId:
+ *           type: string
+ *         groupName:
+ *           type: string
+ *         choose:
+ *           type: integer
+ *         replace:
+ *           type: integer
+ *         options:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/PendingOptionChoiceOption'
+ *         selected:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterOptionSelection'
+ *
+ *     CharacterForm:
+ *       type: object
+ *       description: Forma de criatura vinculada a un conjuro (o legado sin origen).
+ *       required:
+ *         - id
  *       properties:
  *         id:
  *           type: string
- *           description: Identificador de la criatura.
- *         name:
+ *           description: ID de esta instancia de forma en el personaje.
+ *         purpose:
  *           type: string
- *           description: Nombre de la forma.
- *         type:
+ *           enum: [companion, self, target]
+ *           description: Ausente en formas legacy; esas no se pueden activar. self y target sí.
+ *         spellId:
  *           type: string
- *           description: Tipo de criatura.
- *         subtype:
- *           type: string
- *           description: Subtipo de criatura.
- *         alignment:
- *           type: string
- *           description: Alineamiento de la forma.
- *         size:
- *           type: string
- *           description: Tamaño de la forma.
- *         armor_class:
+ *         spell:
  *           type: object
  *           properties:
- *             type:
+ *             id:
  *               type: string
- *             value:
- *               type: number
- *           description: Clase de armadura de la forma.
- *         hit_points:
- *           type: number
- *           description: Puntos de golpe de la forma.
- *         hit_dice:
- *           type: string
- *           description: Dado de golpe de la forma.
- *         speed:
- *           type: object
- *           properties:
- *             walk:
- *               type: number
- *             fly:
- *               type: number
- *             climb:
- *               type: number
- *             swim:
- *               type: number
- *             notes:
+ *             name:
  *               type: string
- *           description: Velocidades de la forma.
- *         challenge_rating:
- *           type: string
- *           description: Nivel de desafío de la forma.
- *         xp:
- *           type: number
- *           description: Experiencia asociada a la forma.
+ *         creature:
+ *           $ref: '#/components/schemas/Creature'
+ *         active:
+ *           type: boolean
+ *           description: True si es la forma propia activa (overlay de estadísticas).
+ *     CriaturaForm:
+ *       allOf:
+ *         - $ref: '#/components/schemas/CharacterForm'
  *
  *     PersonajeBasico:
  *       type: object
@@ -647,6 +602,9 @@ const router = Router();
  *           description: Bono numérico de iniciativa calculado por el sistema (p.ej. modificador de Destreza). No incluye la tirada d20; el frontend debe sumar el dado por separado.
  *         HPMax:
  *           type: number
+ *         HPActual:
+ *           type: number
+ *           description: Puntos de golpe actuales. Con una forma propia activa coincide con los PG de la criatura (solo lectura).
  *         CA:
  *           type: number
  *         speed:
@@ -761,14 +719,19 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/SpellcastingLevel'
- *         invocations:
+ *         optionSelections:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Invocacion'
+ *             $ref: '#/components/schemas/CharacterOptionSelection'
+ *           description: Opciones elegidas (invocaciones, metamagia, maniobras, etc.).
  *         forms:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/CriaturaForm'
+ *             $ref: '#/components/schemas/CharacterForm'
+ *         activeFormId:
+ *           type: string
+ *           nullable: true
+ *           description: ID de la forma propia activa. Overlay de lectura; no persiste los PG de la criatura.
  *         spellPrivileges:
  *           type: array
  *           items:
@@ -1583,8 +1546,8 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       todas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al
  *       continuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.
  *       Los rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.
- *       `traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen
- *       elecciones (`traits_options`). Si el nivel de raza, clase o subclase cambia `traits_data`
+ *       `traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas).
+ *       Si el nivel de raza, clase o subclase cambia `traits_data`
  *       respecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se
  *       devuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje
  *       fusionado con el del nivel.
@@ -1729,6 +1692,16 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                     Habilidades nuevas a elegir en este nivel (clase y subclase ya asignada).
  *                     Distinto de skillProficiencyChoices (multiplicador sobre skills ya competentes).
  *                     Las opciones ya poseídas se recortan. Omitido si no hay elección en este nivel.
+ *                 optionChoices:
+ *                   type: array
+ *                   description: >
+ *                     Elecciones de grupos de opciones de este nivel (p. ej. invocaciones).
+ *                     choose es cuántas hay que añadir. replace es cuántas se pueden cambiar
+ *                     (incluye `optionReplacements` de la clase o subclase si el personaje
+ *                     ya tiene opciones de ese grupo). options marca available/unmet según
+ *                     requisitos. selected son las ya elegidas.
+ *                   items:
+ *                     $ref: '#/components/schemas/PendingOptionChoice'
  *                 ability_score:
  *                   type: boolean
  *                   description: >
@@ -1808,7 +1781,7 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       ni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se
  *       quita `from` de `preparedSpells` de esa clase si estaba preparado.
  *       Aplica los rasgos automáticos del nivel (`traits` y
- *       `traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).
+ *       `traits_data`) al personaje.
  *       Si un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con
  *       esa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.
  *       Si `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista
@@ -1827,6 +1800,10 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       nivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de
  *       modificador a los PG de los niveles previos.
  *       Si el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).
+ *       Si el GET devolvió `optionChoices`, el body debe incluir `optionPicks` con un elemento por
+ *       grupo: `add` tiene longitud `choose` y `replace` como máximo `replace` (el `replace` del
+ *       GET ya incluye `optionReplacements` de clase o subclase). Cada id debe
+ *       pertenecer al grupo, cumplir requisitos y no estar ya elegida salvo que sea repetible.
  *     tags:
  *       - Personajes
  *     security:
@@ -1886,6 +1863,35 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                     to:
  *                       type: string
  *                       description: ObjectId del conjuro de la lista de la clase que se aprende.
+ *               optionPicks:
+ *                 type: array
+ *                 description: >
+ *                   Elecciones de grupos de opciones alineadas con `optionChoices` del GET.
+ *                   `add` tiene la misma longitud que `choose`. `replace` es opcional (0..replace).
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - groupId
+ *                     - add
+ *                   properties:
+ *                     groupId:
+ *                       type: string
+ *                     add:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     replace:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         required:
+ *                           - from
+ *                           - to
+ *                         properties:
+ *                           from:
+ *                             type: string
+ *                           to:
+ *                             type: string
  *               subclass:
  *                 type: string
  *                 description: >
@@ -2335,6 +2341,152 @@ router.post('/character/:id/rest', authMiddleware, validateParams(CharacterIdPar
  *         description: Error del servidor.
  */
 router.post('/character/:id/known-spells', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(LearnSpellsSchema), personajeController.learnSpells);
-router.post('/character/:id/addForm', authMiddleware, personajeController.addForm);
+/**
+ * @openapi
+ * /character/{id}/addForm:
+ *   post:
+ *     summary: Añadir una forma de criatura desde un conjuro
+ *     description: |
+ *       Elige una criatura del `creatureForm` del conjuro y la guarda en `forms`.
+ *       Si el personaje tiene rasgos con `creatureFormExtensions` para ese conjuro,
+ *       también valen las criaturas de esos pools extra (unión OR).
+ *       Si `replaceOnRecast` es true, sustituye las formas previas de ese conjuro.
+ *       Si no, rechaza al superar `choose`. `companion` no activa overlay;
+ *       `self` y `target` no se activan solas (use POST .../forms/{formId}/activate).
+ *       Un filtro sin criterios admite cualquier criatura del sistema del conjuro (y ancestros).
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - creatureId
+ *               - spellId
+ *             properties:
+ *               creatureId:
+ *                 type: string
+ *                 description: ID de la criatura elegida.
+ *               spellId:
+ *                 type: string
+ *                 description: ID del conjuro que define el pool de formas.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado con la forma.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: El conjuro no define formas o la criatura no está en el pool.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje, conjuro o criatura no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/addForm', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(AddCharacterFormSchema), personajeController.addForm);
+
+/**
+ * @openapi
+ * /character/{id}/forms/{formId}/activate:
+ *   post:
+ *     summary: Activar una forma propia o de objetivo
+ *     description: |
+ *       Solo `purpose: self` o `target`. Aplica overlay de estadísticas de la criatura al leer la ficha
+ *       (tamaño, velocidad, CA, PG, atributos coincidentes, resistencias e inmunidades a estados).
+ *       `companion` no se puede activar.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: formId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la instancia de forma.
+ *     responses:
+ *       200:
+ *         description: Personaje con la forma activa.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: La forma no es propia o ya está activa.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o forma no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/forms/:formId/activate', authMiddleware, validateParams(CharacterFormParamsSchema), personajeController.activateForm);
+
+/**
+ * @openapi
+ * /character/{id}/forms/{formId}/deactivate:
+ *   post:
+ *     summary: Desactivar la forma propia activa
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: formId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la instancia de forma.
+ *     responses:
+ *       200:
+ *         description: Personaje sin forma activa.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: La forma no está activa.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o forma no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/forms/:formId/deactivate', authMiddleware, validateParams(CharacterFormParamsSchema), personajeController.deactivateForm);
 
 export default router;

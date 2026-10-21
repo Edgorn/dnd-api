@@ -1,4 +1,4 @@
-import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, ConsultarPersonajeOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, ConsultarPersonajeOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]>
@@ -22,6 +22,9 @@ export default interface IPersonajeRepository {
   useTrait(data: TypeUseTrait): Promise<PersonajeApi>
   deactivateTrait(data: TypeUseTrait): Promise<PersonajeApi>
   restCharacter(data: TypeRestCharacter): Promise<PersonajeApi>
-  añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null>
+  getOwnedTraitIds(id: string, userId: string): Promise<string[]>
+  addForm(data: TypeAddCharacterFormPersist): Promise<PersonajeApi>
+  activateForm(data: TypeSetCharacterFormActive): Promise<PersonajeApi>
+  deactivateForm(data: TypeSetCharacterFormActive): Promise<PersonajeApi>
   updateCompanions(id: string, companions: CharacterCompanionInput[], userId: string): Promise<UpdateCharacterCompanionsResponse>
 }

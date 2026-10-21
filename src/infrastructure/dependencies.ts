@@ -78,6 +78,8 @@ import UseTrait from "../application/use-cases/personaje/useTrait.use-case";
 import DeactivateTrait from "../application/use-cases/personaje/deactivateTrait.use-case";
 import RestCharacter from "../application/use-cases/personaje/restCharacter.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
+import ActivateCharacterForm from "../application/use-cases/personaje/activateCharacterForm.use-case";
+import DeactivateCharacterForm from "../application/use-cases/personaje/deactivateCharacterForm.use-case";
 import CreateSystem from "../application/use-cases/system/createSystem.use-case";
 import GetSystemsByUser from "../application/use-cases/system/getSystemsByUser.use-case";
 import GetSystemById from "../application/use-cases/system/getSystemById.use-case";
@@ -146,7 +148,21 @@ import RestoreArmorType from "../application/use-cases/armorType/restoreArmorTyp
 import GetArmorTypesBySystems from "../application/use-cases/armorType/getArmorTypesBySystems.use-case";
 import GetArmorTypeById from "../application/use-cases/armorType/getArmorTypeById.use-case";
 import { ArmorTypeController } from "./http/controllers/armorType.controller";
-import InvocacionRepository from "./databases/mongoDb/repositories/invocacion.repository";
+import OptionGroupRepository from "./databases/mongoDb/repositories/optionGroup.repository";
+import GroupOptionRepository from "./databases/mongoDb/repositories/groupOption.repository";
+import OptionGroupService from "../domain/services/optionGroup.service";
+import GroupOptionService from "../domain/services/groupOption.service";
+import CreateOptionGroup from "../application/use-cases/optionGroup/createOptionGroup.use-case";
+import UpdateOptionGroup from "../application/use-cases/optionGroup/updateOptionGroup.use-case";
+import SoftDeleteOptionGroup from "../application/use-cases/optionGroup/softDeleteOptionGroup.use-case";
+import RestoreOptionGroup from "../application/use-cases/optionGroup/restoreOptionGroup.use-case";
+import GetOptionGroupsBySystems from "../application/use-cases/optionGroup/getOptionGroupsBySystems.use-case";
+import CreateGroupOption from "../application/use-cases/groupOption/createGroupOption.use-case";
+import UpdateGroupOption from "../application/use-cases/groupOption/updateGroupOption.use-case";
+import SoftDeleteGroupOption from "../application/use-cases/groupOption/softDeleteGroupOption.use-case";
+import RestoreGroupOption from "../application/use-cases/groupOption/restoreGroupOption.use-case";
+import GetGroupOptionsByGroup from "../application/use-cases/groupOption/getGroupOptionsByGroup.use-case";
+import { OptionGroupController } from "./http/controllers/optionGroup.controller";
 import SystemRepository from "./databases/mongoDb/repositories/system.repository";
 import { BcryptPasswordHasher } from "./security/BcryptPasswordHasher";
 import { JwtTokenService } from "./security/JwtTokenService";
@@ -283,7 +299,10 @@ const attributeService = new AttributeService(attributeRepository, systemReposit
 const featRepository = new FeatRepository(systemRepository, attributeService)
 const skillService = new SkillService(skillRepository)
 const subclassRepository = new SubclassRepository(systemRepository, traitRepository, skillService, spellRepository)
-const invocacionRepository = new InvocacionRepository(spellRepository, traitRepository)
+const optionGroupRepository = new OptionGroupRepository(systemRepository)
+const groupOptionRepository = new GroupOptionRepository(systemRepository, traitRepository)
+const optionGroupService = new OptionGroupService(optionGroupRepository)
+const groupOptionService = new GroupOptionService(groupOptionRepository)
 const characterClassRepository = new CharacterClassRepository(
   systemRepository,
   skillService,
@@ -292,7 +311,6 @@ const characterClassRepository = new CharacterClassRepository(
   traitRepository,
   spellRepository,
   featRepository,
-  invocacionRepository,
   languageRepository,
   attributeService,
   subclassRepository
@@ -333,6 +351,9 @@ const creatureRepository = new CreatureRepository(
   equipmentRepository,
   raceRepository
 )
+spellRepository.bindCreatureCatalog(creatureRepository, creatureTypeRepository)
+traitRepository.bindCreatureCatalog(creatureRepository)
+const creatureService = new CreatureService(creatureRepository)
 
 const campaignReaderRepository = new CampaignReaderRepository();
 
@@ -347,7 +368,8 @@ const personajeRepository = new PersonajeRepository(
   featRepository,
   characterClassRepository,
   subclassRepository,
-  invocacionRepository,
+  groupOptionRepository,
+  optionGroupRepository,
   raceRepository,
   creatureRepository,
   attributeService,
@@ -395,6 +417,30 @@ const spellService = new SpellService(spellRepository)
 const traitService = new TraitService(traitRepository)
 const subclassService = new SubclassService(subclassRepository)
 const systemService = new SystemService(systemRepository)
+
+const getOptionGroupsBySystems = new GetOptionGroupsBySystems(optionGroupService, systemService)
+const createOptionGroup = new CreateOptionGroup(optionGroupService, systemService)
+const updateOptionGroup = new UpdateOptionGroup(optionGroupService, systemService)
+const softDeleteOptionGroup = new SoftDeleteOptionGroup(optionGroupService, systemService)
+const restoreOptionGroup = new RestoreOptionGroup(optionGroupService, systemService)
+const getGroupOptionsByGroup = new GetGroupOptionsByGroup(groupOptionService, optionGroupService)
+const createGroupOption = new CreateGroupOption(groupOptionService, optionGroupService, traitService, systemService)
+const updateGroupOption = new UpdateGroupOption(groupOptionService, optionGroupService, traitService, systemService)
+const softDeleteGroupOption = new SoftDeleteGroupOption(groupOptionService, systemService)
+const restoreGroupOption = new RestoreGroupOption(groupOptionService, systemService)
+
+export const optionGroupController = new OptionGroupController(
+  getOptionGroupsBySystems,
+  createOptionGroup,
+  updateOptionGroup,
+  softDeleteOptionGroup,
+  restoreOptionGroup,
+  getGroupOptionsByGroup,
+  createGroupOption,
+  updateGroupOption,
+  softDeleteGroupOption,
+  restoreGroupOption
+)
 const getSystemApi = new GetSystemApi(
   systemService,
   userService,
@@ -469,7 +515,9 @@ const updateCompanions = new UpdateCompanions(personajeService);
 const useTrait = new UseTrait(personajeService);
 const deactivateTrait = new DeactivateTrait(personajeService);
 const restCharacter = new RestCharacter(personajeService);
-const añadirForma = new AñadirForma(personajeService);
+const añadirForma = new AñadirForma(personajeService, spellService, creatureService, systemService, traitService);
+const activateCharacterForm = new ActivateCharacterForm(personajeService);
+const deactivateCharacterForm = new DeactivateCharacterForm(personajeService);
 const createSystem = new CreateSystem(systemService, buildSystemSummary);
 const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, raceRepository);
 const getSystemById = new GetSystemById(systemService, userRepository, getSystemApi);
@@ -479,8 +527,8 @@ const createAttribute = new CreateAttribute(attributeService, systemService);
 const updateAttribute = new UpdateAttribute(attributeService, systemService);
 const getAttributesBySystems = new GetAttributesBySystems(attributeService, systemService);
 
-const createSpell = new CreateSpell(spellService, systemService);
-const updateSpell = new UpdateSpell(spellService, systemService);
+const createSpell = new CreateSpell(spellService, systemService, creatureService, creatureTypeService);
+const updateSpell = new UpdateSpell(spellService, systemService, creatureService, creatureTypeService);
 const softDeleteSpell = new SoftDeleteSpell(spellService, systemService);
 const restoreSpell = new RestoreSpell(spellService, systemService);
 const getSpellsBySystems = new GetSpellsBySystems(spellService);
@@ -492,8 +540,8 @@ const languageService = new LanguageService(languageRepository)
 const damageService = new DamageService(damageRepository)
 
 const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService, systemService)
-const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService, conditionService)
-const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService, conditionService)
+const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService, conditionService, creatureService)
+const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService, conditionService, creatureService)
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 
@@ -525,8 +573,8 @@ export const magicSchoolController = new MagicSchoolController(
   getMagicSchoolsBySystems
 );
 
-const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository);
-const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, buildSystemSummary, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository);
+const cascadeSoftDeleteSystem = new CascadeSoftDeleteSystem(systemService, attributeRepository, skillRepository, languageRepository, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository, optionGroupRepository, groupOptionRepository);
+const cascadeRestoreSystem = new CascadeRestoreSystem(systemService, attributeRepository, skillRepository, languageRepository, buildSystemSummary, magicSchoolRepository, featRepository, entityOverrideRepository, armorTypeRepository, creatureTypeRepository, creatureRepository, conditionRepository, optionGroupRepository, groupOptionRepository);
 const softDeleteAttribute = new SoftDeleteAttribute(attributeService, systemService);
 const restoreAttribute = new RestoreAttribute(attributeService, systemService);
 const softDeleteSkill = new SoftDeleteSkill(skillService, systemService);
@@ -621,6 +669,8 @@ export const personajeController = new PersonajeController(
   bindPactEquipment,
   learnSpells,
   añadirForma,
+  activateCharacterForm,
+  deactivateCharacterForm,
   toggleFavoriteEquipment,
   prepareSpells,
   bindSpellPrivileges,
@@ -689,7 +739,6 @@ const updateCreatureType = new UpdateCreatureType(creatureTypeService, systemSer
 const softDeleteCreatureType = new SoftDeleteCreatureType(creatureTypeService, systemService);
 const restoreCreatureType = new RestoreCreatureType(creatureTypeService, systemService);
 
-const creatureService = new CreatureService(creatureRepository);
 const getCreaturesBySystems = new GetCreaturesBySystems(creatureService);
 const getCreatureById = new GetCreatureById(creatureService);
 const createCreature = new CreateCreatureUseCase(

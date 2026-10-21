@@ -6,7 +6,6 @@ import {
   buildCreatureAttributes,
   buildCreatureSkills,
   resolveArmorClass,
-  resolveAttackBonus,
   resolvePassivePerception
 } from "./creatureStats";
 
@@ -60,15 +59,13 @@ describe("creatureStats", () => {
     expect(skills.find(skill => skill.key === "religion")?.modifier).toBe(4);
   });
 
-  it("resuelve percepción pasiva, CA y el ataque de la maza", () => {
+  it("resuelve percepción pasiva y CA", () => {
     expect(resolvePassivePerception(skills, attributes)).toBe(13);
     expect(resolveArmorClass({ value: 13 }, attributes)).toBe(13);
     expect(resolveArmorClass(undefined, attributes)).toBe(10);
-    expect(resolveAttackBonus({ attributeKey: "str" }, attributes, 2)).toBe(2);
   });
 
-  it("respeta los overrides de percepción pasiva y bonos de ataque", () => {
+  it("respeta el override de percepción pasiva", () => {
     expect(resolvePassivePerception(skills, attributes, 15)).toBe(15);
-    expect(resolveAttackBonus({ attributeKey: "str", bonus: 6 }, attributes, 2)).toBe(6);
   });
 });

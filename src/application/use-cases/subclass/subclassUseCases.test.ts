@@ -72,6 +72,30 @@ describe("Subclass Use Cases", () => {
       expect(subclassServiceMock.create).toHaveBeenCalledWith(input);
     });
 
+    it("creates a subclass with optionReplacements", async () => {
+      const useCase = new CreateSubclass(
+        subclassServiceMock as never,
+        systemServiceMock as never,
+        characterClassServiceMock as never
+      );
+      const optionReplacements = [{ groupId: classId, count: 1 }];
+      systemServiceMock.getById.mockResolvedValue({ id: "sys-child", publisher: "user1" });
+      characterClassServiceMock.getById.mockResolvedValue({ id: classId, ruleset: "sys-parent" });
+      systemServiceMock.getSystemsAndAncestors.mockResolvedValue(["sys-child", "sys-parent"]);
+      subclassServiceMock.create.mockResolvedValue({ ...createdSubclass, optionReplacements });
+
+      const input = {
+        ruleset: "sys-child",
+        classId,
+        name: "Maestro de batalla",
+        optionReplacements
+      };
+      const result = await useCase.execute(input, "user1");
+
+      expect(result.optionReplacements).toEqual(optionReplacements);
+      expect(subclassServiceMock.create).toHaveBeenCalledWith(input);
+    });
+
     it("throws 403 when the user is not the system publisher", async () => {
       const useCase = new CreateSubclass(
         subclassServiceMock as never,

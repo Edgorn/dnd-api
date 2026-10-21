@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Types } from "mongoose";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
 import { EquipmentMaterialSchema } from "./equipment.schema";
+import { CreatureFormPoolFilterSchema, CreatureFormPoolIdsSchema } from "./spell.schema";
 import {
   EQUIPMENT_RESTRICTION_ENFORCEMENTS,
   EQUIPMENT_RESTRICTION_SCOPES,
@@ -548,6 +549,44 @@ export const TraitInnateSpellsSchema = z.object({
   });
 });
 
+const uniqueMongoIdArray = (message: string) =>
+  z.array(mongoObjectId(message)).min(1, "Debe indicar al menos un conjuro").superRefine((ids, ctx) => {
+    const seen = new Set<string>();
+    ids.forEach((id, index) => {
+      if (seen.has(id)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "El conjuro está repetido",
+          path: [index]
+        });
+      }
+      seen.add(id);
+    });
+  });
+
+export const TraitGrantedSpellsSchema = uniqueMongoIdArray("Cada conjuro extra debe ser un ID de Mongo válido");
+
+export const TraitCreatureFormExtensionSchema = z.object({
+  spellId: mongoObjectId("El conjuro debe ser un ID de Mongo válido"),
+  extraPool: z.discriminatedUnion("mode", [CreatureFormPoolIdsSchema, CreatureFormPoolFilterSchema])
+}).strict();
+
+export const TraitCreatureFormExtensionsSchema = z.array(TraitCreatureFormExtensionSchema)
+  .min(1, "Debe indicar al menos una ampliación de formas")
+  .superRefine((extensions, ctx) => {
+    const seen = new Set<string>();
+    extensions.forEach((extension, index) => {
+      if (seen.has(extension.spellId)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "El conjuro está repetido",
+          path: [index, "spellId"]
+        });
+      }
+      seen.add(extension.spellId);
+    });
+  });
+
 export const CreateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío"),
   name: z.string().min(1, "El nombre no puede estar vacío"),
@@ -574,6 +613,8 @@ export const CreateTraitSchema = z.object({
   action: TraitActionSchema.nullish(),
   weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
+  grantedSpells: TraitGrantedSpellsSchema.nullish(),
+  creatureFormExtensions: TraitCreatureFormExtensionsSchema.nullish(),
   abilityScores: TraitAbilityScoresSchema.nullish(),
   skillProficiencies: TraitSkillProficienciesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
@@ -606,6 +647,8 @@ export const UpdateTraitSchema = z.object({
   action: TraitActionSchema.nullish(),
   weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
+  grantedSpells: TraitGrantedSpellsSchema.nullish(),
+  creatureFormExtensions: TraitCreatureFormExtensionsSchema.nullish(),
   abilityScores: TraitAbilityScoresSchema.nullish(),
   skillProficiencies: TraitSkillProficienciesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),

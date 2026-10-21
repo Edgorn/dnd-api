@@ -6,16 +6,19 @@ import SpellService from "../../../domain/services/spell.service";
 import ConditionService from "../../../domain/services/condition.service";
 import SystemService from "../../../domain/services/system.service";
 import TraitService from "../../../domain/services/trait.service";
+import CreatureService from "../../../domain/services/creature.service";
 import { AppError } from "../../../domain/errors/AppError";
 import {
   TraitAbilityScore,
   TraitCatalogChoice,
+  TraitCreatureFormExtension,
   TraitDamageChoice,
   TraitDamageChoiceRef,
   TraitInnateSpells,
   TraitLanguages,
   TraitSkillProficiency
 } from "../../../domain/types/traits.types";
+import { assertSpellCreatureFormRefs } from "../spell/assertSpellCreatureFormRefs";
 
 export async function assertTraitCatalogRefs(input: {
   ruleset: string;
@@ -27,6 +30,8 @@ export async function assertTraitCatalogRefs(input: {
   catalogChoices?: TraitCatalogChoice[] | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
   innateSpells?: TraitInnateSpells | null;
+  grantedSpells?: string[] | null;
+  creatureFormExtensions?: TraitCreatureFormExtension[] | null;
   abilityScores?: TraitAbilityScore[] | null;
   skillProficiencies?: TraitSkillProficiency[] | null;
   languageService: LanguageService;
@@ -37,6 +42,7 @@ export async function assertTraitCatalogRefs(input: {
   conditionService: ConditionService;
   systemService: SystemService;
   traitService: TraitService;
+  creatureService: CreatureService;
 }): Promise<{
   languages?: TraitLanguages | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
@@ -50,21 +56,26 @@ export async function assertTraitCatalogRefs(input: {
     ...(input.conditional_resistances ?? []),
     ...(input.damageChoices ?? []).flatMap(choice => choice.options.map(option => option.damageTypeId))
   ]);
-  const creatureTypeIds = uniqueIds(
-    (input.catalogChoices ?? []).flatMap(choice => [
+  const creatureTypeIds = uniqueIds([
+    ...(input.catalogChoices ?? []).flatMap(choice => [
       ...(choice.options ?? []).flatMap(option => option.creatureTypeId ? [option.creatureTypeId] : []),
       ...(choice.creatureTypeRaces ?? []).map(item => item.creatureTypeId)
-    ])
-  );
+    ]),
+    ...(input.creatureFormExtensions ?? []).flatMap(extension =>
+      extension.extraPool.mode === "filter" ? (extension.extraPool.creatureTypeIds ?? []) : []
+    )
+  ]);
   const attributeIds = uniqueIds([
     ...(input.damageChoices ?? []).flatMap(choice =>
       choice.options.flatMap(option => option.saveAttributeId ? [option.saveAttributeId] : [])
     ),
     ...(input.innateSpells?.abilityId ? [input.innateSpells.abilityId] : [])
   ]);
-  const spellIds = uniqueIds(
-    (input.innateSpells?.grants ?? []).map(grant => grant.spellId)
-  );
+  const spellIds = uniqueIds([
+    ...(input.innateSpells?.grants ?? []).map(grant => grant.spellId),
+    ...(input.grantedSpells ?? []),
+    ...(input.creatureFormExtensions ?? []).map(extension => extension.spellId)
+  ]);
   const conditionIds = uniqueIds(input.conditionalConditionImmunities ?? []);
   const publicLanguageIds = new Map<string, string>();
 
@@ -139,6 +150,20 @@ export async function assertTraitCatalogRefs(input: {
       if (spell?.level === 0 && grant.slotLevel !== "spellLevel") {
         throw new AppError("Los trucos innatos deben usar slotLevel spellLevel", 400);
       }
+    }
+
+    for (const extension of input.creatureFormExtensions ?? []) {
+      const spell = spellsById.get(extension.spellId);
+      if (!spell?.creatureForm) {
+        throw new AppError("El conjuro no define formas de criatura", 400);
+      }
+      await assertSpellCreatureFormRefs({
+        ruleset: input.ruleset,
+        creatureForm: { purpose: "companion", pool: extension.extraPool },
+        creatureService: input.creatureService,
+        creatureTypeService: input.creatureTypeService,
+        systemService: input.systemService
+      });
     }
   }
 

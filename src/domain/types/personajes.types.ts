@@ -15,8 +15,13 @@ import { FeatApi, FeatRequirements } from "./feat.types"
 import { SpellApi } from "./spell.types"
 import { ConditionApi } from "./condition.types"
 import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
-import { InvocacionApi } from "./invocaciones.types"
-import { CreatureApi } from "./creature.types"
+import {
+  CharacterOptionSelection,
+  CharacterOptionSelectionApi,
+  LevelUpOptionPick,
+  PendingOptionChoice
+} from "./optionGroup.types"
+import { CharacterFormApi, CharacterFormMongo, CreatureFormPurpose } from "./creatureForm.types"
 import { CharacterAttributeApi, AttributeApi } from "./attribute.types"
 import { Ideal } from "./background.types"
 import { CoinApi } from "./coin.types"
@@ -204,6 +209,7 @@ export interface TypeLevelUp {
   skillProficiencyPicks?: string[];
   proficiencyPicks?: string[][];
   spellReplacements?: { from: string; to: string }[];
+  optionPicks?: LevelUpOptionPick[];
 }
 
 export interface TypeAddEquipment {
@@ -352,8 +358,9 @@ export interface PersonajeMongo {
   HPMax: number,
   HPActual: number,
   XP: 0,
-  invocations: string[],
-  forms: string[],
+  optionSelections?: CharacterOptionSelection[],
+  forms: CharacterFormMongo[],
+  activeFormId?: string | null,
   preparedSpells?: Record<string, string[]>,
   spellPrivileges?: CharacterSpellPrivilegeMongo[],
   companions?: CharacterCompanion[],
@@ -407,6 +414,7 @@ export interface PersonajeApi {
   systems: string[],
   initiativeBonus: number,
   HPMax: number,
+  HPActual: number,
   CA: number,
   speed: Speed,
   skills: SkillPersonajeApi[],
@@ -429,12 +437,38 @@ export interface PersonajeApi {
   spells: Record<string, { list: SpellApi[]; extra?: SpellApi[]; prepared?: SpellApi[]; type?: AttributeApi }>,
   maxCarryingCapacity: number,
   spellcasting?: SpellcastingLevel[],
-  invocations?: InvocacionApi[],
-  forms?: CreatureApi[],
+  optionSelections?: CharacterOptionSelectionApi[],
+  forms?: CharacterFormApi[],
+  activeFormId?: string | null,
   spellPrivileges?: CharacterSpellPrivilegeApi[],
   companions: CharacterCompanion[],
   traitResources: CharacterTraitResource[],
   activeTraitIds: string[]
+}
+
+export interface TypeAddCharacterForm {
+  id: string;
+  userId: string;
+  creatureId: string;
+  spellId: string;
+}
+
+export interface TypeSetCharacterFormActive {
+  id: string;
+  formId: string;
+  userId: string;
+}
+
+export interface TypeAddCharacterFormPersist {
+  id: string;
+  userId: string;
+  entry: {
+    creatureId: string;
+    spellId: string;
+    purpose: CreatureFormPurpose;
+  };
+  choose: number;
+  replaceOnRecast: boolean;
 }
 
 export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
@@ -477,4 +511,5 @@ export interface LevelUpData {
   newClass: boolean;
   requirementsMet?: boolean;
   dip?: LevelUpDipData;
+  optionChoices?: PendingOptionChoice[];
 }

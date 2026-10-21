@@ -7,6 +7,7 @@ import {
   LEVEL_SKILL_PROFICIENCY_VALUES,
   SPELL_CHOICE_SOURCES
 } from "../../../domain/types/classLevelChoices.types";
+import { OptionChoiceMongoSchema, OptionReplacementsSchema } from "./optionGroup.schema";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -77,7 +78,8 @@ const CharacterClassLevelInputSchema = z.object({
   ).optional(),
   traits_data: z.record(z.string(), z.record(z.string(), z.string())).optional(),
   skill_choices: ChoiceMongoSchema.nullable().optional(),
-  skillProficiencyChoices: LevelSkillProficiencyChoiceSchema.nullable().optional()
+  skillProficiencyChoices: LevelSkillProficiencyChoiceSchema.nullable().optional(),
+  optionChoices: z.array(OptionChoiceMongoSchema).nullable().optional()
 });
 
 const SpellCopyCostSchema = z.object({
@@ -204,6 +206,7 @@ const characterClassFields = {
   preparedFrom: PreparedFromSchema.optional(),
   spellRepository: SpellRepositoryConfigSchema.nullable().optional(),
   spellReplacement: SpellReplacementConfigSchema.nullable().optional(),
+  optionReplacements: OptionReplacementsSchema.nullable().optional(),
   levels: z.array(CharacterClassLevelInputSchema).optional(),
   abilityScoreProgression: abilityScoreProgressionSchema.optional(),
   subclassChoice: z.object({

@@ -5,7 +5,6 @@ import IFeatRepository from '../../../../domain/repositories/IFeatRepository';
 import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 import SkillService from '../../../../domain/services/skill.service';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
-import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import ITraitRepository from '../../../../domain/repositories/ITraitRepository';
 import ISubclassRepository from '../../../../domain/repositories/ISubclassRepository';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
@@ -55,7 +54,9 @@ import {
   resolveAbilityScoreProgression
 } from '../../../../utils/abilityScoreProgression';
 import { mergeSkillChoices, mergeSkillProficiencyChoices } from '../../../../utils/characterMulticlass';
+import { mergeOptionChoices } from '../../../../utils/characterOptionChoices';
 import { SkillApi } from '../../../../domain/types/skill.types';
+import { OptionChoiceMongo } from '../../../../domain/types/optionGroup.types';
 
 export default class CharacterClassRepository implements ICharacterClassRepository {
   constructor(
@@ -66,7 +67,6 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     private readonly traitRepository?: ITraitRepository,
     private readonly spellRepository?: ISpellRepository,
     private readonly featRepository?: IFeatRepository,
-    private readonly invocationRepository?: IInvocacionRepository,
     private readonly languageRepository?: ILanguageRepository,
     private readonly attributeService?: AttributeService,
     private readonly subclassRepository?: ISubclassRepository
@@ -179,6 +179,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       preparedFrom: data.preparedFrom,
       spellRepository: data.spellRepository ?? undefined,
       spellReplacement: data.spellReplacement ?? undefined,
+      optionReplacements: data.optionReplacements ?? undefined,
       abilityScoreProgression: data.abilityScoreProgression ?? undefined,
       subclassChoice: data.subclassChoice ?? undefined,
       god: data.god ?? false,
@@ -214,6 +215,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     if (updateFields.spellReplacement === null) {
       (updateFields as Record<string, unknown>).spellReplacement = null;
+    }
+
+    if (updateFields.optionReplacements === null) {
+      (updateFields as Record<string, unknown>).optionReplacements = null;
     }
 
     if (updateFields.subclassChoice === null) {
@@ -297,7 +302,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       subclassChoiceMenu,
       subclassSkillChoices,
       subclassSkillProficiencyChoices,
-      subclassSpellChoices
+      subclassSpellChoices,
+      subclassOptionChoices
     } = await this.resolveSubclassLevelData(
       classId,
       level,
@@ -319,6 +325,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       const skillProficiencyChoices = mergeSkillProficiencyChoices(
         ...subclassSkillProficiencyChoices
       );
+      const optionChoices = mergeOptionChoices(subclassOptionChoices);
       return {
         hit_die: hitDie,
         traits: subclassTraits,
@@ -327,6 +334,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
         ...(subclassSkillChoices ? { skill_choices: subclassSkillChoices } : {}),
         ...(skillProficiencyChoices.length ? { skillProficiencyChoices } : {}),
         ...(spell_choices?.length ? { spell_choices } : {}),
+        ...(optionChoices.length ? { optionChoices } : {}),
         ...abilityScore
       };
     }
@@ -368,8 +376,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       dataLevel.skillProficiencyChoices,
       ...subclassSkillProficiencyChoices
     );
-    const invocations_choices = this.invocationRepository ? await this.invocationRepository.obtenerOpciones(dataLevel.invocations ?? 0) : undefined;
-    const invocations_change = this.invocationRepository ? await this.invocationRepository.obtenerOpciones(dataLevel.invocations_change ?? 0) : undefined;
+    const optionChoices = mergeOptionChoices(dataLevel.optionChoices, subclassOptionChoices);
 
     const spells = dataLevel?.spell_group?.class && this.spellRepository
       ? await this.spellRepository.getSpellsByLevelAndClass(
@@ -379,21 +386,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
         )
       : [];
 
-    let traits_options = undefined;
-
-    if (dataLevel?.traits_options && this.traitRepository) {
-      const traitsAux = await this.traitRepository.getTraitsByIndexes(dataLevel?.traits_options?.options ?? []);
-      traits_options = {
-        ...dataLevel.traits_options,
-        options: traitsAux
-      };
-    }
-
     return {
       hit_die: hitDie,
       traits: [...traits, ...subclassTraits],
       traits_data: { ...(dataLevel.traits_data ?? {}), ...subclassTraitsData },
-      traits_options,
       subclassChoice: subclassChoiceMenu,
       ...abilityScore,
       spell_choices,
@@ -401,8 +397,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spell_changes,
       skill_choices,
       ...(skillProficiencyChoices.length ? { skillProficiencyChoices } : {}),
-      invocations_choices,
-      invocations_change
+      ...(optionChoices.length ? { optionChoices } : {})
     };
   }
 
@@ -539,6 +534,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       preparedFrom: characterClass.preparedFrom,
       ...(characterClass.spellRepository ? { spellRepository: characterClass.spellRepository } : {}),
       ...(characterClass.spellReplacement ? { spellReplacement: characterClass.spellReplacement } : {}),
+      ...(characterClass.optionReplacements?.length
+        ? { optionReplacements: characterClass.optionReplacements }
+        : {}),
       ...(Array.isArray(characterClass.abilityScoreProgression)
         ? { abilityScoreProgression: characterClass.abilityScoreProgression }
         : {}),
@@ -664,6 +662,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     subclassSkillChoices?: ChoiceApi<SkillApi>;
     subclassSkillProficiencyChoices: LevelSkillProficiencyChoice[];
     subclassSpellChoices: SpellChoiceMongo[];
+    subclassOptionChoices: OptionChoiceMongo[];
   }> {
     const assigned = this.subclassRepository
       ? (await this.subclassRepository.getByIds(subclassIds)).filter(item => item.classId === classId)
@@ -674,6 +673,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     let subclassSkillChoices: ChoiceApi<SkillApi> | undefined;
     const subclassSkillProficiencyChoices: LevelSkillProficiencyChoice[] = [];
     const subclassSpellChoices: SpellChoiceMongo[] = [];
+    const subclassOptionChoices: OptionChoiceMongo[] = [];
 
     for (const subclass of assigned) {
       const row = subclass.levels.find(item => item.level === level);
@@ -686,6 +686,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       }
       if (row.spell_choices?.length) {
         subclassSpellChoices.push(...row.spell_choices);
+      }
+      if (row.optionChoices?.length) {
+        subclassOptionChoices.push(...row.optionChoices);
       }
     }
 
@@ -716,7 +719,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       subclassChoiceMenu,
       subclassSkillChoices,
       subclassSkillProficiencyChoices,
-      subclassSpellChoices
+      subclassSpellChoices,
+      subclassOptionChoices
     };
   }
 
@@ -749,16 +753,19 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   private mapLevelsForCreate(levels?: CharacterClassLevelInput[]): CharacterClassLevelMongo[] {
     if (!levels?.length) return [];
 
-    return levels.map(level => this.withLevelSkillProficiencyChoices(
-      this.withLevelSkillChoices({
-        level: level.level,
-        proficiencies: [],
-        traits: level.traits ?? [],
-        traits_data: level.traits_data ?? {},
-        spellcasting: level.spellcasting,
-        ...(level.spell_choices !== undefined ? { spell_choices: level.spell_choices } : {})
-      }, level.skill_choices),
-      level.skillProficiencyChoices
+    return levels.map(level => this.withOptionChoices(
+      this.withLevelSkillProficiencyChoices(
+        this.withLevelSkillChoices({
+          level: level.level,
+          proficiencies: [],
+          traits: level.traits ?? [],
+          traits_data: level.traits_data ?? {},
+          spellcasting: level.spellcasting,
+          ...(level.spell_choices !== undefined ? { spell_choices: level.spell_choices } : {})
+        }, level.skill_choices),
+        level.skillProficiencyChoices
+      ),
+      level.optionChoices
     ));
   }
 
@@ -793,11 +800,14 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       const withSkills = row.skill_choices === undefined
         ? base
         : this.withLevelSkillChoices(base, row.skill_choices);
+      const withProficiency = row.skillProficiencyChoices === undefined
+        ? withSkills
+        : this.withLevelSkillProficiencyChoices(withSkills, row.skillProficiencyChoices);
       byLevel.set(
         row.level,
-        row.skillProficiencyChoices === undefined
-          ? withSkills
-          : this.withLevelSkillProficiencyChoices(withSkills, row.skillProficiencyChoices)
+        row.optionChoices === undefined
+          ? withProficiency
+          : this.withOptionChoices(withProficiency, row.optionChoices)
       );
     }
 
@@ -833,6 +843,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
           slim.skillProficiencyChoices = { ...level.skillProficiencyChoices };
         }
 
+        if (level.optionChoices?.length) {
+          slim.optionChoices = [...level.optionChoices];
+        }
+
         return slim;
       })
       .sort((a, b) => a.level - b.level);
@@ -848,6 +862,19 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       return next;
     }
     next.skill_choices = skill_choices;
+    return next;
+  }
+
+  private withOptionChoices(
+    row: CharacterClassLevelMongo,
+    optionChoices?: OptionChoiceMongo[] | null
+  ): CharacterClassLevelMongo {
+    const next = { ...row };
+    if (optionChoices == null) {
+      delete next.optionChoices;
+      return next;
+    }
+    next.optionChoices = optionChoices;
     return next;
   }
 

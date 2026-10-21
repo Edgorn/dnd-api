@@ -2,7 +2,6 @@ import { ObjectId } from "mongoose";
 import { ChoiceApi, ChoiceMongo, Speed } from ".";
 import { AttributeApi, CharacterAttributeApi } from "./attribute.types";
 import { CreatureTypeApi } from "./creatureType.types";
-import { Damage } from "./damage.types";
 import { DamageAffinityGrant, DamageAffinityGrantApi } from "./damageAffinity.types";
 import { EquipmentInstanceApi, CharacterEquipmentMongo } from "./equipment.types";
 import { ConditionApi } from "./condition.types";
@@ -12,48 +11,15 @@ import { RaceRef } from "./race.types";
 import { SpellApi } from "./spell.types";
 
 /**
- * Distances on speed, senses, reach and range are stored in feet.
+ * Distances on speed and senses are stored in feet.
  * Equipment weight, when present, stays in pounds on the equipment catalog.
  */
-
-export const CREATURE_ATTACK_KINDS = ["melee_weapon", "ranged_weapon", "melee_spell", "ranged_spell"] as const;
-export type CreatureAttackKind = typeof CREATURE_ATTACK_KINDS[number];
 
 export const CREATURE_USAGE_TYPES = ["atWill", "perDay", "recharge", "perRest"] as const;
 export type CreatureUsageType = typeof CREATURE_USAGE_TYPES[number];
 
 /** Stored and accepted in the body when the creature allows any catalog race. */
 export const CREATURE_ANY_RACE = "any";
-
-export interface CreatureDamageRoll {
-  dice: string;
-  bonus?: number;
-  damageTypeId: string;
-}
-
-export interface CreatureDamageRollApi {
-  dice: string;
-  bonus?: number;
-  damageType: Damage | null;
-}
-
-export interface CreatureAttack {
-  kind: CreatureAttackKind;
-  attributeKey?: string;
-  bonus?: number;
-  /** Reach in feet. */
-  reach?: number;
-  /** Range in feet. */
-  range?: { normal: number; long?: number };
-  targets?: string;
-  equipmentId?: string;
-  damage: CreatureDamageRoll[];
-}
-
-export interface CreatureAttackApi extends Omit<CreatureAttack, "bonus" | "damage"> {
-  bonus: number;
-  damage: CreatureDamageRollApi[];
-}
 
 export interface CreatureUsage {
   type: CreatureUsageType;
@@ -64,13 +30,10 @@ export interface CreatureFeature {
   name: string;
   description: string[];
   usage?: CreatureUsage;
-  attack?: CreatureAttack;
   cost?: number;
 }
 
-export interface CreatureFeatureApi extends Omit<CreatureFeature, "attack"> {
-  attack?: CreatureAttackApi;
-}
+export type CreatureFeatureApi = CreatureFeature;
 
 export interface CreatureSpellcasting {
   casterLevel?: number;

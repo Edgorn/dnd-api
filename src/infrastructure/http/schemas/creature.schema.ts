@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CREATURE_ANY_RACE, CREATURE_ATTACK_KINDS, CREATURE_USAGE_TYPES } from "../../../domain/types/creature.types";
+import { CREATURE_ANY_RACE, CREATURE_USAGE_TYPES } from "../../../domain/types/creature.types";
 import { DAMAGE_AFFINITY_BYPASSES, DAMAGE_AFFINITY_SOURCES } from "../../../domain/types/damageAffinity.types";
 import { normalizeDamageAffinityList } from "../../../utils/damageAffinity";
 import { GrantedEquipmentListSchema } from "./equipment.schema";
@@ -52,27 +52,6 @@ const SensesSchema = z.object({
   }
 );
 
-const DamageRollSchema = z.object({
-  dice: z.string().min(1, "Los dados de daño no pueden estar vacíos"),
-  bonus: z.number().optional(),
-  damageTypeId: z.string().min(1, "El tipo de daño es obligatorio")
-}).strict();
-
-/** Reach and range are stored in feet. */
-const AttackSchema = z.object({
-  kind: z.enum(CREATURE_ATTACK_KINDS),
-  attributeKey: z.string().min(1).optional(),
-  bonus: z.number().optional(),
-  reach: z.number().nonnegative().optional(),
-  range: z.object({
-    normal: z.number().nonnegative(),
-    long: z.number().nonnegative().optional()
-  }).strict().optional(),
-  targets: z.string().optional(),
-  equipmentId: z.string().optional(),
-  damage: z.array(DamageRollSchema)
-}).strict();
-
 const UsageSchema = z.object({
   type: z.enum(CREATURE_USAGE_TYPES),
   value: z.union([z.number(), z.string()]).optional()
@@ -82,7 +61,6 @@ const FeatureSchema = z.object({
   name: z.string().min(1, "El nombre del rasgo no puede estar vacío"),
   description: z.array(z.string()),
   usage: UsageSchema.optional(),
-  attack: AttackSchema.optional(),
   cost: z.number().int().nonnegative().optional()
 }).strict();
 

@@ -42,6 +42,11 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/SpellChoiceMongo'
  *           description: Configuración de conjuros extra (sin hidratar opciones).
+ *         optionChoices:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/OptionChoiceMongo'
+ *           description: Concesiones de grupos de opciones de este nivel de subclase.
  *     Subclass:
  *       type: object
  *       properties:
@@ -73,6 +78,14 @@ const router = Router();
  *             Lista de conjuros ampliada (p. ej. Infernal). No se otorgan solos: se añaden
  *             a la lista de la clase padre para este personaje al aprender, recambiar o
  *             preparar conjuros de esa clase. Omitido si está vacía.
+ *         optionReplacements:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/OptionReplacementConfig'
+ *           description: >
+ *             Recambio de grupos de opciones en cada nivel de la clase padre, a partir de
+ *             que el personaje ya tenga alguna (p. ej. maniobras de Maestro de batalla).
+ *             Omitido si está vacío.
  *         levels:
  *           type: array
  *           items:
@@ -127,6 +140,14 @@ const router = Router();
  *           description: >
  *             Conjuros extra de este nivel (p. ej. Secretos Mágicos adicionales).
  *             Misma forma que en la clase. null borra el campo.
+ *         optionChoices:
+ *           nullable: true
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/OptionChoiceMongo'
+ *           description: >
+ *             Concesiones de grupos de opciones en este nivel. Misma forma que en la clase.
+ *             null borra el campo. Si se omite, se conserva.
  *     InputCreateSubclass:
  *       type: object
  *       required:
@@ -156,11 +177,16 @@ const router = Router();
  *           items:
  *             type: string
  *           description: ObjectIds de conjuros añadidos a la lista de la clase padre para quien tome esta subclase.
+ *         optionReplacements:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/OptionReplacementConfig'
+ *           description: Recambios de grupos de opciones en cada nivel de la clase padre.
  *         levels:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/SubclassLevelInput'
- *           description: Progresión de rasgos y elecciones de habilidades (level, traits, traits_data, skill_choices).
+ *           description: Progresión por nivel (traits, skill_choices, spell_choices, optionChoices).
  *     InputUpdateSubclass:
  *       type: object
  *       properties:
@@ -187,6 +213,12 @@ const router = Router();
  *           items:
  *             type: string
  *           description: ObjectIds de la lista ampliada. null borra el campo. Si se omite, se conserva.
+ *         optionReplacements:
+ *           nullable: true
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/OptionReplacementConfig'
+ *           description: Recambios de grupos de opciones. null borra el campo. Si se omite, se conserva.
  *         levels:
  *           type: array
  *           items:

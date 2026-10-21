@@ -243,6 +243,81 @@ describe("CreateSpellSchema tables", () => {
   });
 });
 
+const familiarForm = {
+  purpose: "companion" as const,
+  pool: { mode: "ids" as const, creatureIds: ["507f1f77bcf86cd799439011"] }
+};
+
+describe("CreateSpellSchema creatureForm", () => {
+  it("acepta un familiar por lista de ids", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      creatureForm: familiarForm
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.creatureForm?.choose).toBe(1);
+      expect(result.data.creatureForm?.replaceOnRecast).toBe(true);
+    }
+  });
+
+  it("acepta un filtro de polimorfar", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      creatureForm: {
+        purpose: "self",
+        pool: { mode: "filter", creatureTypeIds: ["507f1f77bcf86cd799439012"], maxCR: 1 }
+      }
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("acepta purpose target", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      creatureForm: {
+        purpose: "target",
+        pool: { mode: "filter" }
+      }
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza ids duplicados", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      creatureForm: {
+        purpose: "companion",
+        pool: { mode: "ids", creatureIds: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439011"] }
+      }
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("acepta un filtro vacío como todas las criaturas", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      creatureForm: { purpose: "self", pool: { mode: "filter" } }
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("UpdateSpellSchema creatureForm", () => {
+  it("acepta null para borrar", () => {
+    const result = UpdateSpellSchema.safeParse({ creatureForm: null });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.creatureForm).toBeNull();
+    }
+  });
+});
+
 describe("UpdateSpellSchema tables", () => {
   it("acepta tables vacío para borrarlas", () => {
     const result = UpdateSpellSchema.safeParse({ tables: [] });

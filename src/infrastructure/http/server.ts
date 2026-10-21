@@ -30,6 +30,7 @@ import propertyRoutes from "./routes/property.routes";
 import armorTypeRoutes from "./routes/armorType.routes";
 import creatureTypeRoutes from "./routes/creatureType.routes";
 import conditionRoutes from "./routes/condition.routes";
+import optionGroupRoutes from "./routes/optionGroup.routes";
 import swaggerUi from 'swagger-ui-express';
 import { tryLoadOpenApiSpec } from './config/loadOpenApiSpec';
 import { errorHandler } from "./middlewares/errorHandler.middleware";
@@ -84,6 +85,7 @@ app.use(propertyRoutes);
 app.use(armorTypeRoutes);
 app.use(creatureTypeRoutes);
 app.use(conditionRoutes);
+app.use(optionGroupRoutes);
 
 app.use(errorHandler);
 

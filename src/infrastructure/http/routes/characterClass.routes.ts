@@ -130,11 +130,19 @@ const router = Router();
  *           description: >
  *             Si está presente, al subir de nivel en esta clase se puede sustituir hasta
  *             `count` conjuros conocidos por otros de la lista de la clase (p. ej. bardo).
+ *         optionReplacements:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/OptionReplacementConfig'
+ *           description: >
+ *             Recambio global de grupos de opciones (p. ej. 1 invocación cada nivel de brujo
+ *             a partir de que el personaje ya tenga alguna). Se fusiona con `optionChoices.replace`
+ *             del nivel. No hace falta repetirlo en cada fila de `levels`.
  *         levels:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros, traits y traits_data).
+ *           description: Niveles slim para el editor (level, ranuras, elecciones de conjuros, traits, habilidades y optionChoices).
  *         abilityScoreProgression:
  *           type: array
  *           items:
@@ -332,6 +340,17 @@ const router = Router();
  *           description: >
  *             Elige skills ya competentes y aplica un multiplicador al bonificador
  *             (2 pericia, 3 triple). Envíe null para borrar la elección de este nivel.
+ *         optionChoices:
+ *           nullable: true
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/OptionChoiceMongo'
+ *           description: >
+ *             Concesiones de grupos de opciones en este nivel (p. ej. 2 invocaciones nuevas
+ *             y 1 recambio). groupId apunta a un OptionGroup del sistema. choose es cuántas
+ *             hay que añadir; replace es el máximo de recambios. Al menos uno debe ser > 0.
+ *             Envíe null en una actualización para borrar las concesiones de este nivel.
+ *             Si se omite, se conservan.
  *     SpellChoiceMongo:
  *       type: object
  *       required:
@@ -565,11 +584,19 @@ const router = Router();
  *           description: >
  *             Recambio opcional de conjuros conocidos al subir de nivel (p. ej. bardo).
  *             Opcional al crear.
+ *         optionReplacements:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/OptionReplacementConfig'
+ *           description: >
+ *             Recambios de grupos de opciones en cada nivel de esta clase, a partir de que
+ *             el personaje ya tenga alguna opción del grupo. Opcional al crear.
  *         levels:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
- *           description: Niveles con tabla de ranuras, elecciones de conjuros, pericia, traits y skill_choices.
+ *           description: Niveles con ranuras, elecciones de conjuros, pericia, traits, skill_choices y optionChoices.
  *         abilityScoreProgression:
  *           type: array
  *           items:
@@ -674,13 +701,20 @@ const router = Router();
  *             - $ref: '#/components/schemas/SpellReplacementConfig'
  *           nullable: true
  *           description: Recambio de conjuros conocidos al subir de nivel. Enviar null para eliminarlo.
+ *         optionReplacements:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/OptionReplacementConfig'
+ *           description: >
+ *             Recambios globales de grupos de opciones. Enviar null para eliminarlos.
  *         levels:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterClassLevelInput'
  *           description: >
- *             Niveles con tabla de ranuras, elecciones de conjuros, traits y traits_data;
- *             se fusionan por level. Los traits y traits_data de un nivel solo se sustituyen si el campo viene definido.
+ *             Niveles con ranuras, elecciones de conjuros, traits, skill_choices y optionChoices;
+ *             se fusionan por level. Los traits, traits_data y optionChoices de un nivel solo se sustituyen si el campo viene definido.
  *         abilityScoreProgression:
  *           type: array
  *           items:

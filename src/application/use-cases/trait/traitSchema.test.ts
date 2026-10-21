@@ -1231,6 +1231,52 @@ describe("CreateTraitSchema skillProficiencies", () => {
   });
 });
 
+describe("CreateTraitSchema grantedSpells and creatureFormExtensions", () => {
+  const spellId = "507f1f77bcf86cd799439011";
+  const impId = "507f1f77bcf86cd799439012";
+
+  it("accepts Pact of the Chain style grants", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto de la Cadena",
+      grantedSpells: [spellId],
+      creatureFormExtensions: [{
+        spellId,
+        extraPool: { mode: "ids", creatureIds: [impId] }
+      }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a duplicated granted spell", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto",
+      grantedSpells: [spellId, spellId]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a duplicated extension spellId", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto",
+      creatureFormExtensions: [
+        { spellId, extraPool: { mode: "ids", creatureIds: [impId] } },
+        { spellId, extraPool: { mode: "ids", creatureIds: [impId] } }
+      ]
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema grantedSpells", () => {
+  it("accepts null to clear grantedSpells and creatureFormExtensions", () => {
+    expect(UpdateTraitSchema.safeParse({ grantedSpells: null }).success).toBe(true);
+    expect(UpdateTraitSchema.safeParse({ creatureFormExtensions: null }).success).toBe(true);
+  });
+});
+
 describe("UpdateTraitSchema skillProficiencies", () => {
   it("accepts null to clear skillProficiencies", () => {
     expect(UpdateTraitSchema.safeParse({ skillProficiencies: null }).success).toBe(true);

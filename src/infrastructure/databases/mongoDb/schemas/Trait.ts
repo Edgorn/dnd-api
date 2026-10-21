@@ -34,6 +34,8 @@ const traitSchema: Schema = new Schema<TraitMongo>({
   action: { type: Schema.Types.Mixed, default: undefined },
   weaponDamageBonus: { type: Schema.Types.Mixed, default: undefined },
   innateSpells: { type: Schema.Types.Mixed, default: undefined },
+  grantedSpells: { type: [String], default: undefined },
+  creatureFormExtensions: { type: Schema.Types.Mixed, default: undefined },
   abilityScores: { type: Schema.Types.Mixed, default: undefined },
   skillProficiencies: { type: Schema.Types.Mixed, default: undefined },
   stackGroup: { type: Schema.Types.Mixed, default: undefined },

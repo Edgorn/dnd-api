@@ -1,7 +1,12 @@
 import { Types } from "mongoose";
 import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
+import ICreatureRepository from "../../../../domain/repositories/ICreatureRepository";
+import ICreatureTypeRepository from "../../../../domain/repositories/ICreatureTypeRepository";
 import { ChoiceMongo } from "../../../../domain/types";
+import { CreatureFormApi, CreatureFormStored } from "../../../../domain/types/creatureForm.types";
+import { CreatureApi } from "../../../../domain/types/creature.types";
+import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import {
   FormatSpellChoicesContext,
   SpellChoiceApi,
@@ -17,9 +22,20 @@ import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError
 const SPELL_POPULATE_PATHS = ['school', 'classes', 'damage.choices.options', 'damage.base.type', 'damage.scaling.steps.components.type'] as const;
 
 export default class SpellRepository implements ISpellRepository {
+  private creatureRepository?: ICreatureRepository;
+  private creatureTypeRepository?: ICreatureTypeRepository;
+
   constructor(
     private readonly systemRepository: ISystemRepository
   ) {}
+
+  bindCreatureCatalog(
+    creatureRepository: ICreatureRepository,
+    creatureTypeRepository: ICreatureTypeRepository
+  ): void {
+    this.creatureRepository = creatureRepository;
+    this.creatureTypeRepository = creatureTypeRepository;
+  }
 
   async create(data: InputCreateSpell): Promise<SpellApi> {
     try {
@@ -35,13 +51,15 @@ export default class SpellRepository implements ISpellRepository {
         components: data.components,
         duration: data.duration,
         damage: data.damage,
+        creatureForm: data.creatureForm,
         tables: data.tables,
         ritual: data.ritual
       });
 
       await newSpell.save();
       await newSpell.populate([...SPELL_POPULATE_PATHS]);
-      return this.formatSpell(newSpell);
+      const [formatted] = await this.formatSpells([newSpell]);
+      return formatted;
     } catch (error: any) {
       if (error?.code === 11000) {
         throw new ConflictError(`Ya existe un conjuro con el nombre '${data.name}'`);
@@ -64,7 +82,8 @@ export default class SpellRepository implements ISpellRepository {
         throw new NotFoundError("Conjuro no encontrado");
       }
 
-      return this.formatSpell(updatedSpell);
+      const [formatted] = await this.formatSpells([updatedSpell]);
+      return formatted;
     } catch (error: any) {
       if (error?.code === 11000) {
         throw new ConflictError(`Ya existe un conjuro con el nombre '${data.name}'`);
@@ -79,7 +98,7 @@ export default class SpellRepository implements ISpellRepository {
       .populate([...SPELL_POPULATE_PATHS])
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
-    return this.formatSpells(spells);
+    return await this.formatSpells(spells);
   }
 
   async getById(id: string): Promise<SpellApi | null> {
@@ -91,7 +110,8 @@ export default class SpellRepository implements ISpellRepository {
       .populate([...SPELL_POPULATE_PATHS])
       .lean<SpellMongo>();
     if (!spell) return null;
-    return this.formatSpell(spell);
+    const [formatted] = await this.formatSpells([spell]);
+    return formatted;
   }
 
   async softDelete(id: string): Promise<void> {
@@ -214,7 +234,7 @@ export default class SpellRepository implements ISpellRepository {
 
       return {
         choose: choice.choose,
-        options: this.formatSpells(spells),
+        options: await this.formatSpells(spells),
         query_type: "filter",
         query_filter: filter,
         ...flags
@@ -255,7 +275,7 @@ export default class SpellRepository implements ISpellRepository {
     if (validMongoIds.length === 0) return [];
 
     const spells = await SpellSchema.find({ _id: { $in: validMongoIds as any }, deletedAt: null }).populate([...SPELL_POPULATE_PATHS]);
-    return ordenarPorNombre(this.formatSpells(spells));
+    return ordenarPorNombre(await this.formatSpells(spells));
   }
 
   async getSpellsByLevelAndClass(level: number, rulesets: string[] = [], className?: string): Promise<SpellApi[]> {
@@ -279,7 +299,7 @@ export default class SpellRepository implements ISpellRepository {
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
 
-    return this.formatSpells(spells);
+    return await this.formatSpells(spells);
   }
 
   async getRitualSpells(rulesets: string[] = []): Promise<SpellApi[]> {
@@ -295,14 +315,99 @@ export default class SpellRepository implements ISpellRepository {
       .collation({ locale: 'es', strength: 1 })
       .sort({ name: 1 });
 
-    return this.formatSpells(spells);
+    return await this.formatSpells(spells);
   }
 
-  private formatSpells(spells: SpellMongo[]): SpellApi[] {
-    return spells.map(spell => this.formatSpell(spell));
+  private async formatSpells(spells: SpellMongo[]): Promise<SpellApi[]> {
+    const { creatureById, typeById } = await this.loadCreatureFormMaps(spells);
+    return spells.map(spell => this.formatSpell(spell, creatureById, typeById));
   }
 
-  private formatSpell(spell: SpellMongo): SpellApi {
+  private collectCreatureFormRefs(spells: SpellMongo[]): { creatureIds: string[]; typeIds: string[] } {
+    const creatureIds = new Set<string>();
+    const typeIds = new Set<string>();
+    for (const spell of spells) {
+      const pool = spell.creatureForm?.pool;
+      if (!pool) continue;
+      if (pool.mode === "ids") {
+        for (const id of pool.creatureIds ?? []) creatureIds.add(id);
+      } else {
+        for (const id of pool.creatureTypeIds ?? []) typeIds.add(id);
+      }
+    }
+    return { creatureIds: [...creatureIds], typeIds: [...typeIds] };
+  }
+
+  private async loadCreatureFormMaps(spells: SpellMongo[]): Promise<{
+    creatureById: Map<string, CreatureApi>;
+    typeById: Map<string, CreatureTypeApi>;
+  }> {
+    const { creatureIds, typeIds } = this.collectCreatureFormRefs(spells);
+    const [creatures, types] = await Promise.all([
+      creatureIds.length && this.creatureRepository
+        ? this.creatureRepository.getByIds(creatureIds)
+        : Promise.resolve([]),
+      typeIds.length && this.creatureTypeRepository
+        ? this.creatureTypeRepository.getByIds(typeIds)
+        : Promise.resolve([])
+    ]);
+    return {
+      creatureById: new Map(creatures.map(creature => [creature.id, creature])),
+      typeById: new Map(types.map(type => [type.id, type]))
+    };
+  }
+
+  private formatCreatureForm(
+    form: CreatureFormStored | undefined,
+    creatureById: Map<string, CreatureApi>,
+    typeById: Map<string, CreatureTypeApi>
+  ): CreatureFormApi | undefined {
+    if (!form?.pool) return undefined;
+    const base = {
+      purpose: form.purpose,
+      choose: form.choose ?? 1,
+      replaceOnRecast: form.replaceOnRecast ?? true
+    };
+    if (form.pool.mode === "ids") {
+      const creatureIds = form.pool.creatureIds ?? [];
+      return {
+        ...base,
+        pool: {
+          mode: "ids",
+          creatureIds,
+          creatures: creatureIds.flatMap(id => {
+            const creature = creatureById.get(id);
+            return creature ? [creature] : [];
+          })
+        }
+      };
+    }
+    const creatureTypeIds = form.pool.creatureTypeIds ?? [];
+    return {
+      ...base,
+      pool: {
+        mode: "filter",
+        ...(creatureTypeIds.length ? { creatureTypeIds } : {}),
+        ...(creatureTypeIds.length
+          ? {
+              creatureTypes: creatureTypeIds.flatMap(id => {
+                const type = typeById.get(id);
+                return type ? [type] : [];
+              })
+            }
+          : {}),
+        ...(form.pool.maxCR !== undefined ? { maxCR: form.pool.maxCR } : {}),
+        ...(form.pool.sizes?.length ? { sizes: form.pool.sizes } : {}),
+        ...(form.pool.tags?.length ? { tags: form.pool.tags } : {})
+      }
+    };
+  }
+
+  private formatSpell(
+    spell: SpellMongo,
+    creatureById: Map<string, CreatureApi>,
+    typeById: Map<string, CreatureTypeApi>
+  ): SpellApi {
     let schoolFormatted: SpellSchoolApi | undefined = undefined;
     if (spell.school && typeof spell.school === "object") {
       const s = spell.school;
@@ -424,6 +529,7 @@ export default class SpellRepository implements ISpellRepository {
         concentration: spell.duration.concentration
       } : undefined,
       damage: damageFormatted,
+      creatureForm: this.formatCreatureForm(spell.creatureForm ?? undefined, creatureById, typeById),
       description: spell.description || [],
       tables: Array.isArray(spell.tables) ? spell.tables : [],
       ritual: spell.ritual ?? false,

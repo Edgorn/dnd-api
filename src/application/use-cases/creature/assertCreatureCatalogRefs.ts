@@ -9,7 +9,7 @@ import SpellService from "../../../domain/services/spell.service";
 import SystemService from "../../../domain/services/system.service";
 import IConditionRepository from "../../../domain/repositories/IConditionRepository";
 import { AppError } from "../../../domain/errors/AppError";
-import { CREATURE_ANY_RACE, CreateCreature, CreatureFeature, CreatureInnateSpellcasting, CreatureSpellcasting } from "../../../domain/types/creature.types";
+import { CREATURE_ANY_RACE, CreateCreature, CreatureInnateSpellcasting, CreatureSpellcasting } from "../../../domain/types/creature.types";
 import { collectDamageTypeIdsFromAffinities } from "../../../utils/damageAffinity";
 import { isMongoObjectId } from "../../../utils/mongoObjectId";
 
@@ -146,21 +146,11 @@ function collectSpellIds(
 }
 
 function collectDamageIds(data: CreateCreature): string[] {
-  const fromFeatures = (features: CreatureFeature[] | undefined) =>
-    (features ?? []).flatMap(feature => (feature.attack?.damage ?? []).map(roll => roll.damageTypeId));
-
-  return unique([
-    ...collectDamageTypeIdsFromAffinities(
-      data.damage_vulnerabilities,
-      data.damage_immunities,
-      data.damage_resistances
-    ),
-    ...fromFeatures(data.traits),
-    ...fromFeatures(data.actions),
-    ...fromFeatures(data.bonus_actions),
-    ...fromFeatures(data.reactions),
-    ...fromFeatures(data.legendary_actions?.actions)
-  ]);
+  return unique(collectDamageTypeIdsFromAffinities(
+    data.damage_vulnerabilities,
+    data.damage_immunities,
+    data.damage_resistances
+  ));
 }
 
 function unique(ids: string[]): string[] {

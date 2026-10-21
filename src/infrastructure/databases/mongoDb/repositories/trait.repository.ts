@@ -7,16 +7,19 @@ import IConditionRepository from "../../../../domain/repositories/IConditionRepo
 import ISkillRepository from '../../../../domain/repositories/ISkillRepository';
 import ILanguageRepository from '../../../../domain/repositories/ILanguageRepository';
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
+import ICreatureRepository from '../../../../domain/repositories/ICreatureRepository';
 import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUses, TraitWeaponDamageBonus, TraitsOptionsApi, TraitsOptionsMongo, UpdateTrait, SPELL_PRIVILEGE_RECHARGES, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUses, TraitWeaponDamageBonus, UpdateTrait, SPELL_PRIVILEGE_RECHARGES, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import { Damage } from "../../../../domain/types";
 import { ProficiencyApi } from '../../../../domain/types/proficiencies.types';
 import { SpellApi } from "../../../../domain/types/spell.types";
+import { CreatureApi } from "../../../../domain/types/creature.types";
+import { formatCreatureFormPool } from "../../../../utils/creatureFormPool";
 import { ConditionApi } from "../../../../domain/types/condition.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import { normalizeTraitSpeed } from "../../../../utils/applyTraitSpeed";
@@ -25,6 +28,8 @@ import { Types } from 'mongoose';
 import { AppError } from '../../../../domain/errors/AppError';
 
 export default class TraitRepository implements ITraitRepository {
+  private creatureRepository?: ICreatureRepository;
+
   constructor(
     private readonly damageRepository: IDamageRepository,
     private readonly proficiencyRepository: IProficiencyRepository,
@@ -35,6 +40,10 @@ export default class TraitRepository implements ITraitRepository {
     private readonly creatureTypeRepository: ICreatureTypeRepository,
     private readonly attributeRepository: IAttributeRepository
   ) {}
+
+  bindCreatureCatalog(creatureRepository: ICreatureRepository): void {
+    this.creatureRepository = creatureRepository;
+  }
 
   async getBySystems(ruleset: string[]): Promise<TraitApi[]> {
     const traits = await TraitSchema.find({ ruleset: { $in: ruleset }, deletedAt: null });
@@ -65,16 +74,6 @@ export default class TraitRepository implements ITraitRepository {
     );
 
     return formatted.filter((item): item is ChoiceApi<TraitApi> => item !== undefined);
-  }
-
-  async getTraitsOptions(traitsOptions: TraitsOptionsMongo | undefined): Promise<TraitsOptionsApi | undefined> {
-    if (!traitsOptions) return undefined;
-
-    const options = await this.getTraitsByIndexes(traitsOptions.options ?? []);
-    return {
-      ...traitsOptions,
-      options
-    };
   }
 
   async getById(id: string): Promise<TraitApi | null> {
@@ -149,7 +148,10 @@ export default class TraitRepository implements ITraitRepository {
       this.saveAttributeIds(trait).forEach(id => allSaveAttributes.add(id));
       this.innateAbilityId(trait).forEach(id => allSaveAttributes.add(id));
       this.innateSpellIds(trait).forEach(id => allSpells.add(id));
+      this.grantedSpellIds(trait).forEach(id => allSpells.add(id));
+      this.extensionSpellIds(trait).forEach(id => allSpells.add(id));
       this.catalogCreatureTypeIds(trait).forEach(id => allCreatureTypes.add(id));
+      this.extensionCreatureTypeIds(trait).forEach(id => allCreatureTypes.add(id));
     }
 
     const [
@@ -163,7 +165,8 @@ export default class TraitRepository implements ITraitRepository {
       fetchedLanguages,
       fetchedChoiceDamages,
       fetchedSaveAttributes,
-      fetchedCreatureTypes
+      fetchedCreatureTypes,
+      fetchedExtensionCreatures
     ] = await Promise.all([
       allResistances.size ? this.damageRepository.getByIds(Array.from(allResistances)) : [],
       allConditionalResistances.size ? this.damageRepository.getByIds(Array.from(allConditionalResistances)) : [],
@@ -175,7 +178,8 @@ export default class TraitRepository implements ITraitRepository {
       allLanguages.size ? this.languageRepository.getByIds(Array.from(allLanguages)) : [],
       allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : [],
       allSaveAttributes.size ? this.attributeRepository.getByIds(Array.from(allSaveAttributes)) : [],
-      allCreatureTypes.size ? this.creatureTypeRepository.getByIds(Array.from(allCreatureTypes)) : []
+      allCreatureTypes.size ? this.creatureTypeRepository.getByIds(Array.from(allCreatureTypes)) : [],
+      this.loadExtensionCreatures(traits)
     ]);
 
     const resistanceMap = new Map<string, Damage>(fetchedResistances.map(item => [item.id!, item]));
@@ -200,6 +204,7 @@ export default class TraitRepository implements ITraitRepository {
     const choiceDamageMap = new Map<string, Damage>(fetchedChoiceDamages.map(item => [item.id!, item]));
     const saveAttributeMap = new Map<string, AttributeApi>(fetchedSaveAttributes.map(item => [item.id, item]));
     const creatureTypeMap = new Map<string, CreatureTypeApi>(fetchedCreatureTypes.map(item => [item.id, item]));
+    const creatureMap = new Map<string, CreatureApi>(fetchedExtensionCreatures.map(item => [item.id, item]));
 
     return traits.map(trait => {
       const resistances = (trait.resistances ?? [])
@@ -290,6 +295,8 @@ export default class TraitRepository implements ITraitRepository {
         ...this.formatAction(trait.action),
         ...this.formatWeaponDamageBonus(trait.weaponDamageBonus),
         ...this.formatInnateSpells(trait.innateSpells, spellMap, saveAttributeMap),
+        ...this.formatGrantedSpells(trait.grantedSpells, spellMap),
+        ...this.formatCreatureFormExtensions(trait.creatureFormExtensions, spellMap, creatureMap, creatureTypeMap),
         ...(Array.isArray(trait.abilityScores) && trait.abilityScores.length
           ? { abilityScores: trait.abilityScores }
           : {}),
@@ -308,7 +315,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, innateSpells, abilityScores, skillProficiencies, stackGroup, conditionalResistanceGroup, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, innateSpells, grantedSpells, creatureFormExtensions, abilityScores, skillProficiencies, stackGroup, conditionalResistanceGroup, ...rest } = trait;
     return {
       ...rest,
       summary: summaryToPersist(trait.summary, trait.description),
@@ -324,6 +331,10 @@ export default class TraitRepository implements ITraitRepository {
       ...(action ? { action } : {}),
       ...(weaponDamageBonus ? { weaponDamageBonus } : {}),
       ...(innateSpells ? { innateSpells } : {}),
+      ...(Array.isArray(grantedSpells) && grantedSpells.length ? { grantedSpells } : {}),
+      ...(Array.isArray(creatureFormExtensions) && creatureFormExtensions.length
+        ? { creatureFormExtensions }
+        : {}),
       ...(Array.isArray(abilityScores) ? { abilityScores } : {}),
       ...(Array.isArray(skillProficiencies) ? { skillProficiencies } : {}),
       ...(stackGroup ? { stackGroup } : {}),
@@ -348,6 +359,8 @@ export default class TraitRepository implements ITraitRepository {
       action,
       weaponDamageBonus,
       innateSpells,
+      grantedSpells,
+      creatureFormExtensions,
       abilityScores,
       skillProficiencies,
       stackGroup,
@@ -387,6 +400,8 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "action", action);
     this.assignNullable($set, $unset, "weaponDamageBonus", weaponDamageBonus);
     this.assignNullable($set, $unset, "innateSpells", innateSpells);
+    this.assignNullable($set, $unset, "grantedSpells", grantedSpells);
+    this.assignNullable($set, $unset, "creatureFormExtensions", creatureFormExtensions);
     this.assignNullable($set, $unset, "abilityScores", abilityScores);
     this.assignNullable($set, $unset, "skillProficiencies", skillProficiencies);
     this.assignNullable($set, $unset, "stackGroup", stackGroup);
@@ -444,6 +459,73 @@ export default class TraitRepository implements ITraitRepository {
     return trait.innateSpells.grants
       .map(grant => grant.spellId)
       .filter((id): id is string => typeof id === "string" && id.length > 0);
+  }
+
+  private grantedSpellIds(trait: TraitMongo): string[] {
+    if (!Array.isArray(trait.grantedSpells)) return [];
+    return trait.grantedSpells.filter((id): id is string => typeof id === "string" && id.length > 0);
+  }
+
+  private extensionSpellIds(trait: TraitMongo): string[] {
+    if (!Array.isArray(trait.creatureFormExtensions)) return [];
+    return trait.creatureFormExtensions
+      .map(extension => extension?.spellId)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
+  }
+
+  private extensionCreatureTypeIds(trait: TraitMongo): string[] {
+    if (!Array.isArray(trait.creatureFormExtensions)) return [];
+    return trait.creatureFormExtensions.flatMap(extension => {
+      const pool = extension?.extraPool;
+      if (!pool || pool.mode !== "filter") return [];
+      return (pool.creatureTypeIds ?? []).filter((id): id is string => typeof id === "string" && id.length > 0);
+    });
+  }
+
+  private extensionCreatureIds(trait: TraitMongo): string[] {
+    if (!Array.isArray(trait.creatureFormExtensions)) return [];
+    return trait.creatureFormExtensions.flatMap(extension => {
+      const pool = extension?.extraPool;
+      if (!pool || pool.mode !== "ids") return [];
+      return (pool.creatureIds ?? []).filter((id): id is string => typeof id === "string" && id.length > 0);
+    });
+  }
+
+  private async loadExtensionCreatures(traits: TraitMongo[]): Promise<CreatureApi[]> {
+    const ids = [...new Set(traits.flatMap(trait => this.extensionCreatureIds(trait)))];
+    if (!ids.length || !this.creatureRepository) return [];
+    return this.creatureRepository.getByIds(ids);
+  }
+
+  private formatGrantedSpells(
+    grantedSpells: string[] | undefined,
+    spellMap: Map<string, SpellApi>
+  ): { grantedSpells: SpellApi[] } | Record<string, never> {
+    if (!Array.isArray(grantedSpells) || !grantedSpells.length) return {};
+    const spells = grantedSpells
+      .map(id => spellMap.get(id))
+      .filter((item): item is SpellApi => Boolean(item));
+    return spells.length ? { grantedSpells: spells } : {};
+  }
+
+  private formatCreatureFormExtensions(
+    extensions: TraitCreatureFormExtension[] | undefined,
+    spellMap: Map<string, SpellApi>,
+    creatureMap: Map<string, CreatureApi>,
+    typeMap: Map<string, CreatureTypeApi>
+  ): { creatureFormExtensions: TraitCreatureFormExtensionApi[] } | Record<string, never> {
+    if (!Array.isArray(extensions) || !extensions.length) return {};
+    const formatted = extensions.flatMap(extension => {
+      if (typeof extension?.spellId !== "string" || !extension.spellId || !extension.extraPool) return [];
+      const item: TraitCreatureFormExtensionApi = {
+        spellId: extension.spellId,
+        extraPool: formatCreatureFormPool(extension.extraPool, creatureMap, typeMap)
+      };
+      const spell = spellMap.get(extension.spellId);
+      if (spell) item.spell = spell;
+      return [item];
+    });
+    return formatted.length ? { creatureFormExtensions: formatted } : {};
   }
 
   private formatLanguages(

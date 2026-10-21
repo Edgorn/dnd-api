@@ -116,6 +116,22 @@ export const LevelUpSchema = z.object({
       z.array(z.string().min(1, "Cada competencia no puede estar vacía"))
     )
     .optional(),
+  optionPicks: z
+    .array(
+      z.object({
+        groupId: z.string().regex(objectIdRegex, "groupId debe ser un ObjectId válido de MongoDB"),
+        add: z.array(z.string().regex(objectIdRegex, "Cada opción debe ser un ObjectId válido de MongoDB")),
+        replace: z
+          .array(
+            z.object({
+              from: z.string().regex(objectIdRegex, "from debe ser un ObjectId válido de MongoDB"),
+              to: z.string().regex(objectIdRegex, "to debe ser un ObjectId válido de MongoDB")
+            }).strict()
+          )
+          .optional()
+      }).strict()
+    )
+    .optional(),
 }).superRefine((data, ctx) => {
   if (data.abilityScore !== undefined && data.feat !== undefined) {
     ctx.addIssue({
@@ -224,4 +240,16 @@ export const CompanionInputListSchema = z
 
 export const UpdateCharacterCompanionsSchema = z.object({
   companions: CompanionInputListSchema,
+});
+
+export const AddCharacterFormSchema = z.object({
+  creatureId: z.string().regex(objectIdRegex, "El ID de criatura debe ser un ObjectId válido de MongoDB"),
+  spellId: z.string().regex(objectIdRegex, "El ID de conjuro debe ser un ObjectId válido de MongoDB"),
+});
+
+export const CharacterFormParamsSchema = CharacterIdParamsSchema.extend({
+  formId: z
+    .string()
+    .min(1, "ID de forma requerido")
+    .regex(objectIdRegex, "El formId debe ser un ObjectId válido de MongoDB"),
 });

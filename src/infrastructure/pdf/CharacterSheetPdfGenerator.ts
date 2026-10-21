@@ -204,9 +204,6 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
 
     await escribirRasgos({
       traits: character?.traits ?? [],
-      invocations: character?.invocations ?? [],
-      disciplines: [],
-      metamagic: [],
       feats: character?.feats ?? [],
       pdfDoc: originalPdf,
     });

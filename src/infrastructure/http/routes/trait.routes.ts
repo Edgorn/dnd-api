@@ -88,6 +88,20 @@ const router = Router();
  *           description: >
  *             Magia innata del rasgo (p. ej. Linaje Infernal). Independiente de
  *             spellPrivileges. En GET, ability y cada grant.spell van hidratados.
+ *         grantedSpells:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Spell'
+ *           description: >
+ *             Conjuros extra fijos (p. ej. Pacto de la Cadena: encontrar familiar).
+ *             No cuentan como conocidos. En GET van hidratados. En POST/PUT envíe IDs.
+ *         creatureFormExtensions:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/TraitCreatureFormExtension'
+ *           description: >
+ *             Amplía el pool de formas de un conjuro que ya define creatureForm
+ *             (unión OR con el pool del conjuro).
  *         abilityScores:
  *           type: array
  *           items:
@@ -880,6 +894,87 @@ const router = Router();
  *           type: string
  *           enum: [shortRest, longRest, shortOrLongRest]
  *           description: Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad.
+ *     TraitCreatureFormExtension:
+ *       type: object
+ *       required:
+ *         - spellId
+ *         - extraPool
+ *       properties:
+ *         spellId:
+ *           type: string
+ *           description: ID del conjuro cuyo pool se amplía.
+ *         spell:
+ *           $ref: '#/components/schemas/Spell'
+ *           description: Conjuro hidratado. Solo en GET.
+ *         extraPool:
+ *           type: object
+ *           description: Pool adicional (ids o filter). Se une en OR al pool del conjuro.
+ *           required:
+ *             - mode
+ *           properties:
+ *             mode:
+ *               type: string
+ *               enum: [ids, filter]
+ *             creatureIds:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             creatures:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Creature'
+ *             creatureTypeIds:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             creatureTypes:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/CreatureType'
+ *             maxCR:
+ *               type: number
+ *             sizes:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             tags:
+ *               type: array
+ *               items:
+ *                 type: string
+ *     TraitCreatureFormExtensionInput:
+ *       type: object
+ *       required:
+ *         - spellId
+ *         - extraPool
+ *       properties:
+ *         spellId:
+ *           type: string
+ *         extraPool:
+ *           type: object
+ *           required:
+ *             - mode
+ *           properties:
+ *             mode:
+ *               type: string
+ *               enum: [ids, filter]
+ *             creatureIds:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             creatureTypeIds:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             maxCR:
+ *               type: number
+ *             sizes:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             tags:
+ *               type: array
+ *               items:
+ *                 type: string
  *     TraitInnateSpellsInput:
  *       type: object
  *       required:
@@ -1029,6 +1124,24 @@ const router = Router();
  *             Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges.
  *             null borra el campo. grants no puede estar vacío ni repetir spellId.
  *             Si uses es unlimited, recharge debe ser null.
+ *         grantedSpells:
+ *           nullable: true
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             type: string
+ *           description: >
+ *             IDs de conjuros extra. No cuentan como conocidos. IDs únicos.
+ *             null borra el campo.
+ *         creatureFormExtensions:
+ *           nullable: true
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             $ref: '#/components/schemas/TraitCreatureFormExtensionInput'
+ *           description: >
+ *             Amplía el pool de formas de un conjuro con creatureForm. Un spellId
+ *             por rasgo. null borra el campo.
  *         abilityScores:
  *           nullable: true
  *           type: array
@@ -1241,6 +1354,20 @@ const router = Router();
  *           description: >
  *             Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges.
  *             null borra el campo.
+ *         grantedSpells:
+ *           nullable: true
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             type: string
+ *           description: IDs de conjuros extra. null borra el campo.
+ *         creatureFormExtensions:
+ *           nullable: true
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             $ref: '#/components/schemas/TraitCreatureFormExtensionInput'
+ *           description: Amplía el pool de formas de un conjuro. null borra el campo.
  *         abilityScores:
  *           nullable: true
  *           type: array

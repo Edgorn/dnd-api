@@ -2,7 +2,18 @@ import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepo
 import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import { CharacterCampaignLink, CharacterSubclassApi, ConsultarPersonajeOptions, LevelUpData, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, CharacterTraitResource } from '../../../../domain/types/personajes.types';
+import { Types } from 'mongoose';
+import { CharacterCampaignLink, CharacterSubclassApi, ConsultarPersonajeOptions, LevelUpData, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, CharacterTraitResource } from '../../../../domain/types/personajes.types';
+import { CharacterFormApi, CharacterFormMongo, formPurposeOverlaysCharacter } from '../../../../domain/types/creatureForm.types';
+import {
+  CharacterOptionSelection,
+  CharacterOptionSelectionApi,
+  OptionChoiceMongo,
+  PendingOptionChoice
+} from '../../../../domain/types/optionGroup.types';
+import { PrerequisiteContext } from '../../../../domain/types/prerequisite.types';
+import IGroupOptionRepository from '../../../../domain/repositories/IGroupOptionRepository';
+import IOptionGroupRepository from '../../../../domain/repositories/IOptionGroupRepository';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -22,13 +33,18 @@ import { SkillApi } from '../../../../domain/types/skill.types';
 import { ConditionApi } from '../../../../domain/types/condition.types';
 import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipmentInstanceApi, EquipSlot } from '../../../../domain/types/equipment.types';
 import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRestriction';
-import IInvocacionRepository from '../../../../domain/repositories/IInvocacionRepository';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
 import { PendingCatalogChoice, TraitApi, TraitChoiceValue, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { RaceRef } from '../../../../domain/types/race.types';
 import { applyTraitStacking, closeLevelUpTraitText, damageChoiceSourceIdsToLoad, levelUpTraitIds, mergeClassAndRaceLevelUp, mergeLevelUpTraits, mergedTraitsDataAtLevel, mergeTraitDataMaps, orderTraitsByIds, traitIdsWithChangedData } from '../../../../utils/characterLevelUpTraits';
+import {
+  buildPendingOptionChoices,
+  mergeOptionChoices,
+  optionReplacementsToChoices,
+  validateLevelUpOptionPicks
+} from '../../../../utils/characterOptionChoices';
 import {
   characterMeetsAllClassRequirements,
   excludeOwnedChoiceOptions,
@@ -42,6 +58,8 @@ import { CharacterClassApi } from '../../../../domain/types/characterClass.types
 import { resolveTraitActions } from '../../../../utils/resolveTraitActions';
 import { displaySummary } from '../../../../utils/traitSummary';
 import { buildTraitGrantingClassLevels } from '../../../../utils/traitProgression';
+import { grantedExtraSpellIdsByClass, mergeExtraSpellIds } from '../../../../utils/traitGrantedSpells';
+import { overlaySpellsCreatureForms } from '../../../../utils/creatureFormPool';
 import {
   collectClassGrantedTraitIds,
   traitHitPointBonus
@@ -152,6 +170,8 @@ import {
 import { SpellcastingLevel, SubclassChoiceMenuApi } from '../../../../domain/types/characterClass.types';
 import { aggregateConditionalConditionImmunities, aggregateConditionalResistances } from '../../../../utils/aggregateConditionalResistances';
 import { applyActiveTraitOverlays } from '../../../../utils/applyActiveTraitOverlays';
+import { applyActiveFormOverlay } from '../../../../utils/applyActiveFormOverlay';
+import { MAX_CHARACTER_FORMS, normalizeCharacterForms } from '../../../../utils/normalizeCharacterForms';
 import { normalizeActiveTraitIds, normalizeTraitResources } from '../../../../utils/traitResources';
 import {
   applyCharacterRest,
@@ -178,7 +198,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly featRepository: IFeatRepository,
     private readonly claseRepository: ICharacterClassRepository,
     private readonly subclassRepository: ISubclassRepository,
-    private readonly invocacionRepository: IInvocacionRepository,
+    private readonly groupOptionRepository: IGroupOptionRepository,
+    private readonly optionGroupRepository: IOptionGroupRepository,
     private readonly raceRepository: IRaceRepository,
     private readonly creatureRepository: ICreatureRepository,
     private readonly attributeService: AttributeService,
@@ -365,7 +386,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
       XP: 0,
       companions: normalizeCompanions(data.companions),
       traitResources: [],
-      activeTraitIds: []
+      activeTraitIds: [],
+      forms: [],
+      activeFormId: null
     })
 
     const resultado = await personaje.save()
@@ -594,6 +617,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
     const traits_data = raceMerged.traits_data;
     const { spell_choices, spell_changes, subclassChoice, ability_score, feats, skill_choices: levelSkillChoices } = classLevel;
+    const assignedSubclasses = await this.getAssignedSubclassesForClass(personaje.subclasses ?? [], classId);
+    const optionChoiceConfigs = this.mergeLevelOptionChoiceConfigs(
+      classLevel.optionChoices,
+      catalog.optionReplacements,
+      assignedSubclasses,
+      personaje.optionSelections ?? [],
+      classId
+    );
     const skill_choices = excludeOwnedChoiceOptions(levelSkillChoices, personaje.skills ?? []);
     const catalogChoices = await this.pendingClassCatalogChoices(
       personaje,
@@ -607,6 +638,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
       [...(personaje.skills ?? []), ...(skill_choices?.options.map(item => item.id) ?? [])]
     );
     const requirementsMet = await this.levelUpRequirementsMet(personaje, catalog, isNewClass);
+    const optionChoices = await this.pendingLevelOptionChoices(
+      personaje,
+      classId,
+      nextLevel,
+      totalLevels + 1,
+      stacked.granted,
+      optionChoiceConfigs
+    );
 
     return {
       class: classId,
@@ -625,11 +664,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
       newClass: isNewClass,
       ...(requirementsMet !== undefined ? { requirementsMet } : {}),
       ...(isNewClass ? { dip: this.buildLevelUpDip(personaje, catalog, requirementsMet ?? true) } : {}),
+      ...(optionChoices.length ? { optionChoices } : {}),
     };
   }
 
   async levelUp(data: TypeLevelUp): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
-    const { id, classId, hpIncrease, userId, spells, subclass, abilityScore, feat, traitChoices, skillPicks, skillProficiencyPicks, proficiencyPicks, spellReplacements } = data;
+    const { id, classId, hpIncrease, userId, spells, subclass, abilityScore, feat, traitChoices, skillPicks, skillProficiencyPicks, proficiencyPicks, spellReplacements, optionPicks } = data;
     const personaje = await Personaje.findById(id);
 
     if (!personaje) {
@@ -793,21 +833,49 @@ export default class PersonajeRepository implements IPersonajeRepository {
       : undefined;
     const storedAfterAsi = nextAttributes ?? personaje.attributes ?? [];
 
-    const { traits: nextTraits, traits_data: nextTraitsData, granted: stackingGranted } = mergeLevelUpTraits(
+    let { traits: nextTraits, traits_data: nextTraitsData, granted: stackingGranted } = mergeLevelUpTraits(
       previouslyOwnedTraitIds,
       personaje.traits_data,
       levelTraits,
       levelTraitsData,
       ownedTraits
     );
+    const optionAssignedSubclasses = await this.getAssignedSubclassesForClass(nextSubclassIds, classId);
+    const optionPickResult = await this.applyLevelUpOptionPicks({
+      personaje,
+      classId,
+      nextLevel,
+      characterLevel: totalLevels + 1,
+      extraTraitIds: nextTraits,
+      configs: this.mergeLevelOptionChoiceConfigs(
+        classLevel.optionChoices,
+        catalog.optionReplacements,
+        optionAssignedSubclasses,
+        personaje.optionSelections ?? [],
+        classId
+      ),
+      picks: optionPicks
+    });
+    if ("error" in optionPickResult) {
+      throw new ValidationError(optionPickResult.error);
+    }
+    nextTraits = unionUnique(nextTraits, optionPickResult.addedTraitIds)
+      .filter(traitId => !optionPickResult.removedTraitIds.includes(traitId));
+    const optionGrantedTraits = optionPickResult.addedTraitIds.length
+      ? await this.traitRepository.getTraitsByIndexes(optionPickResult.addedTraitIds)
+      : [];
+    stackingGranted = [...stackingGranted, ...optionGrantedTraits];
     const levelUpClassDoc = await this.claseRepository.getById(classId);
-    const levelUpSubclasses = await this.getAssignedSubclassesForClass(nextSubclassIds, classId);
+    const levelUpSubclasses = optionAssignedSubclasses;
     const levelUpTraitIds = await this.traitRepository.getTraitsByIndexes(nextTraits);
     const levelUpGrantedIds = collectClassGrantedTraitIds(
       levelUpClassDoc?.levels ?? [],
       levelUpSubclasses.flatMap(item => item.levels),
       nextLevel
     );
+    for (const traitId of optionPickResult.addedTraitIds) {
+      levelUpGrantedIds.add(traitId);
+    }
 
     const attributesBeforeGrant = applyTraitAbilityScores(storedAfterAsi, ownedTraits).attributes;
     const attributesAfterGrant = applyTraitAbilityScores(storedAfterAsi, levelUpTraitIds).attributes;
@@ -853,8 +921,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       systems: personaje.systems,
       grantedTraits: grantedForSkills
     });
-    const invocations = await this.invocacionRepository.obtenerPorIndices(personaje.invocations ?? []);
-    const proficientIds = collectProficientSkillIds(nextSkills, [...ownedTraits, ...grantedForSkills, ...invocations]);
+    const proficientIds = collectProficientSkillIds(nextSkills, [...ownedTraits, ...grantedForSkills, ...optionGrantedTraits]);
     const overlayResult = applyLevelSkillProficiencyPicks({
       grants: classLevel.skillProficiencyChoices,
       proficientIds,
@@ -891,6 +958,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           ...(asiResult.kind === "feat" ? { feats: [...ownedFeatIds, asiResult.featId] } : {}),
           ...(isNewClass || skillPickResult.ids.length ? { skills: nextSkills } : {}),
           ...(isNewClass ? { proficiencies: nextProficiencies } : {}),
+          optionSelections: optionPickResult.selections,
         },
         $inc: isNewClass
           ? { HPMax: HP, HPActual: HP }
@@ -1322,33 +1390,115 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return this.persistTraitStance(id, next.traitResources, next.activeTraitIds);
   }
 
-  async añadirForma(data: { id: string, form: string }): Promise<PersonajeApi | null> {
-    const { id, form } = data
+  async getOwnedTraitIds(id: string, userId: string): Promise<string[]> {
     const personaje = await Personaje.findById(id);
-
     if (!personaje) {
-      return null
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    await this.assertCanAccessCharacter(personaje, userId);
+    return Array.isArray(personaje.traits) ? [...personaje.traits] : [];
+  }
+
+  async addForm(data: TypeAddCharacterFormPersist): Promise<PersonajeApi> {
+    const { id, userId, entry, choose, replaceOnRecast } = data;
+    const personaje = await Personaje.findById(id);
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    await this.assertCanAccessCharacter(personaje, userId);
+
+    const forms = normalizeCharacterForms(personaje.forms);
+    let activeFormId = typeof personaje.activeFormId === "string" ? personaje.activeFormId : null;
+    const sameSpell = forms.filter(form => form.spellId === entry.spellId);
+    const newForm: CharacterFormMongo = {
+      id: new Types.ObjectId().toString(),
+      creatureId: entry.creatureId,
+      spellId: entry.spellId,
+      purpose: entry.purpose
+    };
+
+    if (replaceOnRecast && sameSpell.length) {
+      const ids = new Set(sameSpell.map(form => form.id));
+      const next = forms.filter(form => !ids.has(form.id));
+      next.push(newForm);
+      if (activeFormId && ids.has(activeFormId) && formPurposeOverlaysCharacter(entry.purpose)) {
+        activeFormId = newForm.id;
+      } else if (activeFormId && ids.has(activeFormId)) {
+        activeFormId = null;
+      }
+      if (next.length > MAX_CHARACTER_FORMS) {
+        throw new ValidationError(`No se pueden registrar más de ${MAX_CHARACTER_FORMS} formas`);
+      }
+      return this.persistCharacterForms(id, next, activeFormId);
     }
 
-    personaje.forms.push(form)
+    if (sameSpell.length >= choose) {
+      throw new ValidationError(`Este conjuro solo admite ${choose} forma(s) a la vez`);
+    }
+    if (forms.length >= MAX_CHARACTER_FORMS) {
+      throw new ValidationError(`No se pueden registrar más de ${MAX_CHARACTER_FORMS} formas`);
+    }
 
+    forms.push(newForm);
+    return this.persistCharacterForms(id, forms, activeFormId);
+  }
+
+  async activateForm(data: TypeSetCharacterFormActive): Promise<PersonajeApi> {
+    const { id, formId, userId } = data;
+    const personaje = await Personaje.findById(id);
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    await this.assertCanAccessCharacter(personaje, userId);
+
+    const forms = normalizeCharacterForms(personaje.forms);
+    const form = forms.find(item => item.id === formId);
+    if (!form) {
+      throw new NotFoundError("Forma no encontrada");
+    }
+    if (!formPurposeOverlaysCharacter(form.purpose)) {
+      throw new ValidationError("Solo se puede activar una forma propia o de objetivo");
+    }
+    if (personaje.activeFormId === formId) {
+      throw new ValidationError("La forma ya está activa");
+    }
+
+    return this.persistCharacterForms(id, forms, formId);
+  }
+
+  async deactivateForm(data: TypeSetCharacterFormActive): Promise<PersonajeApi> {
+    const { id, formId, userId } = data;
+    const personaje = await Personaje.findById(id);
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    await this.assertCanAccessCharacter(personaje, userId);
+
+    const forms = normalizeCharacterForms(personaje.forms);
+    if (!forms.some(item => item.id === formId)) {
+      throw new NotFoundError("Forma no encontrada");
+    }
+    if (personaje.activeFormId !== formId) {
+      throw new ValidationError("La forma no está activa");
+    }
+
+    return this.persistCharacterForms(id, forms, null);
+  }
+
+  private async persistCharacterForms(
+    id: string,
+    forms: CharacterFormMongo[],
+    activeFormId: string | null
+  ): Promise<PersonajeApi> {
     const resultado = await Personaje.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          forms: personaje.forms
-        }
-      },
-      { returnDocument: 'after' }
+      { $set: { forms, activeFormId } },
+      { returnDocument: "after" }
     );
-
     if (!resultado) {
-      return null
+      throw new NotFoundError("Personaje no encontrado");
     }
-
-    const personajeFormateado = await this.formatCharacter(resultado)
-
-    return personajeFormateado
+    return this.formatCharacter(resultado);
   }
 
   private getClassSpellIds(personaje: PersonajeMongo, classId: string): string[] {
@@ -1451,10 +1601,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
     proficientIds: Iterable<string>
   ): Promise<PendingSkillProficiencyChoice[]> {
     const ownedTraits = await this.traitRepository.getTraitsByIndexes(personaje.traits ?? []);
-    const invocations = await this.invocacionRepository.obtenerPorIndices(personaje.invocations ?? []);
     const resolvedProficient = collectProficientSkillIds(
       [...proficientIds],
-      [...ownedTraits, ...invocations]
+      ownedTraits
     );
     const drafts = pendingLevelSkillProficiencyChoices({
       grants,
@@ -1714,6 +1863,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     feats?: ChoiceApi<FeatApi>;
     skill_choices?: ChoiceApi<SkillApi>;
     skillProficiencyChoices?: LevelSkillProficiencyChoice[];
+    optionChoices?: OptionChoiceMongo[];
   }> {
     const assignedSubclassIds = subclassIds ?? personaje.subclasses ?? [];
     const [dataLevel, clase, assignedSubclasses] = await Promise.all([
@@ -1784,7 +1934,143 @@ export default class PersonajeRepository implements IPersonajeRepository {
       feats,
       skill_choices: dataLevel?.skill_choices,
       skillProficiencyChoices: dataLevel?.skillProficiencyChoices,
+      optionChoices: dataLevel?.optionChoices,
     };
+  }
+
+  private characterSpellIds(personaje: PersonajeMongo): string[] {
+    const known = Object.values(personaje.spells ?? {}).flat();
+    const extra = Object.values(personaje.extraSpells ?? {}).flat();
+    return [...new Set([...known, ...extra])];
+  }
+
+  private classLevelsMap(personaje: PersonajeMongo, classId: string, nextLevel: number): Record<string, number> {
+    const levels: Record<string, number> = {};
+    for (const entry of personaje.classes ?? []) {
+      levels[entry.class] = entry.class === classId ? nextLevel : entry.level;
+    }
+    if (levels[classId] === undefined) {
+      levels[classId] = nextLevel;
+    }
+    return levels;
+  }
+
+  private prerequisiteContext(
+    personaje: PersonajeMongo,
+    classId: string,
+    nextLevel: number,
+    characterLevel: number,
+    extraTraitIds: Iterable<string> = []
+  ): PrerequisiteContext {
+    return {
+      grantingClassId: classId,
+      classLevels: this.classLevelsMap(personaje, classId, nextLevel),
+      characterLevel,
+      traitIds: [...new Set([...(personaje.traits ?? []), ...extraTraitIds])],
+      spellIds: this.characterSpellIds(personaje),
+      attributes: personaje.attributes ?? []
+    };
+  }
+
+  private mergeLevelOptionChoiceConfigs(
+    levelChoices: OptionChoiceMongo[] | undefined,
+    classReplacements: CharacterClassApi["optionReplacements"],
+    subclasses: SubclassApi[],
+    selections: CharacterOptionSelection[],
+    classId: string
+  ): OptionChoiceMongo[] {
+    return mergeOptionChoices(
+      levelChoices,
+      optionReplacementsToChoices(classReplacements, selections, classId),
+      optionReplacementsToChoices(
+        subclasses.flatMap(item => item.optionReplacements ?? []),
+        selections,
+        classId
+      )
+    );
+  }
+
+  private async pendingLevelOptionChoices(
+    personaje: PersonajeMongo,
+    classId: string,
+    nextLevel: number,
+    characterLevel: number,
+    extraTraits: TraitApi[],
+    configs: OptionChoiceMongo[] | undefined
+  ): Promise<PendingOptionChoice[]> {
+    if (!configs?.length) return [];
+
+    const extraTraitIds = extraTraits.map(trait => trait.id).filter((id): id is string => Boolean(id));
+    const options = await this.groupOptionRepository.getBySystems(personaje.systems ?? []);
+    const groups = await this.optionGroupRepository.getByIds(configs.map(config => config.groupId));
+    const groupNames = Object.fromEntries(groups.map(group => [group.id, group.name]));
+
+    return buildPendingOptionChoices({
+      configs,
+      options,
+      selections: personaje.optionSelections ?? [],
+      context: this.prerequisiteContext(personaje, classId, nextLevel, characterLevel, extraTraitIds),
+      groupNames
+    });
+  }
+
+  private async applyLevelUpOptionPicks(params: {
+    personaje: PersonajeMongo;
+    classId: string;
+    nextLevel: number;
+    characterLevel: number;
+    extraTraitIds: Iterable<string>;
+    configs: OptionChoiceMongo[] | undefined;
+    picks: TypeLevelUp["optionPicks"];
+  }): Promise<{ error: string } | {
+    selections: CharacterOptionSelection[];
+    addedTraitIds: string[];
+    removedTraitIds: string[];
+  }> {
+    const options = params.configs?.length
+      ? await this.groupOptionRepository.getBySystems(params.personaje.systems ?? [])
+      : [];
+
+    return validateLevelUpOptionPicks({
+      configs: params.configs,
+      options: options.map(option => ({
+        id: option.id,
+        groupId: option.groupId,
+        traitId: option.traitId,
+        prerequisites: option.prerequisites,
+        repeatable: option.repeatable
+      })),
+      selections: params.personaje.optionSelections ?? [],
+      picks: params.picks,
+      context: this.prerequisiteContext(
+        params.personaje,
+        params.classId,
+        params.nextLevel,
+        params.characterLevel
+      ),
+      extraTraitIds: params.extraTraitIds,
+      classId: params.classId,
+      level: params.nextLevel
+    });
+  }
+
+  private async formatOptionSelections(
+    selections: CharacterOptionSelection[]
+  ): Promise<CharacterOptionSelectionApi[]> {
+    if (!selections.length) return [];
+
+    const [options, groups] = await Promise.all([
+      this.groupOptionRepository.getByIds(selections.map(selection => selection.optionId)),
+      this.optionGroupRepository.getByIds(selections.map(selection => selection.groupId))
+    ]);
+    const optionById = new Map(options.map(option => [option.id, option]));
+    const groupById = new Map(groups.map(group => [group.id, group]));
+
+    return selections.map(selection => ({
+      ...selection,
+      groupName: groupById.get(selection.groupId)?.name,
+      trait: optionById.get(selection.optionId)?.trait
+    }));
   }
 
   private async withRaceLevel(
@@ -2292,7 +2578,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const raceRefs = await this.raceRefsForLabels(personaje.traitChoices)
     const resolvedSheet = resolveCharacterTraitChoices(expandedTraits, personaje.traitChoices, raceRefs)
     const traits = resolvedSheet.traits
-    const invocations = await this.invocacionRepository.obtenerPorIndices(personaje.invocations)
+    const optionSelections = await this.formatOptionSelections(personaje.optionSelections ?? [])
     const skills = [...(personaje?.skills ?? [])]
 
     const idiomasId = personaje?.languages ?? []
@@ -2332,12 +2618,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       if (damage.id && resistances.some(item => item.id === damage.id)) continue
       resistances.push(damage)
     }
-
-    invocations.forEach(invocation => {
-      if (invocation?.skills) {
-        skills.push(...invocation?.skills)
-      }
-    })
 
     const indexSet = new Set(proficiencies.map(item => item.id));
 
@@ -2414,6 +2694,19 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const extraSpellsMap = personaje.extraSpells && typeof personaje.extraSpells === "object"
       ? personaje.extraSpells
       : {}
+    const subclassById = await this.getSubclassMapByIds(personaje.subclasses ?? []);
+    const classCatalogs = (
+      await Promise.all(
+        (personaje.classes ?? []).map(entry => this.claseRepository.getById(entry.class))
+      )
+    ).filter((item): item is CharacterClassApi => Boolean(item));
+    const derivedExtraByClass = grantedExtraSpellIdsByClass({
+      traits,
+      optionSelections: personaje.optionSelections ?? [],
+      classes: personaje.classes ?? [],
+      classCatalogs,
+      subclasses: [...subclassById.values()]
+    });
     const updatedSpells: Record<string, {
       list: SpellApi[],
       extra?: SpellApi[],
@@ -2437,6 +2730,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const spellGroupKeys = new Set([
       ...Object.keys(spells),
       ...Object.keys(extraSpellsMap),
+      ...Object.keys(derivedExtraByClass),
       ...Object.keys(preparedSpellsMap).filter(key => key !== "race"),
       ...privilegeInstances.map(item => item.classId)
     ])
@@ -2452,7 +2746,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
     await Promise.all(
       [...spellGroupKeys].map(async groupSpells => {
         const knownIds = Array.isArray(spells[groupSpells]) ? [...spells[groupSpells]] : []
-        const extraIds = getExtraSpellIds(extraSpellsMap, groupSpells)
+        const extraIds = mergeExtraSpellIds(
+          getExtraSpellIds(extraSpellsMap, groupSpells),
+          derivedExtraByClass[groupSpells] ?? [],
+          knownIds
+        )
         const alwaysIds = groupSpells === "race"
           ? []
           : alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells)
@@ -2488,10 +2786,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
           }
         }
 
+        const overlaidKnown = overlaySpellsCreatureForms(dataList, traits)
+        const overlaidExtra = overlaySpellsCreatureForms(extraList, traits)
+        const overlaidPrepared = overlaySpellsCreatureForms(preparedList, traits)
         updatedSpells[groupSpells] = {
-          list: extraList.length ? [...dataList, ...extraList] : dataList,
-          ...(extraList.length ? { extra: extraList } : {}),
-          ...(hasPreparedKey ? { prepared: preparedList } : {}),
+          list: overlaidExtra.length ? [...overlaidKnown, ...overlaidExtra] : overlaidKnown,
+          ...(overlaidExtra.length ? { extra: overlaidExtra } : {}),
+          ...(hasPreparedKey ? { prepared: overlaidPrepared } : {}),
           type
         }
       })
@@ -2530,7 +2831,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       maxCarryingCapacity *= 2
     }
 
-    const proficientIds = collectProficientSkillIds(personaje?.skills, [...(traits ?? []), ...invocations]);
+    const proficientIds = collectProficientSkillIds(personaje?.skills, traits ?? []);
     const skillsListEvaluated = await this.skillService.getCharacterSkills(
       skills,
       apiAttributes,
@@ -2570,7 +2871,32 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
     const wearingArmorWithoutProficiency = isWearingArmorWithoutProficiency(equipmentWithCombatBonuses);
 
-    const forms = await this.creatureRepository.getByIds(personaje?.forms ?? [])
+    const storedForms = normalizeCharacterForms(personaje?.forms);
+    const formCreatureIds = [...new Set(storedForms.map(form => form.creatureId))];
+    const formSpellIds = [...new Set(storedForms.flatMap(form => form.spellId ? [form.spellId] : []))];
+    const [formCreatures, formSpells] = await Promise.all([
+      formCreatureIds.length ? this.creatureRepository.getByIds(formCreatureIds) : Promise.resolve([]),
+      formSpellIds.length ? this.spellRepository.getSpellsByIndexes(formSpellIds) : Promise.resolve([])
+    ]);
+    const formCreatureById = new Map(formCreatures.map(creature => [creature.id, creature]));
+    const formSpellById = new Map(
+      formSpells
+        .filter((spell): spell is SpellApi & { id: string } => Boolean(spell.id))
+        .map(spell => [spell.id, spell])
+    );
+    const activeFormId = typeof personaje.activeFormId === "string" ? personaje.activeFormId : null;
+    const forms: CharacterFormApi[] = storedForms.map(form => {
+      const spell = form.spellId ? formSpellById.get(form.spellId) : undefined;
+      const hydrated: CharacterFormApi = {
+        id: form.id,
+        creature: formCreatureById.get(form.creatureId),
+        active: activeFormId === form.id && formPurposeOverlaysCharacter(form.purpose)
+      };
+      if (form.purpose) hydrated.purpose = form.purpose;
+      if (form.spellId) hydrated.spellId = form.spellId;
+      if (spell) hydrated.spell = { id: spell.id, name: spell.name };
+      return hydrated;
+    });
     const money = await this.normalizeAndFormatMoney(personaje);
 
     const privilegeSpellIds = [...new Set(privilegeInstances.flatMap(item => item.selections.flat()))]
@@ -2601,7 +2927,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     })
 
-    const subclassById = await this.getSubclassMapByIds(personaje.subclasses ?? []);
     const grantingClassLevelByTraitId = await this.loadGrantingClassLevels(personaje, subclassById);
     const traitResources = normalizeTraitResources(personaje.traitResources);
     const spentByTraitId = new Map(traitResources.map(item => [item.traitId, item.spent]));
@@ -2628,6 +2953,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       systems: personaje.systems ?? [],
       initiativeBonus,
       HPMax: personaje?.HPMax,
+      HPActual: personaje?.HPActual,
       CA,
       speed: finalSpeed,
       skills: skillsWithArmor,
@@ -2672,19 +2998,20 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spells: updatedSpells,
       maxCarryingCapacity,
       spellcasting,
-      invocations,
-      forms: forms,
+      optionSelections,
+      forms,
+      activeFormId,
       spellPrivileges: hydratedPrivileges,
       companions: normalizeCompanions(personaje.companions),
       traitResources,
       activeTraitIds
     };
 
-    if (options?.applyActiveTraits === false) {
-      return sheet;
-    }
+    const withTraits = options?.applyActiveTraits === false
+      ? sheet
+      : applyActiveTraitOverlays(sheet, rulesConfig);
 
-    return applyActiveTraitOverlays(sheet, rulesConfig);
+    return applyActiveFormOverlay(withTraits, { initiativeBonusFormula });
   }
 
   private toInventoryRows(equipment: PersonajeEquipmentMongo[] | undefined): PersonajeEquipmentMongo[] {

@@ -202,6 +202,49 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts optionReplacements with a group and count", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      optionReplacements: [{ groupId: coinId, count: 1 }]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects optionReplacements with count below 1", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      optionReplacements: [{ groupId: coinId, count: 0 }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects optionReplacements with a duplicate groupId", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      optionReplacements: [
+        { groupId: coinId, count: 1 },
+        { groupId: coinId, count: 2 }
+      ]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects optionReplacements with an invalid groupId", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      optionReplacements: [{ groupId: "invocations", count: 1 }]
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("accepts spellsPreparedFormula together with preparedFrom", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
@@ -343,6 +386,14 @@ describe("UpdateCharacterClassSchema spellRepository", () => {
   it("accepts null to clear spellReplacement", () => {
     const result = UpdateCharacterClassSchema.safeParse({
       spellReplacement: null
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null to clear optionReplacements", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      optionReplacements: null
     });
 
     expect(result.success).toBe(true);
@@ -644,6 +695,36 @@ describe("CharacterClassSchema multiclass", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe("CreateCharacterClassSchema levels.optionChoices", () => {
+  it("accepts optionChoices with choose and replace", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      levels: [{
+        level: 2,
+        optionChoices: [{
+          groupId: coinId,
+          choose: 2,
+          replace: 1
+        }]
+      }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects optionChoices with choose and replace at 0", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Brujo",
+      levels: [{
+        level: 2,
+        optionChoices: [{ groupId: coinId, choose: 0 }]
+      }]
+    });
+    expect(result.success).toBe(false);
   });
 });
 

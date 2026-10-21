@@ -13,9 +13,11 @@ const subclassSchema: Schema = new Schema<SubclassMongo>({
     traits_data: { type: Schema.Types.Mixed, default: {} },
     skill_choices: { type: Schema.Types.Mixed, default: undefined },
     skillProficiencyChoices: { type: Schema.Types.Mixed, default: undefined },
-    spell_choices: { type: Schema.Types.Mixed, default: undefined }
+    spell_choices: { type: Schema.Types.Mixed, default: undefined },
+    optionChoices: { type: Schema.Types.Mixed, default: undefined }
   }],
   expandedSpells: { type: [String], default: undefined },
+  optionReplacements: { type: Schema.Types.Mixed, default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: "subclasses", timestamps: true });
 

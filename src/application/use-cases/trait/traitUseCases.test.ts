@@ -15,6 +15,7 @@ describe("Trait Use Cases armor type suppression", () => {
   let attributeServiceMock: any;
   let spellServiceMock: any;
   let conditionServiceMock: any;
+  let creatureServiceMock: any;
 
   beforeEach(() => {
     traitServiceMock = {
@@ -49,6 +50,9 @@ describe("Trait Use Cases armor type suppression", () => {
     conditionServiceMock = {
       getById: vi.fn()
     };
+    creatureServiceMock = {
+      getById: vi.fn()
+    };
   });
 
   const createUseCase = () => new CreateTraitUseCase(
@@ -60,7 +64,8 @@ describe("Trait Use Cases armor type suppression", () => {
     creatureTypeServiceMock,
     attributeServiceMock,
     spellServiceMock,
-    conditionServiceMock
+    conditionServiceMock,
+    creatureServiceMock
   );
 
   const updateUseCase = () => new UpdateTraitUseCase(
@@ -72,7 +77,8 @@ describe("Trait Use Cases armor type suppression", () => {
     creatureTypeServiceMock,
     attributeServiceMock,
     spellServiceMock,
-    conditionServiceMock
+    conditionServiceMock,
+    creatureServiceMock
   );
 
   const baseTrait = {
@@ -642,6 +648,95 @@ describe("Trait Use Cases armor type suppression", () => {
         statusCode: 404
       });
       expect(traitServiceMock.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("granted spells and creature form extensions", () => {
+    const findFamiliarId = "507f1f77bcf86cd799439031";
+    const impId = "507f1f77bcf86cd799439032";
+    const extensions = [{
+      spellId: findFamiliarId,
+      extraPool: { mode: "ids" as const, creatureIds: [impId] }
+    }];
+
+    beforeEach(() => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getSystemsAndAncestors.mockResolvedValue(["sys1"]);
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      traitServiceMock.create.mockResolvedValue({ id: "trait1" });
+    });
+
+    it("persists granted spells of the system", async () => {
+      spellServiceMock.getById.mockResolvedValue({
+        id: findFamiliarId,
+        ruleset: "sys1",
+        level: 1,
+        creatureForm: { purpose: "companion", pool: { mode: "ids", creatureIds: [] } }
+      });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        grantedSpells: [findFamiliarId]
+      }, "user1");
+
+      expect(traitServiceMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({ grantedSpells: [findFamiliarId] })
+      );
+    });
+
+    it("rejects an extension whose spell has no creatureForm", async () => {
+      spellServiceMock.getById.mockResolvedValue({
+        id: findFamiliarId,
+        ruleset: "sys1",
+        level: 1
+      });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        creatureFormExtensions: extensions
+      }, "user1")).rejects.toMatchObject({
+        message: "El conjuro no define formas de criatura",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects a missing extra-pool creature", async () => {
+      spellServiceMock.getById.mockResolvedValue({
+        id: findFamiliarId,
+        ruleset: "sys1",
+        level: 1,
+        creatureForm: { purpose: "companion", pool: { mode: "ids", creatureIds: [] } }
+      });
+      creatureServiceMock.getById.mockResolvedValue(null);
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        creatureFormExtensions: extensions
+      }, "user1")).rejects.toMatchObject({
+        message: "Criatura no encontrada",
+        statusCode: 404
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("persists an extension when the spell has creatureForm and the creature belongs to the system", async () => {
+      spellServiceMock.getById.mockResolvedValue({
+        id: findFamiliarId,
+        ruleset: "sys1",
+        level: 1,
+        creatureForm: { purpose: "companion", pool: { mode: "ids", creatureIds: [] } }
+      });
+      creatureServiceMock.getById.mockResolvedValue({ id: impId, ruleset: "sys1" });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        creatureFormExtensions: extensions
+      }, "user1");
+
+      expect(traitServiceMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({ creatureFormExtensions: extensions })
+      );
     });
   });
 

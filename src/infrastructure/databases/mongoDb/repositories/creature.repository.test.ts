@@ -13,7 +13,7 @@ import {
 } from "./creature.repository";
 
 describe("collectDamageIds", () => {
-  it("recoge ids legado y grants, más el daño de ataques", () => {
+  it("recoge ids legado y grants de afinidad", () => {
     const ids = collectDamageIds({
       damage_vulnerabilities: ["cold"] as never,
       damage_immunities: [{
@@ -21,18 +21,10 @@ describe("collectDamageIds", () => {
         source: "nonmagical_attacks",
         bypass: ["silvered"]
       }],
-      damage_resistances: [],
-      actions: [{
-        name: "Mordisco",
-        description: [],
-        attack: {
-          kind: "melee_weapon",
-          damage: [{ dice: "1d6", damageTypeId: "poison" }]
-        }
-      }]
+      damage_resistances: []
     } as never);
 
-    expect(ids).toEqual(["cold", "bludgeoning", "piercing", "poison"]);
+    expect(ids).toEqual(["cold", "bludgeoning", "piercing"]);
   });
 });
 

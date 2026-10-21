@@ -204,6 +204,20 @@
             "$ref": "#/components/schemas/TraitInnateSpells",
             "description": "Magia innata del rasgo (p. ej. Linaje Infernal). Independiente de spellPrivileges. En GET, ability y cada grant.spell van hidratados.\n"
           },
+          "grantedSpells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Spell"
+            },
+            "description": "Conjuros extra fijos (p. ej. Pacto de la Cadena: encontrar familiar). No cuentan como conocidos. En GET van hidratados. En POST/PUT envíe IDs.\n"
+          },
+          "creatureFormExtensions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraitCreatureFormExtension"
+            },
+            "description": "Amplía el pool de formas de un conjuro que ya define creatureForm (unión OR con el pool del conjuro).\n"
+          },
           "abilityScores": {
             "type": "array",
             "items": {
@@ -1279,6 +1293,132 @@
           }
         }
       },
+      "TraitCreatureFormExtension": {
+        "type": "object",
+        "required": [
+          "spellId",
+          "extraPool"
+        ],
+        "properties": {
+          "spellId": {
+            "type": "string",
+            "description": "ID del conjuro cuyo pool se amplía."
+          },
+          "spell": {
+            "$ref": "#/components/schemas/Spell",
+            "description": "Conjuro hidratado. Solo en GET."
+          },
+          "extraPool": {
+            "type": "object",
+            "description": "Pool adicional (ids o filter). Se une en OR al pool del conjuro.",
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "ids",
+                  "filter"
+                ]
+              },
+              "creatureIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "creatures": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Creature"
+                }
+              },
+              "creatureTypeIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "creatureTypes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreatureType"
+                }
+              },
+              "maxCR": {
+                "type": "number"
+              },
+              "sizes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TraitCreatureFormExtensionInput": {
+        "type": "object",
+        "required": [
+          "spellId",
+          "extraPool"
+        ],
+        "properties": {
+          "spellId": {
+            "type": "string"
+          },
+          "extraPool": {
+            "type": "object",
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "ids",
+                  "filter"
+                ]
+              },
+              "creatureIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "creatureTypeIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "maxCR": {
+                "type": "number"
+              },
+              "sizes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
       "TraitInnateSpellsInput": {
         "type": "object",
         "required": [
@@ -1473,6 +1613,24 @@
               }
             ],
             "description": "Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges. null borra el campo. grants no puede estar vacío ni repetir spellId. Si uses es unlimited, recharge debe ser null.\n"
+          },
+          "grantedSpells": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de conjuros extra. No cuentan como conocidos. IDs únicos. null borra el campo.\n"
+          },
+          "creatureFormExtensions": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitCreatureFormExtensionInput"
+            },
+            "description": "Amplía el pool de formas de un conjuro con creatureForm. Un spellId por rasgo. null borra el campo.\n"
           },
           "abilityScores": {
             "nullable": true,
@@ -1751,6 +1909,24 @@
               }
             ],
             "description": "Magia innata (p. ej. Linaje Infernal). Independiente de spellPrivileges. null borra el campo.\n"
+          },
+          "grantedSpells": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de conjuros extra. null borra el campo."
+          },
+          "creatureFormExtensions": {
+            "nullable": true,
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/TraitCreatureFormExtensionInput"
+            },
+            "description": "Amplía el pool de formas de un conjuro. null borra el campo."
           },
           "abilityScores": {
             "nullable": true,
@@ -2376,6 +2552,13 @@
               "$ref": "#/components/schemas/SpellChoiceMongo"
             },
             "description": "Configuración de conjuros extra (sin hidratar opciones)."
+          },
+          "optionChoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionChoiceMongo"
+            },
+            "description": "Concesiones de grupos de opciones de este nivel de subclase."
           }
         }
       },
@@ -2415,6 +2598,13 @@
               "$ref": "#/components/schemas/Spell"
             },
             "description": "Lista de conjuros ampliada (p. ej. Infernal). No se otorgan solos: se añaden a la lista de la clase padre para este personaje al aprender, recambiar o preparar conjuros de esa clase. Omitido si está vacía.\n"
+          },
+          "optionReplacements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionReplacementConfig"
+            },
+            "description": "Recambio de grupos de opciones en cada nivel de la clase padre, a partir de que el personaje ya tenga alguna (p. ej. maniobras de Maestro de batalla). Omitido si está vacío.\n"
           },
           "levels": {
             "type": "array",
@@ -2484,6 +2674,14 @@
               "$ref": "#/components/schemas/SpellChoiceMongo"
             },
             "description": "Conjuros extra de este nivel (p. ej. Secretos Mágicos adicionales). Misma forma que en la clase. null borra el campo.\n"
+          },
+          "optionChoices": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionChoiceMongo"
+            },
+            "description": "Concesiones de grupos de opciones en este nivel. Misma forma que en la clase. null borra el campo. Si se omite, se conserva.\n"
           }
         }
       },
@@ -2525,12 +2723,19 @@
             },
             "description": "ObjectIds de conjuros añadidos a la lista de la clase padre para quien tome esta subclase."
           },
+          "optionReplacements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionReplacementConfig"
+            },
+            "description": "Recambios de grupos de opciones en cada nivel de la clase padre."
+          },
           "levels": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SubclassLevelInput"
             },
-            "description": "Progresión de rasgos y elecciones de habilidades (level, traits, traits_data, skill_choices)."
+            "description": "Progresión por nivel (traits, skill_choices, spell_choices, optionChoices)."
           }
         }
       },
@@ -2568,6 +2773,14 @@
             },
             "description": "ObjectIds de la lista ampliada. null borra el campo. Si se omite, se conserva."
           },
+          "optionReplacements": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionReplacementConfig"
+            },
+            "description": "Recambios de grupos de opciones. null borra el campo. Si se omite, se conserva."
+          },
           "levels": {
             "type": "array",
             "items": {
@@ -2603,6 +2816,93 @@
           }
         },
         "description": "Tabla asociada a la descripción del conjuro (se muestra debajo de los párrafos)."
+      },
+      "SpellCreatureForm": {
+        "type": "object",
+        "description": "Formas de criatura que elige el lanzador (familiar, polimorfar, etc.).",
+        "required": [
+          "purpose",
+          "pool"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "companion",
+              "self",
+              "target"
+            ],
+            "description": "companion no cambia las stats del lanzador.\nself aplica overlay al activar la forma.\ntarget transforma a una criatura existente; en esta API el overlay solo aplica\nsi el dueño de forms activa esa forma (auto-polimorfia).\n"
+          },
+          "choose": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Formas simultáneas de este conjuro. Por defecto 1."
+          },
+          "replaceOnRecast": {
+            "type": "boolean",
+            "description": "Si es true, relanzar sustituye la forma previa de este conjuro."
+          },
+          "pool": {
+            "type": "object",
+            "description": "Lista fija de criaturas o filtro por tipo, CR, tamaño y etiquetas.\nUn filtro sin criterios admite todas las criaturas del sistema y sus ancestros.\n",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "ids",
+                  "filter"
+                ]
+              },
+              "creatureIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "creatures": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Creature"
+                }
+              },
+              "creatureTypeIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "creatureTypes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreatureType"
+                }
+              },
+              "maxCR": {
+                "type": "number"
+              },
+              "sizes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "extraPools": {
+            "type": "array",
+            "description": "Pools extra unidos en OR. Solo en la ficha, cuando un rasgo amplía este conjuro y el pool base no se puede concatenar (p. ej. filter + ids).\n",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
       },
       "Spell": {
         "type": "object",
@@ -2902,6 +3202,9 @@
             },
             "description": "Información de daño del conjuro."
           },
+          "creatureForm": {
+            "$ref": "#/components/schemas/SpellCreatureForm"
+          },
           "description": {
             "type": "array",
             "items": {
@@ -3157,6 +3460,9 @@
               }
             }
           },
+          "creatureForm": {
+            "$ref": "#/components/schemas/SpellCreatureForm"
+          },
           "ritual": {
             "type": "boolean",
             "description": "Indica si el conjuro puede lanzarse como ritual."
@@ -3390,6 +3696,15 @@
                 }
               }
             }
+          },
+          "creatureForm": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SpellCreatureForm"
+              }
+            ],
+            "nullable": true,
+            "description": "Envíe null para borrar las formas de criatura del conjuro."
           },
           "ritual": {
             "type": "boolean",
@@ -4814,164 +5129,110 @@
           }
         }
       },
-      "Invocacion": {
+      "CharacterOptionSelection": {
         "type": "object",
         "properties": {
-          "index": {
-            "type": "string",
-            "description": "Identificador de la invocación."
+          "optionId": {
+            "type": "string"
           },
-          "name": {
-            "type": "string",
-            "description": "Nombre de la invocación."
+          "groupId": {
+            "type": "string"
           },
-          "description": {
+          "traitId": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "trait": {
+            "$ref": "#/components/schemas/Trait"
+          }
+        }
+      },
+      "PendingOptionChoice": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "choose": {
+            "type": "integer"
+          },
+          "replace": {
+            "type": "integer"
+          },
+          "options": {
             "type": "array",
             "items": {
-              "type": "string"
-            },
-            "description": "Descripción detallada de la invocación."
+              "$ref": "#/components/schemas/PendingOptionChoiceOption"
+            }
           },
-          "summary": {
+          "selected": {
             "type": "array",
             "items": {
-              "type": "string"
-            },
-            "description": "Resumen de la invocación."
-          },
-          "spells": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Spell"
-            },
-            "description": "Conjuros otorgados por la invocación."
-          },
-          "skills": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "IDs de habilidades otorgadas."
-          },
-          "requirements": {
-            "type": "object",
-            "properties": {
-              "level": {
-                "type": "number",
-                "description": "Nivel mínimo requerido."
-              },
-              "spells": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "index": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "description": "Conjuros prerequisito."
-              },
-              "traits": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "index": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "description": "Rasgos prerequisito."
-              }
+              "$ref": "#/components/schemas/CharacterOptionSelection"
             }
           }
         }
       },
-      "CriaturaForm": {
+      "CharacterForm": {
         "type": "object",
-        "description": "Forma alternativa del personaje (criatura transformada).",
+        "description": "Forma de criatura vinculada a un conjuro (o legado sin origen).",
+        "required": [
+          "id"
+        ],
         "properties": {
           "id": {
             "type": "string",
-            "description": "Identificador de la criatura."
+            "description": "ID de esta instancia de forma en el personaje."
           },
-          "name": {
+          "purpose": {
             "type": "string",
-            "description": "Nombre de la forma."
+            "enum": [
+              "companion",
+              "self",
+              "target"
+            ],
+            "description": "Ausente en formas legacy; esas no se pueden activar. self y target sí."
           },
-          "type": {
-            "type": "string",
-            "description": "Tipo de criatura."
+          "spellId": {
+            "type": "string"
           },
-          "subtype": {
-            "type": "string",
-            "description": "Subtipo de criatura."
-          },
-          "alignment": {
-            "type": "string",
-            "description": "Alineamiento de la forma."
-          },
-          "size": {
-            "type": "string",
-            "description": "Tamaño de la forma."
-          },
-          "armor_class": {
+          "spell": {
             "type": "object",
             "properties": {
-              "type": {
+              "id": {
                 "type": "string"
               },
-              "value": {
-                "type": "number"
-              }
-            },
-            "description": "Clase de armadura de la forma."
-          },
-          "hit_points": {
-            "type": "number",
-            "description": "Puntos de golpe de la forma."
-          },
-          "hit_dice": {
-            "type": "string",
-            "description": "Dado de golpe de la forma."
-          },
-          "speed": {
-            "type": "object",
-            "properties": {
-              "walk": {
-                "type": "number"
-              },
-              "fly": {
-                "type": "number"
-              },
-              "climb": {
-                "type": "number"
-              },
-              "swim": {
-                "type": "number"
-              },
-              "notes": {
+              "name": {
                 "type": "string"
               }
-            },
-            "description": "Velocidades de la forma."
+            }
           },
-          "challenge_rating": {
-            "type": "string",
-            "description": "Nivel de desafío de la forma."
+          "creature": {
+            "$ref": "#/components/schemas/Creature"
           },
-          "xp": {
-            "type": "number",
-            "description": "Experiencia asociada a la forma."
+          "active": {
+            "type": "boolean",
+            "description": "True si es la forma propia activa (overlay de estadísticas)."
           }
         }
+      },
+      "CriaturaForm": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CharacterForm"
+          }
+        ]
       },
       "PersonajeBasico": {
         "type": "object",
@@ -5340,6 +5601,10 @@
           "HPMax": {
             "type": "number"
           },
+          "HPActual": {
+            "type": "number",
+            "description": "Puntos de golpe actuales. Con una forma propia activa coincide con los PG de la criatura (solo lectura)."
+          },
           "CA": {
             "type": "number"
           },
@@ -5484,17 +5749,23 @@
               "$ref": "#/components/schemas/SpellcastingLevel"
             }
           },
-          "invocations": {
+          "optionSelections": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Invocacion"
-            }
+              "$ref": "#/components/schemas/CharacterOptionSelection"
+            },
+            "description": "Opciones elegidas (invocaciones, metamagia, maniobras, etc.)."
           },
           "forms": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CriaturaForm"
+              "$ref": "#/components/schemas/CharacterForm"
             }
+          },
+          "activeFormId": {
+            "type": "string",
+            "nullable": true,
+            "description": "ID de la forma propia activa. Overlay de lectura; no persiste los PG de la criatura."
           },
           "spellPrivileges": {
             "type": "array",
@@ -5705,6 +5976,374 @@
               "$ref": "#/components/schemas/CharacterCompanion"
             },
             "description": "Roster narrativo opcional (máximo 20). El recuento companionRoster.count de un rasgo es solo orientación de UI; el servidor no lo exige.\n"
+          }
+        }
+      },
+      "Prerequisite": {
+        "description": "Unión discriminada de requisitos para elegir una opción de grupo. Se combina con `all` (todos) o `any` (al menos uno). Sin classId en classLevel se usa la clase que concede la elección en el level-up.\n",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PrerequisiteClassLevel"
+          },
+          {
+            "$ref": "#/components/schemas/PrerequisiteCharacterLevel"
+          },
+          {
+            "$ref": "#/components/schemas/PrerequisiteTrait"
+          },
+          {
+            "$ref": "#/components/schemas/PrerequisiteSpell"
+          },
+          {
+            "$ref": "#/components/schemas/PrerequisiteAttribute"
+          },
+          {
+            "$ref": "#/components/schemas/PrerequisiteAll"
+          },
+          {
+            "$ref": "#/components/schemas/PrerequisiteAny"
+          }
+        ]
+      },
+      "PrerequisiteClassLevel": {
+        "type": "object",
+        "required": [
+          "type",
+          "min"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "classLevel"
+            ]
+          },
+          "classId": {
+            "type": "string",
+            "description": "ObjectId de la clase. Si se omite, es la clase que concede la elección."
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel mínimo de esa clase."
+          }
+        }
+      },
+      "PrerequisiteCharacterLevel": {
+        "type": "object",
+        "required": [
+          "type",
+          "min"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "characterLevel"
+            ]
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel total mínimo del personaje."
+          }
+        }
+      },
+      "PrerequisiteTrait": {
+        "type": "object",
+        "required": [
+          "type",
+          "traitId"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "trait"
+            ]
+          },
+          "traitId": {
+            "type": "string",
+            "description": "ObjectId del rasgo requerido (p. ej. un pacto)."
+          }
+        }
+      },
+      "PrerequisiteSpell": {
+        "type": "object",
+        "required": [
+          "type",
+          "spellId"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "spell"
+            ]
+          },
+          "spellId": {
+            "type": "string",
+            "description": "ObjectId de un conjuro conocido o extra."
+          }
+        }
+      },
+      "PrerequisiteAttribute": {
+        "type": "object",
+        "required": [
+          "type",
+          "key",
+          "min"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "attribute"
+            ]
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave de característica del sistema (p. ej. cha), no el ObjectId."
+          },
+          "min": {
+            "type": "number",
+            "description": "Valor mínimo de esa característica."
+          }
+        }
+      },
+      "PrerequisiteAll": {
+        "type": "object",
+        "required": [
+          "all"
+        ],
+        "properties": {
+          "all": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/Prerequisite"
+            }
+          }
+        }
+      },
+      "PrerequisiteAny": {
+        "type": "object",
+        "required": [
+          "any"
+        ],
+        "properties": {
+          "any": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/Prerequisite"
+            }
+          }
+        }
+      },
+      "OptionChoiceMongo": {
+        "type": "object",
+        "required": [
+          "groupId",
+          "choose"
+        ],
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "ObjectId del grupo de opciones."
+          },
+          "choose": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Número de opciones nuevas que hay que elegir en este nivel."
+          },
+          "replace": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Número máximo de opciones ya elegidas que se pueden recambiar. Opcional."
+          }
+        },
+        "description": "Concesión de un grupo en un nivel de clase o subclase. Debe tener choose o replace mayor que 0. En update, null en el array del nivel borra las concesiones de ese nivel.\n"
+      },
+      "OptionReplacementConfig": {
+        "type": "object",
+        "required": [
+          "groupId",
+          "count"
+        ],
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "ObjectId del grupo de opciones."
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Máximo de opciones ya elegidas de este grupo que se pueden recambiar al ganar un nivel de la clase."
+          }
+        },
+        "description": "Política de recambio por grupo, a nivel de clase o subclase. Se ofrece en cada subida de esa clase cuando el personaje ya tiene alguna opción de ese grupo. No sustituye a `choose` de cada nivel; se fusiona con `optionChoices.replace`.\n"
+      },
+      "OptionGroup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB del grupo."
+          },
+          "ruleset": {
+            "type": "string",
+            "description": "Sistema al que pertenece el grupo. Sin classId; varias clases pueden usarlo."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del grupo (p. ej. Invocaciones sobrenaturales)."
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Descripción del grupo."
+          }
+        }
+      },
+      "GroupOption": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ruleset": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string",
+            "description": "ID del grupo al que pertenece la opción."
+          },
+          "traitId": {
+            "type": "string",
+            "description": "ID del rasgo efecto que se aplica al elegir la opción."
+          },
+          "trait": {
+            "$ref": "#/components/schemas/Trait"
+          },
+          "prerequisites": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prerequisite"
+              }
+            ],
+            "description": "Requisitos para elegir la opción. Null o omitido = sin requisitos."
+          },
+          "repeatable": {
+            "type": "boolean",
+            "description": "Si es true, se puede elegir más de una vez."
+          }
+        }
+      },
+      "PendingOptionChoiceOption": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GroupOption"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "boolean",
+                "description": "True si el personaje cumple los requisitos."
+              },
+              "unmet": {
+                "type": "boolean",
+                "description": "True si no cumple los requisitos."
+              }
+            }
+          }
+        ]
+      },
+      "InputCreateOptionGroup": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "name"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "InputUpdateOptionGroup": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "InputCreateGroupOption": {
+        "type": "object",
+        "required": [
+          "ruleset",
+          "groupId",
+          "traitId"
+        ],
+        "properties": {
+          "ruleset": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "traitId": {
+            "type": "string",
+            "description": "ObjectId del rasgo efecto de la opción."
+          },
+          "prerequisites": {
+            "$ref": "#/components/schemas/Prerequisite"
+          },
+          "repeatable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "InputUpdateGroupOption": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "traitId": {
+            "type": "string"
+          },
+          "prerequisites": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Prerequisite"
+              }
+            ],
+            "description": "Null borra los requisitos."
+          },
+          "repeatable": {
+            "type": "boolean"
           }
         }
       },
@@ -7262,7 +7901,7 @@
           },
           "traits": {
             "type": "array",
-            "description": "Rasgos embebidos de la ficha (nombre, descripción, uso, ataque). No son identificadores del catálogo de rasgos.",
+            "description": "Rasgos embebidos de la ficha (nombre, descripción, uso). No son identificadores del catálogo de rasgos.",
             "items": {
               "type": "object"
             }
@@ -7272,7 +7911,7 @@
             "items": {
               "type": "object"
             },
-            "description": "Acciones. El alcance (reach) y el rango se expresan en pies."
+            "description": "Acciones."
           },
           "bonus_actions": {
             "type": "array",
@@ -7630,7 +8269,7 @@
           },
           "traits": {
             "type": "array",
-            "description": "Rasgos embebidos de la ficha (nombre, descripción, uso, ataque). No son identificadores del catálogo de rasgos.",
+            "description": "Rasgos embebidos de la ficha (nombre, descripción, uso). No son identificadores del catálogo de rasgos.",
             "items": {
               "$ref": "#/components/schemas/CreatureFeature"
             }
@@ -7730,63 +8369,11 @@
               "type": "string"
             }
           },
-          "attack": {
-            "type": "object",
-            "description": "Alcance y rango en pies.",
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "melee_weapon",
-                  "ranged_weapon",
-                  "melee_spell",
-                  "ranged_spell"
-                ]
-              },
-              "attributeKey": {
-                "type": "string"
-              },
-              "bonus": {
-                "type": "number",
-                "description": "Si se omite, se calcula como modificador del atributo más el bono de competencia."
-              },
-              "reach": {
-                "type": "number",
-                "description": "Alcance en pies."
-              },
-              "range": {
-                "type": "object",
-                "description": "Distancia en pies.",
-                "properties": {
-                  "normal": {
-                    "type": "number"
-                  },
-                  "long": {
-                    "type": "number"
-                  }
-                }
-              },
-              "targets": {
-                "type": "string"
-              },
-              "damage": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "dice": {
-                      "type": "string"
-                    },
-                    "bonus": {
-                      "type": "number"
-                    },
-                    "damageTypeId": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
+          "usage": {
+            "$ref": "#/components/schemas/CreatureUsage"
+          },
+          "cost": {
+            "type": "number"
           }
         }
       },
@@ -8308,12 +8895,19 @@
             "$ref": "#/components/schemas/SpellReplacementConfig",
             "description": "Si está presente, al subir de nivel en esta clase se puede sustituir hasta `count` conjuros conocidos por otros de la lista de la clase (p. ej. bardo).\n"
           },
+          "optionReplacements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionReplacementConfig"
+            },
+            "description": "Recambio global de grupos de opciones (p. ej. 1 invocación cada nivel de brujo a partir de que el personaje ya tenga alguna). Se fusiona con `optionChoices.replace` del nivel. No hace falta repetirlo en cada fila de `levels`.\n"
+          },
           "levels": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
-            "description": "Niveles slim para el editor (level, ranuras de conjuro, conjuros aprendidos, elecciones de conjuros, traits y traits_data)."
+            "description": "Niveles slim para el editor (level, ranuras, elecciones de conjuros, traits, habilidades y optionChoices)."
           },
           "abilityScoreProgression": {
             "type": "array",
@@ -8568,6 +9162,14 @@
               }
             ],
             "description": "Elige skills ya competentes y aplica un multiplicador al bonificador (2 pericia, 3 triple). Envíe null para borrar la elección de este nivel.\n"
+          },
+          "optionChoices": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionChoiceMongo"
+            },
+            "description": "Concesiones de grupos de opciones en este nivel (p. ej. 2 invocaciones nuevas y 1 recambio). groupId apunta a un OptionGroup del sistema. choose es cuántas hay que añadir; replace es el máximo de recambios. Al menos uno debe ser > 0. Envíe null en una actualización para borrar las concesiones de este nivel. Si se omite, se conservan.\n"
           }
         }
       },
@@ -8903,12 +9505,20 @@
             "nullable": true,
             "description": "Recambio opcional de conjuros conocidos al subir de nivel (p. ej. bardo). Opcional al crear.\n"
           },
+          "optionReplacements": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/OptionReplacementConfig"
+            },
+            "description": "Recambios de grupos de opciones en cada nivel de esta clase, a partir de que el personaje ya tenga alguna opción del grupo. Opcional al crear.\n"
+          },
           "levels": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
-            "description": "Niveles con tabla de ranuras, elecciones de conjuros, pericia, traits y skill_choices."
+            "description": "Niveles con ranuras, elecciones de conjuros, pericia, traits, skill_choices y optionChoices."
           },
           "abilityScoreProgression": {
             "type": "array",
@@ -9062,12 +9672,20 @@
             "nullable": true,
             "description": "Recambio de conjuros conocidos al subir de nivel. Enviar null para eliminarlo."
           },
+          "optionReplacements": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/OptionReplacementConfig"
+            },
+            "description": "Recambios globales de grupos de opciones. Enviar null para eliminarlos.\n"
+          },
           "levels": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CharacterClassLevelInput"
             },
-            "description": "Niveles con tabla de ranuras, elecciones de conjuros, traits y traits_data; se fusionan por level. Los traits y traits_data de un nivel solo se sustituyen si el campo viene definido.\n"
+            "description": "Niveles con ranuras, elecciones de conjuros, traits, skill_choices y optionChoices; se fusionan por level. Los traits, traits_data y optionChoices de un nivel solo se sustituyen si el campo viene definido.\n"
           },
           "abilityScoreProgression": {
             "type": "array",
@@ -13862,7 +14480,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas); no incluyen\nelecciones (`traits_options`). Si el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skill_choices`.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spell_changes.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spell_choices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skill_choices`.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spell_changes.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spell_choices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
         "tags": [
           "Personajes"
         ],
@@ -13998,6 +14616,13 @@
                       "$ref": "#/components/schemas/SkillChoiceApi",
                       "description": "Habilidades nuevas a elegir en este nivel (clase y subclase ya asignada). Distinto de skillProficiencyChoices (multiplicador sobre skills ya competentes). Las opciones ya poseídas se recortan. Omitido si no hay elección en este nivel.\n"
                     },
+                    "optionChoices": {
+                      "type": "array",
+                      "description": "Elecciones de grupos de opciones de este nivel (p. ej. invocaciones). choose es cuántas hay que añadir. replace es cuántas se pueden cambiar (incluye `optionReplacements` de la clase o subclase si el personaje ya tiene opciones de ese grupo). options marca available/unmet según requisitos. selected son las ya elegidas.\n",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingOptionChoice"
+                      }
+                    },
                     "ability_score": {
                       "type": "boolean",
                       "description": "True si este nivel de clase otorga Mejora de característica. En ese caso el POST debe enviar `abilityScore` (repartir 2 puntos) o `feat`.\n"
@@ -14074,7 +14699,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\n`skillPicks` cubre el dip y las `skill_choices` del nivel (clase o subclase, incluida la\nenviada en `subclass` en el mismo POST). `proficiencyPicks` solo aplica al tomar una clase nueva.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`.\nSi el GET devolvió `spell_changes`, el body puede incluir `spellReplacements` (0..`choose`\npares `{ from, to }`). Es opcional: omitir o enviar vacío no sustituye. `from` debe estar\nen `spell_changes.from`; `to` en `spell_changes.to` y no puede ser un conjuro ya conocido\nni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se\nquita `from` de `preparedSpells` de esa clase si estaba preparado.\nAplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje. No aplica elecciones de rasgos (`traits_options`).\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nLa dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\n`skillPicks` cubre el dip y las `skill_choices` del nivel (clase o subclase, incluida la\nenviada en `subclass` en el mismo POST). `proficiencyPicks` solo aplica al tomar una clase nueva.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`.\nSi el GET devolvió `spell_changes`, el body puede incluir `spellReplacements` (0..`choose`\npares `{ from, to }`). Es opcional: omitir o enviar vacío no sustituye. `from` debe estar\nen `spell_changes.from`; `to` en `spell_changes.to` y no puede ser un conjuro ya conocido\nni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se\nquita `from` de `preparedSpells` de esa clase si estaba preparado.\nAplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje.\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nLa dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\nSi el GET devolvió `optionChoices`, el body debe incluir `optionPicks` con un elemento por\ngrupo: `add` tiene longitud `choose` y `replace` como máximo `replace` (el `replace` del\nGET ya incluye `optionReplacements` de clase o subclase). Cada id debe\npertenecer al grupo, cumplir requisitos y no estar ya elegida salvo que sea repetible.\n",
         "tags": [
           "Personajes"
         ],
@@ -14142,6 +14767,46 @@
                         "to": {
                           "type": "string",
                           "description": "ObjectId del conjuro de la lista de la clase que se aprende."
+                        }
+                      }
+                    }
+                  },
+                  "optionPicks": {
+                    "type": "array",
+                    "description": "Elecciones de grupos de opciones alineadas con `optionChoices` del GET. `add` tiene la misma longitud que `choose`. `replace` es opcional (0..replace).\n",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "groupId",
+                        "add"
+                      ],
+                      "properties": {
+                        "groupId": {
+                          "type": "string"
+                        },
+                        "add": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "replace": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "from",
+                              "to"
+                            ],
+                            "properties": {
+                              "from": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              }
+                            }
+                          }
                         }
                       }
                     }
@@ -14722,6 +15387,515 @@
           },
           "500": {
             "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/addForm": {
+      "post": {
+        "summary": "Añadir una forma de criatura desde un conjuro",
+        "description": "Elige una criatura del `creatureForm` del conjuro y la guarda en `forms`.\nSi el personaje tiene rasgos con `creatureFormExtensions` para ese conjuro,\ntambién valen las criaturas de esos pools extra (unión OR).\nSi `replaceOnRecast` es true, sustituye las formas previas de ese conjuro.\nSi no, rechaza al superar `choose`. `companion` no activa overlay;\n`self` y `target` no se activan solas (use POST .../forms/{formId}/activate).\nUn filtro sin criterios admite cualquier criatura del sistema del conjuro (y ancestros).\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "creatureId",
+                  "spellId"
+                ],
+                "properties": {
+                  "creatureId": {
+                    "type": "string",
+                    "description": "ID de la criatura elegida."
+                  },
+                  "spellId": {
+                    "type": "string",
+                    "description": "ID del conjuro que define el pool de formas."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado con la forma.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El conjuro no define formas o la criatura no está en el pool."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje, conjuro o criatura no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/forms/{formId}/activate": {
+      "post": {
+        "summary": "Activar una forma propia o de objetivo",
+        "description": "Solo `purpose: self` o `target`. Aplica overlay de estadísticas de la criatura al leer la ficha\n(tamaño, velocidad, CA, PG, atributos coincidentes, resistencias e inmunidades a estados).\n`companion` no se puede activar.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "formId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la instancia de forma."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personaje con la forma activa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "La forma no es propia o ya está activa."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o forma no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/forms/{formId}/deactivate": {
+      "post": {
+        "summary": "Desactivar la forma propia activa",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "formId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de la instancia de forma."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personaje sin forma activa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "La forma no está activa."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o forma no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/option-groups": {
+      "get": {
+        "summary": "Obtener grupos de opciones filtrados por sistemas",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del sistema. Incluye grupos de ancestros; si padre e hijo comparten el mismo nombre, gana el más específico."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de grupos de opciones.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OptionGroup"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un grupo de opciones",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateOptionGroup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Grupo creado con éxito."
+          }
+        }
+      }
+    },
+    "/option-groups/{id}": {
+      "put": {
+        "summary": "Actualizar un grupo de opciones",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateOptionGroup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grupo actualizado."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Borrado lógico de un grupo de opciones",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Grupo borrado."
+          }
+        }
+      }
+    },
+    "/option-groups/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar un grupo de opciones",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grupo restaurado."
+          }
+        }
+      }
+    },
+    "/option-groups/{groupId}/options": {
+      "get": {
+        "summary": "Listar opciones de un grupo",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sistema del personaje. Incluye opciones de sistemas ancestros."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de opciones del grupo."
+          }
+        }
+      }
+    },
+    "/group-options": {
+      "post": {
+        "summary": "Crear una opción de un grupo",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputCreateGroupOption"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Opción creada."
+          }
+        }
+      }
+    },
+    "/group-options/{id}": {
+      "put": {
+        "summary": "Actualizar una opción de grupo",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputUpdateGroupOption"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opción actualizada."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Borrado lógico de una opción de grupo",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Opción borrada."
+          }
+        }
+      }
+    },
+    "/group-options/{id}/restore": {
+      "patch": {
+        "summary": "Restaurar una opción de grupo",
+        "tags": [
+          "Grupos de opciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opción restaurada."
           }
         }
       }
@@ -16447,7 +17621,7 @@
       },
       "post": {
         "summary": "Crear una criatura",
-        "description": "Las distancias (velocidad, sentidos, alcance y rango) se guardan en pies. El peso del equipo permanece en libras.",
+        "description": "Las distancias (velocidad y sentidos) se guardan en pies. El peso del equipo permanece en libras.",
         "tags": [
           "Criaturas"
         ],

@@ -13,12 +13,11 @@ import ISystemRepository from "../../../../domain/repositories/ISystemRepository
 import { NotFoundError } from "../../../../domain/errors/AppError";
 import { Damage } from "../../../../domain/types";
 import { CREATURE_DAMAGE_AFFINITY_FIELDS } from "../../../../domain/types/damageAffinity.types";
-import { AttributeApi, CharacterAttributeApi } from "../../../../domain/types/attribute.types";
+import { AttributeApi } from "../../../../domain/types/attribute.types";
 import {
   CREATURE_ANY_RACE,
   CreateCreature,
   CreatureApi,
-  CreatureAttack,
   CreatureFeature,
   CreatureFeatureApi,
   CreatureInnateSpellcasting,
@@ -37,7 +36,6 @@ import {
   buildCreatureAttributes,
   buildCreatureSkills,
   resolveArmorClass,
-  resolveAttackBonus,
   resolvePassivePerception
 } from "../../../../utils/creatureStats";
 import CreatureModel from "../schemas/Creature";
@@ -256,7 +254,7 @@ export default class CreatureRepository implements ICreatureRepository {
     });
 
     const hydrate = (features: CreatureFeature[] | undefined) =>
-      hydrateFeatures(features ?? [], damageById, attributes, creature.prof_bonus ?? 0);
+      hydrateFeatures(features ?? []);
     const traits = resolveCreatureTraits(creature);
 
     return {
@@ -322,43 +320,13 @@ export default class CreatureRepository implements ICreatureRepository {
   }
 }
 
-function hydrateFeatures(
-  features: CreatureFeature[],
-  damageById: Map<string, Damage>,
-  attributes: CharacterAttributeApi[],
-  profBonus: number
-): CreatureFeatureApi[] {
+function hydrateFeatures(features: CreatureFeature[]): CreatureFeatureApi[] {
   return features.map(feature => ({
     name: feature.name,
     description: feature.description ?? [],
     usage: feature.usage,
-    cost: feature.cost,
-    attack: feature.attack
-      ? hydrateAttack(feature.attack, damageById, attributes, profBonus)
-      : undefined
+    cost: feature.cost
   }));
-}
-
-function hydrateAttack(
-  attack: CreatureAttack,
-  damageById: Map<string, Damage>,
-  attributes: CharacterAttributeApi[],
-  profBonus: number
-) {
-  return {
-    kind: attack.kind,
-    attributeKey: attack.attributeKey,
-    bonus: resolveAttackBonus(attack, attributes, profBonus),
-    reach: attack.reach,
-    range: attack.range,
-    targets: attack.targets,
-    equipmentId: attack.equipmentId,
-    damage: (attack.damage ?? []).map(roll => ({
-      dice: roll.dice,
-      bonus: roll.bonus,
-      damageType: damageById.get(roll.damageTypeId) ?? null
-    }))
-  };
 }
 
 export function hydrateSpellcasting(
@@ -430,21 +398,11 @@ export function resolveCreatureTraits(creature: {
 }
 
 export function collectDamageIds(creature: CreatureMongo): string[] {
-  const fromFeatures = (features: CreatureFeature[] | undefined) =>
-    (features ?? []).flatMap(feature => (feature.attack?.damage ?? []).map(roll => roll.damageTypeId));
-
-  return unique([
-    ...collectDamageTypeIdsFromAffinities(
-      creature.damage_vulnerabilities,
-      creature.damage_immunities,
-      creature.damage_resistances
-    ),
-    ...fromFeatures(resolveCreatureTraits(creature)),
-    ...fromFeatures(creature.actions),
-    ...fromFeatures(creature.bonus_actions),
-    ...fromFeatures(creature.reactions),
-    ...fromFeatures(creature.legendary_actions?.actions)
-  ]);
+  return unique(collectDamageTypeIdsFromAffinities(
+    creature.damage_vulnerabilities,
+    creature.damage_immunities,
+    creature.damage_resistances
+  ));
 }
 
 function collectSpellIds(spellcasting: CreatureSpellcasting | null | undefined): string[] {
