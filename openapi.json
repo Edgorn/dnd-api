@@ -287,7 +287,7 @@
           },
           "damageChoice": {
             "type": "array",
-            "description": "Filas resueltas en la ficha del personaje (name, damage, area y save). No aparece en el catálogo. Con varias filas, {name}, {damage}, {area} y {save} de la descripción se sustituyen uniéndolos con coma.\n",
+            "description": "Filas resueltas en la ficha del personaje (name, label, damage, area y save). No aparece en el catálogo. Con varias filas, {name}, {damage}, {area} y {save} de la descripción se sustituyen uniéndolos con coma. {name} usa label.\n",
             "items": {
               "$ref": "#/components/schemas/ResolvedDamageChoice"
             }
@@ -421,8 +421,7 @@
         "type": "object",
         "required": [
           "key",
-          "choose",
-          "options"
+          "choose"
         ],
         "properties": {
           "key": {
@@ -432,10 +431,31 @@
           "choose": {
             "type": "integer",
             "minimum": 1,
-            "description": "Número de filas que el personaje debe elegir. No puede superar las opciones."
+            "description": "Número de filas que el personaje debe elegir. Sin source no puede superar las opciones."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "damageTypes"
+            ],
+            "description": "Origen dinámico de las opciones. Con damageTypes se genera una opción por cada tipo de daño del sistema del personaje y de sus ancestros. El nombre guardado es el id del tipo. Las options manuales, si se envían, se añaden a las generadas. GET /traits no expande el catálogo.\n"
+          },
+          "grantsResistance": {
+            "type": "boolean",
+            "description": "Si es true, los daños elegidos de este rasgo se unen a las resistencias del personaje."
+          },
+          "replaceOn": {
+            "type": "string",
+            "enum": [
+              "shortRest",
+              "longRest",
+              "shortOrLongRest"
+            ],
+            "description": "Si se indica, el personaje puede cambiar la elección en un descanso de ese tipo. Si se omite, la elección queda congelada tras el primer pick.\n"
           },
           "options": {
             "type": "array",
+            "description": "Obligatorio si no hay source. Con source puede ir vacío.",
             "items": {
               "$ref": "#/components/schemas/TraitDamageChoiceOption"
             }
@@ -451,7 +471,12 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Nombre único de la fila dentro del rasgo. Es la clave que el personaje guarda en traitChoices y sustituye {name} en la ficha.\n"
+            "description": "Clave que el personaje envía y guarda en traitChoices. Con source damageTypes es el id del tipo de daño. No se pinta.\n"
+          },
+          "label": {
+            "type": "string",
+            "readOnly": true,
+            "description": "Etiqueta visible de la fila. En filas manuales coincide con name; con source damageTypes es damage.name. Sustituye {name} en la ficha. No se envía al crear o editar el rasgo.\n"
           },
           "damageTypeId": {
             "type": "string",
@@ -930,7 +955,11 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Nombre de la fila elegida."
+            "description": "Clave de la fila elegida (la que está en traitChoices)."
+          },
+          "label": {
+            "type": "string",
+            "description": "Etiqueta visible. En filas manuales coincide con name; con source damageTypes es damage.name. Sustituye {name} en la ficha.\n"
           },
           "damage": {
             "$ref": "#/components/schemas/Damage"
@@ -1522,7 +1551,7 @@
       },
       "InputCreateTrait": {
         "type": "object",
-        "description": "Cuerpo de POST /traits. No use Trait de lectura: IDs, no objetos hidratados. action es TraitAction. damageChoices.options es name y damageTypeId, sin id.\n",
+        "description": "Cuerpo de POST /traits. No use Trait de lectura: IDs, no objetos hidratados. action es TraitAction. damageChoices.options es name y damageTypeId, sin id ni label.\n",
         "required": [
           "ruleset",
           "name"
@@ -1700,7 +1729,7 @@
           "damageChoices": {
             "nullable": true,
             "type": "array",
-            "description": "Tabla de elecciones de daño. null borra el campo.",
+            "description": "Tabla de elecciones de daño. Con source damageTypes las options pueden omitirse. null borra el campo.\n",
             "items": {
               "$ref": "#/components/schemas/TraitDamageChoiceInput"
             }
@@ -1772,7 +1801,7 @@
       },
       "TraitDamageChoiceOptionInput": {
         "type": "object",
-        "description": "Fila de daño en POST/PUT. La clave es name, no hay id. No envíe damage ni saveAttribute hidratados; Zod strict los rechaza.\n",
+        "description": "Fila de daño en POST/PUT. La clave es name, no hay id. No envíe label, damage ni saveAttribute hidratados; Zod strict los rechaza.\n",
         "required": [
           "name",
           "damageTypeId"
@@ -1800,8 +1829,7 @@
         "type": "object",
         "required": [
           "key",
-          "choose",
-          "options"
+          "choose"
         ],
         "properties": {
           "key": {
@@ -1811,8 +1839,27 @@
             "type": "integer",
             "minimum": 1
           },
+          "source": {
+            "type": "string",
+            "enum": [
+              "damageTypes"
+            ],
+            "description": "Con damageTypes las options pueden omitirse; se generan al leer el personaje.\n"
+          },
+          "grantsResistance": {
+            "type": "boolean"
+          },
+          "replaceOn": {
+            "type": "string",
+            "enum": [
+              "shortRest",
+              "longRest",
+              "shortOrLongRest"
+            ]
+          },
           "options": {
             "type": "array",
+            "description": "Obligatorio si no hay source.",
             "items": {
               "$ref": "#/components/schemas/TraitDamageChoiceOptionInput"
             }
@@ -1996,7 +2043,7 @@
           "damageChoices": {
             "nullable": true,
             "type": "array",
-            "description": "Tabla de elecciones de daño. null borra el campo.",
+            "description": "Tabla de elecciones de daño. Con source damageTypes las options pueden omitirse. null borra el campo.\n",
             "items": {
               "$ref": "#/components/schemas/TraitDamageChoiceInput"
             }
@@ -4825,6 +4872,64 @@
                   "$ref": "#/components/schemas/CatalogChoiceEntry"
                 }
               ]
+            }
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "optional",
+              "required"
+            ],
+            "description": "Si se omite, la elección no pide idioma. optional permite languageId nulo. required exige un idioma de languageOptions.\n"
+          },
+          "languageOptions": {
+            "type": "array",
+            "description": "Idiomas de los sistemas del personaje y de sus ancestros. Solo aparece si language es optional o required.\n",
+            "items": {
+              "$ref": "#/components/schemas/Language"
+            }
+          }
+        }
+      },
+      "PendingDamageChoice": {
+        "type": "object",
+        "required": [
+          "traitId",
+          "traitName",
+          "key",
+          "choose",
+          "options"
+        ],
+        "properties": {
+          "traitId": {
+            "type": "string",
+            "description": "ID del rasgo que este nivel concede y cuya elección de daño aún no está guardada."
+          },
+          "traitName": {
+            "type": "string",
+            "description": "Nombre del rasgo, para mostrar el menú sin leer traits[]."
+          },
+          "key": {
+            "type": "string",
+            "description": "Clave de la elección de daño. Es la que se envía en traitChoices."
+          },
+          "choose": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número de filas que hay que enviar en traitChoices para esta clave."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "damageTypes"
+            ],
+            "description": "Si es damageTypes, options ya vienen expandidas: una por tipo de daño de los sistemas del personaje y ancestros, más las filas manuales.\n"
+          },
+          "options": {
+            "type": "array",
+            "description": "Opciones hidratadas. Se pinta label y se envía name en traitChoices. Con source damageTypes, name y damageTypeId son el id del tipo; label es damage.name.\n",
+            "items": {
+              "$ref": "#/components/schemas/TraitDamageChoiceOption"
             }
           }
         }
@@ -14605,6 +14710,13 @@
                         "$ref": "#/components/schemas/PendingCatalogChoice"
                       }
                     },
+                    "damageChoices": {
+                      "type": "array",
+                      "description": "Elecciones de daño aún no guardadas de rasgos que este nivel concede (stacked.granted). Options hidratadas; con source damageTypes, una opción por tipo de daño del sistema y ancestros. Se pinta label y se envía name (el id del tipo). Omitido si no hay pendientes.\n",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingDamageChoice"
+                      }
+                    },
                     "skillProficiencyChoices": {
                       "type": "array",
                       "description": "Multiplicador de competencia de este nivel (p. ej. Pericia). add es cuántas skills hay que enviar en skillProficiencyPicks. options son las competencias que aún no tienen ese multiplicador.\n",
@@ -15239,7 +15351,7 @@
     "/character/{id}/rest": {
       "post": {
         "summary": "Descanso corto o largo (usos de rasgos)",
-        "description": "Mira `traits[].action.recharge` de cada rasgo. Si encaja con `type`\n(`shortRest`, `longRest` o `shortOrLongRest`), pone `traitResources[].spent` a 0\n(y `action.remaining` vuelve al máximo). Vacía `activeTraitIds`.\nNo toca puntos de golpe, conjuros ni condiciones.\n",
+        "description": "Mira `traits[].action.recharge` de cada rasgo. Si encaja con `type`\n(`shortRest`, `longRest` o `shortOrLongRest`), pone `traitResources[].spent` a 0\n(y `action.remaining` vuelve al máximo). Vacía `activeTraitIds`.\n`traitChoices` es opcional: solo admite claves de daño con `replaceOn` compatible\ncon el descanso. Si se omite, se conserva la elección anterior.\nNo toca puntos de golpe, conjuros ni condiciones.\n",
         "tags": [
           "Personajes"
         ],
@@ -15276,6 +15388,10 @@
                       "longRest"
                     ],
                     "description": "Tipo de descanso."
+                  },
+                  "traitChoices": {
+                    "type": "object",
+                    "description": "Recambio opcional de elecciones de daño con replaceOn. La clave exterior es el id del rasgo y la interior la clave de la elección. La lista tiene tantos nombres (ids de tipo de daño) como indique choose.\n"
                   }
                 }
               }

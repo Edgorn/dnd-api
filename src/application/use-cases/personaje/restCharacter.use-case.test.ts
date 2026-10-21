@@ -13,7 +13,12 @@ describe("RestCharacter", () => {
     };
   });
 
-  const input = { id: "char1", type: "longRest" as const, userId: "user1" };
+  const input = {
+    id: "char1",
+    type: "longRest" as const,
+    userId: "user1",
+    traitChoices: { "infernal-resilience": { resistance: ["fire"] } }
+  };
 
   it("delegates to personajeService.restCharacter", async () => {
     const useCase = new RestCharacter(personajeServiceMock as never);

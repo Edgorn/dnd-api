@@ -35,6 +35,7 @@ import { CharacterEquipmentApi, CharacterEquipmentMongo, EquipmentInstanceApi, E
 import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRestriction';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
+import IDamageRepository from '../../../../domain/repositories/IDamageRepository';
 import { PendingCatalogChoice, TraitApi, TraitChoiceValue, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { RaceRef } from '../../../../domain/types/race.types';
@@ -85,10 +86,13 @@ import { constitutionHitPointDelta } from '../../../../utils/constitutionHpFromA
 import {
   applyCatalogTraitChoices,
   applyEnteringTraitChoices,
+  applyRestTraitChoices,
   catalogSpeakIds,
   expandCatalogChoices,
+  expandDamageChoices,
   hydrateCatalogChoiceLanguages,
   listPendingCatalogChoices,
+  listPendingDamageChoices,
   mergeTraitLanguageIds,
   resolveCharacterTraitChoices
 } from '../../../../utils/traitDamageChoices';
@@ -206,7 +210,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly systemRepository: ISystemRepository,
     private readonly coinRepository: ICoinRepository,
     private readonly campaignReader: ICampaignReader,
-    private readonly creatureTypeRepository: ICreatureTypeRepository
+    private readonly creatureTypeRepository: ICreatureTypeRepository,
+    private readonly damageRepository: IDamageRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -294,7 +299,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
       }
     }
 
-    const loadedTraits = await this.traitRepository.getTraitsByIndexes(resolvedTraits);
+    const catalogTraits = await this.traitRepository.getTraitsByIndexes(resolvedTraits);
+    const loadedTraits = await this.expandTraitsForSystems(
+      catalogTraits,
+      systems,
+      this.chosenCreatureTypeIds(catalogTraits, data.traitChoices),
+      this.chosenDamageTypeIds(catalogTraits, data.traitChoices)
+    );
     const overlaidAttributes = applyTraitAbilityScores(attributes, loadedTraits).attributes;
     const apiAttributesForHp = await this.attributeService.formatAttributes(
       overlaidAttributes,
@@ -327,7 +338,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       characterLevel: 1,
       previouslyOwnedIds: []
     });
-    const grantedTraits = loadedTraits.filter(trait => trait.id && classGrantedTraitIds.has(trait.id));
+    const grantedTraits = catalogTraits.filter(trait => trait.id && classGrantedTraitIds.has(trait.id));
     const catalogChoices = await this.applyGrantedCatalogChoices({
       existing: undefined,
       incoming: data.traitChoices,
@@ -632,6 +643,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
       nextLevel,
       traits
     );
+    const grantedIds = new Set(
+      stacked.granted.map(trait => trait.id).filter((id): id is string => Boolean(id))
+    );
+    const damageChoices = listPendingDamageChoices({
+      existing: personaje.traitChoices,
+      traits: traits.filter(trait => trait.id && grantedIds.has(trait.id))
+    });
     const skillProficiencyChoices = await this.pendingClassSkillProficiencyChoices(
       personaje,
       classLevel.skillProficiencyChoices,
@@ -659,6 +677,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ability_score,
       feats,
       catalogChoices,
+      ...(damageChoices.length ? { damageChoices } : {}),
       ...(skillProficiencyChoices.length ? { skillProficiencyChoices } : {}),
       ...(skill_choices ? { skill_choices } : {}),
       newClass: isNewClass,
@@ -912,7 +931,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ?? personaje.prof_bonus
       ?? 0;
 
-    const enteringTraits = stackingGranted;
+    const enteringTraits = await this.expandTraitsForSystems(
+      stackingGranted,
+      personaje.systems,
+      this.chosenCreatureTypeIds(stackingGranted, traitChoices ?? personaje.traitChoices),
+      this.chosenDamageTypeIds(stackingGranted, traitChoices ?? personaje.traitChoices)
+    );
     const grantedForSkills = levelUpTraitIds.filter(trait => trait.id && levelUpGrantedIds.has(trait.id));
     const catalogChoices = await this.applyGrantedCatalogChoices({
       existing: personaje.traitChoices,
@@ -1380,14 +1404,34 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
     await this.assertCanAccessCharacter(personaje, userId);
 
-    const traits = await this.traitRepository.getTraitsByIndexes(personaje.traits ?? []);
+    const loaded = await this.traitRepository.getTraitsByIndexes(personaje.traits ?? []);
+    const traits = await this.expandTraitsForSystems(
+      loaded,
+      personaje.systems,
+      this.chosenCreatureTypeIds(loaded, personaje.traitChoices),
+      this.chosenDamageTypeIds(loaded, data.traitChoices ?? personaje.traitChoices)
+    );
     const next = applyCharacterRest({
       restType: type,
       traits,
       traitResources: normalizeTraitResources(personaje.traitResources)
     });
+    const choiceResult = applyRestTraitChoices({
+      existing: personaje.traitChoices,
+      incoming: data.traitChoices,
+      restType: type,
+      traits
+    });
+    if ("error" in choiceResult) {
+      throw new ValidationError(choiceResult.error);
+    }
 
-    return this.persistTraitStance(id, next.traitResources, next.activeTraitIds);
+    return this.persistTraitStance(
+      id,
+      next.traitResources,
+      next.activeTraitIds,
+      data.traitChoices !== undefined ? choiceResult.traitChoices : undefined
+    );
   }
 
   async getOwnedTraitIds(id: string, userId: string): Promise<string[]> {
@@ -1578,11 +1622,17 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const traits = await this.traitRepository.getTraitsByIndexes(ids);
     const expanded = await this.expandTraitsForSystems(traits, personaje.systems);
-    return listPendingCatalogChoices({
+    const pending = listPendingCatalogChoices({
       existing: personaje.traitChoices,
       classLevel,
       grantedTraits: expanded
     });
+    if (!pending.some(choice => choice.language)) return pending;
+
+    const languageOptions = await this.languagesForSystems(personaje.systems);
+    return pending.map(choice =>
+      choice.language ? { ...choice, languageOptions } : choice
+    );
   }
 
   private levelSkillProficiencyGrants(
@@ -1675,40 +1725,94 @@ export default class PersonajeRepository implements IPersonajeRepository {
   private async expandTraitsForSystems(
     traits: TraitApi[],
     systems?: string[],
-    chosenTypeIds: string[] = []
+    chosenTypeIds: string[] = [],
+    chosenDamageTypeIds: string[] = []
   ): Promise<TraitApi[]> {
-    const needsSource = traits.some(trait =>
+    const needsCreatureTypes = traits.some(trait =>
       trait.catalogChoices?.some(choice => choice.source === "creatureTypes")
     );
-    if (!needsSource) return traits;
+    const needsDamageTypes = traits.some(trait =>
+      trait.damageChoices?.some(choice => choice.source === "damageTypes")
+    );
+    if (!needsCreatureTypes && !needsDamageTypes) return traits;
 
     const expanded = await this.systemRepository.getSystemsAndAncestors(systems ?? []);
-    const [creatureTypes, raceRefs, chosenTypes] = await Promise.all([
-      this.creatureTypeRepository.getBySystems(expanded),
-      this.raceRepository.getRaceRefsBySystems(expanded),
-      chosenTypeIds.length
-        ? this.creatureTypeRepository.getByIds(chosenTypeIds)
-        : Promise.resolve([] as CreatureTypeApi[])
-    ]);
+    let next = traits;
 
-    const byId = new Map<string, CreatureTypeApi>();
-    for (const creatureType of creatureTypes) {
-      if (creatureType.deletedAt) continue;
-      byId.set(creatureType.id, creatureType);
-    }
-    for (const creatureType of chosenTypes) {
-      byId.set(creatureType.id, creatureType);
+    if (needsCreatureTypes) {
+      const [creatureTypes, raceRefs, chosenTypes] = await Promise.all([
+        this.creatureTypeRepository.getBySystems(expanded),
+        this.raceRepository.getRaceRefsBySystems(expanded),
+        chosenTypeIds.length
+          ? this.creatureTypeRepository.getByIds(chosenTypeIds)
+          : Promise.resolve([] as CreatureTypeApi[])
+      ]);
+
+      const byId = new Map<string, CreatureTypeApi>();
+      for (const creatureType of creatureTypes) {
+        if (creatureType.deletedAt) continue;
+        byId.set(creatureType.id, creatureType);
+      }
+      for (const creatureType of chosenTypes) {
+        byId.set(creatureType.id, creatureType);
+      }
+
+      const missing = chosenTypeIds.filter(id => !byId.has(id));
+      if (missing.length) {
+        const recovered = await Promise.all(missing.map(id => this.creatureTypeRepository.getById(id)));
+        for (const creatureType of recovered) {
+          if (creatureType) byId.set(creatureType.id, creatureType);
+        }
+      }
+
+      next = expandCatalogChoices(next, [...byId.values()], raceRefs);
     }
 
-    const missing = chosenTypeIds.filter(id => !byId.has(id));
-    if (missing.length) {
-      const recovered = await Promise.all(missing.map(id => this.creatureTypeRepository.getById(id)));
-      for (const creatureType of recovered) {
-        if (creatureType) byId.set(creatureType.id, creatureType);
+    if (needsDamageTypes) {
+      const [damages, chosenDamages] = await Promise.all([
+        this.damageRepository.getBySystems(expanded),
+        chosenDamageTypeIds.length
+          ? this.damageRepository.getByIds(chosenDamageTypeIds, true)
+          : Promise.resolve([] as Damage[])
+      ]);
+
+      const byId = new Map<string, Damage>();
+      for (const damage of damages) {
+        if (damage.id && !damage.deletedAt) byId.set(damage.id, damage);
+      }
+      for (const damage of chosenDamages) {
+        if (damage.id) byId.set(damage.id, damage);
+      }
+
+      const missing = chosenDamageTypeIds.filter(id => !byId.has(id));
+      if (missing.length) {
+        const recovered = await Promise.all(missing.map(id => this.damageRepository.getById(id)));
+        for (const damage of recovered) {
+          if (damage?.id) byId.set(damage.id, damage);
+        }
+      }
+
+      next = expandDamageChoices(next, [...byId.values()]);
+    }
+
+    return next;
+  }
+
+  private chosenDamageTypeIds(traits: TraitApi[], choices?: TraitChoices | null): string[] {
+    const ids = new Set<string>();
+    for (const trait of traits) {
+      if (!trait.id) continue;
+      const sourced = trait.damageChoices?.filter(choice => choice.source === "damageTypes") ?? [];
+      if (!sourced.length) continue;
+      const stored = choices?.[trait.id];
+      if (!stored) continue;
+      for (const choice of sourced) {
+        for (const value of stored[choice.key] ?? []) {
+          if (typeof value === "string" && value) ids.add(value);
+        }
       }
     }
-
-    return expandCatalogChoices(traits, [...byId.values()], raceRefs);
+    return [...ids];
   }
 
   private chosenCreatureTypeIds(traits: TraitApi[], choices?: TraitChoices | null): string[] {
@@ -1750,9 +1854,13 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return new Map(refs.map(race => [race.id, race]));
   }
 
-  private async languageIdsForSystems(systems: string[] | undefined): Promise<Set<string>> {
+  private async languagesForSystems(systems: string[] | undefined) {
     const expanded = await this.systemRepository.getSystemsAndAncestors(systems ?? []);
-    const languages = await this.languageRepository.getBySystems(expanded);
+    return this.languageRepository.getBySystems(expanded);
+  }
+
+  private async languageIdsForSystems(systems: string[] | undefined): Promise<Set<string>> {
+    const languages = await this.languagesForSystems(systems);
     return new Set(languages.map(language => language.id).filter((id): id is string => Boolean(id)));
   }
 
@@ -2115,7 +2223,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const expanded = await this.expandTraitsForSystems(
       pool,
       personaje.systems,
-      this.chosenCreatureTypeIds(pool, personaje.traitChoices)
+      this.chosenCreatureTypeIds(pool, personaje.traitChoices),
+      this.chosenDamageTypeIds(pool, personaje.traitChoices)
     );
     const visibleIds = new Set(ids);
     const visible = orderTraitsByIds(
@@ -2231,11 +2340,18 @@ export default class PersonajeRepository implements IPersonajeRepository {
   private async persistTraitStance(
     id: string,
     traitResources: CharacterTraitResource[],
-    activeTraitIds: string[]
+    activeTraitIds: string[],
+    traitChoices?: TraitChoices
   ): Promise<PersonajeApi> {
     const resultado = await Personaje.findByIdAndUpdate(
       id,
-      { $set: { traitResources, activeTraitIds } },
+      {
+        $set: {
+          traitResources,
+          activeTraitIds,
+          ...(traitChoices !== undefined ? { traitChoices } : {})
+        }
+      },
       { returnDocument: "after" }
     );
     if (!resultado) {
@@ -2573,7 +2689,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const expandedTraits = await this.expandTraitsForSystems(
       loadedTraits,
       personaje.systems,
-      this.chosenCreatureTypeIds(loadedTraits, personaje.traitChoices)
+      this.chosenCreatureTypeIds(loadedTraits, personaje.traitChoices),
+      this.chosenDamageTypeIds(loadedTraits, personaje.traitChoices)
     )
     const raceRefs = await this.raceRefsForLabels(personaje.traitChoices)
     const resolvedSheet = resolveCharacterTraitChoices(expandedTraits, personaje.traitChoices, raceRefs)

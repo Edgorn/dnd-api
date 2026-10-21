@@ -473,7 +473,8 @@ export class PersonajeController {
       const data = await this.restCharacterUseCase.execute({
         id,
         type: req.body.type,
-        userId: req.user!
+        userId: req.user!,
+        traitChoices: req.body.traitChoices
       });
       res.status(200).json(data);
     } catch (e) {

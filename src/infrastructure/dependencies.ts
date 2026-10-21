@@ -376,7 +376,8 @@ const personajeRepository = new PersonajeRepository(
   systemRepository,
   coinRepository,
   campaignReaderRepository,
-  creatureTypeRepository
+  creatureTypeRepository,
+  damageRepository
 )
 
 const campaignRepository = new CampaignRepository(

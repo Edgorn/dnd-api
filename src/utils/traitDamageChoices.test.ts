@@ -6,10 +6,13 @@ import { AttributeApi, CharacterAttributeApi } from "../domain/types/attribute.t
 import {
   applyCatalogTraitChoices,
   applyEnteringTraitChoices,
+  applyRestTraitChoices,
   expandCatalogChoices,
+  expandDamageChoices,
   formatTraitArea,
   hydrateCatalogChoiceLanguages,
   listPendingCatalogChoices,
+  listPendingDamageChoices,
   mergeTraitLanguageIds,
   resolveCharacterTraitChoices
 } from "./traitDamageChoices";
@@ -322,7 +325,8 @@ describe("applyCatalogTraitChoices favored enemy", () => {
       key: "favoredEnemy",
       add: 1,
       options: [...enemyTypes.filter(type => type.name !== "Dragones"), humanoids],
-      chosen: [dragons]
+      chosen: [dragons],
+      language: "optional"
     }]);
     expect(result).toEqual({
       traitChoices: { "enemigo-predilecto": { favoredEnemy: [dragons, orcs] } }
@@ -503,7 +507,7 @@ describe("resolveCharacterTraitChoices", () => {
       { "draconic-ancestry": { ancestor: ["Rojo"] } }
     );
 
-    const resolved = [{ name: "Rojo", damage: fire }];
+    const resolved = [{ name: "Rojo", label: "Rojo", damage: fire }];
     expect(result.traits[0].damageChoice).toEqual(resolved);
     expect(result.traits[0].description).toEqual(["Linaje Rojo. Daño Fuego."]);
     expect(result.traits[0].summary).toEqual(["Rojo: Fuego"]);
@@ -531,6 +535,58 @@ describe("resolveCharacterTraitChoices", () => {
     expect(result.traits[0].description[0]).toContain("{name}");
     expect(result.traits[1].damageChoice).toBeUndefined();
     expect(result.grantedResistances).toEqual([]);
+  });
+
+  it("grants resistance from the trait's own damage choice", () => {
+    const infernal = trait("infernal-resilience", {
+      damageChoices: [{
+        key: "resistance",
+        choose: 1,
+        source: "damageTypes",
+        grantsResistance: true,
+        replaceOn: "shortOrLongRest",
+        options: [
+          { name: "fire", damageTypeId: "fire", damage: fire },
+          { name: "cold", damageTypeId: "cold", damage: cold }
+        ]
+      }]
+    });
+
+    const result = resolveCharacterTraitChoices(
+      [infernal],
+      { "infernal-resilience": { resistance: ["fire"] } }
+    );
+
+    expect(result.traits[0].damageChoice).toEqual([{ name: "fire", label: "fire", damage: fire }]);
+    expect(result.grantedResistances).toEqual([fire]);
+  });
+
+  it("substitutes {name} with the visible label of a sourced damage type", () => {
+    const infernal = trait("infernal-resilience", {
+      description: ["Resistencia a {name}."],
+      summary: ["{name}"],
+      damageChoices: [{
+        key: "resistance",
+        choose: 1,
+        source: "damageTypes",
+        grantsResistance: true,
+        options: []
+      }]
+    });
+    const [expanded] = expandDamageChoices([infernal], [fire, cold]);
+
+    const result = resolveCharacterTraitChoices(
+      [expanded],
+      { "infernal-resilience": { resistance: ["fire"] } }
+    );
+
+    expect(result.traits[0].description).toEqual(["Resistencia a Fuego."]);
+    expect(result.traits[0].summary).toEqual(["Fuego"]);
+    expect(result.traits[0].damageChoice).toEqual([{
+      name: "fire",
+      label: "Fuego",
+      damage: fire
+    }]);
   });
 
   it("joins several selected rows with a comma", () => {
@@ -1050,5 +1106,124 @@ describe("dragonborn lineage tokens", () => {
     expect(sheet[1].description).toEqual(["Infliges 2d6 de daño de Fuego en cono de 4,5 m. Salvación de Destreza CD 13."]);
     expect(sheet[1].summary).toEqual(["CD 13"]);
     expect(sheet[1].action?.saveDc).toBe(13);
+  });
+});
+
+describe("expandDamageChoices and rest replace", () => {
+  const infernal = trait("infernal-resilience", {
+    damageChoices: [{
+      key: "resistance",
+      choose: 1,
+      source: "damageTypes",
+      grantsResistance: true,
+      replaceOn: "shortOrLongRest",
+      options: []
+    }]
+  });
+  const expanded = expandDamageChoices([infernal, ancestry], [fire, cold]);
+
+  it("generates one option per damage type and leaves static tables alone", () => {
+    expect(expanded[0].damageChoices?.[0].options).toEqual([
+      { name: "fire", label: "Fuego", damageTypeId: "fire", damage: fire },
+      { name: "cold", label: "Frío", damageTypeId: "cold", damage: cold }
+    ]);
+    expect(expanded[1]).toBe(ancestry);
+  });
+
+  it("replaces the stored choice on a matching rest", () => {
+    const result = applyRestTraitChoices({
+      restType: "shortRest",
+      traits: expanded,
+      existing: { "infernal-resilience": { resistance: ["fire"] } },
+      incoming: { "infernal-resilience": { resistance: ["cold"] } }
+    });
+
+    expect(result).toEqual({
+      traitChoices: { "infernal-resilience": { resistance: ["cold"] } }
+    });
+  });
+
+  it("keeps the stored choice when traitChoices is omitted", () => {
+    const existing = { "infernal-resilience": { resistance: ["fire"] } };
+    const result = applyRestTraitChoices({
+      restType: "longRest",
+      traits: expanded,
+      existing
+    });
+
+    expect(result).toEqual({ traitChoices: existing });
+  });
+
+  it("rejects a frozen damage choice", () => {
+    const result = applyRestTraitChoices({
+      restType: "longRest",
+      traits: [ancestry],
+      existing: { "draconic-ancestry": { ancestor: ["Rojo"] } },
+      incoming: { "draconic-ancestry": { ancestor: ["Plata"] } }
+    });
+
+    expect(result).toEqual({
+      error: "La elección ancestor del rasgo draconic-ancestry no se puede cambiar en este descanso"
+    });
+  });
+
+  it("rejects a rest that does not match replaceOn", () => {
+    const longOnly = trait("daily-ward", {
+      damageChoices: [{
+        key: "resistance",
+        choose: 1,
+        source: "damageTypes",
+        replaceOn: "longRest",
+        options: [
+          { name: "fire", damageTypeId: "fire", damage: fire }
+        ]
+      }]
+    });
+    const result = applyRestTraitChoices({
+      restType: "shortRest",
+      traits: [longOnly],
+      existing: { "daily-ward": { resistance: ["fire"] } },
+      incoming: { "daily-ward": { resistance: ["fire"] } }
+    });
+
+    expect(result).toEqual({
+      error: "La elección resistance del rasgo daily-ward no se puede cambiar en este descanso"
+    });
+  });
+});
+
+describe("listPendingDamageChoices", () => {
+  const infernal = trait("infernal-resilience", {
+    name: "Resistencia infernal",
+    damageChoices: [{
+      key: "resistance",
+      choose: 1,
+      source: "damageTypes",
+      grantsResistance: true,
+      replaceOn: "shortOrLongRest",
+      options: []
+    }]
+  });
+  const expanded = expandDamageChoices([infernal], [fire, cold]);
+
+  it("lists an unsaved expanded damage choice", () => {
+    expect(listPendingDamageChoices({ traits: expanded })).toEqual([{
+      traitId: "infernal-resilience",
+      traitName: "Resistencia infernal",
+      key: "resistance",
+      choose: 1,
+      source: "damageTypes",
+      options: [
+        { name: "fire", label: "Fuego", damageTypeId: "fire", damage: fire },
+        { name: "cold", label: "Frío", damageTypeId: "cold", damage: cold }
+      ]
+    }]);
+  });
+
+  it("omits a damage choice that is already stored", () => {
+    expect(listPendingDamageChoices({
+      existing: { "infernal-resilience": { resistance: ["fire"] } },
+      traits: expanded
+    })).toEqual([]);
   });
 });

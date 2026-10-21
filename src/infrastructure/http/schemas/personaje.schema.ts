@@ -187,6 +187,7 @@ export const CharacterRestSchema = z.object({
   type: z.enum(CHARACTER_REST_TYPES, {
     error: "El descanso debe ser shortRest o longRest",
   }),
+  traitChoices: TraitChoicesSchema.optional(),
 });
 
 export const BindSpellPrivilegesParamsSchema = z.object({

@@ -50,6 +50,56 @@ const router = Router();
  *               - type: string
  *                 example: Bosque
  *               - $ref: '#/components/schemas/CatalogChoiceEntry'
+ *         language:
+ *           type: string
+ *           enum: [optional, required]
+ *           description: >
+ *             Si se omite, la elección no pide idioma. optional permite languageId nulo.
+ *             required exige un idioma de languageOptions.
+ *         languageOptions:
+ *           type: array
+ *           description: >
+ *             Idiomas de los sistemas del personaje y de sus ancestros. Solo aparece
+ *             si language es optional o required.
+ *           items:
+ *             $ref: '#/components/schemas/Language'
+ *     PendingDamageChoice:
+ *       type: object
+ *       required:
+ *         - traitId
+ *         - traitName
+ *         - key
+ *         - choose
+ *         - options
+ *       properties:
+ *         traitId:
+ *           type: string
+ *           description: ID del rasgo que este nivel concede y cuya elección de daño aún no está guardada.
+ *         traitName:
+ *           type: string
+ *           description: Nombre del rasgo, para mostrar el menú sin leer traits[].
+ *         key:
+ *           type: string
+ *           description: Clave de la elección de daño. Es la que se envía en traitChoices.
+ *         choose:
+ *           type: integer
+ *           minimum: 1
+ *           description: Número de filas que hay que enviar en traitChoices para esta clave.
+ *         source:
+ *           type: string
+ *           enum:
+ *             - damageTypes
+ *           description: >
+ *             Si es damageTypes, options ya vienen expandidas: una por tipo de daño
+ *             de los sistemas del personaje y ancestros, más las filas manuales.
+ *         options:
+ *           type: array
+ *           description: >
+ *             Opciones hidratadas. Se pinta label y se envía name en traitChoices.
+ *             Con source damageTypes, name y damageTypeId son el id del tipo; label
+ *             es damage.name.
+ *           items:
+ *             $ref: '#/components/schemas/TraitDamageChoiceOption'
  *     PendingSkillProficiencyChoice:
  *       type: object
  *       required:
@@ -1678,6 +1728,15 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                     y deben conservarse al frente, con sus textos e idioma.
  *                   items:
  *                     $ref: '#/components/schemas/PendingCatalogChoice'
+ *                 damageChoices:
+ *                   type: array
+ *                   description: >
+ *                     Elecciones de daño aún no guardadas de rasgos que este nivel
+ *                     concede (stacked.granted). Options hidratadas; con source
+ *                     damageTypes, una opción por tipo de daño del sistema y ancestros.
+ *                     Se pinta label y se envía name (el id del tipo). Omitido si no hay pendientes.
+ *                   items:
+ *                     $ref: '#/components/schemas/PendingDamageChoice'
  *                 skillProficiencyChoices:
  *                   type: array
  *                   description: >
@@ -2236,6 +2295,8 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *       Mira `traits[].action.recharge` de cada rasgo. Si encaja con `type`
  *       (`shortRest`, `longRest` o `shortOrLongRest`), pone `traitResources[].spent` a 0
  *       (y `action.remaining` vuelve al máximo). Vacía `activeTraitIds`.
+ *       `traitChoices` es opcional: solo admite claves de daño con `replaceOn` compatible
+ *       con el descanso. Si se omite, se conserva la elección anterior.
  *       No toca puntos de golpe, conjuros ni condiciones.
  *     tags:
  *       - Personajes
@@ -2261,6 +2322,12 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *                 type: string
  *                 enum: [shortRest, longRest]
  *                 description: Tipo de descanso.
+ *               traitChoices:
+ *                 type: object
+ *                 description: >
+ *                   Recambio opcional de elecciones de daño con replaceOn. La clave
+ *                   exterior es el id del rasgo y la interior la clave de la elección.
+ *                   La lista tiene tantos nombres (ids de tipo de daño) como indique choose.
  *     responses:
  *       200:
  *         description: Personaje actualizado tras el descanso.

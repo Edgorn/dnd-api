@@ -2,9 +2,11 @@ import { Damage } from "../domain/types";
 import { LanguageApi } from "../domain/types/language.types";
 import { RaceRef } from "../domain/types/race.types";
 import { CreatureTypeApi } from "../domain/types/creatureType.types";
+import { CharacterRestType } from "../domain/types/personajes.types";
 import {
   CatalogChoiceEntry,
   PendingCatalogChoice,
+  PendingDamageChoice,
   ResolvedCatalogChoice,
   ResolvedDamageChoice,
   TraitApi,
@@ -19,6 +21,7 @@ import {
   TraitDamageChoiceApi,
   TraitLanguagesApi
 } from "../domain/types/traits.types";
+import { rechargeMatchesRest } from "./traitStanceState";
 
 const INPUT_MAX = 80;
 
@@ -79,7 +82,49 @@ export function applyEnteringTraitChoices(input: {
   return { traitChoices };
 }
 
+export function applyRestTraitChoices(input: {
+  existing?: TraitChoices | null;
+  incoming?: TraitChoices | null;
+  restType: CharacterRestType;
+  traits: EnteringTrait[];
+}): { traitChoices: TraitChoices } | { error: string } {
+  const traitChoices = cloneChoices(input.existing);
+  if (!input.incoming) return { traitChoices };
+
+  const byId = new Map(input.traits.filter(trait => trait.id).map(trait => [trait.id, trait]));
+
+  for (const [traitId, choices] of Object.entries(input.incoming)) {
+    if (!choices || typeof choices !== "object") continue;
+    const trait = byId.get(traitId);
+    if (!trait) {
+      return { error: `El personaje no posee el rasgo ${traitId}` };
+    }
+
+    for (const [key, values] of Object.entries(choices)) {
+      const choice = trait.damageChoices?.find(item => item.key === key);
+      if (!choice || !rechargeMatchesRest(choice.replaceOn, input.restType)) {
+        return { error: `La elección ${key} del rasgo ${traitId} no se puede cambiar en este descanso` };
+      }
+
+      const sent = readSelection(input.incoming, traitId, key);
+      if ("error" in sent) return sent;
+      if (!sent.ids) {
+        return { error: `Debe elegir las opciones de daño (${key}) del rasgo ${traitId}` };
+      }
+
+      const invalid = validateSelection(traitId, choice, sent.ids);
+      if (invalid) return { error: invalid };
+
+      if (!traitChoices[traitId]) traitChoices[traitId] = {};
+      traitChoices[traitId][key] = [...sent.ids];
+    }
+  }
+
+  return { traitChoices };
+}
+
 type CatalogTrait = Pick<TraitApi, "id" | "catalogChoices">;
+type DamageChoiceTrait = Pick<TraitApi, "id" | "damageChoices">;
 
 export function expandCatalogChoices<T extends CatalogTrait>(
   traits: T[],
@@ -135,6 +180,47 @@ function expandCatalogChoice(
   };
 }
 
+export function expandDamageChoices<T extends DamageChoiceTrait>(
+  traits: T[],
+  damages: Damage[]
+): T[] {
+  return traits.map(trait => {
+    if (!trait.damageChoices?.some(choice => choice.source === "damageTypes")) return trait;
+    return {
+      ...trait,
+      damageChoices: trait.damageChoices.map(choice =>
+        expandDamageChoice(choice, damages)
+      )
+    };
+  });
+}
+
+function expandDamageChoice(
+  choice: TraitDamageChoiceApi,
+  damages: Damage[]
+): TraitDamageChoiceApi {
+  if (choice.source !== "damageTypes") return choice;
+
+  const seen = new Set<string>();
+  const generated: TraitDamageChoiceApi["options"] = [];
+
+  for (const damage of damages) {
+    if (!damage.id || seen.has(damage.id)) continue;
+    seen.add(damage.id);
+    generated.push({
+      name: damage.id,
+      label: damage.name,
+      damageTypeId: damage.id,
+      damage
+    });
+  }
+
+  return {
+    ...choice,
+    options: [...generated, ...(choice.options ?? [])]
+  };
+}
+
 export function listPendingCatalogChoices(input: {
   existing?: TraitChoices | null;
   classLevel: number;
@@ -158,7 +244,34 @@ export function listPendingCatalogChoices(input: {
         key: choice.key,
         add,
         options: choice.options.filter(option => option.repeatable || !chosenNames.has(option.name)),
-        chosen: presentChosen(choice, chosen)
+        chosen: presentChosen(choice, chosen),
+        ...(choice.language ? { language: choice.language } : {})
+      });
+    }
+  }
+
+  return pending;
+}
+
+export function listPendingDamageChoices(input: {
+  existing?: TraitChoices | null;
+  traits: Array<Pick<TraitApi, "id" | "name" | "damageChoices">>;
+}): PendingDamageChoice[] {
+  const stored = cloneChoices(input.existing);
+  const pending: PendingDamageChoice[] = [];
+
+  for (const trait of input.traits) {
+    if (!trait.id || !trait.damageChoices?.length) continue;
+
+    for (const choice of trait.damageChoices) {
+      if (stored[trait.id]?.[choice.key]) continue;
+      pending.push({
+        traitId: trait.id,
+        traitName: trait.name,
+        key: choice.key,
+        choose: choice.choose,
+        ...(choice.source ? { source: choice.source } : {}),
+        options: choice.options ?? []
       });
     }
   }
@@ -242,6 +355,24 @@ export function resolveCharacterTraitChoices(
   const grantedResistances: Damage[] = [];
   const grantedIds = new Set<string>();
 
+  const grant = (row: ResolvedDamageChoice) => {
+    const damageId = row.damage.id;
+    if (!damageId || grantedIds.has(damageId)) return;
+    grantedIds.add(damageId);
+    grantedResistances.push(row.damage);
+  };
+
+  for (const trait of traits) {
+    if (!trait.damageChoices?.length) continue;
+    const rows = ownRows.get(trait.id) ?? [];
+    if (!rows.length) continue;
+    for (const choice of trait.damageChoices) {
+      if (!choice.grantsResistance) continue;
+      const selected = stringNames(stored[trait.id]?.[choice.key]);
+      for (const row of resolveRows(choice, selected)) grant(row);
+    }
+  }
+
   const nextTraits = traits.map(trait => {
     let rows = ownRows.get(trait.id) ?? [];
     const ref = trait.damageChoiceRef;
@@ -258,12 +389,7 @@ export function resolveCharacterTraitChoices(
       if (refRows.length) {
         rows = refRows;
         if (ref.grantsResistance) {
-          for (const row of refRows) {
-            const damageId = row.damage.id;
-            if (!damageId || grantedIds.has(damageId)) continue;
-            grantedIds.add(damageId);
-            grantedResistances.push(row.damage);
-          }
+          for (const row of refRows) grant(row);
         }
       }
     }
@@ -856,6 +982,7 @@ function resolveRows(choice: TraitDamageChoiceApi, selectedNames: string[]): Res
     if (!option?.damage) continue;
     rows.push({
       name: option.name,
+      label: option.label ?? option.name,
       damage: option.damage,
       ...(option.area ? { area: option.area } : {}),
       ...(option.saveAttribute ? { saveAttribute: option.saveAttribute } : {})
@@ -885,7 +1012,7 @@ function formatMeasure(value: number): string {
 }
 
 function replaceDamageChoiceTokens(texts: string[], rows: ResolvedDamageChoice[]): string[] {
-  const name = rows.map(row => row.name).join(", ");
+  const name = rows.map(row => row.label).join(", ");
   const damage = rows.map(row => row.damage.name).join(", ");
   const area = rows.flatMap(row => row.area ? [formatTraitArea(row.area)] : []).join(", ");
   const save = rows.flatMap(row => row.saveAttribute?.name ? [row.saveAttribute.name] : []).join(", ");

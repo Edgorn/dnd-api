@@ -10,6 +10,7 @@ import {
   TRAIT_ACTION_KINDS,
   TRAIT_ACTIVATIONS,
   TRAIT_AREA_SHAPES,
+  TRAIT_DAMAGE_CHOICE_SOURCES,
   TRAIT_DURATION_UNITS,
   TRAIT_SKILL_PROFICIENCY_VALUES,
   TRAIT_STACK_POLICIES,
@@ -125,9 +126,20 @@ const TraitDamageChoiceOptionSchema = z.object({
 const TraitDamageChoiceSchema = z.object({
   key: z.string().min(1, "La clave de la elección no puede estar vacía"),
   choose: z.number().int().min(1, "Debe elegir al menos 1 opción"),
-  options: z.array(TraitDamageChoiceOptionSchema).min(1, "La elección debe tener al menos una opción")
+  options: z.array(TraitDamageChoiceOptionSchema).default([]),
+  source: z.enum(TRAIT_DAMAGE_CHOICE_SOURCES).optional(),
+  grantsResistance: z.boolean().optional(),
+  replaceOn: z.enum(SPELL_PRIVILEGE_RECHARGES).optional()
 }).strict().superRefine((choice, ctx) => {
-  if (choice.choose > choice.options.length) {
+  if (!choice.source && choice.options.length < 1) {
+    ctx.addIssue({
+      code: "custom",
+      message: "La elección debe tener al menos una opción",
+      path: ["options"]
+    });
+  }
+
+  if (!choice.source && choice.choose > choice.options.length) {
     ctx.addIssue({
       code: "custom",
       message: "choose no puede superar el número de opciones",

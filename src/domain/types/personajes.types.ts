@@ -1,5 +1,5 @@
 import { ObjectId } from "mongoose"
-import { PendingCatalogChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
+import { PendingCatalogChoice, PendingDamageChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
 import { LevelSkillProficiencyValue, SpellChoiceApi } from "./classLevelChoices.types"
 
 export interface CharacterSkillProficiencyOverlay {
@@ -175,6 +175,7 @@ export interface TypeRestCharacter {
   id: string;
   type: CharacterRestType;
   userId: string;
+  traitChoices?: TraitChoices;
 }
 
 export interface CharacterSpellPrivilegeMongo {
@@ -506,6 +507,7 @@ export interface LevelUpData {
   ability_score: boolean;
   feats?: ChoiceApi<FeatApi>;
   catalogChoices?: PendingCatalogChoice[];
+  damageChoices?: PendingDamageChoice[];
   skillProficiencyChoices?: PendingSkillProficiencyChoice[];
   skill_choices?: ChoiceApi<SkillApi>;
   newClass: boolean;

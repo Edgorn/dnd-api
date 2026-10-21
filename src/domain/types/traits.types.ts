@@ -137,6 +137,7 @@ export interface TraitDamageChoiceOption {
 }
 
 export interface TraitDamageChoiceOptionApi extends TraitDamageChoiceOption {
+  label?: string;
   damage?: Damage;
   saveAttribute?: AttributeApi;
 }
@@ -158,6 +159,9 @@ export interface TraitCatalogOptionApi extends TraitCatalogOption {
 }
 
 export type TraitCatalogSource = "creatureTypes";
+
+export const TRAIT_DAMAGE_CHOICE_SOURCES = ["damageTypes"] as const;
+export type TraitDamageChoiceSource = typeof TRAIT_DAMAGE_CHOICE_SOURCES[number];
 
 export interface TraitCatalogCreatureTypeRaces {
   creatureTypeId: string;
@@ -202,6 +206,17 @@ export interface PendingCatalogChoice {
   add: number;
   options: TraitCatalogOptionApi[];
   chosen: TraitChoiceValue[];
+  language?: TraitCatalogLanguage;
+  languageOptions?: LanguageApi[];
+}
+
+export interface PendingDamageChoice {
+  traitId: string;
+  traitName: string;
+  key: string;
+  choose: number;
+  source?: TraitDamageChoiceSource;
+  options: TraitDamageChoiceOptionApi[];
 }
 
 export interface ResolvedCatalogChoice {
@@ -215,12 +230,18 @@ export interface TraitDamageChoice {
   key: string;
   choose: number;
   options: TraitDamageChoiceOption[];
+  source?: TraitDamageChoiceSource;
+  grantsResistance?: boolean;
+  replaceOn?: SpellPrivilegeRecharge;
 }
 
 export interface TraitDamageChoiceApi {
   key: string;
   choose: number;
   options: TraitDamageChoiceOptionApi[];
+  source?: TraitDamageChoiceSource;
+  grantsResistance?: boolean;
+  replaceOn?: SpellPrivilegeRecharge;
 }
 
 export interface TraitDamageChoiceRef {
@@ -247,6 +268,7 @@ export interface TraitHitPoints {
 
 export interface ResolvedDamageChoice {
   name: string;
+  label: string;
   damage: Damage;
   area?: TraitArea;
   saveAttribute?: AttributeApi;

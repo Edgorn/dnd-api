@@ -97,8 +97,11 @@ describe("OpenAPI trait action schemas", () => {
     const option = schemas.TraitDamageChoiceOptionInput;
     expect(option.required).toEqual(["name", "damageTypeId"]);
     expect(option.properties).not.toHaveProperty("id");
+    expect(schemas.TraitDamageChoiceInput?.required).toEqual(["key", "choose"]);
     expect(schemas.TraitDamageChoiceInput?.properties?.options?.items).toEqual({
       $ref: "#/components/schemas/TraitDamageChoiceOptionInput"
     });
+    expect(option.properties).not.toHaveProperty("label");
+    expect(schemas.TraitDamageChoiceOption?.properties?.label?.readOnly).toBe(true);
   });
 });

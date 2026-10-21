@@ -633,6 +633,9 @@ export default class TraitRepository implements ITraitRepository {
       damageChoices: trait.damageChoices.map(choice => ({
         key: choice.key,
         choose: choice.choose,
+        ...(choice.source ? { source: choice.source } : {}),
+        ...(choice.grantsResistance ? { grantsResistance: true } : {}),
+        ...(choice.replaceOn ? { replaceOn: choice.replaceOn } : {}),
         options: (choice.options ?? []).map(option => {
           const damage = damageMap.get(option.damageTypeId);
           const area = this.formatStoredArea(option.area);
@@ -641,6 +644,7 @@ export default class TraitRepository implements ITraitRepository {
             : undefined;
           return {
             name: option.name,
+            label: option.name,
             damageTypeId: option.damageTypeId,
             ...(option.saveAttributeId ? { saveAttributeId: option.saveAttributeId } : {}),
             ...(damage ? { damage } : {}),

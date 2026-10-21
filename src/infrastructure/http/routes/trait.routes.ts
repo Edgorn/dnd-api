@@ -167,9 +167,9 @@ const router = Router();
  *         damageChoice:
  *           type: array
  *           description: >
- *             Filas resueltas en la ficha del personaje (name, damage, area y save).
+ *             Filas resueltas en la ficha del personaje (name, label, damage, area y save).
  *             No aparece en el catálogo. Con varias filas, {name}, {damage}, {area} y {save}
- *             de la descripción se sustituyen uniéndolos con coma.
+ *             de la descripción se sustituyen uniéndolos con coma. {name} usa label.
  *           items:
  *             $ref: '#/components/schemas/ResolvedDamageChoice'
  *         catalogChoices:
@@ -277,7 +277,6 @@ const router = Router();
  *       required:
  *         - key
  *         - choose
- *         - options
  *       properties:
  *         key:
  *           type: string
@@ -285,9 +284,31 @@ const router = Router();
  *         choose:
  *           type: integer
  *           minimum: 1
- *           description: Número de filas que el personaje debe elegir. No puede superar las opciones.
+ *           description: Número de filas que el personaje debe elegir. Sin source no puede superar las opciones.
+ *         source:
+ *           type: string
+ *           enum:
+ *             - damageTypes
+ *           description: >
+ *             Origen dinámico de las opciones. Con damageTypes se genera una opción
+ *             por cada tipo de daño del sistema del personaje y de sus ancestros.
+ *             El nombre guardado es el id del tipo. Las options manuales, si se envían,
+ *             se añaden a las generadas. GET /traits no expande el catálogo.
+ *         grantsResistance:
+ *           type: boolean
+ *           description: Si es true, los daños elegidos de este rasgo se unen a las resistencias del personaje.
+ *         replaceOn:
+ *           type: string
+ *           enum:
+ *             - shortRest
+ *             - longRest
+ *             - shortOrLongRest
+ *           description: >
+ *             Si se indica, el personaje puede cambiar la elección en un descanso de ese tipo.
+ *             Si se omite, la elección queda congelada tras el primer pick.
  *         options:
  *           type: array
+ *           description: Obligatorio si no hay source. Con source puede ir vacío.
  *           items:
  *             $ref: '#/components/schemas/TraitDamageChoiceOption'
  *     TraitDamageChoiceOption:
@@ -299,8 +320,15 @@ const router = Router();
  *         name:
  *           type: string
  *           description: >
- *             Nombre único de la fila dentro del rasgo. Es la clave que el personaje
- *             guarda en traitChoices y sustituye {name} en la ficha.
+ *             Clave que el personaje envía y guarda en traitChoices.
+ *             Con source damageTypes es el id del tipo de daño. No se pinta.
+ *         label:
+ *           type: string
+ *           readOnly: true
+ *           description: >
+ *             Etiqueta visible de la fila. En filas manuales coincide con name;
+ *             con source damageTypes es damage.name. Sustituye {name} en la ficha.
+ *             No se envía al crear o editar el rasgo.
  *         damageTypeId:
  *           type: string
  *           description: ID de MongoDB del tipo de daño. Dos filas pueden compartir el mismo daño.
@@ -656,7 +684,12 @@ const router = Router();
  *       properties:
  *         name:
  *           type: string
- *           description: Nombre de la fila elegida.
+ *           description: Clave de la fila elegida (la que está en traitChoices).
+ *         label:
+ *           type: string
+ *           description: >
+ *             Etiqueta visible. En filas manuales coincide con name;
+ *             con source damageTypes es damage.name. Sustituye {name} en la ficha.
  *         damage:
  *           $ref: '#/components/schemas/Damage'
  *         area:
@@ -1051,7 +1084,7 @@ const router = Router();
  *       type: object
  *       description: >
  *         Cuerpo de POST /traits. No use Trait de lectura: IDs, no objetos hidratados.
- *         action es TraitAction. damageChoices.options es name y damageTypeId, sin id.
+ *         action es TraitAction. damageChoices.options es name y damageTypeId, sin id ni label.
  *       required:
  *         - ruleset
  *         - name
@@ -1197,7 +1230,9 @@ const router = Router();
  *         damageChoices:
  *           nullable: true
  *           type: array
- *           description: Tabla de elecciones de daño. null borra el campo.
+ *           description: >
+ *             Tabla de elecciones de daño. Con source damageTypes las options pueden
+ *             omitirse. null borra el campo.
  *           items:
  *             $ref: '#/components/schemas/TraitDamageChoiceInput'
  *         catalogChoices:
@@ -1248,7 +1283,7 @@ const router = Router();
  *     TraitDamageChoiceOptionInput:
  *       type: object
  *       description: >
- *         Fila de daño en POST/PUT. La clave es name, no hay id. No envíe damage ni
+ *         Fila de daño en POST/PUT. La clave es name, no hay id. No envíe label, damage ni
  *         saveAttribute hidratados; Zod strict los rechaza.
  *       required:
  *         - name
@@ -1271,15 +1306,29 @@ const router = Router();
  *       required:
  *         - key
  *         - choose
- *         - options
  *       properties:
  *         key:
  *           type: string
  *         choose:
  *           type: integer
  *           minimum: 1
+ *         source:
+ *           type: string
+ *           enum:
+ *             - damageTypes
+ *           description: >
+ *             Con damageTypes las options pueden omitirse; se generan al leer el personaje.
+ *         grantsResistance:
+ *           type: boolean
+ *         replaceOn:
+ *           type: string
+ *           enum:
+ *             - shortRest
+ *             - longRest
+ *             - shortOrLongRest
  *         options:
  *           type: array
+ *           description: Obligatorio si no hay source.
  *           items:
  *             $ref: '#/components/schemas/TraitDamageChoiceOptionInput'
  *     InputUpdateTrait:
@@ -1419,7 +1468,9 @@ const router = Router();
  *         damageChoices:
  *           nullable: true
  *           type: array
- *           description: Tabla de elecciones de daño. null borra el campo.
+ *           description: >
+ *             Tabla de elecciones de daño. Con source damageTypes las options pueden
+ *             omitirse. null borra el campo.
  *           items:
  *             $ref: '#/components/schemas/TraitDamageChoiceInput'
  *         catalogChoices:

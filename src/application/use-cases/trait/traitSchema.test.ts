@@ -359,6 +359,53 @@ describe("CreateTraitSchema languages and damage choices", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts damageTypes without manual options and rest replace", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Resistencia infernal",
+      damageChoices: [{
+        key: "resistance",
+        choose: 1,
+        source: "damageTypes",
+        grantsResistance: true,
+        replaceOn: "shortOrLongRest",
+      }],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.damageChoices).toEqual([{
+        key: "resistance",
+        choose: 1,
+        source: "damageTypes",
+        grantsResistance: true,
+        replaceOn: "shortOrLongRest",
+        options: [],
+      }]);
+    }
+  });
+
+  it("rejects a read-only label on a damage choice option", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Ascendencia",
+      damageChoices: [{
+        key: "ancestor",
+        choose: 1,
+        options: [{ name: "Rojo", damageTypeId, label: "Rojo" }],
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty options without a source", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      damageChoices: [{ key: "ancestor", choose: 1 }],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 const favoredTerrain = {
