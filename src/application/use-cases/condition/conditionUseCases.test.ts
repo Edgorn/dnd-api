@@ -24,6 +24,7 @@ describe("Condition use cases", () => {
   };
   let systemServiceMock: {
     getById: ReturnType<typeof vi.fn>;
+    getMergedRulesConfig: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -36,7 +37,8 @@ describe("Condition use cases", () => {
       restore: vi.fn()
     };
     systemServiceMock = {
-      getById: vi.fn()
+      getById: vi.fn(),
+      getMergedRulesConfig: vi.fn()
     };
   });
 
@@ -59,6 +61,24 @@ describe("Condition use cases", () => {
 
       await expect(useCase.execute({ name: "Aturdido", ruleset: "sys1" }, "user1"))
         .rejects.toThrow("No tienes permisos");
+      expect(conditionServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects recovery keys missing from restRules", async () => {
+      const useCase = new CreateCondition(conditionServiceMock as never, systemServiceMock as never);
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getMergedRulesConfig.mockResolvedValue({
+        restRules: { kinds: [{ key: "longRest", name: "Largo" }] }
+      });
+
+      await expect(useCase.execute({
+        name: "Cansancio",
+        ruleset: "sys1",
+        recovery: [{ restKey: "watch", delta: -1 }]
+      }, "user1")).rejects.toMatchObject({
+        message: "Clave de recarga desconocida: watch",
+        statusCode: 400
+      });
       expect(conditionServiceMock.create).not.toHaveBeenCalled();
     });
   });

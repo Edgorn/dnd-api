@@ -324,4 +324,31 @@ describe("mergeRulesFromAncestry", () => {
     expect(config.attackBonusFormula).toBe("child-attack");
     expect(config.meleeAttackAttributes).toEqual(["str", "dex"]);
   });
+
+  it("inherits restRules from the nearest ancestor that defines them", () => {
+    const parentWithRests: System = {
+      ...parent,
+      restRules: {
+        kinds: [
+          { key: "shortRest", name: "Corto" },
+          { key: "longRest", name: "Largo", includes: ["shortRest"] },
+        ],
+      },
+    };
+    const config = mergeRulesFromAncestry([child, parentWithRests, grandparent]);
+    expect(config.restRules?.kinds.map((kind) => kind.key)).toEqual(["shortRest", "longRest"]);
+  });
+
+  it("lets the child replace restRules entirely", () => {
+    const childWithRests: System = {
+      ...child,
+      restRules: { kinds: [{ key: "watch", name: "Vela" }] },
+    };
+    const parentWithRests: System = {
+      ...parent,
+      restRules: { kinds: [{ key: "shortRest", name: "Corto" }] },
+    };
+    const config = mergeRulesFromAncestry([childWithRests, parentWithRests, grandparent]);
+    expect(config.restRules).toEqual({ kinds: [{ key: "watch", name: "Vela" }] });
+  });
 });

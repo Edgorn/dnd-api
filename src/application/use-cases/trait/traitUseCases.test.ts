@@ -26,7 +26,15 @@ describe("Trait Use Cases armor type suppression", () => {
     };
     systemServiceMock = {
       getById: vi.fn(),
-      getSystemsAndAncestors: vi.fn()
+      getSystemsAndAncestors: vi.fn(),
+      getMergedRulesConfig: vi.fn().mockResolvedValue({
+        restRules: {
+          kinds: [
+            { key: "shortRest", name: "Descanso corto" },
+            { key: "longRest", name: "Descanso largo", includes: ["shortRest"] }
+          ]
+        }
+      })
     };
     armorTypeServiceMock = {
       getById: vi.fn()
@@ -822,6 +830,50 @@ describe("Trait Use Cases armor type suppression", () => {
         statusCode: 400
       });
       expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("rest keys", () => {
+    it("rejects a recharge when the ruleset has no restRules", async () => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getMergedRulesConfig.mockResolvedValue({});
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        action: { activation: "action", uses: 1, recharge: "shortRest" }
+      }, "user1")).rejects.toMatchObject({
+        message: "Este sistema no define descansos",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
+    });
+
+    it("skips rest-key validation when action is cleared with null", async () => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+      traitServiceMock.update.mockResolvedValue({ id: "trait1" });
+
+      await updateUseCase().execute({
+        id: "trait1",
+        action: null
+      }, "user1");
+
+      expect(systemServiceMock.getMergedRulesConfig).not.toHaveBeenCalled();
+      expect(traitServiceMock.update).toHaveBeenCalled();
+    });
+
+    it("rejects a recharge key missing from restRules.kinds", async () => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      traitServiceMock.getById.mockResolvedValue({ id: "trait1", ruleset: "sys1" });
+
+      await expect(updateUseCase().execute({
+        id: "trait1",
+        action: { activation: "action", uses: 1, recharge: "watch" }
+      }, "user1")).rejects.toMatchObject({
+        message: "Clave de recarga desconocida: watch",
+        statusCode: 400
+      });
+      expect(traitServiceMock.update).not.toHaveBeenCalled();
     });
   });
 });

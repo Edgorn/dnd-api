@@ -26,7 +26,49 @@ export const SYSTEM_RULE_FIELD_KEYS = [
   "damageBonusFormula",
   "meleeAttackAttributes",
   "rangedAttackAttributes",
+  "restRules",
 ] as const;
+
+export const REST_DURATION_UNITS = ["minute", "hour"] as const;
+export type RestDurationUnit = (typeof REST_DURATION_UNITS)[number];
+
+export interface SystemRestDuration {
+  value: number;
+  unit: RestDurationUnit;
+}
+
+export interface SystemRestKind {
+  key: string;
+  name: string;
+  duration?: SystemRestDuration;
+  includes?: string[];
+}
+
+export const HIT_POINT_HP_MODES = ["none", "full"] as const;
+export type HitPointHpMode = (typeof HIT_POINT_HP_MODES)[number];
+export const HIT_POINT_HIT_DICE_MODES = ["none", "all", "half"] as const;
+export type HitPointHitDiceMode = (typeof HIT_POINT_HIT_DICE_MODES)[number];
+
+export interface SystemHitPointRecovery {
+  restKey: string;
+  hp: HitPointHpMode;
+  hitDice: HitPointHitDiceMode;
+}
+
+export const SPELL_SLOT_POOLS = ["standard", "uniform"] as const;
+export type SpellSlotPool = (typeof SPELL_SLOT_POOLS)[number];
+
+export interface SystemSpellSlotRecovery {
+  restKey: string;
+  pools: SpellSlotPool[];
+}
+
+export interface SystemRestRules {
+  kinds: SystemRestKind[];
+  endStancesOn?: string[];
+  hitPointRecovery?: SystemHitPointRecovery[];
+  spellSlotRecovery?: SystemSpellSlotRecovery[];
+}
 
 export function resolveSystemKind(kind: string | null | undefined): SystemKind {
   if (kind === "setting" || kind === "campaign") return kind;
@@ -67,6 +109,7 @@ export interface System {
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
+  restRules?: SystemRestRules;
   deletedAt?: Date;
 }
 
@@ -91,6 +134,7 @@ export interface SystemRulesConfig {
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
+  restRules?: SystemRestRules;
 }
 
 export interface SystemApi {
@@ -125,6 +169,7 @@ export interface SystemApi {
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
+  restRules?: SystemRestRules;
 }
 
 export type SystemBasic = Pick<SystemApi, "id" | "name" | "description">;
@@ -172,6 +217,7 @@ export interface TypeCrearSystem {
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
+  restRules?: SystemRestRules;
 }
 
 export interface TypeModificarSystem {
@@ -204,4 +250,5 @@ export interface TypeModificarSystem {
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
+  restRules?: SystemRestRules;
 }

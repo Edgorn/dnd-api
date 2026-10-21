@@ -1047,7 +1047,7 @@ const signatureRules: SpellPrivilegeRule[] = [
     filter: { level: 3 },
     alwaysPrepared: true,
     countsTowardPreparedCap: false,
-    freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "shortOrLongRest" },
+    freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "shortRest" },
     replace: null,
   },
 ];

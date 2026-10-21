@@ -42,8 +42,8 @@ export interface TraitSpeed {
 }
 
 export type SpellPrivilegeSource = "known" | "classList";
-export const SPELL_PRIVILEGE_RECHARGES = ["shortRest", "longRest", "shortOrLongRest"] as const;
-export type SpellPrivilegeRecharge = typeof SPELL_PRIVILEGE_RECHARGES[number];
+export type RestKey = string;
+export type SpellPrivilegeRecharge = RestKey;
 
 export interface TraitInnateSpellGrant {
   spellId: string;

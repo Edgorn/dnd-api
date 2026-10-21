@@ -12,7 +12,7 @@ import IAttributeRepository from '../../../../domain/repositories/IAttributeRepo
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUses, TraitWeaponDamageBonus, UpdateTrait, SPELL_PRIVILEGE_RECHARGES, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
+import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import { Damage } from "../../../../domain/types";
@@ -710,7 +710,7 @@ export default class TraitRepository implements ITraitRepository {
     const validUses = uses === "unlimited" || (typeof uses === "number" && Number.isInteger(uses) && uses >= 1);
     if (!validUses) return undefined;
     const recharge = grant.recharge;
-    const validRecharge = recharge === null || (SPELL_PRIVILEGE_RECHARGES as readonly string[]).includes(recharge ?? "");
+    const validRecharge = recharge === null || (typeof recharge === "string" && recharge.length > 0);
     if (!validRecharge) return undefined;
 
     const spell = spellMap.get(grant.spellId);
@@ -732,10 +732,7 @@ export default class TraitRepository implements ITraitRepository {
       ? action.kind
       : "instant";
     const recharge = action.recharge;
-    const validRecharge = recharge === null
-      || recharge === "shortRest"
-      || recharge === "longRest"
-      || recharge === "shortOrLongRest";
+    const validRecharge = recharge === null || (typeof recharge === "string" && recharge.length > 0);
     const usesByClassLevel = this.formatUsesByClassLevel(action.usesByClassLevel);
     const duration = this.formatDuration(action.duration);
 

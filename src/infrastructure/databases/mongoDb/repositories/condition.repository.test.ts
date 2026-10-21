@@ -104,6 +104,7 @@ describe("ConditionRepository.create y formatCondition con niveles", () => {
       description: "El cansancio se acumula",
       cumulative: true,
       levels,
+      recovery: undefined,
       deletedAt: null
     });
     expect(result).toEqual({

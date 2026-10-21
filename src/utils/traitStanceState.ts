@@ -1,5 +1,7 @@
+import { restEndsStances, restKindCovers } from "../domain/services/restRules";
 import { CharacterTraitResource, CharacterRestType } from "../domain/types/personajes.types";
-import { SpellPrivilegeRecharge, TraitAction } from "../domain/types/traits.types";
+import { SystemRestRules } from "../domain/types/system.types";
+import { RestKey, TraitAction } from "../domain/types/traits.types";
 import { resolveActionUses } from "./traitProgression";
 
 export interface TraitStanceState {
@@ -35,8 +37,10 @@ export interface DeactivateTraitInput {
 
 export interface CharacterRestInput {
   restType: CharacterRestType;
-  traits: Array<{ id: string; action?: { recharge?: SpellPrivilegeRecharge | null } }>;
+  restRules?: SystemRestRules;
+  traits: Array<{ id: string; action?: { recharge?: RestKey | null } }>;
   traitResources: CharacterTraitResource[];
+  activeTraitIds?: string[];
 }
 
 export function spentForTrait(resources: CharacterTraitResource[], ids: string[]): number {
@@ -62,13 +66,11 @@ export function upsertTraitSpent(
 }
 
 export function rechargeMatchesRest(
-  recharge: SpellPrivilegeRecharge | null | undefined,
-  restType: CharacterRestType
+  recharge: RestKey | null | undefined,
+  restType: CharacterRestType,
+  restRules?: SystemRestRules
 ): boolean {
-  if (!recharge) return false;
-  if (recharge === "shortOrLongRest") return true;
-  if (restType === "shortRest") return recharge === "shortRest";
-  return recharge === "longRest";
+  return restKindCovers(restRules, restType, recharge);
 }
 
 export function applyUseTraitAction(input: UseTraitActionInput): TraitStanceResult {
@@ -132,7 +134,7 @@ export function applyCharacterRest(input: CharacterRestInput): TraitStanceState 
 
   const traitResources = input.traitResources
     .map(item => {
-      if (rechargeMatchesRest(rechargeById.get(item.traitId), input.restType)) {
+      if (rechargeMatchesRest(rechargeById.get(item.traitId), input.restType, input.restRules)) {
         return { ...item, spent: 0 };
       }
       return item;
@@ -141,6 +143,8 @@ export function applyCharacterRest(input: CharacterRestInput): TraitStanceState 
 
   return {
     traitResources,
-    activeTraitIds: []
+    activeTraitIds: restEndsStances(input.restRules, input.restType)
+      ? []
+      : [...(input.activeTraitIds ?? [])]
   };
 }

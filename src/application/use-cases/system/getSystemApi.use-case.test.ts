@@ -28,6 +28,12 @@ describe("GetSystemApi", () => {
     name: "SRD",
     hpInitialFormula: "max(@class.hitDie) + @attributes.con.modifier",
     baseAcFormula: "10 + @attributes.dex.modifier",
+    restRules: {
+      kinds: [
+        { key: "shortRest", name: "Descanso corto" },
+        { key: "longRest", name: "Descanso largo", includes: ["shortRest"] },
+      ],
+    },
   });
   const child = makeSystem("child", {
     name: "Homebrew",
@@ -81,6 +87,7 @@ describe("GetSystemApi", () => {
 
     expect(result.hpInitialFormula).toBe("12 + @attributes.con.modifier");
     expect(result.baseAcFormula).toBe("10 + @attributes.dex.modifier");
+    expect(result.restRules?.kinds.map((kind) => kind.key)).toEqual(["shortRest", "longRest"]);
     expect(result).not.toHaveProperty("attributes");
     expect(result).not.toHaveProperty("skills");
     expect(result).not.toHaveProperty("coins");

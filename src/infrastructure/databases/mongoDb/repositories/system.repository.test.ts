@@ -185,12 +185,14 @@ describe("mergeRulesFromAncestry integration scenarios", () => {
         xpProgression: [0, 300],
         proficiencyProgression: [2, 2],
         baseAcFormula: "10 + @attributes.dex.modifier",
+        restRules: { kinds: [{ key: "shortRest", name: "Corto" }] },
       },
     ] as never);
 
     expect(config.xpProgression).toEqual([0, 900]);
     expect(config.proficiencyProgression).toEqual([2, 2]);
     expect(config.baseAcFormula).toBe("10 + @attributes.dex.modifier");
+    expect(config.restRules?.kinds).toEqual([{ key: "shortRest", name: "Corto" }]);
   });
 
   it("returns only ruleset rules from a campaign, setting and ruleset chain", () => {

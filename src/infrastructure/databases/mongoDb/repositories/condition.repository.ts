@@ -80,6 +80,7 @@ export default class ConditionRepository implements IConditionRepository {
       ruleset: data.ruleset,
       levels: data.levels,
       cumulative: data.cumulative,
+      recovery: data.recovery,
       deletedAt: null
     });
 
@@ -147,6 +148,12 @@ export default class ConditionRepository implements IConditionRepository {
     }
     if (condition.cumulative !== undefined) {
       formatted.cumulative = condition.cumulative;
+    }
+    if (Array.isArray(condition.recovery) && condition.recovery.length > 0) {
+      formatted.recovery = condition.recovery.map((entry) => ({
+        restKey: entry.restKey,
+        delta: entry.delta
+      }));
     }
 
     return formatted;

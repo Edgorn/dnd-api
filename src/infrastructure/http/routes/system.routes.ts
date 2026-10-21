@@ -22,6 +22,111 @@ const router = Router();
  *         Los tokens `@weapon.*` solo están permitidos en `attackBonusFormula` y `damageBonusFormula`.
  *         No se admite notación de dados (`1d20`, `2d6`), texto libre ni tokens desconocidos.
  *         Las tiradas de dados las resuelve el cliente; estas fórmulas solo calculan modificadores o totales numéricos.
+ *     SystemRestRules:
+ *       type: object
+ *       required:
+ *         - kinds
+ *       description: |
+ *         Catálogo de tipos de descanso del ruleset. Un hijo que define `restRules` sustituye
+ *         el del ancestro. Sin `kinds` (o con array vacío) el sistema no admite descansos:
+ *         POST `/character/{id}/rest` responde 400. `includes` indica jerarquía
+ *         (p. ej. un descanso largo cubre uno corto).
+ *         `endStancesOn` indica qué descansos cierran las stances; también aplica
+ *         por `includes`. Si se omite, ningún descanso vacía `activeTraitIds`.
+ *       properties:
+ *         kinds:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SystemRestKind'
+ *         endStancesOn:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             Claves de `kinds` cuyo descanso (o uno que las incluya) vacía `activeTraitIds`.
+ *             Ejemplo 5e: `["shortRest"]` también cierra stances en un descanso largo.
+ *         hitPointRecovery:
+ *           type: array
+ *           description: |
+ *             Recuperación de PG y dados de golpe. Se aplica si el descanso ejecutado cubre
+ *             `restKey` (directo o por `includes`). Si varias filas coinciden, `full` gana a
+ *             `none` y `all` gana a `half` gana a `none`.
+ *           items:
+ *             $ref: '#/components/schemas/SystemHitPointRecovery'
+ *         spellSlotRecovery:
+ *           type: array
+ *           description: |
+ *             Recuperación de ranuras. Se aplica si el descanso cubre `restKey` (directo o por
+ *             `includes`). Si varias filas coinciden, se unen los `pools`. `standard` es la
+ *             tabla de ranuras por nivel; `uniform` es la bolsa de nivel único (p. ej. pacto).
+ *             Ejemplo 5e: corto recupera `uniform`; largo recupera ambos.
+ *           items:
+ *             $ref: '#/components/schemas/SystemSpellSlotRecovery'
+ *     SystemHitPointRecovery:
+ *       type: object
+ *       required:
+ *         - restKey
+ *         - hp
+ *         - hitDice
+ *       properties:
+ *         restKey:
+ *           type: string
+ *           description: Clave de `kinds` a la que se aplica esta recuperación.
+ *         hp:
+ *           type: string
+ *           enum: [none, full]
+ *           description: '`full` pone HPActual igual a HPMax.'
+ *         hitDice:
+ *           type: string
+ *           enum: [none, all, half]
+ *           description: |
+ *             '`half` recupera floor(dados totales / 2) (mínimo 1), restando spent por clase
+ *             en el orden de `classes`. `all` pone spent a 0.'
+ *     SystemSpellSlotRecovery:
+ *       type: object
+ *       required:
+ *         - restKey
+ *         - pools
+ *       properties:
+ *         restKey:
+ *           type: string
+ *           description: Clave de `kinds` a la que se aplica esta recuperación.
+ *         pools:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             type: string
+ *             enum: [standard, uniform]
+ *           description: Bolsas que ponen spent a 0.
+ *     SystemRestKind:
+ *       type: object
+ *       required:
+ *         - key
+ *         - name
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Clave estable (p. ej. shortRest). La usan `recharge` y `replaceOn` de los rasgos.
+ *         name:
+ *           type: string
+ *           description: Nombre visible del descanso.
+ *         duration:
+ *           type: object
+ *           required:
+ *             - value
+ *             - unit
+ *           properties:
+ *             value:
+ *               type: number
+ *               exclusiveMinimum: 0
+ *             unit:
+ *               type: string
+ *               enum: [minute, hour]
+ *         includes:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Claves de descansos que este tipo cubre. No puede haber ciclos.
  *     AttributeModifierFormulaSyntax:
  *       type: string
  *       description: |
@@ -160,6 +265,8 @@ const router = Router();
  *             type: string
  *           description: |
  *             Atributos base para armas a distancia (ej. ["dex"]). Se combinan con attackAttributes de las properties.
+ *         restRules:
+ *           $ref: '#/components/schemas/SystemRestRules'
  *     SystemSummary:
  *       type: object
  *       properties:
@@ -326,6 +433,8 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Atributos base para armas a distancia (ej. ["dex"]).
+ *         restRules:
+ *           $ref: '#/components/schemas/SystemRestRules'
  *     TypeModificarSystem:
  *       type: object
  *       properties:
@@ -418,6 +527,8 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Atributos base para armas a distancia.
+ *         restRules:
+ *           $ref: '#/components/schemas/SystemRestRules'
  */
 
 /**
@@ -483,7 +594,21 @@ router.get('/systems', authMiddleware, validateQuery(ListSystemsQuerySchema), sy
  *         "meleeAttackAttributes": ["str"],
  *         "rangedAttackAttributes": ["dex"],
  *         "attackBonusFormula": "@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic",
- *         "damageBonusFormula": "@weapon.attributeModifier + @weapon.isMagic"
+ *         "damageBonusFormula": "@weapon.attributeModifier + @weapon.isMagic",
+ *         "restRules": {
+ *           "kinds": [
+ *             { "key": "shortRest", "name": "Descanso corto", "duration": { "value": 1, "unit": "hour" } },
+ *             { "key": "longRest", "name": "Descanso largo", "duration": { "value": 8, "unit": "hour" }, "includes": ["shortRest"] }
+ *           ],
+ *           "endStancesOn": ["shortRest"],
+ *           "hitPointRecovery": [
+ *             { "restKey": "longRest", "hp": "full", "hitDice": "half" }
+ *           ],
+ *           "spellSlotRecovery": [
+ *             { "restKey": "shortRest", "pools": ["uniform"] },
+ *             { "restKey": "longRest", "pools": ["standard", "uniform"] }
+ *           ]
+ *         }
  *       }
  *       ```
  *     tags:

@@ -134,34 +134,46 @@ describe("applyDeactivateTrait", () => {
 });
 
 describe("applyCharacterRest", () => {
+  const restRules = {
+    kinds: [
+      { key: "shortRest", name: "Descanso corto" },
+      { key: "longRest", name: "Descanso largo", includes: ["shortRest"] }
+    ],
+    endStancesOn: ["shortRest"]
+  };
   const traits = [
-    { id: "rage", action: { recharge: "longRest" as const } },
-    { id: "breath", action: { recharge: "shortOrLongRest" as const } },
-    { id: "daily", action: { recharge: "shortRest" as const } }
+    { id: "rage", action: { recharge: "longRest" } },
+    { id: "breath", action: { recharge: "shortRest" } },
+    { id: "daily", action: { recharge: "shortRest" } }
   ];
 
-  it("resets long-rest and short-or-long uses on a long rest and clears stances", () => {
+  it("resets long-rest and included short-rest uses on a long rest and clears stances", () => {
     const result = applyCharacterRest({
       restType: "longRest",
-      traits,
-      traitResources: [
-        { traitId: "rage", spent: 2 },
-        { traitId: "breath", spent: 1 }
-      ]
-    });
-
-    expect(result).toEqual({ traitResources: [], activeTraitIds: [] });
-  });
-
-  it("on a short rest only resets matching recharge and still clears stances", () => {
-    const result = applyCharacterRest({
-      restType: "shortRest",
+      restRules,
       traits,
       traitResources: [
         { traitId: "rage", spent: 2 },
         { traitId: "breath", spent: 1 },
         { traitId: "daily", spent: 1 }
-      ]
+      ],
+      activeTraitIds: ["rage"]
+    });
+
+    expect(result).toEqual({ traitResources: [], activeTraitIds: [] });
+  });
+
+  it("on a short rest only resets matching recharge and still clears stances when endStancesOn covers it", () => {
+    const result = applyCharacterRest({
+      restType: "shortRest",
+      restRules,
+      traits,
+      traitResources: [
+        { traitId: "rage", spent: 2 },
+        { traitId: "breath", spent: 1 },
+        { traitId: "daily", spent: 1 }
+      ],
+      activeTraitIds: ["rage"]
     });
 
     expect(result).toEqual({
@@ -169,13 +181,47 @@ describe("applyCharacterRest", () => {
       activeTraitIds: []
     });
   });
+
+  it("keeps stances when endStancesOn is omitted", () => {
+    const result = applyCharacterRest({
+      restType: "longRest",
+      restRules: { kinds: restRules.kinds },
+      traits,
+      traitResources: [{ traitId: "rage", spent: 2 }],
+      activeTraitIds: ["rage"]
+    });
+
+    expect(result.activeTraitIds).toEqual(["rage"]);
+  });
+
+  it("keeps stances when the rest does not cover endStancesOn", () => {
+    const result = applyCharacterRest({
+      restType: "shortRest",
+      restRules: { ...restRules, endStancesOn: ["longRest"] },
+      traits,
+      traitResources: [{ traitId: "rage", spent: 2 }],
+      activeTraitIds: ["rage"]
+    });
+
+    expect(result).toEqual({
+      traitResources: [{ traitId: "rage", spent: 2 }],
+      activeTraitIds: ["rage"]
+    });
+  });
 });
 
 describe("rechargeMatchesRest", () => {
-  it("matches shortOrLongRest on both rests", () => {
-    expect(rechargeMatchesRest("shortOrLongRest", "shortRest")).toBe(true);
-    expect(rechargeMatchesRest("shortOrLongRest", "longRest")).toBe(true);
-    expect(rechargeMatchesRest("longRest", "shortRest")).toBe(false);
+  const restRules = {
+    kinds: [
+      { key: "shortRest", name: "Descanso corto" },
+      { key: "longRest", name: "Descanso largo", includes: ["shortRest"] }
+    ]
+  };
+
+  it("matches included rest keys", () => {
+    expect(rechargeMatchesRest("shortRest", "shortRest", restRules)).toBe(true);
+    expect(rechargeMatchesRest("shortRest", "longRest", restRules)).toBe(true);
+    expect(rechargeMatchesRest("longRest", "shortRest", restRules)).toBe(false);
   });
 });
 

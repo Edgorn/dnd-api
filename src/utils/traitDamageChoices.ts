@@ -3,6 +3,7 @@ import { LanguageApi } from "../domain/types/language.types";
 import { RaceRef } from "../domain/types/race.types";
 import { CreatureTypeApi } from "../domain/types/creatureType.types";
 import { CharacterRestType } from "../domain/types/personajes.types";
+import { SystemRestRules } from "../domain/types/system.types";
 import {
   CatalogChoiceEntry,
   PendingCatalogChoice,
@@ -86,6 +87,7 @@ export function applyRestTraitChoices(input: {
   existing?: TraitChoices | null;
   incoming?: TraitChoices | null;
   restType: CharacterRestType;
+  restRules?: SystemRestRules;
   traits: EnteringTrait[];
 }): { traitChoices: TraitChoices } | { error: string } {
   const traitChoices = cloneChoices(input.existing);
@@ -102,7 +104,7 @@ export function applyRestTraitChoices(input: {
 
     for (const [key, values] of Object.entries(choices)) {
       const choice = trait.damageChoices?.find(item => item.key === key);
-      if (!choice || !rechargeMatchesRest(choice.replaceOn, input.restType)) {
+      if (!choice || !rechargeMatchesRest(choice.replaceOn, input.restType, input.restRules)) {
         return { error: `La elección ${key} del rasgo ${traitId} no se puede cambiar en este descanso` };
       }
 

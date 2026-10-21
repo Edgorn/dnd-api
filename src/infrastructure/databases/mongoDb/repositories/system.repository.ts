@@ -248,6 +248,7 @@ export default class SystemRepository implements ISystemRepository {
       damageBonusFormula: data.damageBonusFormula,
       meleeAttackAttributes: data.meleeAttackAttributes,
       rangedAttackAttributes: data.rangedAttackAttributes,
+      restRules: data.restRules,
     });
 
     const resultado = await nuevoSistema.save();
@@ -284,6 +285,7 @@ export default class SystemRepository implements ISystemRepository {
       damageBonusFormula,
       meleeAttackAttributes,
       rangedAttackAttributes,
+      restRules,
     } = data;
 
     const updateFields: Record<string, unknown> = {};
@@ -314,6 +316,7 @@ export default class SystemRepository implements ISystemRepository {
     if (damageBonusFormula !== undefined) updateFields.damageBonusFormula = damageBonusFormula;
     if (meleeAttackAttributes !== undefined) updateFields.meleeAttackAttributes = meleeAttackAttributes;
     if (rangedAttackAttributes !== undefined) updateFields.rangedAttackAttributes = rangedAttackAttributes;
+    if (restRules !== undefined) updateFields.restRules = restRules;
 
     const resultado = await SistemasModel.findByIdAndUpdate(
       id,

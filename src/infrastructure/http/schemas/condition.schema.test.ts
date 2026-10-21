@@ -82,6 +82,33 @@ describe("createConditionSchema", () => {
     }
   });
 
+  it("acepta recovery con claves y delta distinto de 0", () => {
+    const result = createConditionSchema.safeParse({
+      name: "Cansancio",
+      ruleset: "sys1",
+      recovery: [{ restKey: "longRest", delta: -1 }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza recovery con delta 0 o claves duplicadas", () => {
+    const zero = createConditionSchema.safeParse({
+      name: "Cansancio",
+      ruleset: "sys1",
+      recovery: [{ restKey: "longRest", delta: 0 }]
+    });
+    const duplicate = createConditionSchema.safeParse({
+      name: "Cansancio",
+      ruleset: "sys1",
+      recovery: [
+        { restKey: "longRest", delta: -1 },
+        { restKey: "longRest", delta: -2 }
+      ]
+    });
+    expect(zero.success).toBe(false);
+    expect(duplicate.success).toBe(false);
+  });
+
   it("rechaza un nivel no positivo o una descripción vacía", () => {
     const zeroLevel = createConditionSchema.safeParse({
       name: "Cansancio",

@@ -12,6 +12,7 @@ import { AppError } from "../../../domain/errors/AppError";
 import { TraitApi, UpdateTrait } from "../../../domain/types/traits.types";
 import { assertArmorTypesForRuleset } from "../equipment/assertArmorTypeForRuleset";
 import { assertTraitCatalogRefs } from "./assertTraitCatalogRefs";
+import { assertTraitRestKeys } from "./assertTraitRestKeys";
 
 export default class UpdateTraitUseCase {
   constructor(
@@ -43,6 +44,8 @@ export default class UpdateTraitUseCase {
     }
 
     const ruleset = trait.ruleset ?? existingTrait.ruleset;
+
+    await assertTraitRestKeys(trait, ruleset, this.systemService);
 
     await assertArmorTypesForRuleset(
       trait.suppressedByArmorTypeIds,

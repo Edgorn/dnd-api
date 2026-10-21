@@ -29,6 +29,33 @@ const system: Schema = new Schema<System>({
   damageBonusFormula: String,
   meleeAttackAttributes: [String],
   rangedAttackAttributes: [String],
+  restRules: {
+    type: {
+      kinds: [{
+        key: String,
+        name: String,
+        duration: {
+          value: Number,
+          unit: { type: String, enum: ["minute", "hour"] },
+        },
+        includes: [String],
+        _id: false,
+      }],
+      endStancesOn: [String],
+      hitPointRecovery: [{
+        restKey: String,
+        hp: { type: String, enum: ["none", "full"] },
+        hitDice: { type: String, enum: ["none", "all", "half"] },
+        _id: false,
+      }],
+      spellSlotRecovery: [{
+        restKey: String,
+        pools: [{ type: String, enum: ["standard", "uniform"] }],
+        _id: false,
+      }],
+    },
+    default: undefined,
+  },
   deletedAt: { type: Date, default: null }
 }, { collection: "systems" });
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import RestCharacter from "./restCharacter.use-case";
-import { NotFoundError } from "../../../domain/errors/AppError";
+import { NotFoundError, ValidationError } from "../../../domain/errors/AppError";
 
 describe("RestCharacter", () => {
   let personajeServiceMock: {
@@ -36,5 +36,29 @@ describe("RestCharacter", () => {
     );
 
     await expect(useCase.execute(input)).rejects.toThrow(NotFoundError);
+  });
+
+  it("propagates when the system has no rest rules", async () => {
+    const useCase = new RestCharacter(personajeServiceMock as never);
+    personajeServiceMock.restCharacter.mockRejectedValue(
+      new ValidationError("Este sistema no define descansos")
+    );
+
+    await expect(useCase.execute(input)).rejects.toMatchObject({
+      message: "Este sistema no define descansos",
+      statusCode: 400
+    });
+  });
+
+  it("propagates when the rest type is not in the catalog", async () => {
+    const useCase = new RestCharacter(personajeServiceMock as never);
+    personajeServiceMock.restCharacter.mockRejectedValue(
+      new ValidationError("Tipo de descanso inválido")
+    );
+
+    await expect(useCase.execute({ ...input, type: "watch" })).rejects.toMatchObject({
+      message: "Tipo de descanso inválido",
+      statusCode: 400
+    });
   });
 });

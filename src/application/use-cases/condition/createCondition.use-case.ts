@@ -2,6 +2,7 @@ import ConditionService from "../../../domain/services/condition.service";
 import SystemService from "../../../domain/services/system.service";
 import { AppError } from "../../../domain/errors/AppError";
 import { ConditionApi, InputCreateCondition } from "../../../domain/types/condition.types";
+import { assertConditionRestKeys } from "./assertConditionRestKeys";
 
 export default class CreateCondition {
   constructor(
@@ -19,6 +20,7 @@ export default class CreateCondition {
       throw new AppError("No tienes permisos para crear estados en este sistema", 403);
     }
 
+    await assertConditionRestKeys(data.recovery, data.ruleset, this.systemService);
     return this.conditionService.create(data);
   }
 }

@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { CharacterCampaignLink, ConsultarPersonajeOptions, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, ConsultarPersonajeOptions, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -90,6 +90,26 @@ export default class PersonajeService {
 
   restCharacter(data: TypeRestCharacter): Promise<PersonajeApi> {
     return this.personajeRepository.restCharacter(data);
+  }
+
+  spendHitDice(data: TypeSpendHitDice): Promise<PersonajeApi> {
+    return this.personajeRepository.spendHitDice(data);
+  }
+
+  spendSpellSlot(data: TypeSpendSpellSlot): Promise<PersonajeApi> {
+    return this.personajeRepository.spendSpellSlot(data);
+  }
+
+  applyCharacterCondition(data: TypeApplyCharacterCondition): Promise<PersonajeApi> {
+    return this.personajeRepository.applyCharacterCondition(data);
+  }
+
+  updateCharacterCondition(data: TypeUpdateCharacterCondition): Promise<PersonajeApi> {
+    return this.personajeRepository.updateCharacterCondition(data);
+  }
+
+  removeCharacterCondition(data: TypeRemoveCharacterCondition): Promise<PersonajeApi> {
+    return this.personajeRepository.removeCharacterCondition(data);
   }
 
   getOwnedTraitIds(id: string, userId: string): Promise<string[]> {

@@ -1,16 +1,23 @@
 # Hoja de ruta de estados (conditions)
 
-Este documento deja constancia del análisis de las opciones 3 y 4. **No están implementadas.** La iteración actual solo cubre el catálogo (`levels` + `cumulative` en `Condition`).
+## Estado actual
 
-## Estado actual (opción 2)
-
-El catálogo puede describir estados simples (Cegado, Asustado) y estados escalonados (Cansancio):
+El catálogo describe estados simples (Cegado, Asustado) y escalonados (Cansancio):
 
 - `description`: reglas generales (causas, acumulación, recuperación).
 - `cumulative`: si es `true`, los niveles 1..N se aplican juntos.
 - `levels`: `{ level, description }[]` con el texto de cada consecuencia.
+- `recovery`: `{ restKey, delta }[]` validado contra `restRules.kinds` del ruleset.
 
-Los personajes **no** guardan estados activos. No hay seed de Cansancio ni endpoints anidados.
+Los personajes persisten `activeConditions: { conditionId, level? }[]`. Endpoints:
+
+- `POST /character/:id/conditions` aplica (suma niveles; rechaza inmunidades).
+- `PATCH /character/:id/conditions/:conditionId` con `delta`.
+- `DELETE /character/:id/conditions/:conditionId`.
+
+`POST /character/:id/rest` aplica `recovery` si el descanso cubre `restKey` (incluido por `includes`). Si el nivel baja de 1, se quita el estado.
+
+No hay seed de Cansancio.
 
 ## Opción 3 — efectos mecánicos tipados (futuro)
 
@@ -26,22 +33,8 @@ Añadir efectos ejecutables al catálogo, no solo texto:
 
 Fuera de esta opción: no mutar `HPMax` persistido; no implementar motor de tiradas solo para estos flags.
 
-## Opción 4 — estados activos en el personaje (futuro)
+## Fuera de alcance hasta que se abra la opción 3
 
-Runtime en `Personaje`, no en criaturas (las criaturas siguen siendo catálogo):
-
-- Persistencia: `activeConditions: { conditionId, level? }[]`.
-- Endpoints bajo `/character/:id/conditions` (POST aplicar / PATCH `delta` / DELETE), siguiendo el patrón de equipamiento/dinero.
-- Inmunidades ya agregadas desde rasgos (`condition_inmunities`) para rechazar el alta.
-- Cansancio: al reaplicar, sumar niveles; bajar de 1 elimina el estado.
-- No hay descanso largo hoy: no inventar un long rest completo; `PATCH` con `delta: -1` basta. Un campo `recovery` en el catálogo puede esperar.
-- `HPActual` se recorta si supera el `HPMax` derivado; no mutar el `HPMax` persistido.
-
-Dependencia: la opción 3 debe existir (o al menos el contrato de efectos) para que GET personaje derive `speed` y `HPMax`.
-
-## Fuera de alcance hasta que se abra cada opción
-
-- Aplicar o guardar condiciones en personajes o criaturas.
+- Aplicar efectos de estados a `speed` / `HPMax` derivados.
 - Seed de Cansancio en base de datos.
-- Endpoint de descanso largo.
 - Cambiar `HPActual` en `PersonajeApi` como campo persistido distinto del recorte en lectura.

@@ -16,6 +16,7 @@ const SCALAR_RULE_KEYS: (keyof SystemRulesConfig)[] = [
   "carryingCapacityFormula",
   "attackBonusFormula",
   "damageBonusFormula",
+  "restRules",
 ];
 
 const ARRAY_RULE_KEYS: (keyof SystemRulesConfig)[] = [

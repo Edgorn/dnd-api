@@ -42,7 +42,7 @@ describe("CreateTraitSchema spellPrivileges", () => {
         filter: { level: 3 },
         alwaysPrepared: true,
         countsTowardPreparedCap: false,
-        freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "shortOrLongRest" },
+        freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "shortRest" },
         replace: null,
       }],
     });
@@ -369,7 +369,7 @@ describe("CreateTraitSchema languages and damage choices", () => {
         choose: 1,
         source: "damageTypes",
         grantsResistance: true,
-        replaceOn: "shortOrLongRest",
+        replaceOn: "shortRest",
       }],
     });
     expect(result.success).toBe(true);
@@ -379,7 +379,7 @@ describe("CreateTraitSchema languages and damage choices", () => {
         choose: 1,
         source: "damageTypes",
         grantsResistance: true,
-        replaceOn: "shortOrLongRest",
+        replaceOn: "shortRest",
         options: [],
       }]);
     }
@@ -930,7 +930,7 @@ describe("CreateTraitSchema area, save and action", () => {
         activation: "action",
         saveDcFormula: "8 + @attributes.con.modifier + @proficiencyBonus",
         uses: 1,
-        recharge: "shortOrLongRest"
+        recharge: "watch"
       }
     });
     const cleared = UpdateTraitSchema.safeParse({ action: null });

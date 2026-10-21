@@ -77,6 +77,11 @@ import UpdateCompanions from "../application/use-cases/personaje/updateCompanion
 import UseTrait from "../application/use-cases/personaje/useTrait.use-case";
 import DeactivateTrait from "../application/use-cases/personaje/deactivateTrait.use-case";
 import RestCharacter from "../application/use-cases/personaje/restCharacter.use-case";
+import SpendHitDice from "../application/use-cases/personaje/spendHitDice.use-case";
+import SpendSpellSlot from "../application/use-cases/personaje/spendSpellSlot.use-case";
+import ApplyCharacterCondition from "../application/use-cases/personaje/applyCharacterCondition.use-case";
+import UpdateCharacterCondition from "../application/use-cases/personaje/updateCharacterCondition.use-case";
+import RemoveCharacterCondition from "../application/use-cases/personaje/removeCharacterCondition.use-case";
 import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
 import ActivateCharacterForm from "../application/use-cases/personaje/activateCharacterForm.use-case";
 import DeactivateCharacterForm from "../application/use-cases/personaje/deactivateCharacterForm.use-case";
@@ -377,7 +382,8 @@ const personajeRepository = new PersonajeRepository(
   coinRepository,
   campaignReaderRepository,
   creatureTypeRepository,
-  damageRepository
+  damageRepository,
+  conditionRepository
 )
 
 const campaignRepository = new CampaignRepository(
@@ -516,6 +522,11 @@ const updateCompanions = new UpdateCompanions(personajeService);
 const useTrait = new UseTrait(personajeService);
 const deactivateTrait = new DeactivateTrait(personajeService);
 const restCharacter = new RestCharacter(personajeService);
+const spendHitDice = new SpendHitDice(personajeService);
+const spendSpellSlot = new SpendSpellSlot(personajeService);
+const applyCharacterCondition = new ApplyCharacterCondition(personajeService);
+const updateCharacterCondition = new UpdateCharacterCondition(personajeService);
+const removeCharacterCondition = new RemoveCharacterCondition(personajeService);
 const añadirForma = new AñadirForma(personajeService, spellService, creatureService, systemService, traitService);
 const activateCharacterForm = new ActivateCharacterForm(personajeService);
 const deactivateCharacterForm = new DeactivateCharacterForm(personajeService);
@@ -678,7 +689,12 @@ export const personajeController = new PersonajeController(
   updateCompanions,
   useTrait,
   deactivateTrait,
-  restCharacter
+  restCharacter,
+  spendHitDice,
+  spendSpellSlot,
+  applyCharacterCondition,
+  updateCharacterCondition,
+  removeCharacterCondition
 )
 
 export const spellController = new SpellController(

@@ -299,12 +299,9 @@ const router = Router();
  *           description: Si es true, los daños elegidos de este rasgo se unen a las resistencias del personaje.
  *         replaceOn:
  *           type: string
- *           enum:
- *             - shortRest
- *             - longRest
- *             - shortOrLongRest
  *           description: >
- *             Si se indica, el personaje puede cambiar la elección en un descanso de ese tipo.
+ *             Clave de `restRules.kinds` del ruleset. Si se indica, el personaje puede
+ *             cambiar la elección en un descanso de ese tipo (o en uno que lo incluya).
  *             Si se omite, la elección queda congelada tras el primer pick.
  *         options:
  *           type: array
@@ -465,10 +462,10 @@ const router = Router();
  *         recharge:
  *           type: string
  *           nullable: true
- *           enum: [shortRest, longRest, shortOrLongRest]
  *           description: >
- *             Cuándo POST `/character/{id}/rest` pone spent a 0. null si no se recargan o si
- *             uses es unlimited.
+ *             Clave de `restRules.kinds` del ruleset. POST `/character/{id}/rest` pone spent a 0
+ *             si el descanso cubre esa clave (directa o por `includes`). null si no se recargan
+ *             o si uses es unlimited.
  *     TraitActionSheet:
  *       allOf:
  *         - $ref: '#/components/schemas/TraitAction'
@@ -816,8 +813,7 @@ const router = Router();
  *             recharge:
  *               nullable: true
  *               type: string
- *               enum: [shortRest, longRest, shortOrLongRest]
- *               description: Recarga de los usos sin ranura. Nulo si es a voluntad.
+ *               description: Clave de `restRules.kinds`. Nulo si es a voluntad.
  *         replace:
  *           nullable: true
  *           type: object
@@ -866,8 +862,7 @@ const router = Router();
  *         recharge:
  *           nullable: true
  *           type: string
- *           enum: [shortRest, longRest, shortOrLongRest]
- *           description: Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad.
+ *           description: Clave de `restRules.kinds`. Obligatorio si uses es un número. Nulo si es a voluntad.
  *         spell:
  *           $ref: '#/components/schemas/Spell'
  *           description: Conjuro hidratado. Solo aparece en las respuestas GET.
@@ -925,8 +920,7 @@ const router = Router();
  *         recharge:
  *           nullable: true
  *           type: string
- *           enum: [shortRest, longRest, shortOrLongRest]
- *           description: Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad.
+ *           description: Clave de `restRules.kinds`. Obligatorio si uses es un número. Nulo si es a voluntad.
  *     TraitCreatureFormExtension:
  *       type: object
  *       required:
@@ -1322,10 +1316,7 @@ const router = Router();
  *           type: boolean
  *         replaceOn:
  *           type: string
- *           enum:
- *             - shortRest
- *             - longRest
- *             - shortOrLongRest
+ *           description: Clave de `restRules.kinds` del ruleset.
  *         options:
  *           type: array
  *           description: Obligatorio si no hay source.

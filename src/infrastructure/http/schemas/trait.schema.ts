@@ -6,7 +6,6 @@ import { CreatureFormPoolFilterSchema, CreatureFormPoolIdsSchema } from "./spell
 import {
   EQUIPMENT_RESTRICTION_ENFORCEMENTS,
   EQUIPMENT_RESTRICTION_SCOPES,
-  SPELL_PRIVILEGE_RECHARGES,
   TRAIT_ACTION_KINDS,
   TRAIT_ACTIVATIONS,
   TRAIT_AREA_SHAPES,
@@ -16,6 +15,8 @@ import {
   TRAIT_STACK_POLICIES,
   TRAIT_WEAPON_DAMAGE_BONUS_WHENS
 } from "../../../domain/types/traits.types";
+
+const restKeySchema = z.string().min(1, "La clave de recarga no puede estar vacía");
 
 const SpellPrivilegeLevelFilterSchema = z.union([
   z.number().int().min(0).max(9),
@@ -36,7 +37,7 @@ export const SpellPrivilegeRuleSchema = z.object({
       z.literal("unlimited"),
       z.number().int().min(1)
     ]),
-    recharge: z.enum(SPELL_PRIVILEGE_RECHARGES).nullable()
+    recharge: restKeySchema.nullable()
   }).nullable(),
   replace: z.object({
     hours: z.number().min(0, "Las horas no pueden ser negativas"),
@@ -129,7 +130,7 @@ const TraitDamageChoiceSchema = z.object({
   options: z.array(TraitDamageChoiceOptionSchema).default([]),
   source: z.enum(TRAIT_DAMAGE_CHOICE_SOURCES).optional(),
   grantsResistance: z.boolean().optional(),
-  replaceOn: z.enum(SPELL_PRIVILEGE_RECHARGES).optional()
+  replaceOn: restKeySchema.optional()
 }).strict().superRefine((choice, ctx) => {
   if (!choice.source && choice.options.length < 1) {
     ctx.addIssue({
@@ -387,7 +388,7 @@ export const TraitActionSchema = z.object({
   saveDcFormula: saveDcFormulaSchema.optional(),
   uses: traitUsesSchema.optional(),
   usesByClassLevel: usesByClassLevelSchema.optional(),
-  recharge: z.enum(SPELL_PRIVILEGE_RECHARGES).nullable().optional()
+  recharge: restKeySchema.nullable().optional()
 }).strict().superRefine((action, ctx) => {
   if (action.uses === "unlimited" && action.recharge != null) {
     ctx.addIssue({
@@ -445,7 +446,7 @@ export const TraitInnateSpellGrantSchema = z.object({
     z.literal("unlimited"),
     z.number().int().min(1, "Los usos deben ser al menos 1")
   ]),
-  recharge: z.enum(SPELL_PRIVILEGE_RECHARGES).nullable()
+  recharge: restKeySchema.nullable()
 }).strict().superRefine((grant, ctx) => {
   if (grant.uses === "unlimited") {
     if (grant.recharge !== null) {

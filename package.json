@@ -16,6 +16,7 @@
     "migrate:delete-legacy-traits": "tsx scripts/delete-legacy-traits.ts",
     "migrate:strip-trait-legacy-fields": "tsx scripts/strip-trait-legacy-fields.ts",
     "migrate:spell-casting-times": "tsx scripts/migrate-spell-casting-times.ts",
+    "migrate:rest-recharge-keys": "tsx scripts/migrate-rest-recharge-keys.ts",
     "migrate:strip-creature-feature-attack": "tsx scripts/strip-creature-feature-attack.ts",
     "commit:ai": "git commit -F COMMIT_MESSAGE.md && del COMMIT_MESSAGE.md"
   },

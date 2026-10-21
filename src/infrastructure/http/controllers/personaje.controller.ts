@@ -23,6 +23,11 @@ import UpdateCompanions from "../../../application/use-cases/personaje/updateCom
 import UseTrait from "../../../application/use-cases/personaje/useTrait.use-case";
 import DeactivateTrait from "../../../application/use-cases/personaje/deactivateTrait.use-case";
 import RestCharacter from "../../../application/use-cases/personaje/restCharacter.use-case";
+import SpendHitDice from "../../../application/use-cases/personaje/spendHitDice.use-case";
+import SpendSpellSlot from "../../../application/use-cases/personaje/spendSpellSlot.use-case";
+import ApplyCharacterCondition from "../../../application/use-cases/personaje/applyCharacterCondition.use-case";
+import UpdateCharacterCondition from "../../../application/use-cases/personaje/updateCharacterCondition.use-case";
+import RemoveCharacterCondition from "../../../application/use-cases/personaje/removeCharacterCondition.use-case";
 import { ValidationError } from "../../../domain/errors/AppError";
 
 export class PersonajeController {
@@ -49,7 +54,12 @@ export class PersonajeController {
     private readonly updateCompanionsUseCase: UpdateCompanions,
     private readonly useTraitUseCase: UseTrait,
     private readonly deactivateTraitUseCase: DeactivateTrait,
-    private readonly restCharacterUseCase: RestCharacter
+    private readonly restCharacterUseCase: RestCharacter,
+    private readonly spendHitDiceUseCase: SpendHitDice,
+    private readonly spendSpellSlotUseCase: SpendSpellSlot,
+    private readonly applyCharacterConditionUseCase: ApplyCharacterCondition,
+    private readonly updateCharacterConditionUseCase: UpdateCharacterCondition,
+    private readonly removeCharacterConditionUseCase: RemoveCharacterCondition
   ) { }
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -479,6 +489,102 @@ export class PersonajeController {
       res.status(200).json(data);
     } catch (e) {
       console.error("[PersonajeController.restCharacter] Error:", e);
+      next(e);
+    }
+  };
+
+  spendHitDice = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      const data = await this.spendHitDiceUseCase.execute({
+        id,
+        classId: req.body.classId,
+        count: req.body.count,
+        hpGained: req.body.hpGained,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.spendHitDice] Error:", e);
+      next(e);
+    }
+  };
+
+  applyCharacterCondition = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      const data = await this.applyCharacterConditionUseCase.execute({
+        id,
+        conditionId: req.body.conditionId,
+        level: req.body.level,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.applyCharacterCondition] Error:", e);
+      next(e);
+    }
+  };
+
+  updateCharacterCondition = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, conditionId } = req.params;
+      if (!id || !conditionId) {
+        throw new ValidationError("Se requiere el ID del personaje y del estado");
+      }
+      const data = await this.updateCharacterConditionUseCase.execute({
+        id,
+        conditionId,
+        delta: req.body.delta,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.updateCharacterCondition] Error:", e);
+      next(e);
+    }
+  };
+
+  removeCharacterCondition = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, conditionId } = req.params;
+      if (!id || !conditionId) {
+        throw new ValidationError("Se requiere el ID del personaje y del estado");
+      }
+      const data = await this.removeCharacterConditionUseCase.execute({
+        id,
+        conditionId,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.removeCharacterCondition] Error:", e);
+      next(e);
+    }
+  };
+
+  spendSpellSlot = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      const data = await this.spendSpellSlotUseCase.execute({
+        id,
+        classId: req.body.classId,
+        pool: req.body.pool,
+        level: req.body.level,
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.spendSpellSlot] Error:", e);
       next(e);
     }
   };

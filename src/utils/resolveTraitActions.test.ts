@@ -26,7 +26,7 @@ const breath = (): TraitApi => ({
     activation: "action",
     saveDcFormula: "8 + @attributes.con.modifier + @proficiencyBonus",
     uses: 1,
-    recharge: "shortOrLongRest"
+    recharge: "shortRest"
   }
 });
 

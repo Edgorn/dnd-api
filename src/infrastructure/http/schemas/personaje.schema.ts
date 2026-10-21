@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CHARACTER_REST_TYPES } from "../../../domain/types/personajes.types";
+import { SPELL_SLOT_POOLS } from "../../../domain/types/system.types";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -184,10 +184,39 @@ export const LearnSpellsSchema = z.object({
 });
 
 export const CharacterRestSchema = z.object({
-  type: z.enum(CHARACTER_REST_TYPES, {
-    error: "El descanso debe ser shortRest o longRest",
-  }),
+  type: z.string().min(1, "El descanso debe indicar un tipo"),
   traitChoices: TraitChoicesSchema.optional(),
+});
+
+export const SpendHitDiceSchema = z.object({
+  classId: z.string().regex(objectIdRegex, "El ID de clase debe ser un ObjectId válido de MongoDB"),
+  count: z.number().int().min(1, "Debe gastar al menos 1 dado de golpe"),
+  hpGained: z.number().int().min(0, "Los PG recuperados no pueden ser negativos"),
+});
+
+export const SpendSpellSlotSchema = z.object({
+  classId: z.string().regex(objectIdRegex, "El ID de clase debe ser un ObjectId válido de MongoDB"),
+  pool: z.enum(SPELL_SLOT_POOLS, { error: "pool debe ser standard o uniform" }),
+  level: z.number().int().min(1, "El nivel de ranura debe estar entre 1 y 9").max(9, "El nivel de ranura debe estar entre 1 y 9"),
+});
+
+export const CharacterConditionParamsSchema = CharacterIdParamsSchema.extend({
+  conditionId: z
+    .string()
+    .min(1, "ID de estado requerido")
+    .regex(objectIdRegex, "El ID de estado debe ser un ObjectId válido de MongoDB"),
+});
+
+export const ApplyCharacterConditionSchema = z.object({
+  conditionId: z.string().regex(objectIdRegex, "El ID de estado debe ser un ObjectId válido de MongoDB"),
+  level: z.number().int().min(1, "El nivel añadido debe ser un entero positivo").optional(),
+});
+
+export const UpdateCharacterConditionSchema = z.object({
+  delta: z.number().int("El cambio de nivel debe ser un entero").refine(
+    (value) => value !== 0,
+    { message: "El cambio de nivel no puede ser 0" }
+  ),
 });
 
 export const BindSpellPrivilegesParamsSchema = z.object({

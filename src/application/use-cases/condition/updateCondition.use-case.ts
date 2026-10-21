@@ -2,6 +2,7 @@ import ConditionService from "../../../domain/services/condition.service";
 import SystemService from "../../../domain/services/system.service";
 import { AppError } from "../../../domain/errors/AppError";
 import { ConditionApi, InputUpdateCondition } from "../../../domain/types/condition.types";
+import { assertConditionRestKeys } from "./assertConditionRestKeys";
 
 export default class UpdateCondition {
   constructor(
@@ -21,6 +22,9 @@ export default class UpdateCondition {
       await this.assertPublisher(data.ruleset, userId, "No tienes permisos para mover este estado a ese sistema");
     }
 
+    const ruleset = data.ruleset ?? existing.ruleset;
+    const recovery = data.recovery !== undefined ? data.recovery : existing.recovery;
+    await assertConditionRestKeys(recovery, ruleset, this.systemService);
     return this.conditionService.update(data);
   }
 

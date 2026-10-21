@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema, AddCharacterFormSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema, SpendHitDiceSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -505,6 +505,91 @@ const router = Router();
  *           type: string
  *           description: ID del rasgo que sugirió el roster (orientación de UI; el servidor no lo exige).
  *
+ *     CharacterSpellSlot:
+ *       type: object
+ *       description: >
+ *         Ranuras derivadas de la tabla de clase (`slots` o `uniformSlots`).
+ *         Solo se persiste `spent` en el personaje.
+ *       required:
+ *         - classId
+ *         - pool
+ *         - level
+ *         - total
+ *         - spent
+ *         - remaining
+ *       properties:
+ *         classId:
+ *           type: string
+ *           description: ID de MongoDB de la clase.
+ *         pool:
+ *           type: string
+ *           enum: [standard, uniform]
+ *           description: >
+ *             `standard` es la tabla por nivel. `uniform` es una bolsa de nivel único
+ *             (p. ej. magia de pacto). El `level` de uniform es el de esa bolsa, no el del conjuro.
+ *         level:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 9
+ *         total:
+ *           type: integer
+ *           minimum: 1
+ *           description: Ranuras máximas de esa bolsa. No se persiste.
+ *         spent:
+ *           type: integer
+ *           minimum: 0
+ *         remaining:
+ *           type: integer
+ *           minimum: 0
+ *
+ *     CharacterHitDice:
+ *       type: object
+ *       description: >
+ *         Bolsa de dados de golpe derivada. `total` es el nivel de esa clase;
+ *         solo se persiste `spent` en el personaje.
+ *       required:
+ *         - classId
+ *         - hitDie
+ *         - total
+ *         - spent
+ *         - remaining
+ *       properties:
+ *         classId:
+ *           type: string
+ *           description: ID de MongoDB de la clase.
+ *         hitDie:
+ *           type: integer
+ *           description: Caras del dado de golpe de la clase.
+ *         total:
+ *           type: integer
+ *           minimum: 1
+ *           description: Dados máximos (nivel en esa clase). No se persiste.
+ *         spent:
+ *           type: integer
+ *           minimum: 0
+ *           description: Dados gastados desde la última recuperación.
+ *         remaining:
+ *           type: integer
+ *           minimum: 0
+ *           description: total menos spent.
+ *
+ *     CharacterActiveCondition:
+ *       type: object
+ *       required:
+ *         - conditionId
+ *         - name
+ *       properties:
+ *         conditionId:
+ *           type: string
+ *           description: ID de MongoDB del estado de catálogo.
+ *         name:
+ *           type: string
+ *           description: Nombre hidratado del catálogo.
+ *         level:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nivel activo. Se omite en estados sin tabla de niveles.
+ *
  *     CharacterTraitResource:
  *       type: object
  *       description: >
@@ -709,7 +794,30 @@ const router = Router();
  *             type: string
  *           description: >
  *             Stances encendidas (p. ej. Furia). Coincide con traits[].action.active.
- *             No altera el PDF. POST use las añade; deactivate y rest las quitan.
+ *             No altera el PDF. POST use las añade; deactivate y rest las quitan según `endStancesOn`.
+ *         hitDice:
+ *           type: array
+ *           description: >
+ *             Dados de golpe por clase. POST `/character/{id}/hit-dice/spend` incrementa spent
+ *             y suma PG (la tirada la hace el cliente). El descanso recupera según
+ *             `restRules.hitPointRecovery`.
+ *           items:
+ *             $ref: '#/components/schemas/CharacterHitDice'
+ *         spellSlots:
+ *           type: array
+ *           description: >
+ *             Ranuras por clase y bolsa. POST `/character/{id}/spell-slots/spend` incrementa spent.
+ *             El descanso recupera según `restRules.spellSlotRecovery`.
+ *           items:
+ *             $ref: '#/components/schemas/CharacterSpellSlot'
+ *         activeConditions:
+ *           type: array
+ *           description: >
+ *             Estados activos del personaje. POST `/character/{id}/conditions` aplica;
+ *             PATCH con `delta` cambia el nivel; DELETE lo quita. El descanso aplica
+ *             `Condition.recovery` si cubre el `type`.
+ *           items:
+ *             $ref: '#/components/schemas/CharacterActiveCondition'
  *         resistances:
  *           type: array
  *           description: >
@@ -2290,14 +2398,25 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  * @openapi
  * /character/{id}/rest:
  *   post:
- *     summary: Descanso corto o largo (usos de rasgos)
+ *     summary: Descanso (usos de rasgos)
  *     description: |
- *       Mira `traits[].action.recharge` de cada rasgo. Si encaja con `type`
- *       (`shortRest`, `longRest` o `shortOrLongRest`), pone `traitResources[].spent` a 0
- *       (y `action.remaining` vuelve al máximo). Vacía `activeTraitIds`.
+ *       `type` debe ser una clave de `restRules.kinds` del ruleset del personaje.
+ *       Si el sistema no define `restRules`, o `type` no está en el catálogo, responde 400.
+ *       Mira `traits[].action.recharge` de cada rasgo. Si el descanso cubre esa clave
+ *       (igualdad o `includes` transitivo), pone `traitResources[].spent` a 0
+ *       (y `action.remaining` vuelve al máximo).
+ *       Vacía `activeTraitIds` solo si `restRules.endStancesOn` cubre el `type`
+ *       (directo o por `includes`). Si `endStancesOn` se omite, las stances se conservan.
  *       `traitChoices` es opcional: solo admite claves de daño con `replaceOn` compatible
  *       con el descanso. Si se omite, se conserva la elección anterior.
- *       No toca puntos de golpe, conjuros ni condiciones.
+ *       Si `hitPointRecovery` cubre el `type`, aplica `hp` (`full` pone HPActual a HPMax)
+ *       y `hitDice` (`all` o `half` de los dados totales, mínimo 1, restando spent por clase
+ *       en el orden de `classes`). El gasto de dados
+ *       durante un descanso corto es POST `/character/{id}/hit-dice/spend`.
+ *       Si `spellSlotRecovery` cubre el `type`, pone a 0 el spent de las bolsas listadas
+ *       (`standard` y/o `uniform`). El gasto de ranuras es POST `/character/{id}/spell-slots/spend`.
+ *       A cada `activeConditions` cuyo `Condition.recovery` cubra el `type` le aplica la suma
+ *       de `delta`; si el nivel baja de 1, quita el estado.
  *     tags:
  *       - Personajes
  *     security:
@@ -2320,8 +2439,7 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *             properties:
  *               type:
  *                 type: string
- *                 enum: [shortRest, longRest]
- *                 description: Tipo de descanso.
+ *                 description: Clave de `restRules.kinds` del sistema del personaje.
  *               traitChoices:
  *                 type: object
  *                 description: >
@@ -2336,7 +2454,7 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *             schema:
  *               $ref: '#/components/schemas/PersonajeApi'
  *       400:
- *         description: Tipo de descanso inválido.
+ *         description: El sistema no define descansos o el tipo no está en restRules.kinds.
  *       401:
  *         description: No autorizado.
  *       403:
@@ -2347,6 +2465,279 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *         description: Error del servidor.
  */
 router.post('/character/:id/rest', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(CharacterRestSchema), personajeController.restCharacter);
+
+/**
+ * @openapi
+ * /character/{id}/hit-dice/spend:
+ *   post:
+ *     summary: Gastar dados de golpe
+ *     description: |
+ *       El cliente tira los dados. El cuerpo indica `classId`, `count` y `hpGained`.
+ *       Valida que queden dados de esa clase (`level - spent`) y que `hpGained` no supere
+ *       `count * hitDie + count * modificador de con` (0 si no hay característica `con`).
+ *       Suma `hpGained` a `HPActual` y recorta a `HPMax`. Incrementa `hitDice[].spent`.
+ *       No exige un descanso en curso.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - classId
+ *               - count
+ *               - hpGained
+ *             properties:
+ *               classId:
+ *                 type: string
+ *                 description: ID de la clase cuyos dados se gastan.
+ *               count:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Dados a gastar.
+ *               hpGained:
+ *                 type: integer
+ *                 minimum: 0
+ *                 description: PG recuperados (tirada del cliente más modificador).
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado tras gastar dados.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Sin dados, PG por encima del máximo o clase inexistente.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/hit-dice/spend', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(SpendHitDiceSchema), personajeController.spendHitDice);
+
+/**
+ * @openapi
+ * /character/{id}/spell-slots/spend:
+ *   post:
+ *     summary: Gastar una ranura de conjuro
+ *     description: |
+ *       El cuerpo indica `classId`, `pool` (`standard` o `uniform`) y `level`.
+ *       Gasta 1 ranura de esa bolsa. En `uniform`, `level` es el de la bolsa
+ *       (el de `uniformSlots.level`), no el del conjuro lanzado.
+ *       Valida que queden ranuras (`total - spent`). Incrementa `spellSlots[].spent`.
+ *       No exige un descanso en curso.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - classId
+ *               - pool
+ *               - level
+ *             properties:
+ *               classId:
+ *                 type: string
+ *                 description: ID de la clase cuyas ranuras se gastan.
+ *               pool:
+ *                 type: string
+ *                 enum: [standard, uniform]
+ *               level:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 9
+ *                 description: Nivel de la ranura (o de la bolsa uniforme).
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado tras gastar la ranura.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Sin ranuras, bolsa inexistente o datos inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/spell-slots/spend', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(SpendSpellSlotSchema), personajeController.spendSpellSlot);
+
+/**
+ * @openapi
+ * /character/{id}/conditions:
+ *   post:
+ *     summary: Aplicar un estado al personaje
+ *     description: |
+ *       Añade el estado a `activeConditions`. Si el catálogo tiene niveles, suma `level`
+ *       (por defecto 1) y recorta al máximo de la tabla. Si no tiene niveles y ya está
+ *       activo, responde 400. Rechaza inmunidades de rasgos y de stances activas.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - conditionId
+ *             properties:
+ *               conditionId:
+ *                 type: string
+ *               level:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Niveles a sumar (estados escalonados). Por defecto 1.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Inmune, duplicado o estado fuera de los sistemas del personaje.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o estado no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/conditions', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(ApplyCharacterConditionSchema), personajeController.applyCharacterCondition);
+
+/**
+ * @openapi
+ * /character/{id}/conditions/{conditionId}:
+ *   patch:
+ *     summary: Cambiar el nivel de un estado activo
+ *     description: |
+ *       Suma `delta` al nivel. Si baja de 1, quita el estado. En estados sin niveles,
+ *       un `delta` negativo los quita.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: conditionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - delta
+ *             properties:
+ *               delta:
+ *                 type: integer
+ *                 description: Cambio de nivel. No puede ser 0.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: El personaje no tiene el estado o el delta no es válido.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o estado no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ *   delete:
+ *     summary: Quitar un estado activo
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: conditionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: El personaje no tiene este estado.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id/conditions/:conditionId', authMiddleware, validateParams(CharacterConditionParamsSchema), validateSchema(UpdateCharacterConditionSchema), personajeController.updateCharacterCondition);
+router.delete('/character/:id/conditions/:conditionId', authMiddleware, validateParams(CharacterConditionParamsSchema), personajeController.removeCharacterCondition);
 
 /**
  * @openapi

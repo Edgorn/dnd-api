@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { SYSTEM_KINDS, SYSTEM_MAX_PARENTS } from "../../../domain/types/system.types";
+import { HIT_POINT_HIT_DICE_MODES, HIT_POINT_HP_MODES, REST_DURATION_UNITS, SPELL_SLOT_POOLS, SYSTEM_KINDS, SYSTEM_MAX_PARENTS } from "../../../domain/types/system.types";
+import { assertRestRulesShape } from "../../../domain/services/restRules";
 import { validateSystemFormula, validateAttributeModifierFormula } from "../../../utils/formulaValidation";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
@@ -185,6 +186,50 @@ export const systemRulesFields = {
   damageBonusFormula: weaponFormulaSchema("damageBonusFormula"),
   meleeAttackAttributes: z.array(z.string()).optional(),
   rangedAttackAttributes: z.array(z.string()).optional(),
+  restRules: z
+    .object({
+      kinds: z.array(
+        z.object({
+          key: z.string().min(1, "La clave del descanso no puede estar vacía"),
+          name: z.string().min(1, "El nombre del descanso no puede estar vacío"),
+          duration: z
+            .object({
+              value: z.number().positive("La duración debe ser mayor que 0"),
+              unit: z.enum(REST_DURATION_UNITS, {
+                error: "La unidad de duración debe ser minute o hour",
+              }),
+            })
+            .strict()
+            .optional(),
+          includes: z.array(z.string().min(1, "Cada clave incluida no puede estar vacía")).optional(),
+        }).strict()
+      ),
+      endStancesOn: z.array(z.string().min(1, "Cada clave de endStancesOn no puede estar vacía")).optional(),
+      hitPointRecovery: z.array(
+        z.object({
+          restKey: z.string().min(1, "La clave de recuperación no puede estar vacía"),
+          hp: z.enum(HIT_POINT_HP_MODES, { error: "hp debe ser none o full" }),
+          hitDice: z.enum(HIT_POINT_HIT_DICE_MODES, { error: "hitDice debe ser none, all o half" }),
+        }).strict()
+      ).optional(),
+      spellSlotRecovery: z.array(
+        z.object({
+          restKey: z.string().min(1, "La clave de recuperación no puede estar vacía"),
+          pools: z.array(z.enum(SPELL_SLOT_POOLS, { error: "Cada pool debe ser standard o uniform" })),
+        }).strict()
+      ).optional(),
+    })
+    .strict()
+    .superRefine((data, ctx) => {
+      for (const issue of assertRestRulesShape(data)) {
+        ctx.addIssue({
+          code: "custom",
+          message: issue.message,
+          path: issue.path,
+        });
+      }
+    })
+    .optional(),
 };
 
 export const CreateSystemSchema = z

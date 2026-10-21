@@ -3,7 +3,7 @@ import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { Types } from 'mongoose';
-import { CharacterCampaignLink, CharacterSubclassApi, ConsultarPersonajeOptions, LevelUpData, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, CharacterTraitResource } from '../../../../domain/types/personajes.types';
+import { CharacterCampaignLink, CharacterSubclassApi, ConsultarPersonajeOptions, LevelUpData, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource } from '../../../../domain/types/personajes.types';
 import { CharacterFormApi, CharacterFormMongo, formPurposeOverlaysCharacter } from '../../../../domain/types/creatureForm.types';
 import {
   CharacterOptionSelection,
@@ -14,6 +14,7 @@ import {
 import { PrerequisiteContext } from '../../../../domain/types/prerequisite.types';
 import IGroupOptionRepository from '../../../../domain/repositories/IGroupOptionRepository';
 import IOptionGroupRepository from '../../../../domain/repositories/IOptionGroupRepository';
+import { characterRestRejection, resolveHitPointRecovery, resolveSpellSlotRecovery } from '../../../../domain/services/restRules';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -36,6 +37,7 @@ import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRest
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
 import IDamageRepository from '../../../../domain/repositories/IDamageRepository';
+import IConditionRepository from '../../../../domain/repositories/IConditionRepository';
 import { PendingCatalogChoice, TraitApi, TraitChoiceValue, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { RaceRef } from '../../../../domain/types/race.types';
@@ -178,6 +180,29 @@ import { applyActiveFormOverlay } from '../../../../utils/applyActiveFormOverlay
 import { MAX_CHARACTER_FORMS, normalizeCharacterForms } from '../../../../utils/normalizeCharacterForms';
 import { normalizeActiveTraitIds, normalizeTraitResources } from '../../../../utils/traitResources';
 import {
+  applyHitPointRecovery,
+  applySpendHitDice,
+  classPoolsFromCharacter,
+  HIT_DICE_ABILITY_KEY,
+  normalizeHitDiceSpent,
+  toHitDiceApi
+} from '../../../../utils/hitDice';
+import {
+  applySpendSpellSlot,
+  applySpellSlotRecovery,
+  normalizeSpellSlotsSpent,
+  slotPoolsFromSources,
+  toSpellSlotsApi
+} from '../../../../utils/spellSlots';
+import {
+  applyCondition,
+  applyConditionDelta,
+  applyConditionRestRecovery,
+  immuneConditionIdsFromTraits,
+  normalizeActiveConditions,
+  removeCondition
+} from '../../../../utils/activeConditions';
+import {
   applyCharacterRest,
   applyDeactivateTrait,
   applyUseTraitAction,
@@ -211,7 +236,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     private readonly coinRepository: ICoinRepository,
     private readonly campaignReader: ICampaignReader,
     private readonly creatureTypeRepository: ICreatureTypeRepository,
-    private readonly damageRepository: IDamageRepository
+    private readonly damageRepository: IDamageRepository,
+    private readonly conditionRepository: IConditionRepository
   ) { }
 
   async consultarPorUsuario(id: string): Promise<PersonajeBasico[]> {
@@ -1404,6 +1430,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
     await this.assertCanAccessCharacter(personaje, userId);
 
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
+    const restError = characterRestRejection(rulesConfig.restRules, type);
+    if (restError) {
+      throw new ValidationError(restError);
+    }
+
     const loaded = await this.traitRepository.getTraitsByIndexes(personaje.traits ?? []);
     const traits = await this.expandTraitsForSystems(
       loaded,
@@ -1413,25 +1445,175 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
     const next = applyCharacterRest({
       restType: type,
+      restRules: rulesConfig.restRules,
       traits,
-      traitResources: normalizeTraitResources(personaje.traitResources)
+      traitResources: normalizeTraitResources(personaje.traitResources),
+      activeTraitIds: normalizeActiveTraitIds(personaje.activeTraitIds)
     });
     const choiceResult = applyRestTraitChoices({
       existing: personaje.traitChoices,
       incoming: data.traitChoices,
       restType: type,
+      restRules: rulesConfig.restRules,
       traits
     });
     if ("error" in choiceResult) {
       throw new ValidationError(choiceResult.error);
     }
 
+    const pools = classPoolsFromCharacter(personaje.classes ?? []);
+    const spent = normalizeHitDiceSpent(
+      personaje.hitDiceSpent,
+      pools.map((pool) => pool.classId)
+    );
+    const recovery = resolveHitPointRecovery(rulesConfig.restRules, type);
+    const recovered = applyHitPointRecovery({
+      hp: recovery.hp,
+      hitDice: recovery.hitDice,
+      pools,
+      spent,
+      hpActual: Number(personaje.HPActual) || 0,
+      hpMax: Number(personaje.HPMax) || 0,
+    });
+
+    const slotPools = await this.loadSpellSlotPools(personaje);
+    const slotSpent = normalizeSpellSlotsSpent(personaje.spellSlotsSpent, slotPools);
+    const recoveredSlots = applySpellSlotRecovery(
+      slotSpent,
+      resolveSpellSlotRecovery(rulesConfig.restRules, type)
+    );
+
+    const currentConditions = normalizeActiveConditions(personaje.activeConditions);
+    const conditionCatalogs = await this.conditionRepository.getByIds(
+      currentConditions.map((item) => item.conditionId)
+    );
+    const recoveredConditions = applyConditionRestRecovery({
+      current: currentConditions,
+      catalogs: conditionCatalogs,
+      restType: type,
+      restRules: rulesConfig.restRules
+    });
+
     return this.persistTraitStance(
       id,
       next.traitResources,
       next.activeTraitIds,
-      data.traitChoices !== undefined ? choiceResult.traitChoices : undefined
+      data.traitChoices !== undefined ? choiceResult.traitChoices : undefined,
+      {
+        HPActual: recovered.hpActual,
+        hitDiceSpent: recovered.spent,
+        spellSlotsSpent: recoveredSlots,
+        activeConditions: recoveredConditions
+      }
     );
+  }
+
+  async spendHitDice(data: TypeSpendHitDice): Promise<PersonajeApi> {
+    const { id, classId, count, hpGained, userId } = data;
+    const personaje = await Personaje.findById(id);
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    await this.assertCanAccessCharacter(personaje, userId);
+
+    const pools = classPoolsFromCharacter(personaje.classes ?? []);
+    const spent = normalizeHitDiceSpent(
+      personaje.hitDiceSpent,
+      pools.map((pool) => pool.classId)
+    );
+    const attributes = await this.formatSheetAttributes(personaje);
+    const abilityModifier = attributes.find((attr) => attr.key === HIT_DICE_ABILITY_KEY)?.modifier ?? 0;
+    const result = applySpendHitDice({
+      classId,
+      count,
+      hpGained,
+      pools,
+      spent,
+      hpActual: Number(personaje.HPActual) || 0,
+      hpMax: Number(personaje.HPMax) || 0,
+      abilityModifier,
+    });
+    if (!result.ok) {
+      throw new ValidationError(result.message);
+    }
+
+    const updated = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { HPActual: result.hpActual, hitDiceSpent: result.spent } },
+      { returnDocument: "after" }
+    );
+    if (!updated) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    return this.formatCharacter(updated);
+  }
+
+  async spendSpellSlot(data: TypeSpendSpellSlot): Promise<PersonajeApi> {
+    const { id, classId, pool, level, userId } = data;
+    const personaje = await Personaje.findById(id);
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    await this.assertCanAccessCharacter(personaje, userId);
+
+    const slotPools = await this.loadSpellSlotPools(personaje);
+    const spent = normalizeSpellSlotsSpent(personaje.spellSlotsSpent, slotPools);
+    const result = applySpendSpellSlot({ classId, pool, level, pools: slotPools, spent });
+    if (!result.ok) {
+      throw new ValidationError(result.message);
+    }
+
+    const updated = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { spellSlotsSpent: result.spent } },
+      { returnDocument: "after" }
+    );
+    if (!updated) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    return this.formatCharacter(updated);
+  }
+
+  async applyCharacterCondition(data: TypeApplyCharacterCondition): Promise<PersonajeApi> {
+    const { id, conditionId, level, userId } = data;
+    const personaje = await this.requireAccessibleCharacter(id, userId);
+    const condition = await this.requireAvailableCondition(conditionId, personaje.systems ?? []);
+    const traits = await this.loadExpandedTraits(personaje);
+    const result = applyCondition({
+      condition,
+      current: normalizeActiveConditions(personaje.activeConditions),
+      addLevel: level,
+      immuneIds: immuneConditionIdsFromTraits(traits, normalizeActiveTraitIds(personaje.activeTraitIds))
+    });
+    if (!result.ok) {
+      throw new ValidationError(result.message);
+    }
+    return this.persistActiveConditions(id, result.next);
+  }
+
+  async updateCharacterCondition(data: TypeUpdateCharacterCondition): Promise<PersonajeApi> {
+    const { id, conditionId, delta, userId } = data;
+    const personaje = await this.requireAccessibleCharacter(id, userId);
+    const condition = await this.requireAvailableCondition(conditionId, personaje.systems ?? []);
+    const result = applyConditionDelta({
+      condition,
+      current: normalizeActiveConditions(personaje.activeConditions),
+      delta
+    });
+    if (!result.ok) {
+      throw new ValidationError(result.message);
+    }
+    return this.persistActiveConditions(id, result.next);
+  }
+
+  async removeCharacterCondition(data: TypeRemoveCharacterCondition): Promise<PersonajeApi> {
+    const { id, conditionId, userId } = data;
+    const personaje = await this.requireAccessibleCharacter(id, userId);
+    const result = removeCondition(normalizeActiveConditions(personaje.activeConditions), conditionId);
+    if (!result.ok) {
+      throw new ValidationError(result.message);
+    }
+    return this.persistActiveConditions(id, result.next);
   }
 
   async getOwnedTraitIds(id: string, userId: string): Promise<string[]> {
@@ -2341,7 +2523,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
     id: string,
     traitResources: CharacterTraitResource[],
     activeTraitIds: string[],
-    traitChoices?: TraitChoices
+    traitChoices?: TraitChoices,
+    extras?: { HPActual?: number; hitDiceSpent?: CharacterHitDiceSpent[]; spellSlotsSpent?: CharacterSpellSlotSpent[]; activeConditions?: CharacterActiveCondition[] }
   ): Promise<PersonajeApi> {
     const resultado = await Personaje.findByIdAndUpdate(
       id,
@@ -2349,7 +2532,11 @@ export default class PersonajeRepository implements IPersonajeRepository {
         $set: {
           traitResources,
           activeTraitIds,
-          ...(traitChoices !== undefined ? { traitChoices } : {})
+          ...(traitChoices !== undefined ? { traitChoices } : {}),
+          ...(extras?.HPActual !== undefined ? { HPActual: extras.HPActual } : {}),
+          ...(extras?.hitDiceSpent !== undefined ? { hitDiceSpent: extras.hitDiceSpent } : {}),
+          ...(extras?.spellSlotsSpent !== undefined ? { spellSlotsSpent: extras.spellSlotsSpent } : {}),
+          ...(extras?.activeConditions !== undefined ? { activeConditions: extras.activeConditions } : {})
         }
       },
       { returnDocument: "after" }
@@ -2358,6 +2545,59 @@ export default class PersonajeRepository implements IPersonajeRepository {
       throw new NotFoundError("Personaje no encontrado");
     }
     return this.formatCharacter(resultado);
+  }
+
+  private async persistActiveConditions(id: string, activeConditions: CharacterActiveCondition[]): Promise<PersonajeApi> {
+    const updated = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { activeConditions } },
+      { returnDocument: "after" }
+    );
+    if (!updated) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    return this.formatCharacter(updated);
+  }
+
+  private async requireAccessibleCharacter(id: string, userId: string): Promise<PersonajeMongo> {
+    const personaje = await Personaje.findById(id);
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    await this.assertCanAccessCharacter(personaje, userId);
+    return personaje;
+  }
+
+  private async requireAvailableCondition(conditionId: string, systems: string[]): Promise<ConditionApi> {
+    const condition = await this.conditionRepository.getById(conditionId);
+    if (!condition || condition.deletedAt) {
+      throw new NotFoundError("Estado no encontrado");
+    }
+    const tree = await this.systemRepository.getSystemsAndAncestors(systems);
+    if (!tree.includes(condition.ruleset)) {
+      throw new ValidationError("El estado no está disponible en los sistemas del personaje");
+    }
+    return condition;
+  }
+
+  private async loadExpandedTraits(personaje: PersonajeMongo): Promise<TraitApi[]> {
+    const loaded = await this.traitRepository.getTraitsByIndexes(personaje.traits ?? []);
+    return this.expandTraitsForSystems(
+      loaded,
+      personaje.systems,
+      this.chosenCreatureTypeIds(loaded, personaje.traitChoices),
+      this.chosenDamageTypeIds(loaded, personaje.traitChoices)
+    );
+  }
+
+  private async loadSpellSlotPools(personaje: PersonajeMongo) {
+    const sources = (await this.claseRepository.getSpellcastingSources?.(
+      (personaje.classes ?? []).map((entry) => ({
+        id: entry.class,
+        level: entry.level
+      }))
+    )) ?? [];
+    return slotPoolsFromSources(sources);
   }
 
   private async loadGrantingClassLevels(
@@ -3048,6 +3288,26 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const traitResources = normalizeTraitResources(personaje.traitResources);
     const spentByTraitId = new Map(traitResources.map(item => [item.traitId, item.spent]));
     const activeTraitIds = normalizeActiveTraitIds(personaje.activeTraitIds);
+    const hitDicePools = classPoolsFromCharacter(personaje.classes ?? []);
+    const hitDice = toHitDiceApi(
+      hitDicePools,
+      normalizeHitDiceSpent(personaje.hitDiceSpent, hitDicePools.map((pool) => pool.classId))
+    );
+    const spellSlotPools = slotPoolsFromSources(spellcastingSources);
+    const spellSlots = toSpellSlotsApi(
+      spellSlotPools,
+      normalizeSpellSlotsSpent(personaje.spellSlotsSpent, spellSlotPools)
+    );
+    const storedConditions = normalizeActiveConditions(personaje.activeConditions);
+    const conditionById = new Map(
+      (await this.conditionRepository.getByIds(storedConditions.map((item) => item.conditionId)))
+        .map((condition) => [condition.id, condition])
+    );
+    const activeConditions = storedConditions.map((item) => ({
+      conditionId: item.conditionId,
+      name: conditionById.get(item.conditionId)?.name ?? "",
+      ...(item.level !== undefined ? { level: item.level } : {})
+    }));
 
     const sheet: PersonajeApi = {
       id: personaje._id.toString(),
@@ -3121,7 +3381,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spellPrivileges: hydratedPrivileges,
       companions: normalizeCompanions(personaje.companions),
       traitResources,
-      activeTraitIds
+      activeTraitIds,
+      hitDice,
+      spellSlots,
+      activeConditions
     };
 
     const withTraits = options?.applyActiveTraits === false

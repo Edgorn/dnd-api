@@ -100,7 +100,33 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
     }],
     default: []
   },
-  activeTraitIds: { type: [String], default: [] }
+  activeTraitIds: { type: [String], default: [] },
+  hitDiceSpent: {
+    type: [{
+      _id: false,
+      classId: { type: String, required: true },
+      spent: { type: Number, required: true, min: 0 }
+    }],
+    default: []
+  },
+  spellSlotsSpent: {
+    type: [{
+      _id: false,
+      classId: { type: String },
+      pool: { type: String, enum: ["standard", "uniform"], required: true },
+      level: { type: Number, required: true, min: 1, max: 9 },
+      spent: { type: Number, required: true, min: 0 }
+    }],
+    default: []
+  },
+  activeConditions: {
+    type: [{
+      _id: false,
+      conditionId: { type: String, required: true },
+      level: { type: Number, min: 1 }
+    }],
+    default: []
+  }
 }, { collection: 'Personajes' });
 
 const PersonajeModel = mongoose.model<PersonajeMongo>("Personajes", personajeSchema);

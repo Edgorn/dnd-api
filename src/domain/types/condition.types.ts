@@ -5,6 +5,11 @@ export interface ConditionLevel {
   description: string;
 }
 
+export interface ConditionRecovery {
+  restKey: string;
+  delta: number;
+}
+
 export interface ConditionMongo {
   _id: ObjectId;
   name: string;
@@ -12,6 +17,7 @@ export interface ConditionMongo {
   ruleset: string;
   levels?: ConditionLevel[];
   cumulative?: boolean;
+  recovery?: ConditionRecovery[];
   deletedAt?: Date | null;
 }
 
@@ -22,6 +28,7 @@ export interface ConditionApi {
   ruleset: string;
   levels?: ConditionLevel[];
   cumulative?: boolean;
+  recovery?: ConditionRecovery[];
   deletedAt?: Date | null;
 }
 
@@ -31,6 +38,7 @@ export interface InputCreateCondition {
   ruleset: string;
   levels?: ConditionLevel[];
   cumulative?: boolean;
+  recovery?: ConditionRecovery[];
 }
 
 export interface InputUpdateCondition {
@@ -40,4 +48,5 @@ export interface InputUpdateCondition {
   ruleset?: string;
   levels?: ConditionLevel[];
   cumulative?: boolean;
+  recovery?: ConditionRecovery[];
 }

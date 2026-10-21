@@ -544,7 +544,7 @@ describe("resolveCharacterTraitChoices", () => {
         choose: 1,
         source: "damageTypes",
         grantsResistance: true,
-        replaceOn: "shortOrLongRest",
+        replaceOn: "shortRest",
         options: [
           { name: "fire", damageTypeId: "fire", damage: fire },
           { name: "cold", damageTypeId: "cold", damage: cold }
@@ -1081,7 +1081,7 @@ describe("dragonborn lineage tokens", () => {
       activation: "action",
       saveDcFormula: "8 + @attributes.con.modifier + @proficiencyBonus",
       uses: 1,
-      recharge: "shortOrLongRest"
+      recharge: "shortRest"
     }
   });
 
@@ -1110,13 +1110,19 @@ describe("dragonborn lineage tokens", () => {
 });
 
 describe("expandDamageChoices and rest replace", () => {
+  const restRules = {
+    kinds: [
+      { key: "shortRest", name: "Descanso corto" },
+      { key: "longRest", name: "Descanso largo", includes: ["shortRest"] }
+    ]
+  };
   const infernal = trait("infernal-resilience", {
     damageChoices: [{
       key: "resistance",
       choose: 1,
       source: "damageTypes",
       grantsResistance: true,
-      replaceOn: "shortOrLongRest",
+      replaceOn: "shortRest",
       options: []
     }]
   });
@@ -1133,6 +1139,7 @@ describe("expandDamageChoices and rest replace", () => {
   it("replaces the stored choice on a matching rest", () => {
     const result = applyRestTraitChoices({
       restType: "shortRest",
+      restRules,
       traits: expanded,
       existing: { "infernal-resilience": { resistance: ["fire"] } },
       incoming: { "infernal-resilience": { resistance: ["cold"] } }
@@ -1157,6 +1164,7 @@ describe("expandDamageChoices and rest replace", () => {
   it("rejects a frozen damage choice", () => {
     const result = applyRestTraitChoices({
       restType: "longRest",
+      restRules,
       traits: [ancestry],
       existing: { "draconic-ancestry": { ancestor: ["Rojo"] } },
       incoming: { "draconic-ancestry": { ancestor: ["Plata"] } }
@@ -1181,6 +1189,7 @@ describe("expandDamageChoices and rest replace", () => {
     });
     const result = applyRestTraitChoices({
       restType: "shortRest",
+      restRules,
       traits: [longOnly],
       existing: { "daily-ward": { resistance: ["fire"] } },
       incoming: { "daily-ward": { resistance: ["fire"] } }
@@ -1200,7 +1209,7 @@ describe("listPendingDamageChoices", () => {
       choose: 1,
       source: "damageTypes",
       grantsResistance: true,
-      replaceOn: "shortOrLongRest",
+      replaceOn: "shortRest",
       options: []
     }]
   });

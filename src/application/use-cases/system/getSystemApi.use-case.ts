@@ -97,6 +97,7 @@ export default class GetSystemApi {
       damageBonusFormula: mergedRules.damageBonusFormula,
       meleeAttackAttributes: mergedRules.meleeAttackAttributes,
       rangedAttackAttributes: mergedRules.rangedAttackAttributes,
+      restRules: mergedRules.restRules,
     };
   }
 }

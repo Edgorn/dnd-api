@@ -12,6 +12,7 @@ import { AppError } from "../../../domain/errors/AppError";
 import { CreateTrait, TraitApi } from "../../../domain/types/traits.types";
 import { assertArmorTypesForRuleset } from "../equipment/assertArmorTypeForRuleset";
 import { assertTraitCatalogRefs } from "./assertTraitCatalogRefs";
+import { assertTraitRestKeys } from "./assertTraitRestKeys";
 
 export default class CreateTraitUseCase {
   constructor(
@@ -49,6 +50,8 @@ export default class CreateTraitUseCase {
       this.armorTypeService,
       this.systemService
     );
+
+    await assertTraitRestKeys(trait, trait.ruleset, this.systemService);
 
     const normalized = await assertTraitCatalogRefs({
       ruleset: trait.ruleset,

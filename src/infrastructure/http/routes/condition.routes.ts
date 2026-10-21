@@ -22,6 +22,18 @@ const router = Router();
  *         description:
  *           type: string
  *           description: Consecuencia o reglas de ese nivel.
+ *     ConditionRecovery:
+ *       type: object
+ *       required:
+ *         - restKey
+ *         - delta
+ *       properties:
+ *         restKey:
+ *           type: string
+ *           description: Clave de `restRules.kinds` del ruleset. El descanso debe cubrirla (directo o por `includes`).
+ *         delta:
+ *           type: integer
+ *           description: Cambio de nivel al descansar. Negativo reduce; si el nivel baja de 1, se quita el estado.
  *     Condition:
  *       type: object
  *       properties:
@@ -45,6 +57,13 @@ const router = Router();
  *         cumulative:
  *           type: boolean
  *           description: Si es verdadero, los niveles 1..N se aplican juntos. Requiere al menos un nivel.
+ *         recovery:
+ *           type: array
+ *           description: >
+ *             Cómo cambia el nivel activo en un descanso. Las claves se validan contra
+ *             `restRules.kinds` del sistema del estado.
+ *           items:
+ *             $ref: '#/components/schemas/ConditionRecovery'
  *         deletedAt:
  *           type: string
  *           format: date-time
@@ -73,6 +92,10 @@ const router = Router();
  *         cumulative:
  *           type: boolean
  *           description: Si es verdadero, debe enviarse al menos un nivel.
+ *         recovery:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ConditionRecovery'
  *     InputUpdateCondition:
  *       type: object
  *       properties:
@@ -93,6 +116,10 @@ const router = Router();
  *         cumulative:
  *           type: boolean
  *           description: Si es verdadero, debe haber al menos un nivel en el mismo cuerpo.
+ *         recovery:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ConditionRecovery'
  */
 
 /**

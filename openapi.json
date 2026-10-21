@@ -446,12 +446,7 @@
           },
           "replaceOn": {
             "type": "string",
-            "enum": [
-              "shortRest",
-              "longRest",
-              "shortOrLongRest"
-            ],
-            "description": "Si se indica, el personaje puede cambiar la elección en un descanso de ese tipo. Si se omite, la elección queda congelada tras el primer pick.\n"
+            "description": "Clave de `restRules.kinds` del ruleset. Si se indica, el personaje puede cambiar la elección en un descanso de ese tipo (o en uno que lo incluya). Si se omite, la elección queda congelada tras el primer pick.\n"
           },
           "options": {
             "type": "array",
@@ -677,12 +672,7 @@
           "recharge": {
             "type": "string",
             "nullable": true,
-            "enum": [
-              "shortRest",
-              "longRest",
-              "shortOrLongRest"
-            ],
-            "description": "Cuándo POST `/character/{id}/rest` pone spent a 0. null si no se recargan o si uses es unlimited.\n"
+            "description": "Clave de `restRules.kinds` del ruleset. POST `/character/{id}/rest` pone spent a 0 si el descanso cubre esa clave (directa o por `includes`). null si no se recargan o si uses es unlimited.\n"
           }
         }
       },
@@ -1142,12 +1132,7 @@
               "recharge": {
                 "nullable": true,
                 "type": "string",
-                "enum": [
-                  "shortRest",
-                  "longRest",
-                  "shortOrLongRest"
-                ],
-                "description": "Recarga de los usos sin ranura. Nulo si es a voluntad."
+                "description": "Clave de `restRules.kinds`. Nulo si es a voluntad."
               }
             }
           },
@@ -1222,12 +1207,7 @@
           "recharge": {
             "nullable": true,
             "type": "string",
-            "enum": [
-              "shortRest",
-              "longRest",
-              "shortOrLongRest"
-            ],
-            "description": "Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad."
+            "description": "Clave de `restRules.kinds`. Obligatorio si uses es un número. Nulo si es a voluntad."
           },
           "spell": {
             "$ref": "#/components/schemas/Spell",
@@ -1313,12 +1293,7 @@
           "recharge": {
             "nullable": true,
             "type": "string",
-            "enum": [
-              "shortRest",
-              "longRest",
-              "shortOrLongRest"
-            ],
-            "description": "Recarga de los usos. Obligatorio si uses es un número. Nulo si es a voluntad."
+            "description": "Clave de `restRules.kinds`. Obligatorio si uses es un número. Nulo si es a voluntad."
           }
         }
       },
@@ -1851,11 +1826,7 @@
           },
           "replaceOn": {
             "type": "string",
-            "enum": [
-              "shortRest",
-              "longRest",
-              "shortOrLongRest"
-            ]
+            "description": "Clave de `restRules.kinds` del ruleset."
           },
           "options": {
             "type": "array",
@@ -2098,6 +2069,142 @@
         "type": "string",
         "description": "Expresión matemática evaluada en el servidor que devuelve un número fijo (bono, valor o total).\nTokens permitidos: `@attributes.{key}.modifier`, `@attributes.{key}.value`, `@class.{prop}` (ej. `@class.hitDie`),\n`@skills.{key}.totalModifier`, variables planas como `@proficiencyBonus` y `@level`, y tokens de arma\n`@weapon.attributeModifier`, `@weapon.attributeValue`, `@weapon.isProficient`, `@weapon.isMagic`,\n`@weapon.isRanged`, `@weapon.isTwoHanded`, `@weapon.hasProperty.{propertyId}` (0/1).\nFunciones: `max()`, `min()`. Condicionales ternarios (`? :`) y comparaciones (`>`, `<`, `==`).\nEl placeholder `{skillName}` solo está permitido en `passiveSkillFormula`.\nLos tokens `@weapon.*` solo están permitidos en `attackBonusFormula` y `damageBonusFormula`.\nNo se admite notación de dados (`1d20`, `2d6`), texto libre ni tokens desconocidos.\nLas tiradas de dados las resuelve el cliente; estas fórmulas solo calculan modificadores o totales numéricos.\n"
       },
+      "SystemRestRules": {
+        "type": "object",
+        "required": [
+          "kinds"
+        ],
+        "description": "Catálogo de tipos de descanso del ruleset. Un hijo que define `restRules` sustituye\nel del ancestro. Sin `kinds` (o con array vacío) el sistema no admite descansos:\nPOST `/character/{id}/rest` responde 400. `includes` indica jerarquía\n(p. ej. un descanso largo cubre uno corto).\n`endStancesOn` indica qué descansos cierran las stances; también aplica\npor `includes`. Si se omite, ningún descanso vacía `activeTraitIds`.\n",
+        "properties": {
+          "kinds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemRestKind"
+            }
+          },
+          "endStancesOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Claves de `kinds` cuyo descanso (o uno que las incluya) vacía `activeTraitIds`.\nEjemplo 5e: `[\"shortRest\"]` también cierra stances en un descanso largo.\n"
+          },
+          "hitPointRecovery": {
+            "type": "array",
+            "description": "Recuperación de PG y dados de golpe. Se aplica si el descanso ejecutado cubre\n`restKey` (directo o por `includes`). Si varias filas coinciden, `full` gana a\n`none` y `all` gana a `half` gana a `none`.\n",
+            "items": {
+              "$ref": "#/components/schemas/SystemHitPointRecovery"
+            }
+          },
+          "spellSlotRecovery": {
+            "type": "array",
+            "description": "Recuperación de ranuras. Se aplica si el descanso cubre `restKey` (directo o por\n`includes`). Si varias filas coinciden, se unen los `pools`. `standard` es la\ntabla de ranuras por nivel; `uniform` es la bolsa de nivel único (p. ej. pacto).\nEjemplo 5e: corto recupera `uniform`; largo recupera ambos.\n",
+            "items": {
+              "$ref": "#/components/schemas/SystemSpellSlotRecovery"
+            }
+          }
+        }
+      },
+      "SystemHitPointRecovery": {
+        "type": "object",
+        "required": [
+          "restKey",
+          "hp",
+          "hitDice"
+        ],
+        "properties": {
+          "restKey": {
+            "type": "string",
+            "description": "Clave de `kinds` a la que se aplica esta recuperación."
+          },
+          "hp": {
+            "type": "string",
+            "enum": [
+              "none",
+              "full"
+            ],
+            "description": "`full` pone HPActual igual a HPMax."
+          },
+          "hitDice": {
+            "type": "string",
+            "enum": [
+              "none",
+              "all",
+              "half"
+            ],
+            "description": "'`half` recupera floor(dados totales / 2) (mínimo 1), restando spent por clase\nen el orden de `classes`. `all` pone spent a 0.'\n"
+          }
+        }
+      },
+      "SystemSpellSlotRecovery": {
+        "type": "object",
+        "required": [
+          "restKey",
+          "pools"
+        ],
+        "properties": {
+          "restKey": {
+            "type": "string",
+            "description": "Clave de `kinds` a la que se aplica esta recuperación."
+          },
+          "pools": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "uniform"
+              ]
+            },
+            "description": "Bolsas que ponen spent a 0."
+          }
+        }
+      },
+      "SystemRestKind": {
+        "type": "object",
+        "required": [
+          "key",
+          "name"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave estable (p. ej. shortRest). La usan `recharge` y `replaceOn` de los rasgos."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre visible del descanso."
+          },
+          "duration": {
+            "type": "object",
+            "required": [
+              "value",
+              "unit"
+            ],
+            "properties": {
+              "value": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "minute",
+                  "hour"
+                ]
+              }
+            }
+          },
+          "includes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Claves de descansos que este tipo cubre. No puede haber ciclos."
+          }
+        }
+      },
       "AttributeModifierFormulaSyntax": {
         "type": "string",
         "description": "Fórmula del modificador de atributo. Usa `value` o `valor` como variable del puntuaje.\nFunciones permitidas: `Math.floor`, `Math.ceil`, `Math.round`, `Math.trunc`, `Math.abs`.\nEjemplo: `Math.floor((valor - 10) / 2)`.\n"
@@ -2243,6 +2350,9 @@
               "type": "string"
             },
             "description": "Atributos base para armas a distancia (ej. [\"dex\"]). Se combinan con attackAttributes de las properties.\n"
+          },
+          "restRules": {
+            "$ref": "#/components/schemas/SystemRestRules"
           }
         }
       },
@@ -2434,6 +2544,9 @@
               "type": "string"
             },
             "description": "Atributos base para armas a distancia (ej. [\"dex\"])."
+          },
+          "restRules": {
+            "$ref": "#/components/schemas/SystemRestRules"
           }
         }
       },
@@ -2557,6 +2670,9 @@
               "type": "string"
             },
             "description": "Atributos base para armas a distancia."
+          },
+          "restRules": {
+            "$ref": "#/components/schemas/SystemRestRules"
           }
         }
       },
@@ -5494,6 +5610,108 @@
           }
         }
       },
+      "CharacterSpellSlot": {
+        "type": "object",
+        "description": "Ranuras derivadas de la tabla de clase (`slots` o `uniformSlots`). Solo se persiste `spent` en el personaje.\n",
+        "required": [
+          "classId",
+          "pool",
+          "level",
+          "total",
+          "spent",
+          "remaining"
+        ],
+        "properties": {
+          "classId": {
+            "type": "string",
+            "description": "ID de MongoDB de la clase."
+          },
+          "pool": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "uniform"
+            ],
+            "description": "`standard` es la tabla por nivel. `uniform` es una bolsa de nivel único (p. ej. magia de pacto). El `level` de uniform es el de esa bolsa, no el del conjuro.\n"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Ranuras máximas de esa bolsa. No se persiste."
+          },
+          "spent": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "remaining": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "CharacterHitDice": {
+        "type": "object",
+        "description": "Bolsa de dados de golpe derivada. `total` es el nivel de esa clase; solo se persiste `spent` en el personaje.\n",
+        "required": [
+          "classId",
+          "hitDie",
+          "total",
+          "spent",
+          "remaining"
+        ],
+        "properties": {
+          "classId": {
+            "type": "string",
+            "description": "ID de MongoDB de la clase."
+          },
+          "hitDie": {
+            "type": "integer",
+            "description": "Caras del dado de golpe de la clase."
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Dados máximos (nivel en esa clase). No se persiste."
+          },
+          "spent": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Dados gastados desde la última recuperación."
+          },
+          "remaining": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "total menos spent."
+          }
+        }
+      },
+      "CharacterActiveCondition": {
+        "type": "object",
+        "required": [
+          "conditionId",
+          "name"
+        ],
+        "properties": {
+          "conditionId": {
+            "type": "string",
+            "description": "ID de MongoDB del estado de catálogo."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre hidratado del catálogo."
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel activo. Se omite en estados sin tabla de niveles."
+          }
+        }
+      },
       "CharacterTraitResource": {
         "type": "object",
         "description": "Usos gastados persistidos. remaining no va aquí; se lee en traits[].action.remaining (uses resuelto menos spent).\n",
@@ -5777,7 +5995,28 @@
             "items": {
               "type": "string"
             },
-            "description": "Stances encendidas (p. ej. Furia). Coincide con traits[].action.active. No altera el PDF. POST use las añade; deactivate y rest las quitan.\n"
+            "description": "Stances encendidas (p. ej. Furia). Coincide con traits[].action.active. No altera el PDF. POST use las añade; deactivate y rest las quitan según `endStancesOn`.\n"
+          },
+          "hitDice": {
+            "type": "array",
+            "description": "Dados de golpe por clase. POST `/character/{id}/hit-dice/spend` incrementa spent y suma PG (la tirada la hace el cliente). El descanso recupera según `restRules.hitPointRecovery`.\n",
+            "items": {
+              "$ref": "#/components/schemas/CharacterHitDice"
+            }
+          },
+          "spellSlots": {
+            "type": "array",
+            "description": "Ranuras por clase y bolsa. POST `/character/{id}/spell-slots/spend` incrementa spent. El descanso recupera según `restRules.spellSlotRecovery`.\n",
+            "items": {
+              "$ref": "#/components/schemas/CharacterSpellSlot"
+            }
+          },
+          "activeConditions": {
+            "type": "array",
+            "description": "Estados activos del personaje. POST `/character/{id}/conditions` aplica; PATCH con `delta` cambia el nivel; DELETE lo quita. El descanso aplica `Condition.recovery` si cubre el `type`.\n",
+            "items": {
+              "$ref": "#/components/schemas/CharacterActiveCondition"
+            }
           },
           "resistances": {
             "type": "array",
@@ -8638,6 +8877,23 @@
           }
         }
       },
+      "ConditionRecovery": {
+        "type": "object",
+        "required": [
+          "restKey",
+          "delta"
+        ],
+        "properties": {
+          "restKey": {
+            "type": "string",
+            "description": "Clave de `restRules.kinds` del ruleset. El descanso debe cubrirla (directo o por `includes`)."
+          },
+          "delta": {
+            "type": "integer",
+            "description": "Cambio de nivel al descansar. Negativo reduce; si el nivel baja de 1, se quita el estado."
+          }
+        }
+      },
       "Condition": {
         "type": "object",
         "properties": {
@@ -8667,6 +8923,13 @@
           "cumulative": {
             "type": "boolean",
             "description": "Si es verdadero, los niveles 1..N se aplican juntos. Requiere al menos un nivel."
+          },
+          "recovery": {
+            "type": "array",
+            "description": "Cómo cambia el nivel activo en un descanso. Las claves se validan contra `restRules.kinds` del sistema del estado.\n",
+            "items": {
+              "$ref": "#/components/schemas/ConditionRecovery"
+            }
           },
           "deletedAt": {
             "type": "string",
@@ -8705,6 +8968,12 @@
           "cumulative": {
             "type": "boolean",
             "description": "Si es verdadero, debe enviarse al menos un nivel."
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConditionRecovery"
+            }
           }
         }
       },
@@ -8733,6 +9002,12 @@
           "cumulative": {
             "type": "boolean",
             "description": "Si es verdadero, debe haber al menos un nivel en el mismo cuerpo."
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConditionRecovery"
+            }
           }
         }
       },
@@ -11607,7 +11882,7 @@
       },
       "post": {
         "summary": "Crear un nuevo sistema",
-        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"abilityScoreProgression\": [4, 8, 12, 16, 19],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\"\n}\n```\n",
+        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"abilityScoreProgression\": [4, 8, 12, 16, 19],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\",\n  \"restRules\": {\n    \"kinds\": [\n      { \"key\": \"shortRest\", \"name\": \"Descanso corto\", \"duration\": { \"value\": 1, \"unit\": \"hour\" } },\n      { \"key\": \"longRest\", \"name\": \"Descanso largo\", \"duration\": { \"value\": 8, \"unit\": \"hour\" }, \"includes\": [\"shortRest\"] }\n    ],\n    \"endStancesOn\": [\"shortRest\"],\n    \"hitPointRecovery\": [\n      { \"restKey\": \"longRest\", \"hp\": \"full\", \"hitDice\": \"half\" }\n    ],\n    \"spellSlotRecovery\": [\n      { \"restKey\": \"shortRest\", \"pools\": [\"uniform\"] },\n      { \"restKey\": \"longRest\", \"pools\": [\"standard\", \"uniform\"] }\n    ]\n  }\n}\n```\n",
         "tags": [
           "Sistemas"
         ],
@@ -15350,8 +15625,8 @@
     },
     "/character/{id}/rest": {
       "post": {
-        "summary": "Descanso corto o largo (usos de rasgos)",
-        "description": "Mira `traits[].action.recharge` de cada rasgo. Si encaja con `type`\n(`shortRest`, `longRest` o `shortOrLongRest`), pone `traitResources[].spent` a 0\n(y `action.remaining` vuelve al máximo). Vacía `activeTraitIds`.\n`traitChoices` es opcional: solo admite claves de daño con `replaceOn` compatible\ncon el descanso. Si se omite, se conserva la elección anterior.\nNo toca puntos de golpe, conjuros ni condiciones.\n",
+        "summary": "Descanso (usos de rasgos)",
+        "description": "`type` debe ser una clave de `restRules.kinds` del ruleset del personaje.\nSi el sistema no define `restRules`, o `type` no está en el catálogo, responde 400.\nMira `traits[].action.recharge` de cada rasgo. Si el descanso cubre esa clave\n(igualdad o `includes` transitivo), pone `traitResources[].spent` a 0\n(y `action.remaining` vuelve al máximo).\nVacía `activeTraitIds` solo si `restRules.endStancesOn` cubre el `type`\n(directo o por `includes`). Si `endStancesOn` se omite, las stances se conservan.\n`traitChoices` es opcional: solo admite claves de daño con `replaceOn` compatible\ncon el descanso. Si se omite, se conserva la elección anterior.\nSi `hitPointRecovery` cubre el `type`, aplica `hp` (`full` pone HPActual a HPMax)\ny `hitDice` (`all` o `half` de los dados totales, mínimo 1, restando spent por clase\nen el orden de `classes`). El gasto de dados\ndurante un descanso corto es POST `/character/{id}/hit-dice/spend`.\nSi `spellSlotRecovery` cubre el `type`, pone a 0 el spent de las bolsas listadas\n(`standard` y/o `uniform`). El gasto de ranuras es POST `/character/{id}/spell-slots/spend`.\nA cada `activeConditions` cuyo `Condition.recovery` cubra el `type` le aplica la suma\nde `delta`; si el nivel baja de 1, quita el estado.\n",
         "tags": [
           "Personajes"
         ],
@@ -15383,11 +15658,7 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "enum": [
-                      "shortRest",
-                      "longRest"
-                    ],
-                    "description": "Tipo de descanso."
+                    "description": "Clave de `restRules.kinds` del sistema del personaje."
                   },
                   "traitChoices": {
                     "type": "object",
@@ -15410,7 +15681,385 @@
             }
           },
           "400": {
-            "description": "Tipo de descanso inválido."
+            "description": "El sistema no define descansos o el tipo no está en restRules.kinds."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/hit-dice/spend": {
+      "post": {
+        "summary": "Gastar dados de golpe",
+        "description": "El cliente tira los dados. El cuerpo indica `classId`, `count` y `hpGained`.\nValida que queden dados de esa clase (`level - spent`) y que `hpGained` no supere\n`count * hitDie + count * modificador de con` (0 si no hay característica `con`).\nSuma `hpGained` a `HPActual` y recorta a `HPMax`. Incrementa `hitDice[].spent`.\nNo exige un descanso en curso.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "classId",
+                  "count",
+                  "hpGained"
+                ],
+                "properties": {
+                  "classId": {
+                    "type": "string",
+                    "description": "ID de la clase cuyos dados se gastan."
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Dados a gastar."
+                  },
+                  "hpGained": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "PG recuperados (tirada del cliente más modificador)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado tras gastar dados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sin dados, PG por encima del máximo o clase inexistente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/spell-slots/spend": {
+      "post": {
+        "summary": "Gastar una ranura de conjuro",
+        "description": "El cuerpo indica `classId`, `pool` (`standard` o `uniform`) y `level`.\nGasta 1 ranura de esa bolsa. En `uniform`, `level` es el de la bolsa\n(el de `uniformSlots.level`), no el del conjuro lanzado.\nValida que queden ranuras (`total - spent`). Incrementa `spellSlots[].spent`.\nNo exige un descanso en curso.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "classId",
+                  "pool",
+                  "level"
+                ],
+                "properties": {
+                  "classId": {
+                    "type": "string",
+                    "description": "ID de la clase cuyas ranuras se gastan."
+                  },
+                  "pool": {
+                    "type": "string",
+                    "enum": [
+                      "standard",
+                      "uniform"
+                    ]
+                  },
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9,
+                    "description": "Nivel de la ranura (o de la bolsa uniforme)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado tras gastar la ranura.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sin ranuras, bolsa inexistente o datos inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/conditions": {
+      "post": {
+        "summary": "Aplicar un estado al personaje",
+        "description": "Añade el estado a `activeConditions`. Si el catálogo tiene niveles, suma `level`\n(por defecto 1) y recorta al máximo de la tabla. Si no tiene niveles y ya está\nactivo, responde 400. Rechaza inmunidades de rasgos y de stances activas.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "conditionId"
+                ],
+                "properties": {
+                  "conditionId": {
+                    "type": "string"
+                  },
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Niveles a sumar (estados escalonados). Por defecto 1."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Inmune, duplicado o estado fuera de los sistemas del personaje."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o estado no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/conditions/{conditionId}": {
+      "patch": {
+        "summary": "Cambiar el nivel de un estado activo",
+        "description": "Suma `delta` al nivel. Si baja de 1, quita el estado. En estados sin niveles,\nun `delta` negativo los quita.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "conditionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "delta"
+                ],
+                "properties": {
+                  "delta": {
+                    "type": "integer",
+                    "description": "Cambio de nivel. No puede ser 0."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El personaje no tiene el estado o el delta no es válido."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o estado no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Quitar un estado activo",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "conditionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El personaje no tiene este estado."
           },
           "401": {
             "description": "No autorizado."

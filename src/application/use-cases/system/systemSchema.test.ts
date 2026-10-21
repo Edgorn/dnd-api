@@ -115,6 +115,109 @@ describe("UpdateSystemSchema kind", () => {
   });
 });
 
+describe("CreateSystemSchema restRules", () => {
+  const restRules = {
+    kinds: [
+      { key: "shortRest", name: "Descanso corto", duration: { value: 1, unit: "hour" } },
+      { key: "longRest", name: "Descanso largo", duration: { value: 8, unit: "hour" }, includes: ["shortRest"] },
+    ],
+  };
+
+  it("accepts a valid rest catalog", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      restRules,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a cycle in includes", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      restRules: {
+        kinds: [
+          { key: "a", name: "A", includes: ["b"] },
+          { key: "b", name: "B", includes: ["a"] },
+        ],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts endStancesOn keys from kinds", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      restRules: { ...restRules, endStancesOn: ["shortRest"] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects endStancesOn keys missing from kinds", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      restRules: { ...restRules, endStancesOn: ["watch"] },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts hitPointRecovery keys from kinds", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      restRules: {
+        ...restRules,
+        hitPointRecovery: [{ restKey: "longRest", hp: "full", hitDice: "half" }],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects hitPointRecovery keys missing from kinds", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      restRules: {
+        ...restRules,
+        hitPointRecovery: [{ restKey: "watch", hp: "full", hitDice: "all" }],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts spellSlotRecovery keys from kinds", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      restRules: {
+        ...restRules,
+        spellSlotRecovery: [
+          { restKey: "shortRest", pools: ["uniform"] },
+          { restKey: "longRest", pools: ["standard", "uniform"] },
+        ],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects spellSlotRecovery keys missing from kinds", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      restRules: {
+        ...restRules,
+        spellSlotRecovery: [{ restKey: "watch", pools: ["standard"] }],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects restRules on a setting", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Forgotten Realms",
+      kind: "setting",
+      parentIds: ["507f1f77bcf86cd799439011"],
+      restRules,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("UpdateSystemSchema abilityScoreProgression", () => {
   it("accepts an empty array", () => {
     const result = UpdateSystemSchema.safeParse({

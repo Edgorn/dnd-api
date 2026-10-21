@@ -23,6 +23,7 @@ import {
 } from "./optionGroup.types"
 import { CharacterFormApi, CharacterFormMongo, CreatureFormPurpose } from "./creatureForm.types"
 import { CharacterAttributeApi, AttributeApi } from "./attribute.types"
+import { SpellSlotPool } from "./system.types"
 import { Ideal } from "./background.types"
 import { CoinApi } from "./coin.types"
 
@@ -55,6 +56,82 @@ export type CharacterStartingEquipmentInput = CharacterEquipmentMongo;
 export interface CharacterTraitResource {
   traitId: string;
   spent: number;
+}
+
+export interface CharacterHitDiceSpent {
+  classId: string;
+  spent: number;
+}
+
+export interface CharacterHitDiceApi {
+  classId: string;
+  hitDie: number;
+  total: number;
+  spent: number;
+  remaining: number;
+}
+
+export interface TypeSpendHitDice {
+  id: string;
+  classId: string;
+  count: number;
+  hpGained: number;
+  userId: string;
+}
+
+export interface CharacterSpellSlotSpent {
+  classId?: string;
+  pool: SpellSlotPool;
+  level: number;
+  spent: number;
+}
+
+export interface CharacterSpellSlotApi {
+  classId: string;
+  pool: SpellSlotPool;
+  level: number;
+  total: number;
+  spent: number;
+  remaining: number;
+}
+
+export interface TypeSpendSpellSlot {
+  id: string;
+  classId: string;
+  pool: SpellSlotPool;
+  level: number;
+  userId: string;
+}
+
+export interface CharacterActiveCondition {
+  conditionId: string;
+  level?: number;
+}
+
+export interface CharacterActiveConditionApi {
+  conditionId: string;
+  name: string;
+  level?: number;
+}
+
+export interface TypeApplyCharacterCondition {
+  id: string;
+  conditionId: string;
+  level?: number;
+  userId: string;
+}
+
+export interface TypeUpdateCharacterCondition {
+  id: string;
+  conditionId: string;
+  delta: number;
+  userId: string;
+}
+
+export interface TypeRemoveCharacterCondition {
+  id: string;
+  conditionId: string;
+  userId: string;
 }
 
 export interface ConsultarPersonajeOptions {
@@ -162,8 +239,7 @@ export interface TypeBindSpellPrivileges {
   userId: string;
 }
 
-export const CHARACTER_REST_TYPES = ["shortRest", "longRest"] as const;
-export type CharacterRestType = typeof CHARACTER_REST_TYPES[number];
+export type CharacterRestType = string;
 
 export interface TypeUseTrait {
   id: string;
@@ -366,7 +442,10 @@ export interface PersonajeMongo {
   spellPrivileges?: CharacterSpellPrivilegeMongo[],
   companions?: CharacterCompanion[],
   traitResources?: CharacterTraitResource[],
-  activeTraitIds?: string[]
+  activeTraitIds?: string[],
+  hitDiceSpent?: CharacterHitDiceSpent[]
+  spellSlotsSpent?: CharacterSpellSlotSpent[]
+  activeConditions?: CharacterActiveCondition[]
 }
 
 export interface PersonajeApi {
@@ -444,7 +523,10 @@ export interface PersonajeApi {
   spellPrivileges?: CharacterSpellPrivilegeApi[],
   companions: CharacterCompanion[],
   traitResources: CharacterTraitResource[],
-  activeTraitIds: string[]
+  activeTraitIds: string[],
+  hitDice: CharacterHitDiceApi[]
+  spellSlots: CharacterSpellSlotApi[]
+  activeConditions: CharacterActiveConditionApi[]
 }
 
 export interface TypeAddCharacterForm {
