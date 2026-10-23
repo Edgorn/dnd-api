@@ -13,8 +13,9 @@ export function createInventoryInstance(input: {
   equipped?: boolean;
   isBond?: boolean;
   isFavorite?: boolean;
-  pactOrigin?: PersonajeEquipmentMongo["pactOrigin"];
-  pactStored?: boolean;
+  bondOrigin?: PersonajeEquipmentMongo["bondOrigin"];
+  bondStored?: boolean;
+  uniqueGranted?: boolean;
   customization?: PersonajeEquipmentMongo["customization"];
 }): PersonajeEquipmentMongo {
   return {
@@ -25,8 +26,9 @@ export function createInventoryInstance(input: {
     equipped: input.equipped ?? false,
     isBond: input.isBond ?? false,
     isFavorite: input.isFavorite ?? false,
-    ...(input.pactOrigin ? { pactOrigin: input.pactOrigin } : {}),
-    ...(input.pactStored ? { pactStored: true } : {}),
+    ...(input.bondOrigin ? { bondOrigin: input.bondOrigin } : {}),
+    ...(input.bondStored ? { bondStored: true } : {}),
+    ...(input.uniqueGranted ? { uniqueGranted: true } : {}),
     ...(input.customization ? { customization: input.customization } : {}),
   };
 }
@@ -42,16 +44,18 @@ export function cloneInventory(
     isMagic: item.isMagic,
     isBond: item.isBond,
     isFavorite: item.isFavorite,
-    ...(item.pactOrigin ? { pactOrigin: item.pactOrigin } : {}),
-    ...(item.pactStored ? { pactStored: true } : {}),
+    ...(item.bondOrigin ? { bondOrigin: item.bondOrigin } : {}),
+    ...(item.bondStored ? { bondStored: true } : {}),
+    ...(item.uniqueGranted ? { uniqueGranted: true } : {}),
     ...(item.customization ? { customization: item.customization } : {}),
   }));
 }
 
 export function canStackWith(
   a: PersonajeEquipmentMongo,
-  b: Pick<PersonajeEquipmentMongo, "equipmentId" | "isMagic" | "isBond" | "equipped" | "isFavorite" | "customization">
+  b: Pick<PersonajeEquipmentMongo, "equipmentId" | "isMagic" | "isBond" | "equipped" | "isFavorite" | "uniqueGranted" | "customization">
 ): boolean {
+  if (a.uniqueGranted || b.uniqueGranted) return false;
   if (a.isBond || b.isBond) return false;
   if (a.equipped || b.equipped) return false;
   if (a.isFavorite || b.isFavorite) return false;

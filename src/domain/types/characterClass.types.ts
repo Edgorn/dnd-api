@@ -39,6 +39,13 @@ export interface SpellCopyCost {
  * Presence of this object is the frontend indicator that the class can copy spells
  * outside of level-up.
  */
+export const SPELL_REPOSITORY_SOURCES = ["classList", "anyClassList"] as const;
+export type SpellRepositorySource = typeof SPELL_REPOSITORY_SOURCES[number];
+export const SPELL_REPOSITORY_DESTINATIONS = ["known", "extra"] as const;
+export type SpellRepositoryDestination = typeof SPELL_REPOSITORY_DESTINATIONS[number];
+export const SPELL_REPOSITORY_MAX_LEVELS = ["castable", "halfClassLevelCeil"] as const;
+export type SpellRepositoryMaxLevel = typeof SPELL_REPOSITORY_MAX_LEVELS[number];
+
 export interface SpellRepositoryConfig {
   name: string;
   equipmentId?: string;
@@ -46,6 +53,10 @@ export interface SpellRepositoryConfig {
   copy: SpellCopyCost;
   duplicate: SpellCopyCost;
   recoverPreparedOnLoss: boolean;
+  source?: SpellRepositorySource;
+  destination?: SpellRepositoryDestination;
+  ritualOnly?: boolean;
+  maxLevel?: SpellRepositoryMaxLevel;
 }
 
 /**
@@ -73,8 +84,8 @@ export {
   SPELL_CHOICE_SOURCES
 } from "./classLevelChoices.types";
 
-/** Uniform slot pool: `count` slots, all of spell `level` (e.g. warlock-style). */
-export interface UniformSpellSlots {
+/** Fixed-level slot pool: `count` slots, all of spell `level`. */
+export interface FixedLevelSpellSlots {
   count: number;
   level: number;
 }
@@ -87,10 +98,10 @@ export interface ClassSpellSlots {
    * Not inherited from previous levels.
    */
   spellsLearned?: number;
-  /** Spell slot counts keyed by spell level ("1".."9"). Mutually exclusive with uniformSlots. */
+  /** Spell slot counts keyed by spell level ("1".."9"). Mutually exclusive with fixedLevelSlots. */
   slots?: Record<string, number>;
-  /** Uniform slot pool. Mutually exclusive with slots. */
-  uniformSlots?: UniformSpellSlots;
+  /** Fixed-level slot pool. Mutually exclusive with slots. */
+  fixedLevelSlots?: FixedLevelSpellSlots;
 }
 
 /** Slim level row accepted on create/update (does not replace full Mongo level docs). */

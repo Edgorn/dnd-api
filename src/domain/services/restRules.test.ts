@@ -243,17 +243,17 @@ describe("resolveSpellSlotRecovery", () => {
   const withRecovery: SystemRestRules = {
     ...fivee,
     spellSlotRecovery: [
-      { restKey: "shortRest", pools: ["uniform"] },
-      { restKey: "longRest", pools: ["standard", "uniform"] },
+      { restKey: "shortRest", pools: ["fixedLevel"] },
+      { restKey: "longRest", pools: ["standard", "fixedLevel"] },
     ],
   };
 
   it("recovers only uniform slots on a short rest", () => {
-    expect(resolveSpellSlotRecovery(withRecovery, "shortRest")).toEqual(["uniform"]);
+    expect(resolveSpellSlotRecovery(withRecovery, "shortRest")).toEqual(["fixedLevel"]);
   });
 
   it("unions matching rows on a long rest that includes the short rest", () => {
-    expect(resolveSpellSlotRecovery(withRecovery, "longRest")).toEqual(["standard", "uniform"]);
+    expect(resolveSpellSlotRecovery(withRecovery, "longRest")).toEqual(["standard", "fixedLevel"]);
   });
 
   it("returns nothing when omitted", () => {

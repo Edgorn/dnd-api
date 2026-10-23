@@ -115,7 +115,7 @@ describe("enrichEquipmentWithCombatBonuses", () => {
 
   it("forces proficiency on a manifested pact weapon", () => {
     const result = enrichEquipmentWithCombatBonuses({
-      equipment: [{ ...baseEquipment, isBond: true, pactOrigin: "summoned" }],
+      equipment: [{ ...baseEquipment, isBond: true, bondOrigin: "summoned" }],
       attributes: sampleAttributes as any,
       proficiencies: [],
       proficiencyBonus: 2,
@@ -129,7 +129,7 @@ describe("enrichEquipmentWithCombatBonuses", () => {
 
   it("does not force proficiency on a stored pact weapon", () => {
     const result = enrichEquipmentWithCombatBonuses({
-      equipment: [{ ...baseEquipment, isBond: true, pactOrigin: "bound", pactStored: true }],
+      equipment: [{ ...baseEquipment, isBond: true, bondOrigin: "bound", bondStored: true }],
       attributes: sampleAttributes as any,
       proficiencies: [],
       proficiencyBonus: 2,

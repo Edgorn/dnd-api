@@ -115,6 +115,28 @@ describe("buildPendingOptionChoices", () => {
     expect(pending[0].options.find(item => item.id === OPT_D)?.unmet).toBe(true);
     expect(pending[0].selected).toEqual(selected);
   });
+
+  it("sorts offered options alphabetically by trait name", () => {
+    const named = [
+      option(OPT_B, TRAIT_B, { trait: { name: "Visión diabólica" } as GroupOptionApi["trait"] }),
+      option(OPT_C, TRAIT_C, { trait: { name: "Agonía" } as GroupOptionApi["trait"] }),
+      option(OPT_D, TRAIT_D, { trait: { name: "Llamar al familiar" } as GroupOptionApi["trait"] })
+    ];
+
+    const pending = buildPendingOptionChoices({
+      configs: [{ groupId: GROUP, choose: 1 }],
+      options: named,
+      selections: [],
+      context: context(),
+      groupNames: { [GROUP]: "Invocaciones" }
+    });
+
+    expect(pending[0].options.map(item => item.trait?.name)).toEqual([
+      "Agonía",
+      "Llamar al familiar",
+      "Visión diabólica"
+    ]);
+  });
 });
 
 describe("validateLevelUpOptionPicks", () => {

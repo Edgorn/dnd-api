@@ -9,6 +9,7 @@ import GetSpellsBySystems from "../../../application/use-cases/spell/getSpellsBy
 import GetSpellById from "../../../application/use-cases/spell/getSpellById.use-case";
 import GetSpellsByLevel from "../../../application/use-cases/spell/getSpellsByLevel.use-case";
 import GetRitualSpells from "../../../application/use-cases/spell/getRitualSpells.use-case";
+import GetNonRitualSpells from "../../../application/use-cases/spell/getNonRitualSpells.use-case";
 
 export class SpellController {
   constructor(
@@ -19,7 +20,8 @@ export class SpellController {
     private readonly getSpellsBySystemsUseCase: GetSpellsBySystems,
     private readonly getSpellByIdUseCase: GetSpellById,
     private readonly getSpellsByLevelUseCase: GetSpellsByLevel,
-    private readonly getRitualSpellsUseCase: GetRitualSpells
+    private readonly getRitualSpellsUseCase: GetRitualSpells,
+    private readonly getNonRitualSpellsUseCase: GetNonRitualSpells
   ) {}
 
   getSpellsBySystems = async (req: Request, res: Response, next: NextFunction) => {
@@ -59,7 +61,7 @@ export class SpellController {
   getSpellsByLevel = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { level } = req.params;
-      const { ruleset, className } = req.query;
+      const { ruleset, className, ritual } = req.query;
       let rulesets: string[] = [];
 
       if (typeof ruleset === "string") {
@@ -68,10 +70,18 @@ export class SpellController {
         rulesets = ruleset as string[];
       }
 
+      let ritualFilter: boolean | undefined;
+      if (ritual === "true") ritualFilter = true;
+      else if (ritual === "false") ritualFilter = false;
+      else if (ritual !== undefined) {
+        throw new ValidationError("ritual debe ser true o false");
+      }
+
       const data = await this.getSpellsByLevelUseCase.execute(
         Number(level),
         rulesets,
-        typeof className === 'string' ? className : undefined
+        typeof className === 'string' ? className : undefined,
+        ritualFilter
       );
       return res.status(200).json(data);
     } catch (e) {
@@ -95,6 +105,25 @@ export class SpellController {
       return res.status(200).json(data);
     } catch (e) {
       console.error("[SpellController.getRitualSpells] Error:", e);
+      next(e);
+    }
+  };
+
+  getNonRitualSpells = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { ruleset } = req.query;
+      let rulesets: string[] = [];
+
+      if (typeof ruleset === "string") {
+        rulesets = [ruleset];
+      } else if (Array.isArray(ruleset)) {
+        rulesets = ruleset as string[];
+      }
+
+      const data = await this.getNonRitualSpellsUseCase.execute(rulesets);
+      return res.status(200).json(data);
+    } catch (e) {
+      console.error("[SpellController.getNonRitualSpells] Error:", e);
       next(e);
     }
   };

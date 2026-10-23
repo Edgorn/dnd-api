@@ -318,9 +318,21 @@
             "$ref": "#/components/schemas/TraitWeaponDamageBonus",
             "description": "Bono de daño a armas mientras el rasgo está activo (p. ej. Furia). No se aplica en el PDF; solo en la ficha de juego cuando la stance está on.\n"
           },
-          "pactWeapon": {
-            "$ref": "#/components/schemas/TraitPactWeapon",
-            "description": "El rasgo invoca o materializa un arma de pacto. Exige action distinta de stance. POST use crea o saca el arma; POST deactivate la descarta.\n"
+          "weaponBond": {
+            "$ref": "#/components/schemas/TraitWeaponBond",
+            "description": "El rasgo invoca o materializa un arma vinculada. Exige action distinta de stance. POST use crea o saca el arma; POST deactivate la descarta.\n"
+          },
+          "uniqueEquipmentGrant": {
+            "$ref": "#/components/schemas/TraitUniqueEquipmentGrantApi",
+            "description": "Objeto único concedido, hidratado en GET (`id` y `name` del catálogo en el momento de leer). El nombre no se persiste en el rasgo. Si el equipo se borra, el grant se omite. Exige action distinta de stance. Al ganar el rasgo se crea el objeto. POST use sustituye esa instancia (ceremonia) y destruye la anterior. Los trucos de spellPrivileges con source anyClassList solo salen en spells.extra mientras el personaje tenga el objeto concedido. En POST/PUT envíe TraitUniqueEquipmentGrant (`equipmentId`) o null para borrar.\n"
+          },
+          "spellRepository": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SpellRepositoryConfig"
+              }
+            ],
+            "description": "Repositorio de conjuros del rasgo (p. ej. Libro de Secretos Ancestrales). El cliente usa copy para horas y oro. POST /character/{id}/copied-spells con traitId copia según source, destination, ritualOnly y maxLevel.\n"
           }
         }
       },
@@ -680,11 +692,11 @@
           },
           "recoverSpellSlots": {
             "$ref": "#/components/schemas/TraitRecoverSpellSlots",
-            "description": "Al usar el rasgo, recupera todas las ranuras gastadas de esa bolsa en la clase otorgante. Solo en acciones instantáneas. Maestro Sobrenatural usa pool uniform y scope grantingClass.\n"
+            "description": "Al usar el rasgo, recupera todas las ranuras gastadas de esa bolsa en la clase otorgante. Solo en acciones instantáneas. Maestro Sobrenatural usa pool fixedLevel y scope grantingClass.\n"
           }
         }
       },
-      "TraitPactWeapon": {
+      "TraitWeaponBond": {
         "type": "object",
         "required": [
           "melee",
@@ -698,11 +710,40 @@
           },
           "grantsProficiency": {
             "type": "boolean",
-            "description": "Competencia con el arma de pacto mientras está manifiesta."
+            "description": "Competencia con el arma vinculada mientras está manifiesta."
           },
           "magical": {
             "type": "boolean",
             "description": "Las invocadas se marcan isMagic aunque el catálogo sea mundano."
+          }
+        }
+      },
+      "TraitUniqueEquipmentGrant": {
+        "type": "object",
+        "required": [
+          "equipmentId"
+        ],
+        "properties": {
+          "equipmentId": {
+            "type": "string",
+            "description": "ID de MongoDB del objeto de catálogo que se concede como instancia única."
+          }
+        }
+      },
+      "TraitUniqueEquipmentGrantApi": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de MongoDB del objeto de catálogo concedido."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre actual del objeto en el catálogo. No se persiste en el rasgo."
           }
         }
       },
@@ -717,9 +758,9 @@
             "type": "string",
             "enum": [
               "standard",
-              "uniform"
+              "fixedLevel"
             ],
-            "description": "Bolsa a recuperar. `uniform` es Magia del Pacto. `standard` es la tabla de ranuras por nivel.\n"
+            "description": "Bolsa a recuperar. `fixedLevel` es una bolsa de nivel fijo. `standard` es la tabla de ranuras por nivel.\n"
           },
           "scope": {
             "type": "string",
@@ -1119,9 +1160,10 @@
             "type": "string",
             "enum": [
               "known",
-              "classList"
+              "classList",
+              "anyClassList"
             ],
-            "description": "Origen de los conjuros elegibles. `known` exige que estén en los conocidos de la clase (p. ej. libro de conjuros); `classList` usa la lista de la clase.\n"
+            "description": "Origen de los conjuros elegibles. `known` exige que estén en los conocidos de la clase (p. ej. libro de conjuros); `classList` usa la lista de la clase; `anyClassList` admite conjuros de cualquier lista (Pacto del Grimorio).\n"
           },
           "atLevel": {
             "type": "integer",
@@ -1152,6 +1194,10 @@
                     }
                   }
                 ]
+              },
+              "ritual": {
+                "type": "boolean",
+                "description": "Si está presente, el conjuro debe coincidir con ese valor de ritual."
               }
             }
           },
@@ -1813,14 +1859,32 @@
             ],
             "description": "Bono de daño a armas mientras la stance está activa. null borra el campo."
           },
-          "pactWeapon": {
+          "weaponBond": {
             "nullable": true,
             "allOf": [
               {
-                "$ref": "#/components/schemas/TraitPactWeapon"
+                "$ref": "#/components/schemas/TraitWeaponBond"
               }
             ],
-            "description": "Arma de pacto. Exige action distinta de stance. null borra el campo."
+            "description": "Arma vinculada. Exige action distinta de stance. null borra el campo."
+          },
+          "uniqueEquipmentGrant": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitUniqueEquipmentGrant"
+              }
+            ],
+            "description": "Objeto único concedido (`equipmentId`). Exige action distinta de stance. null borra el campo. En GET el rasgo devuelve id y name hidratados.\n"
+          },
+          "spellRepository": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SpellRepositoryConfig"
+              }
+            ],
+            "description": "Repositorio de conjuros del rasgo. null borra el campo.\n"
           }
         }
       },
@@ -2132,14 +2196,32 @@
             ],
             "description": "Bono de daño a armas mientras la stance está activa. null borra el campo."
           },
-          "pactWeapon": {
+          "weaponBond": {
             "nullable": true,
             "allOf": [
               {
-                "$ref": "#/components/schemas/TraitPactWeapon"
+                "$ref": "#/components/schemas/TraitWeaponBond"
               }
             ],
-            "description": "Arma de pacto. Exige action distinta de stance. null borra el campo."
+            "description": "Arma vinculada. Exige action distinta de stance. null borra el campo."
+          },
+          "uniqueEquipmentGrant": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TraitUniqueEquipmentGrant"
+              }
+            ],
+            "description": "Objeto único concedido (`equipmentId`). Exige action distinta de stance. null borra el campo. En GET el rasgo devuelve id y name hidratados.\n"
+          },
+          "spellRepository": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SpellRepositoryConfig"
+              }
+            ],
+            "description": "Repositorio de conjuros del rasgo. null borra el campo.\n"
           }
         }
       },
@@ -2176,7 +2258,7 @@
           },
           "spellSlotRecovery": {
             "type": "array",
-            "description": "Recuperación de ranuras. Se aplica si el descanso cubre `restKey` (directo o por\n`includes`). Si varias filas coinciden, se unen los `pools`. `standard` es la\ntabla de ranuras por nivel; `uniform` es la bolsa de nivel único (p. ej. pacto).\nEjemplo 5e: corto recupera `uniform`; largo recupera ambos.\n",
+            "description": "Recuperación de ranuras. Se aplica si el descanso cubre `restKey` (directo o por\n`includes`). Si varias filas coinciden, se unen los `pools`. `standard` es la\ntabla de ranuras por nivel; `fixedLevel` es la bolsa de nivel fijo.\nEjemplo 5e: corto recupera `fixedLevel`; largo recupera ambos.\n",
             "items": {
               "$ref": "#/components/schemas/SystemSpellSlotRecovery"
             }
@@ -2254,7 +2336,7 @@
               "type": "string",
               "enum": [
                 "standard",
-                "uniform"
+                "fixedLevel"
               ]
             },
             "description": "Bolsas que ponen spent a 0."
@@ -5712,7 +5794,7 @@
       },
       "CharacterSpellSlot": {
         "type": "object",
-        "description": "Ranuras derivadas de la tabla de clase (`slots` o `uniformSlots`). Solo se persiste `spent` en el personaje.\n",
+        "description": "Ranuras derivadas de la tabla de clase (`slots` o `fixedLevelSlots`). Solo se persiste `spent` en el personaje.\n",
         "required": [
           "classId",
           "pool",
@@ -5730,9 +5812,9 @@
             "type": "string",
             "enum": [
               "standard",
-              "uniform"
+              "fixedLevel"
             ],
-            "description": "`standard` es la tabla por nivel. `uniform` es una bolsa de nivel único (p. ej. magia de pacto). El `level` de uniform es el de esa bolsa, no el del conjuro.\n"
+            "description": "`standard` es la tabla por nivel. `fixedLevel` es una bolsa de nivel fijo. El `level` de fixedLevel es el de esa bolsa, no el del conjuro.\n"
           },
           "level": {
             "type": "integer",
@@ -7794,19 +7876,23 @@
           },
           "isBond": {
             "type": "boolean",
-            "description": "Indica si el objeto está vinculado por pacto."
+            "description": "Indica si el objeto está vinculado."
           },
-          "pactOrigin": {
+          "bondOrigin": {
             "type": "string",
             "enum": [
               "summoned",
               "bound"
             ],
-            "description": "Origen del arma de pacto. summoned es invocada; bound es un arma mágica ritual."
+            "description": "Origen del arma vinculada. summoned es invocada; bound es un arma mágica ritual."
           },
-          "pactStored": {
+          "bondStored": {
             "type": "boolean",
-            "description": "True si el arma de pacto está en el espacio extradimensional."
+            "description": "True si el arma vinculada está en el espacio extradimensional."
+          },
+          "uniqueGranted": {
+            "type": "boolean",
+            "description": "True si el objeto es la instancia única concedida por un rasgo."
           },
           "bonuses": {
             "type": "object",
@@ -9628,9 +9714,9 @@
               "type": "integer",
               "minimum": 0
             },
-            "description": "Ranuras por nivel de conjuro (clave \"1\"..\"9\", valor = cantidad). Excluyente con uniformSlots.\n"
+            "description": "Ranuras por nivel de conjuro (clave \"1\"..\"9\", valor = cantidad). Excluyente con fixedLevelSlots.\n"
           },
-          "uniformSlots": {
+          "fixedLevelSlots": {
             "type": "object",
             "required": [
               "count",
@@ -9649,7 +9735,7 @@
                 "description": "Nivel de esas ranuras. Permite conocer y preparar conjuros de 1 hasta este nivel."
               }
             },
-            "description": "Progresión uniforme (cantidad + nivel de ranura). Excluyente con slots. Toda la clase debe usar un solo modo (tabla o uniforme).\n"
+            "description": "Progresión de nivel fijo (cantidad + nivel de ranura). Excluyente con slots. Toda la clase debe usar un solo modo (tabla o nivel fijo).\n"
           }
         }
       },
@@ -9873,6 +9959,34 @@
           "recoverPreparedOnLoss": {
             "type": "boolean",
             "description": "Si se pierde el repositorio, se pueden transcribir los conjuros preparados actuales."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "classList",
+              "anyClassList"
+            ],
+            "description": "Origen al copiar. classList es la lista de la clase (mago). anyClassList admite conjuros de cualquier lista (Libro de Secretos Ancestrales). Por defecto classList.\n"
+          },
+          "destination": {
+            "type": "string",
+            "enum": [
+              "known",
+              "extra"
+            ],
+            "description": "Dónde se guardan los conjuros copiados. known suma a conocidos; extra no cuenta para el tope. Por defecto known.\n"
+          },
+          "ritualOnly": {
+            "type": "boolean",
+            "description": "Si es true, solo se pueden copiar conjuros rituales. Por defecto false."
+          },
+          "maxLevel": {
+            "type": "string",
+            "enum": [
+              "castable",
+              "halfClassLevelCeil"
+            ],
+            "description": "Tope de nivel al copiar. castable usa las ranuras actuales; halfClassLevelCeil es la mitad del nivel de clase redondeando hacia arriba. Por defecto castable.\n"
           }
         }
       },
@@ -12075,7 +12189,7 @@
       },
       "post": {
         "summary": "Crear un nuevo sistema",
-        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"abilityScoreProgression\": [4, 8, 12, 16, 19],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\",\n  \"restRules\": {\n    \"kinds\": [\n      { \"key\": \"shortRest\", \"name\": \"Descanso corto\", \"duration\": { \"value\": 1, \"unit\": \"hour\" } },\n      { \"key\": \"longRest\", \"name\": \"Descanso largo\", \"duration\": { \"value\": 8, \"unit\": \"hour\" }, \"includes\": [\"shortRest\"] }\n    ],\n    \"endStancesOn\": [\"shortRest\"],\n    \"hitPointRecovery\": [\n      { \"restKey\": \"longRest\", \"hp\": \"full\", \"hitDice\": \"half\" }\n    ],\n    \"hitDiceSpending\": {\n      \"on\": [\"shortRest\"],\n      \"bonusFormula\": \"@attributes.con.modifier\"\n    },\n    \"spellSlotRecovery\": [\n      { \"restKey\": \"shortRest\", \"pools\": [\"uniform\"] },\n      { \"restKey\": \"longRest\", \"pools\": [\"standard\", \"uniform\"] }\n    ]\n  }\n}\n```\n",
+        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"abilityScoreProgression\": [4, 8, 12, 16, 19],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\",\n  \"restRules\": {\n    \"kinds\": [\n      { \"key\": \"shortRest\", \"name\": \"Descanso corto\", \"duration\": { \"value\": 1, \"unit\": \"hour\" } },\n      { \"key\": \"longRest\", \"name\": \"Descanso largo\", \"duration\": { \"value\": 8, \"unit\": \"hour\" }, \"includes\": [\"shortRest\"] }\n    ],\n    \"endStancesOn\": [\"shortRest\"],\n    \"hitPointRecovery\": [\n      { \"restKey\": \"longRest\", \"hp\": \"full\", \"hitDice\": \"half\" }\n    ],\n    \"hitDiceSpending\": {\n      \"on\": [\"shortRest\"],\n      \"bonusFormula\": \"@attributes.con.modifier\"\n    },\n    \"spellSlotRecovery\": [\n      { \"restKey\": \"shortRest\", \"pools\": [\"fixedLevel\"] },\n      { \"restKey\": \"longRest\", \"pools\": [\"standard\", \"fixedLevel\"] }\n    ]\n  }\n}\n```\n",
         "tags": [
           "Sistemas"
         ],
@@ -12731,6 +12845,50 @@
         }
       }
     },
+    "/spells/non-rituals": {
+      "get": {
+        "summary": "Obtener conjuros que no son rituales",
+        "tags": [
+          "Conjuros"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema para filtrar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de conjuros no rituales devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Spell"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
     "/spells/level/{level}": {
       "get": {
         "summary": "Obtener conjuros filtrados por nivel y opcionalmente clase",
@@ -12767,6 +12925,14 @@
               "type": "string"
             },
             "description": "Nombre de la clase (ej. wizard, cleric)."
+          },
+          {
+            "in": "query",
+            "name": "ritual",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Si es true, solo rituales. Si es false, solo no rituales."
           }
         ],
         "responses": {
@@ -14505,7 +14671,7 @@
             "description": "Personaje o instancia de equipamiento no encontrada."
           },
           "409": {
-            "description": "El equipamiento está marcado como favorito, está equipado o es un arma de pacto."
+            "description": "El equipamiento está marcado como favorito, está equipado o es un arma vinculada."
           },
           "500": {
             "description": "Error del servidor."
@@ -14700,8 +14866,8 @@
     },
     "/character/{id}/equipment/{instanceId}/bond": {
       "patch": {
-        "summary": "Vincular o desvincular el pacto de una instancia",
-        "description": "Actualiza isBond de una instancia. Vincular exige un rasgo con pactWeapon, que el objeto\nsea un arma mágica (cuerpo a cuerpo si pactWeapon.melee) y deja un solo vínculo.\nDestruye un arma invocada previa. No equipa el arma. Desvincular solo aplica a origin\nbound; las invocadas se descartan con deactivate. Si la pila tiene quantity mayor que 1,\nse parte una unidad.\n",
+        "summary": "Vincular o desvincular un arma de una instancia",
+        "description": "Actualiza isBond de una instancia. Vincular exige un rasgo con weaponBond, que el objeto\nsea un arma mágica (cuerpo a cuerpo si weaponBond.melee) y deja un solo vínculo.\nDestruye un arma invocada previa. No equipa el arma. Desvincular solo aplica a origin\nbound; las invocadas se descartan con deactivate. Si la pila tiene quantity mayor que 1,\nse parte una unidad.\n",
         "tags": [
           "Personajes"
         ],
@@ -14742,7 +14908,7 @@
                 "properties": {
                   "isBond": {
                     "type": "boolean",
-                    "description": "true para vincular el pacto, false para desvincularlo."
+                    "description": "true para vincular el arma, false para desvincularla."
                   }
                 }
               }
@@ -14751,7 +14917,7 @@
         },
         "responses": {
           "200": {
-            "description": "Pacto actualizado con éxito.",
+            "description": "Vínculo actualizado con éxito.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15606,7 +15772,7 @@
     "/character/{id}/spell-privileges/{traitId}": {
       "put": {
         "summary": "Vincular conjuros a un rasgo con privilegio de conjuro",
-        "description": "Sustituye la elección de conjuros vinculada a un rasgo del personaje (p. ej. Maestría\nsobre Conjuros, Conjuros característicos o Arcanum Místico).\nEl rasgo debe definir `spellPrivileges`. Cada grupo de `selections` corresponde a una\nregla **activa** (`atLevel` menor o igual al nivel de la clase indicada) y debe tener\nexactamente `choose` conjuros del nivel indicado, de la lista de la clase.\nSi `source` es `known`, deben estar entre los conocidos de esa clase.\nEl primer vínculo de cada regla está permitido. Añadir grupos de reglas que acaban de\ndesbloquearse también lo está, aunque `replace` sea nulo. Cambiar un grupo ya guardado\nsolo se admite si esa regla tiene `replace` (p. ej. 8 horas de estudio).\n",
+        "description": "Sustituye la elección de conjuros vinculada a un rasgo del personaje (p. ej. Maestría\nsobre Conjuros, Conjuros característicos o Arcanum Místico).\nEl rasgo debe definir `spellPrivileges`. Cada grupo de `selections` corresponde a una\nregla **activa** (`atLevel` menor o igual al nivel de la clase indicada) y debe tener\nexactamente `choose` conjuros del nivel indicado, de la lista de la clase.\nSi `source` es `known`, deben estar entre los conocidos de esa clase.\nSi `source` es `anyClassList`, cada conjuro debe pertenecer a alguna lista de clase.\nEl primer vínculo de cada regla está permitido. Añadir grupos de reglas que acaban de\ndesbloquearse también lo está, aunque `replace` sea nulo. Cambiar un grupo ya guardado\nsolo se admite si esa regla tiene `replace` (p. ej. 8 horas de estudio).\n",
         "tags": [
           "Personajes"
         ],
@@ -15697,7 +15863,7 @@
     "/character/{id}/traits/{traitId}/use": {
       "post": {
         "summary": "Usar la acción de un rasgo",
-        "description": "Compara `spent` de `traitResources` con `traits[].action.uses` (resuelto con\n`usesByClassLevel` y el nivel de la clase otorgante). Si no quedan usos, 400.\nIncrementa `spent`. Si `action.kind` es stance, añade el id a `activeTraitIds`\n(400 si ya estaba activa). Falla si `suppressedByArmorTypeIds` coincide con\narmadura equipada. `uses: unlimited` no incrementa `spent`. No recarga PG.\nSi `action.recoverSpellSlots` está definido, recupera las ranuras gastadas de\nesa bolsa (`standard` o `uniform`) en la clase otorgante. Sin clase otorgante\nel uso se gasta igual y las ranuras no cambian.\nSi el rasgo tiene `pactWeapon`, invoca o materializa el arma de pacto. Con un arma\nvinculada guardada ignora `equipmentId`. Si no hay vínculo, `equipmentId` es la forma\n(arma cuerpo a cuerpo del catálogo). No se equipa. Un arma vinculada ya manifiesta responde 400.\n",
+        "description": "Compara `spent` de `traitResources` con `traits[].action.uses` (resuelto con\n`usesByClassLevel` y el nivel de la clase otorgante). Si no quedan usos, 400.\nIncrementa `spent`. Si `action.kind` es stance, añade el id a `activeTraitIds`\n(400 si ya estaba activa). Falla si `suppressedByArmorTypeIds` coincide con\narmadura equipada. `uses: unlimited` no incrementa `spent`. No recarga PG.\nSi `action.recoverSpellSlots` está definido, recupera las ranuras gastadas de\nesa bolsa (`standard` o `fixedLevel`) en la clase otorgante. Sin clase otorgante\nel uso se gasta igual y las ranuras no cambian.\nSi el rasgo tiene `weaponBond`, invoca o materializa el arma vinculada. Con un arma\nvinculada guardada ignora `equipmentId`. Si no hay vínculo, `equipmentId` es la forma\n(arma cuerpo a cuerpo del catálogo). No se equipa. Un arma vinculada ya manifiesta responde 400.\nSi el rasgo tiene `uniqueEquipmentGrant`, realiza la ceremonia: destruye cualquier\ninstancia única concedida y crea una nueva desde `uniqueEquipmentGrant.id`. No usa `equipmentId`\ndel body. La acción suele ser `uses: unlimited`.\n",
         "tags": [
           "Personajes"
         ],
@@ -15735,7 +15901,7 @@
                 "properties": {
                   "equipmentId": {
                     "type": "string",
-                    "description": "ID de MongoDB del arma de catálogo que adopta el arma de pacto invocada."
+                    "description": "ID de MongoDB del arma de catálogo que adopta el arma vinculada invocada."
                   }
                 }
               }
@@ -15744,7 +15910,7 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado con el uso gastado, la stance o el arma de pacto, si aplica.",
+            "description": "Personaje actualizado con el uso gastado, la stance, el arma vinculada o el objeto concedido, si aplica.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15754,7 +15920,7 @@
             }
           },
           "400": {
-            "description": "Sin usos, stance ya activa, rasgo sin acción, suprimido por armadura o arma de pacto inválida."
+            "description": "Sin usos, stance ya activa, rasgo sin acción, suprimido por armadura o arma vinculada inválida."
           },
           "401": {
             "description": "No autorizado."
@@ -15773,8 +15939,8 @@
     },
     "/character/{id}/traits/{traitId}/deactivate": {
       "post": {
-        "summary": "Apagar la stance o descartar el arma de pacto",
-        "description": "Si el rasgo tiene `pactWeapon` y hay un arma manifiesta, la descarta: borra\nuna invocada o guarda en extradimensional (`pactStored`) una vinculada.\nSi no, quita el rasgo de `activeTraitIds` (y `traits[].action.active` pasa a false).\nNo modifica `traitResources[].spent` ni `action.remaining`.\nFalla si no hay arma manifiesta ni stance activa.\n",
+        "summary": "Apagar la stance o descartar el arma vinculada",
+        "description": "Si el rasgo tiene `weaponBond` y hay un arma manifiesta, la descarta: borra\nuna invocada o guarda en extradimensional (`bondStored`) una vinculada.\nSi no, quita el rasgo de `activeTraitIds` (y `traits[].action.active` pasa a false).\nNo modifica `traitResources[].spent` ni `action.remaining`.\nFalla si no hay arma manifiesta ni stance activa.\n",
         "tags": [
           "Personajes"
         ],
@@ -15835,7 +16001,7 @@
     "/character/{id}/rest": {
       "post": {
         "summary": "Descanso (usos de rasgos)",
-        "description": "`type` debe ser una clave de `restRules.kinds` del ruleset del personaje.\nSi el sistema no define `restRules`, o `type` no está en el catálogo, responde 400.\nMira `traits[].action.recharge` de cada rasgo. Si el descanso cubre esa clave\n(igualdad o `includes` transitivo), pone `traitResources[].spent` a 0\n(y `action.remaining` vuelve al máximo).\nVacía `activeTraitIds` solo si `restRules.endStancesOn` cubre el `type`\n(directo o por `includes`). Si `endStancesOn` se omite, las stances se conservan.\n`traitChoices` es opcional: solo admite claves de daño con `replaceOn` compatible\ncon el descanso. Si se omite, se conserva la elección anterior.\nSi `hitDiceSpending.on` incluye el `type` (coincidencia exacta), `hitDiceSpends`\ngasta dados y suma PG **antes** de `hitPointRecovery`. Cada entrada es\n`{ classId, count, hpGained }` como en POST `/character/{id}/hit-dice/spend`.\nSi el array llega y el `type` no está en `on`, responde 400.\nSi `hitPointRecovery` cubre el `type`, aplica `hp` (`full` pone HPActual a HPMax)\ny `hitDice` (`all` o `half` de los dados totales, mínimo 1, restando spent por clase\nen el orden de `classes`). Fuera de un descanso, el gasto de dados es\nPOST `/character/{id}/hit-dice/spend`.\nSi `spellSlotRecovery` cubre el `type`, pone a 0 el spent de las bolsas listadas\n(`standard` y/o `uniform`). El gasto de ranuras es POST `/character/{id}/spell-slots/spend`.\nA cada `activeConditions` cuyo `Condition.recovery` cubra el `type` le aplica la suma\nde `delta`; si el nivel baja de 1, quita el estado.\n",
+        "description": "`type` debe ser una clave de `restRules.kinds` del ruleset del personaje.\nSi el sistema no define `restRules`, o `type` no está en el catálogo, responde 400.\nMira `traits[].action.recharge` de cada rasgo. Si el descanso cubre esa clave\n(igualdad o `includes` transitivo), pone `traitResources[].spent` a 0\n(y `action.remaining` vuelve al máximo).\nVacía `activeTraitIds` solo si `restRules.endStancesOn` cubre el `type`\n(directo o por `includes`). Si `endStancesOn` se omite, las stances se conservan.\n`traitChoices` es opcional: solo admite claves de daño con `replaceOn` compatible\ncon el descanso. Si se omite, se conserva la elección anterior.\nSi `hitDiceSpending.on` incluye el `type` (coincidencia exacta), `hitDiceSpends`\ngasta dados y suma PG **antes** de `hitPointRecovery`. Cada entrada es\n`{ classId, count, hpGained }` como en POST `/character/{id}/hit-dice/spend`.\nSi el array llega y el `type` no está en `on`, responde 400.\nSi `hitPointRecovery` cubre el `type`, aplica `hp` (`full` pone HPActual a HPMax)\ny `hitDice` (`all` o `half` de los dados totales, mínimo 1, restando spent por clase\nen el orden de `classes`). Fuera de un descanso, el gasto de dados es\nPOST `/character/{id}/hit-dice/spend`.\nSi `spellSlotRecovery` cubre el `type`, pone a 0 el spent de las bolsas listadas\n(`standard` y/o `fixedLevel`). El gasto de ranuras es POST `/character/{id}/spell-slots/spend`.\nA cada `activeConditions` cuyo `Condition.recovery` cubra el `type` le aplica la suma\nde `delta`; si el nivel baja de 1, quita el estado.\n",
         "tags": [
           "Personajes"
         ],
@@ -16162,7 +16328,7 @@
     "/character/{id}/spell-slots/spend": {
       "post": {
         "summary": "Gastar una ranura de conjuro",
-        "description": "El cuerpo indica `classId`, `pool` (`standard` o `uniform`) y `level`.\nGasta 1 ranura de esa bolsa. En `uniform`, `level` es el de la bolsa\n(el de `uniformSlots.level`), no el del conjuro lanzado.\nValida que queden ranuras (`total - spent`). Incrementa `spellSlots[].spent`.\nNo exige un descanso en curso.\n",
+        "description": "El cuerpo indica `classId`, `pool` (`standard` o `fixedLevel`) y `level`.\nGasta 1 ranura de esa bolsa. En `fixedLevel`, `level` es el de la bolsa\n(el de `fixedLevelSlots.level`), no el del conjuro lanzado.\nValida que queden ranuras (`total - spent`). Incrementa `spellSlots[].spent`.\nNo exige un descanso en curso.\n",
         "tags": [
           "Personajes"
         ],
@@ -16202,7 +16368,7 @@
                     "type": "string",
                     "enum": [
                       "standard",
-                      "uniform"
+                      "fixedLevel"
                     ]
                   },
                   "level": {
@@ -16527,6 +16693,90 @@
           },
           "404": {
             "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/copied-spells": {
+      "post": {
+        "summary": "Copiar conjuros a un repositorio",
+        "description": "Copia conjuros fuera de la subida de nivel. Sin `traitId` usa `spellRepository` de la clase\n(libro de mago: lista de la clase, conocidos, nivel con ranura). Con `traitId` usa el\n`spellRepository` del rasgo (p. ej. Libro de Secretos Ancestrales: rituales de cualquier\nlista, extra, mitad del nivel de clase).\nNo descuenta oro ni registra horas: el cliente aplica `copy` del repositorio.\nSi `equipmentId` está definido, el personaje debe tener ese objeto en el inventario.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "class",
+                  "spells"
+                ],
+                "properties": {
+                  "class": {
+                    "type": "string",
+                    "description": "ID de MongoDB de la clase asociada al repositorio."
+                  },
+                  "spells": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "IDs de los conjuros a copiar.",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "traitId": {
+                    "type": "string",
+                    "description": "ID del rasgo cuyo spellRepository se usa. Si falta, se usa el de la clase."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personaje actualizado con los conjuros copiados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonajeApi"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos, sin repositorio, ritual, tope de nivel o objeto ausente."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje, rasgo o clase no encontrado."
           },
           "500": {
             "description": "Error del servidor."

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Types } from "mongoose";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
 import { EquipmentMaterialSchema } from "./equipment.schema";
+import { SpellRepositoryConfigSchema } from "./characterClass.schema";
 import { CreatureFormPoolFilterSchema, CreatureFormPoolIdsSchema } from "./spell.schema";
 import { SPELL_SLOT_POOLS } from "../../../domain/types/system.types";
 import {
@@ -16,8 +17,10 @@ import {
   TRAIT_SPELL_SLOT_RECOVER_SCOPES,
   TRAIT_STACK_POLICIES,
   TRAIT_WEAPON_DAMAGE_BONUS_WHENS,
+  SPELL_PRIVILEGE_SOURCES,
   TraitAction,
-  TraitPactWeapon
+  TraitUniqueEquipmentGrant,
+  TraitWeaponBond
 } from "../../../domain/types/traits.types";
 
 const restKeySchema = z.string().min(1, "La clave de recarga no puede estar vacía");
@@ -29,9 +32,10 @@ const SpellPrivilegeLevelFilterSchema = z.union([
 
 export const SpellPrivilegeRuleSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1 conjuro"),
-  source: z.enum(["known", "classList"]),
+  source: z.enum(SPELL_PRIVILEGE_SOURCES),
   filter: z.object({
-    level: SpellPrivilegeLevelFilterSchema
+    level: SpellPrivilegeLevelFilterSchema,
+    ritual: z.boolean().optional()
   }),
   atLevel: z.number().int().min(1, "El nivel de la concesión debe ser al menos 1").default(1),
   alwaysPrepared: z.boolean(),
@@ -386,7 +390,7 @@ export const TraitDurationSchema = z.object({
 }).strict();
 
 export const TraitRecoverSpellSlotsSchema = z.object({
-  pool: z.enum(SPELL_SLOT_POOLS, { error: "pool debe ser standard o uniform" }),
+  pool: z.enum(SPELL_SLOT_POOLS, { error: "pool debe ser standard o fixedLevel" }),
   scope: z.enum(TRAIT_SPELL_SLOT_RECOVER_SCOPES, { error: "scope debe ser grantingClass" })
 }).strict();
 
@@ -417,10 +421,16 @@ export const TraitActionSchema = z.object({
   }
 });
 
-export const TraitPactWeaponSchema = z.object({
+export const TraitWeaponBondSchema = z.object({
   melee: z.boolean(),
   grantsProficiency: z.boolean(),
   magical: z.boolean()
+}).strict();
+
+export const TraitUniqueEquipmentGrantSchema = z.object({
+  equipmentId: z.string().refine(val => Types.ObjectId.isValid(val), {
+    message: "El equipo concedido debe ser un ID de Mongo válido"
+  })
 }).strict();
 
 export const TraitWeaponDamageBonusSchema = z.object({
@@ -541,18 +551,18 @@ export const TraitSkillProficiencySchema = z.object({
 
 export const TraitSkillProficienciesSchema = z.array(TraitSkillProficiencySchema).min(1, "Debe indicar al menos una regla de competencia");
 
-function requirePactWeaponAction(
+function requireWeaponBondAction(
   data: {
-    pactWeapon?: TraitPactWeapon | null;
+    weaponBond?: TraitWeaponBond | null;
     action?: TraitAction | null;
   },
   ctx: z.RefinementCtx
 ): void {
-  if (!data.pactWeapon) return;
+  if (!data.weaponBond) return;
   if (!data.action) {
     ctx.addIssue({
       code: "custom",
-      message: "pactWeapon exige una acción",
+      message: "weaponBond exige una acción",
       path: ["action"]
     });
     return;
@@ -560,7 +570,32 @@ function requirePactWeaponAction(
   if ((data.action.kind ?? "instant") === "stance") {
     ctx.addIssue({
       code: "custom",
-      message: "pactWeapon no admite acciones de tipo stance",
+      message: "weaponBond no admite acciones de tipo stance",
+      path: ["action", "kind"]
+    });
+  }
+}
+
+function requireUniqueEquipmentGrantAction(
+  data: {
+    uniqueEquipmentGrant?: TraitUniqueEquipmentGrant | null;
+    action?: TraitAction | null;
+  },
+  ctx: z.RefinementCtx
+): void {
+  if (!data.uniqueEquipmentGrant) return;
+  if (!data.action) {
+    ctx.addIssue({
+      code: "custom",
+      message: "uniqueEquipmentGrant exige una acción",
+      path: ["action"]
+    });
+    return;
+  }
+  if ((data.action.kind ?? "instant") === "stance") {
+    ctx.addIssue({
+      code: "custom",
+      message: "uniqueEquipmentGrant no admite acciones de tipo stance",
       path: ["action", "kind"]
     });
   }
@@ -674,7 +709,9 @@ export const CreateTraitSchema = z.object({
   hitPoints: TraitHitPointsSchema.nullish(),
   action: TraitActionSchema.nullish(),
   weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
-  pactWeapon: TraitPactWeaponSchema.nullish(),
+  weaponBond: TraitWeaponBondSchema.nullish(),
+  uniqueEquipmentGrant: TraitUniqueEquipmentGrantSchema.nullish(),
+  spellRepository: SpellRepositoryConfigSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
   grantedSpells: TraitGrantedSpellsSchema.nullish(),
   creatureFormExtensions: TraitCreatureFormExtensionsSchema.nullish(),
@@ -682,7 +719,7 @@ export const CreateTraitSchema = z.object({
   skillProficiencies: TraitSkillProficienciesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
   conditionalResistanceGroup: conditionalResistanceGroupSchema
-}).superRefine(uniqueTraitChoiceKeys).superRefine(requirePactWeaponAction);
+}).superRefine(uniqueTraitChoiceKeys).superRefine(requireWeaponBondAction).superRefine(requireUniqueEquipmentGrantAction);
 
 export const UpdateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío").optional(),
@@ -709,7 +746,9 @@ export const UpdateTraitSchema = z.object({
   hitPoints: TraitHitPointsSchema.nullish(),
   action: TraitActionSchema.nullish(),
   weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
-  pactWeapon: TraitPactWeaponSchema.nullish(),
+  weaponBond: TraitWeaponBondSchema.nullish(),
+  uniqueEquipmentGrant: TraitUniqueEquipmentGrantSchema.nullish(),
+  spellRepository: SpellRepositoryConfigSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
   grantedSpells: TraitGrantedSpellsSchema.nullish(),
   creatureFormExtensions: TraitCreatureFormExtensionsSchema.nullish(),
@@ -717,6 +756,6 @@ export const UpdateTraitSchema = z.object({
   skillProficiencies: TraitSkillProficienciesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
   conditionalResistanceGroup: conditionalResistanceGroupSchema
-}).superRefine(uniqueTraitChoiceKeys).superRefine(requirePactWeaponAction).refine(data => Object.keys(data).length > 0, {
+}).superRefine(uniqueTraitChoiceKeys).superRefine(requireWeaponBondAction).superRefine(requireUniqueEquipmentGrantAction).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

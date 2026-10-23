@@ -26,6 +26,9 @@ import {
   shouldOfferSpellReplacement,
   spellsLearnedAtLevel,
   validateKnownSpellPicks,
+  validateCopiedSpellPicks,
+  resolveSpellRepositoryCopyRules,
+  halfClassLevelCeil,
   validateLevelUpSpellPicks,
   validatePreparedSpellPicks,
   validateSpellReplacements,
@@ -33,6 +36,7 @@ import {
   canReplaceSpellPrivileges,
   privilegeSpellIdsExcludedFromCap,
   alwaysPreparedSpellIds,
+  extraPrivilegeSpellIds,
   mergePreparedWithPrivileges,
   characterHasTrait,
   privilegeRuleAtLevel,
@@ -42,6 +46,7 @@ import {
 import { SpellPrivilegeRule } from "../domain/types/traits.types";
 import { AttributeApi, CharacterAttributeApi } from "../domain/types/attribute.types";
 import { SpellcastingLevelSource } from "../domain/types/characterClass.types";
+import { SpellChoiceApi } from "../domain/types/classLevelChoices.types";
 
 const intAbility: AttributeApi = {
   id: "attr-int",
@@ -166,19 +171,19 @@ describe("buildSpellcastingLevel", () => {
     expect(DEFAULT_SPELL_ATTACK_BONUS_FORMULA).toContain("@proficiencyBonus");
   });
 
-  it("projects a slot table from uniformSlots when slots is omitted", () => {
+  it("projects a slot table from fixedLevelSlots when slots is omitted", () => {
     const source: SpellcastingLevelSource = {
       class: "warlock-id",
       abilityKey: "int",
       classLevel: 5,
-      slots: { cantrips: 3, uniformSlots: { count: 2, level: 3 } },
+      slots: { cantrips: 3, fixedLevelSlots: { count: 2, level: 3 } },
     };
 
     const result = buildSpellcastingLevel(source, intAbility, characterAttributes, 3);
 
     expect(result.slots).toEqual({
       cantrips: 3,
-      uniformSlots: { count: 2, level: 3 },
+      fixedLevelSlots: { count: 2, level: 3 },
       slots: { "3": 2 },
     });
   });
@@ -229,7 +234,7 @@ describe("resolveClassSlotView", () => {
   });
 
   it("expands uniform slots to 1..level and a single table key", () => {
-    expect(resolveClassSlotView({ uniformSlots: { count: 2, level: 3 } })).toEqual({
+    expect(resolveClassSlotView({ fixedLevelSlots: { count: 2, level: 3 } })).toEqual({
       table: { "3": 2 },
       castableLevels: [1, 2, 3],
     });
@@ -246,16 +251,16 @@ describe("resolveSpellSlotsTableForLevel", () => {
     expect(resolveSpellSlotsTableForLevel(levels, 2)).toEqual({ "1": 2 });
   });
 
-  it("inherits uniformSlots as a single-level display table", () => {
+  it("inherits fixedLevelSlots as a single-level display table", () => {
     const levels = [
-      { level: 1, spellcasting: { spellsLearned: 2, uniformSlots: { count: 1, level: 1 } } },
-      { level: 5, spellcasting: { spellsLearned: 1, uniformSlots: { count: 2, level: 3 } } },
+      { level: 1, spellcasting: { spellsLearned: 2, fixedLevelSlots: { count: 1, level: 1 } } },
+      { level: 5, spellcasting: { spellsLearned: 1, fixedLevelSlots: { count: 2, level: 3 } } },
       { level: 6, spellcasting: { spellsLearned: 1 } },
     ];
 
     expect(resolveSpellSlotsTableForLevel(levels, 6)).toEqual({ "3": 2 });
     expect(resolveSlotProgressionForLevel(levels, 6)).toEqual({
-      uniformSlots: { count: 2, level: 3 },
+      fixedLevelSlots: { count: 2, level: 3 },
     });
   });
 });
@@ -264,11 +269,11 @@ describe("mergeClassSpellSlots", () => {
   it("keeps cantrips and spellsLearned while inheriting slot progression", () => {
     expect(mergeClassSpellSlots(
       { spellsLearned: 1, cantrips: 3 },
-      { uniformSlots: { count: 2, level: 3 } }
+      { fixedLevelSlots: { count: 2, level: 3 } }
     )).toEqual({
       spellsLearned: 1,
       cantrips: 3,
-      uniformSlots: { count: 2, level: 3 },
+      fixedLevelSlots: { count: 2, level: 3 },
     });
   });
 });
@@ -331,8 +336,8 @@ describe("castableSpellLevels", () => {
     expect(castableSpellLevels({})).toEqual([]);
   });
 
-  it("returns 1..level for uniformSlots", () => {
-    expect(castableSpellLevels({ uniformSlots: { count: 2, level: 3 } })).toEqual([1, 2, 3]);
+  it("returns 1..level for fixedLevelSlots", () => {
+    expect(castableSpellLevels({ fixedLevelSlots: { count: 2, level: 3 } })).toEqual([1, 2, 3]);
   });
 });
 
@@ -429,10 +434,10 @@ describe("buildSynthesizedKnownSpellChoice", () => {
     expect(buildSynthesizedKnownSpellChoice("c1", levels, 1)).toBeUndefined();
   });
 
-  it("synthesizes from inherited uniformSlots using levels 1..slot level", () => {
+  it("synthesizes from inherited fixedLevelSlots using levels 1..slot level", () => {
     const levels = [
-      { level: 1, spellcasting: { spellsLearned: 2, uniformSlots: { count: 1, level: 1 } } },
-      { level: 5, spellcasting: { spellsLearned: 1, uniformSlots: { count: 2, level: 3 } } },
+      { level: 1, spellcasting: { spellsLearned: 2, fixedLevelSlots: { count: 1, level: 1 } } },
+      { level: 5, spellcasting: { spellsLearned: 1, fixedLevelSlots: { count: 2, level: 3 } } },
     ];
 
     expect(buildSynthesizedKnownSpellChoice("c1", levels, 5)).toEqual({
@@ -1198,6 +1203,100 @@ describe("validateSpellPrivilegePicks", () => {
     expect(result.error).toMatch(/regla de privilegio activa/);
   });
 
+  it("accepts anyClassList cantrips that are not on the granting class list", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: [{
+        choose: 2,
+        source: "anyClassList",
+        filter: { level: 0 },
+        atLevel: 1,
+        alwaysPrepared: false,
+        countsTowardPreparedCap: false,
+        freeCast: { slotLevel: "spellLevel", uses: "unlimited", recharge: null },
+        replace: null,
+      }],
+      selections: [["mage-hand", "guidance"]],
+      knownIds: [],
+      classId: "warlock",
+      spells: [
+        { id: "mage-hand", level: 0, classIds: [wizardId] },
+        { id: "guidance", level: 0, classIds: ["cleric-id"] },
+      ],
+    });
+    expect(result).toEqual({});
+  });
+
+  it("rejects anyClassList picks with no class list", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: [{
+        choose: 1,
+        source: "anyClassList",
+        filter: { level: 0 },
+        atLevel: 1,
+        alwaysPrepared: false,
+        countsTowardPreparedCap: false,
+        freeCast: { slotLevel: "spellLevel", uses: "unlimited", recharge: null },
+        replace: null,
+      }],
+      selections: [["homebrew"]],
+      knownIds: [],
+      classId: "warlock",
+      spells: [{ id: "homebrew", level: 0, classIds: [] }],
+    });
+    expect(result.error).toMatch(/ninguna lista de clase/);
+  });
+
+  it("accepts ritual-only anyClassList picks", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: [{
+        choose: 2,
+        source: "anyClassList",
+        filter: { level: 1, ritual: true },
+        atLevel: 1,
+        alwaysPrepared: false,
+        countsTowardPreparedCap: false,
+        freeCast: null,
+        replace: null,
+      }],
+      selections: [["alarm", "detect"]],
+      knownIds: [],
+      classId: "warlock",
+      spells: [
+        { id: "alarm", level: 1, classIds: [wizardId], ritual: true },
+        { id: "detect", level: 1, classIds: ["cleric-id"], ritual: true },
+      ],
+    });
+    expect(result).toEqual({});
+  });
+
+  it("rejects a non-ritual pick when the privilege requires ritual", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: [{
+        choose: 1,
+        source: "anyClassList",
+        filter: { level: 1, ritual: true },
+        atLevel: 1,
+        alwaysPrepared: false,
+        countsTowardPreparedCap: false,
+        freeCast: null,
+        replace: null,
+      }],
+      selections: [["magic-missile"]],
+      knownIds: [],
+      classId: "warlock",
+      spells: [{ id: "magic-missile", level: 1, classIds: [wizardId], ritual: false }],
+    });
+    expect(result.error).toMatch(/ritual/);
+  });
+
   it("accepts appending the level 7 arcanum at class level 13", () => {
     const result = validateSpellPrivilegePicks({
       hasClass: true,
@@ -1302,6 +1401,26 @@ describe("privilege prepared helpers", () => {
     expect([...privilegeSpellIdsExcludedFromCap(locked, rules, "warlock", classLevels)]).toEqual(["spell-6"]);
   });
 
+  it("lists extra privilege spells that are not always prepared and do not count toward the cap", () => {
+    const tomeRules: SpellPrivilegeRule[] = [{
+      choose: 2,
+      source: "anyClassList",
+      filter: { level: 0 },
+      atLevel: 1,
+      alwaysPrepared: false,
+      countsTowardPreparedCap: false,
+      freeCast: { slotLevel: "spellLevel", uses: "unlimited", recharge: null },
+      replace: null,
+    }];
+    const tomeInstances = [
+      { traitId: "tome", classId: "warlock", selections: [["mage-hand", "guidance"]] },
+    ];
+    const rules = new Map<string, SpellPrivilegeRule[]>([["tome", tomeRules]]);
+    expect(extraPrivilegeSpellIds(tomeInstances, rules, "warlock")).toEqual(["mage-hand", "guidance"]);
+    expect(extraPrivilegeSpellIds(tomeInstances, rules, "warlock", undefined, ["tome"])).toEqual([]);
+    expect(alwaysPreparedSpellIds(tomeInstances, rules, "warlock")).toEqual([]);
+  });
+
   it("lists always-prepared spell ids for a class", () => {
     expect(alwaysPreparedSpellIds(instances, rulesByTraitId, wizardId).sort()).toEqual(
       ["spell-3a", "spell-3b"]
@@ -1317,6 +1436,148 @@ describe("privilege prepared helpers", () => {
   it("matches owned traits by any known key", () => {
     expect(characterHasTrait(["spell-mastery"], ["abc", "spell-mastery"])).toBe(true);
     expect(characterHasTrait(["other"], ["spell-mastery"])).toBe(false);
+  });
+});
+
+describe("spell choice ritual filters", () => {
+  it("accepts a ritual boolean on query_filter", () => {
+    const choice: SpellChoiceApi = {
+      choose: 2,
+      options: [],
+      query_type: "filter",
+      query_filter: { level: 1, ritual: true },
+    };
+    expect(choice.query_filter).toEqual({ level: 1, ritual: true });
+  });
+});
+
+describe("resolveSpellRepositoryCopyRules", () => {
+  it("defaults to class list, known destination and castable max level", () => {
+    expect(resolveSpellRepositoryCopyRules({
+      name: "Libro de conjuros",
+      includesCantrips: false,
+      copy: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: 50, unit: "gp" } },
+      duplicate: { hoursPerSpellLevel: 1, costPerSpellLevel: { quantity: 10, unit: "gp" } },
+      recoverPreparedOnLoss: true,
+    })).toEqual({
+      source: "classList",
+      destination: "known",
+      ritualOnly: false,
+      maxLevel: "castable",
+      includesCantrips: false,
+    });
+  });
+
+  it("keeps explicit Book of Ancient Secrets rules", () => {
+    expect(halfClassLevelCeil(3)).toBe(2);
+    expect(resolveSpellRepositoryCopyRules({
+      name: "Libro de las Sombras",
+      includesCantrips: false,
+      copy: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: 50, unit: "gp" } },
+      duplicate: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: 50, unit: "gp" } },
+      recoverPreparedOnLoss: false,
+      source: "anyClassList",
+      destination: "extra",
+      ritualOnly: true,
+      maxLevel: "halfClassLevelCeil",
+      equipmentId: "book-id",
+    })).toMatchObject({
+      source: "anyClassList",
+      destination: "extra",
+      ritualOnly: true,
+      maxLevel: "halfClassLevelCeil",
+      equipmentId: "book-id",
+    });
+  });
+});
+
+describe("validateCopiedSpellPicks", () => {
+  it("accepts wizard copies onto the class list within slot levels", () => {
+    const result = validateCopiedSpellPicks({
+      spellIds: ["spell-1"],
+      ownedIds: [],
+      classId: wizardId,
+      spells: [{ id: "spell-1", level: 1, classIds: [wizardId], ritual: false }],
+      source: "classList",
+      ritualOnly: false,
+      includesCantrips: false,
+      maxLevel: "castable",
+      classLevel: 1,
+      castableLevels: [1],
+    });
+    expect(result).toEqual({});
+  });
+
+  it("rejects a wizard copy that is already owned or off-list", () => {
+    expect(validateCopiedSpellPicks({
+      spellIds: ["spell-1"],
+      ownedIds: ["spell-1"],
+      classId: wizardId,
+      spells: [{ id: "spell-1", level: 1, classIds: [wizardId] }],
+      source: "classList",
+      ritualOnly: false,
+      includesCantrips: false,
+      maxLevel: "castable",
+      classLevel: 1,
+      castableLevels: [1],
+    }).error).toMatch(/ya está en el repositorio/);
+
+    expect(validateCopiedSpellPicks({
+      spellIds: ["other-1"],
+      ownedIds: [],
+      classId: wizardId,
+      spells: [{ id: "other-1", level: 1, classIds: ["cleric-id"] }],
+      source: "classList",
+      ritualOnly: false,
+      includesCantrips: false,
+      maxLevel: "castable",
+      classLevel: 1,
+      castableLevels: [1],
+    }).error).toMatch(/lista de esta clase/);
+  });
+
+  it("accepts ritual extras from any class list within half class level", () => {
+    const result = validateCopiedSpellPicks({
+      spellIds: ["alarm"],
+      ownedIds: [],
+      classId: "warlock",
+      spells: [{ id: "alarm", level: 1, classIds: [wizardId], ritual: true }],
+      source: "anyClassList",
+      ritualOnly: true,
+      includesCantrips: false,
+      maxLevel: "halfClassLevelCeil",
+      classLevel: 3,
+      castableLevels: [],
+    });
+    expect(result).toEqual({});
+  });
+
+  it("rejects non-rituals and spells above half class level", () => {
+    expect(validateCopiedSpellPicks({
+      spellIds: ["missile"],
+      ownedIds: [],
+      classId: "warlock",
+      spells: [{ id: "missile", level: 1, classIds: [wizardId], ritual: false }],
+      source: "anyClassList",
+      ritualOnly: true,
+      includesCantrips: false,
+      maxLevel: "halfClassLevelCeil",
+      classLevel: 3,
+      castableLevels: [],
+    }).error).toMatch(/ritual/);
+
+    expect(validateCopiedSpellPicks({
+      spellIds: ["tiny-hut"],
+      ownedIds: [],
+      classId: "warlock",
+      spells: [{ id: "tiny-hut", level: 3, classIds: [wizardId], ritual: true }],
+      source: "anyClassList",
+      ritualOnly: true,
+      includesCantrips: false,
+      maxLevel: "halfClassLevelCeil",
+      classLevel: 3,
+      castableLevels: [],
+    }).error).toMatch(/mitad del nivel/);
   });
 });
 

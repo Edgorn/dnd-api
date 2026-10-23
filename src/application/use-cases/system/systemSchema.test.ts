@@ -188,8 +188,8 @@ describe("CreateSystemSchema restRules", () => {
       restRules: {
         ...restRules,
         spellSlotRecovery: [
-          { restKey: "shortRest", pools: ["uniform"] },
-          { restKey: "longRest", pools: ["standard", "uniform"] },
+          { restKey: "shortRest", pools: ["fixedLevel"] },
+          { restKey: "longRest", pools: ["standard", "fixedLevel"] },
         ],
       },
     });

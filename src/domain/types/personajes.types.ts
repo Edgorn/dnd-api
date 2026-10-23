@@ -10,7 +10,7 @@ import { SkillApi, SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceApi, Damage, Speed } from "."
-import { CharacterEquipmentApi, CharacterEquipmentMongo, PactWeaponOrigin } from "./equipment.types"
+import { CharacterEquipmentApi, CharacterEquipmentMongo, WeaponBondOrigin } from "./equipment.types"
 import { FeatApi, FeatRequirements } from "./feat.types"
 import { SpellApi } from "./spell.types"
 import { ConditionApi } from "./condition.types"
@@ -37,8 +37,9 @@ export type PersonajeEquipmentCustomization = Omit<
   | "isFavorite"
   | "isBond"
   | "isMagic"
-  | "pactOrigin"
-  | "pactStored"
+  | "bondOrigin"
+  | "bondStored"
+  | "uniqueGranted"
   | "content"
 >;
 
@@ -50,8 +51,9 @@ export interface PersonajeEquipmentMongo {
   isMagic: boolean;
   isBond: boolean;
   isFavorite: boolean;
-  pactOrigin?: PactWeaponOrigin;
-  pactStored?: boolean;
+  bondOrigin?: WeaponBondOrigin;
+  bondStored?: boolean;
+  uniqueGranted?: boolean;
   customization?: PersonajeEquipmentCustomization;
 }
 
@@ -245,6 +247,14 @@ export interface TypeLearnSpells {
   userId: string;
 }
 
+export interface TypeCopySpells {
+  id: string;
+  classId: string;
+  spells: string[];
+  traitId?: string;
+  userId: string;
+}
+
 export interface TypeBindSpellPrivileges {
   id: string;
   traitId: string;
@@ -346,7 +356,7 @@ export interface ToggleFavoriteEquipmentResponse {
   isFavorite: boolean;
 }
 
-export interface TypeBindPactEquipment {
+export interface TypeBindWeaponBond {
   id: string;
   instanceId: string;
   isBond: boolean;

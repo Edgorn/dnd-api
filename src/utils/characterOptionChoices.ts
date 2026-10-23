@@ -100,6 +100,10 @@ export function buildPendingOptionChoices(params: {
       pendingOptions.push(toPendingOption(option, !unmet, unmet));
     }
 
+    pendingOptions.sort((a, b) =>
+      (a.trait?.name ?? "").localeCompare(b.trait?.name ?? "", "es", { sensitivity: "base" })
+    );
+
     return {
       groupId: config.groupId,
       groupName: groupNames[config.groupId] ?? "",

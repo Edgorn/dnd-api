@@ -100,6 +100,40 @@ describe("CreateTraitSchema spellPrivileges", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts ritual filter on anyClassList privileges", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Libro de Secretos Ancestrales",
+      spellPrivileges: [{
+        choose: 2,
+        source: "anyClassList",
+        filter: { level: 1, ritual: true },
+        alwaysPrepared: false,
+        countsTowardPreparedCap: false,
+        freeCast: null,
+        replace: null,
+      }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts anyClassList cantrip privileges", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto del Grimorio",
+      spellPrivileges: [{
+        choose: 3,
+        source: "anyClassList",
+        filter: { level: 0 },
+        alwaysPrepared: false,
+        countsTowardPreparedCap: false,
+        freeCast: { slotLevel: "spellLevel", uses: "unlimited", recharge: null },
+        replace: null,
+      }],
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects an invalid source", () => {
     const result = CreateTraitSchema.safeParse({
       ruleset: "sys1",
@@ -1015,14 +1049,14 @@ describe("CreateTraitSchema area, save and action", () => {
         activation: "action",
         uses: 1,
         recharge: "longRest",
-        recoverSpellSlots: { pool: "uniform", scope: "grantingClass" }
+        recoverSpellSlots: { pool: "fixedLevel", scope: "grantingClass" }
       }
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.action?.kind).toBe("instant");
       expect(result.data.action?.recoverSpellSlots).toEqual({
-        pool: "uniform",
+        pool: "fixedLevel",
         scope: "grantingClass"
       });
     }
@@ -1037,7 +1071,7 @@ describe("CreateTraitSchema area, save and action", () => {
         kind: "stance",
         uses: 1,
         recharge: "longRest",
-        recoverSpellSlots: { pool: "uniform", scope: "grantingClass" }
+        recoverSpellSlots: { pool: "fixedLevel", scope: "grantingClass" }
       }
     });
     expect(result.success).toBe(false);
@@ -1056,32 +1090,80 @@ describe("CreateTraitSchema area, save and action", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts pactWeapon with an instant action", () => {
+  it("accepts weaponBond with an instant action", () => {
     const result = CreateTraitSchema.safeParse({
       ruleset: "sys1",
       name: "Pacto del Filo",
       action: { activation: "action", uses: "unlimited", recharge: null },
-      pactWeapon: { melee: true, grantsProficiency: true, magical: true }
+      weaponBond: { melee: true, grantsProficiency: true, magical: true }
     });
     expect(result.success).toBe(true);
   });
 
-  it("rejects pactWeapon without action or with a stance", () => {
+  it("rejects weaponBond without action or with a stance", () => {
     expect(CreateTraitSchema.safeParse({
       ruleset: "sys1",
       name: "Pacto del Filo",
-      pactWeapon: { melee: true, grantsProficiency: true, magical: true }
+      weaponBond: { melee: true, grantsProficiency: true, magical: true }
     }).success).toBe(false);
     expect(CreateTraitSchema.safeParse({
       ruleset: "sys1",
       name: "Pacto del Filo",
       action: { activation: "bonusAction", kind: "stance", uses: 1, recharge: "longRest" },
-      pactWeapon: { melee: true, grantsProficiency: true, magical: true }
+      weaponBond: { melee: true, grantsProficiency: true, magical: true }
     }).success).toBe(false);
   });
 
-  it("accepts null to clear pactWeapon", () => {
-    expect(UpdateTraitSchema.safeParse({ pactWeapon: null }).success).toBe(true);
+  it("accepts null to clear weaponBond", () => {
+    expect(UpdateTraitSchema.safeParse({ weaponBond: null }).success).toBe(true);
+  });
+
+  it("accepts a ritual extra spellRepository", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Libro de Secretos Ancestrales",
+      spellRepository: {
+        name: "Libro de las Sombras",
+        equipmentId: "507f1f77bcf86cd799439011",
+        includesCantrips: false,
+        copy: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: 50, unit: "507f1f77bcf86cd799439011" } },
+        duplicate: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: 50, unit: "507f1f77bcf86cd799439011" } },
+        recoverPreparedOnLoss: false,
+        source: "anyClassList",
+        destination: "extra",
+        ritualOnly: true,
+        maxLevel: "halfClassLevelCeil"
+      }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts uniqueEquipmentGrant with an instant action", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto del Grimorio",
+      action: { activation: "action", kind: "instant", uses: "unlimited" },
+      uniqueEquipmentGrant: { equipmentId: "507f1f77bcf86cd799439011" }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects uniqueEquipmentGrant without action or with a stance", () => {
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto del Grimorio",
+      uniqueEquipmentGrant: { equipmentId: "507f1f77bcf86cd799439011" }
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto del Grimorio",
+      action: { activation: "action", kind: "stance" },
+      uniqueEquipmentGrant: { equipmentId: "507f1f77bcf86cd799439011" }
+    }).success).toBe(false);
+  });
+
+  it("accepts null to clear uniqueEquipmentGrant", () => {
+    expect(UpdateTraitSchema.safeParse({ uniqueEquipmentGrant: null }).success).toBe(true);
   });
 
   it("accepts weaponDamageBonus with amountByClassLevel", () => {

@@ -7,6 +7,7 @@ import SoftDeleteSpell from "./softDeleteSpell.use-case";
 import RestoreSpell from "./restoreSpell.use-case";
 import GetSpellsByLevel from "./getSpellsByLevel.use-case";
 import GetRitualSpells from "./getRitualSpells.use-case";
+import GetNonRitualSpells from "./getNonRitualSpells.use-case";
 import { AppError, NotFoundError } from "../../../domain/errors/AppError";
 
 describe("Spell Use Cases", () => {
@@ -24,7 +25,8 @@ describe("Spell Use Cases", () => {
       softDelete: vi.fn(),
       restore: vi.fn(),
       getSpellsByLevel: vi.fn(),
-      getRitualSpells: vi.fn()
+      getRitualSpells: vi.fn(),
+      getNonRitualSpells: vi.fn()
     };
 
     systemServiceMock = {
@@ -201,7 +203,16 @@ describe("Spell Use Cases", () => {
 
       const res = await useCase.execute(1, ["sys1"], "wizard");
       expect(res).toEqual([{ id: "s1", level: 1 }]);
-      expect(spellServiceMock.getSpellsByLevel).toHaveBeenCalledWith(1, ["sys1"], "wizard");
+      expect(spellServiceMock.getSpellsByLevel).toHaveBeenCalledWith(1, ["sys1"], "wizard", undefined);
+    });
+
+    it("should pass the ritual filter", async () => {
+      const useCase = new GetSpellsByLevel(spellServiceMock);
+      spellServiceMock.getSpellsByLevel.mockResolvedValue([{ id: "s1", ritual: true }]);
+
+      const res = await useCase.execute(1, ["sys1"], "wizard", true);
+      expect(res).toEqual([{ id: "s1", ritual: true }]);
+      expect(spellServiceMock.getSpellsByLevel).toHaveBeenCalledWith(1, ["sys1"], "wizard", true);
     });
   });
 
@@ -213,6 +224,17 @@ describe("Spell Use Cases", () => {
       const res = await useCase.execute(["sys1"]);
       expect(res).toEqual([{ id: "s1", ritual: true }]);
       expect(spellServiceMock.getRitualSpells).toHaveBeenCalledWith(["sys1"]);
+    });
+  });
+
+  describe("GetNonRitualSpells", () => {
+    it("should return non-ritual spells", async () => {
+      const useCase = new GetNonRitualSpells(spellServiceMock);
+      spellServiceMock.getNonRitualSpells.mockResolvedValue([{ id: "s1", ritual: false }]);
+
+      const res = await useCase.execute(["sys1"]);
+      expect(res).toEqual([{ id: "s1", ritual: false }]);
+      expect(spellServiceMock.getNonRitualSpells).toHaveBeenCalledWith(["sys1"]);
     });
   });
 });

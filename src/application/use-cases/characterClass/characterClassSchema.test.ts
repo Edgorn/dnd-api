@@ -20,6 +20,21 @@ const wizardSpellRepository = {
 };
 
 describe("CreateCharacterClassSchema levels.spell_choices", () => {
+  it("accepts spell_choices with a ritual boolean filter", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      levels: [
+        {
+          level: 1,
+          spell_choices: [{ choose: 1, filter: { level: 1, ritual: true } }]
+        }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("accepts spell_choices with a multi-level filter", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
@@ -100,18 +115,18 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts uniformSlots on a level spellcasting table", () => {
+  it("accepts fixedLevelSlots on a level spellcasting table", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
       name: "Brujo",
       levels: [
         {
           level: 1,
-          spellcasting: { cantrips: 2, spellsLearned: 2, uniformSlots: { count: 1, level: 1 } }
+          spellcasting: { cantrips: 2, spellsLearned: 2, fixedLevelSlots: { count: 1, level: 1 } }
         },
         {
           level: 3,
-          spellcasting: { spellsLearned: 1, uniformSlots: { count: 2, level: 2 } }
+          spellcasting: { spellsLearned: 1, fixedLevelSlots: { count: 2, level: 2 } }
         }
       ]
     });
@@ -119,14 +134,14 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects slots and uniformSlots on the same level", () => {
+  it("rejects slots and fixedLevelSlots on the same level", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
       name: "Brujo",
       levels: [
         {
           level: 1,
-          spellcasting: { slots: { "1": 2 }, uniformSlots: { count: 1, level: 1 } }
+          spellcasting: { slots: { "1": 2 }, fixedLevelSlots: { count: 1, level: 1 } }
         }
       ]
     });
@@ -134,24 +149,24 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects mixing table slots and uniformSlots across levels", () => {
+  it("rejects mixing table slots and fixedLevelSlots across levels", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
       name: "Brujo",
       levels: [
         { level: 1, spellcasting: { slots: { "1": 2 } } },
-        { level: 2, spellcasting: { uniformSlots: { count: 2, level: 1 } } }
+        { level: 2, spellcasting: { fixedLevelSlots: { count: 2, level: 1 } } }
       ]
     });
 
     expect(result.success).toBe(false);
   });
 
-  it("rejects uniformSlots with count below 1", () => {
+  it("rejects fixedLevelSlots with count below 1", () => {
     const result = CreateCharacterClassSchema.safeParse({
       ruleset: "sys1",
       name: "Brujo",
-      levels: [{ level: 1, spellcasting: { uniformSlots: { count: 0, level: 1 } } }]
+      levels: [{ level: 1, spellcasting: { fixedLevelSlots: { count: 0, level: 1 } } }]
     });
 
     expect(result.success).toBe(false);
@@ -314,6 +329,22 @@ describe("CreateCharacterClassSchema levels.spell_choices", () => {
           traits_data: { [traitId]: { "{dice}": "2d6" } }
         }
       ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a spell repository with copy source and destination", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Mago",
+      spellRepository: {
+        ...wizardSpellRepository,
+        source: "classList",
+        destination: "known",
+        ritualOnly: false,
+        maxLevel: "castable"
+      }
     });
 
     expect(result.success).toBe(true);

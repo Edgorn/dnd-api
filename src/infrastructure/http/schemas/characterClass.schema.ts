@@ -7,6 +7,11 @@ import {
   LEVEL_SKILL_PROFICIENCY_VALUES,
   SPELL_CHOICE_SOURCES
 } from "../../../domain/types/classLevelChoices.types";
+import {
+  SPELL_REPOSITORY_DESTINATIONS,
+  SPELL_REPOSITORY_MAX_LEVELS,
+  SPELL_REPOSITORY_SOURCES
+} from "../../../domain/types/characterClass.types";
 import { OptionChoiceMongoSchema, OptionReplacementsSchema } from "./optionGroup.schema";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
@@ -33,7 +38,12 @@ export const LevelSkillProficiencyChoiceSchema = z.object({
 export const SpellChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
   options: z.array(z.string()).optional(),
-  filter: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional(),
+  filter: z.record(z.string(), z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.array(z.union([z.string(), z.number()]))
+  ])).optional(),
   source: z.enum(SPELL_CHOICE_SOURCES).optional(),
   levels: z.literal("castable").optional(),
   includeCantrips: z.boolean().optional(),
@@ -49,7 +59,7 @@ const classFormulaSchema = (fieldLabel: string) =>
     }
   });
 
-const UniformSpellSlotsSchema = z.object({
+const FixedLevelSpellSlotsSchema = z.object({
   count: z.number().int().min(1, "Debe haber al menos 1 ranura"),
   level: z.number().int().min(1, "El nivel de ranura debe ser al menos 1").max(9, "El nivel de ranura no puede superar 9")
 }).strict();
@@ -58,13 +68,13 @@ const ClassSpellSlotsSchema = z.object({
   cantrips: z.number().int().min(0).optional(),
   spellsLearned: z.number().int().min(0).optional(),
   slots: z.record(z.string(), z.number().int().min(0)).optional(),
-  uniformSlots: UniformSpellSlotsSchema.optional()
+  fixedLevelSlots: FixedLevelSpellSlotsSchema.optional()
 }).superRefine((data, ctx) => {
-  if (data.slots !== undefined && data.uniformSlots !== undefined) {
+  if (data.slots !== undefined && data.fixedLevelSlots !== undefined) {
     ctx.addIssue({
       code: "custom",
-      message: "slots y uniformSlots no pueden indicarse juntos",
-      path: ["uniformSlots"]
+      message: "slots y fixedLevelSlots no pueden indicarse juntos",
+      path: ["fixedLevelSlots"]
     });
   }
 }).optional();
@@ -87,13 +97,17 @@ const SpellCopyCostSchema = z.object({
   costPerSpellLevel: CostSchema
 });
 
-const SpellRepositoryConfigSchema = z.object({
+export const SpellRepositoryConfigSchema = z.object({
   name: z.string().min(1, "El nombre del repositorio de conjuros no puede estar vacío"),
   equipmentId: z.string().regex(objectIdRegex, "equipmentId debe ser un ObjectId válido de MongoDB").optional(),
   includesCantrips: z.boolean(),
   copy: SpellCopyCostSchema,
   duplicate: SpellCopyCostSchema,
-  recoverPreparedOnLoss: z.boolean()
+  recoverPreparedOnLoss: z.boolean(),
+  source: z.enum(SPELL_REPOSITORY_SOURCES).optional(),
+  destination: z.enum(SPELL_REPOSITORY_DESTINATIONS).optional(),
+  ritualOnly: z.boolean().optional(),
+  maxLevel: z.enum(SPELL_REPOSITORY_MAX_LEVELS).optional()
 });
 
 const SpellReplacementConfigSchema = z.object({
@@ -154,20 +168,20 @@ const spellPreparationPairRefinement = (
   });
 };
 
-type SlotProgressionMode = "table" | "uniform";
+type SlotProgressionMode = "table" | "fixedLevel";
 
 function slotProgressionMode(
-  spellcasting?: { slots?: unknown; uniformSlots?: unknown } | null
+  spellcasting?: { slots?: unknown; fixedLevelSlots?: unknown } | null
 ): SlotProgressionMode | undefined {
   if (!spellcasting) return undefined;
-  if (spellcasting.uniformSlots !== undefined) return "uniform";
+  if (spellcasting.fixedLevelSlots !== undefined) return "fixedLevel";
   if (spellcasting.slots !== undefined) return "table";
   return undefined;
 }
 
 const consistentSlotProgressionRefinement = (
   levels: Array<{
-    spellcasting?: { slots?: unknown; uniformSlots?: unknown };
+    spellcasting?: { slots?: unknown; fixedLevelSlots?: unknown };
   }> | undefined,
   ctx: z.RefinementCtx
 ) => {
@@ -183,7 +197,7 @@ const consistentSlotProgressionRefinement = (
     if (rowMode !== mode) {
       ctx.addIssue({
         code: "custom",
-        message: "levels no puede mezclar ranuras por nivel y ranuras uniformes",
+        message: "levels no puede mezclar ranuras por nivel y ranuras de nivel fijo",
         path: ["levels", i, "spellcasting"]
       });
     }

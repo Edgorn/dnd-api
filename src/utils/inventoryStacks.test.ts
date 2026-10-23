@@ -110,6 +110,21 @@ describe("addToInventory", () => {
     expect(result[1].instanceId).toMatch(/^[0-9a-f]{24}$/i);
   });
 
+  it("never stacks a uniquely granted row", () => {
+    const existing = row({ instanceId: "a", equipmentId: "book" });
+    const tome = createInventoryInstance({
+      equipmentId: "book",
+      quantity: 1,
+      isMagic: false,
+      uniqueGranted: true,
+    });
+    const result = addToInventory([existing], tome);
+
+    expect(result).toHaveLength(2);
+    expect(result[1].uniqueGranted).toBe(true);
+    expect(cloneInventory(result)[1].uniqueGranted).toBe(true);
+  });
+
   it("never stacks a bonded incoming row", () => {
     const existing = row({ instanceId: "a", equipmentId: "eq1" });
     const bonded = createInventoryInstance({

@@ -76,7 +76,7 @@ describe("OpenAPI trait action schemas", () => {
   it("documents recoverSpellSlots on TraitAction", () => {
     expect(schemas.TraitRecoverSpellSlots?.required).toEqual(["pool", "scope"]);
     expect(schemas.TraitAction?.properties?.recoverSpellSlots).toBeDefined();
-    expect(schemas.TraitRecoverSpellSlots?.properties?.pool?.description).toMatch(/pacto/i);
+    expect(schemas.TraitRecoverSpellSlots?.properties?.pool?.description).toMatch(/nivel fijo/i);
     expect(schemas.TraitRecoverSpellSlots?.properties?.scope?.description).toMatch(/otorga/i);
   });
 
@@ -86,11 +86,25 @@ describe("OpenAPI trait action schemas", () => {
     expect(schemas.SpellPrivilegeRule?.properties?.atLevel?.description).toMatch(/omite/i);
   });
 
-  it("documents pactWeapon on Trait write and read schemas", () => {
-    expect(schemas.TraitPactWeapon?.required).toEqual(["melee", "grantsProficiency", "magical"]);
-    expect(schemas.Trait?.properties?.pactWeapon).toBeDefined();
-    expect(schemas.InputCreateTrait?.properties?.pactWeapon).toBeDefined();
-    expect(schemas.InputUpdateTrait?.properties?.pactWeapon).toBeDefined();
+  it("documents weaponBond on Trait write and read schemas", () => {
+    expect(schemas.TraitWeaponBond?.required).toEqual(["melee", "grantsProficiency", "magical"]);
+    expect(schemas.Trait?.properties?.weaponBond).toBeDefined();
+    expect(schemas.InputCreateTrait?.properties?.weaponBond).toBeDefined();
+    expect(schemas.InputUpdateTrait?.properties?.weaponBond).toBeDefined();
+  });
+
+  it("documents uniqueEquipmentGrant and anyClassList spell privileges", () => {
+    expect(schemas.TraitUniqueEquipmentGrant?.required).toEqual(["equipmentId"]);
+    expect(schemas.TraitUniqueEquipmentGrantApi?.required).toEqual(["id", "name"]);
+    expect((schemas.Trait?.properties?.uniqueEquipmentGrant as { $ref?: string } | undefined)?.$ref)
+      .toBe("#/components/schemas/TraitUniqueEquipmentGrantApi");
+    expect(schemas.InputCreateTrait?.properties?.uniqueEquipmentGrant).toBeDefined();
+    expect(schemas.InputUpdateTrait?.properties?.uniqueEquipmentGrant).toBeDefined();
+    expect((schemas.SpellPrivilegeRule?.properties?.source as { enum?: string[] } | undefined)?.enum)
+      .toEqual(expect.arrayContaining(["known", "classList", "anyClassList"]));
+    expect(schemas.InputCreateTrait?.properties?.spellRepository).toBeDefined();
+    expect(schemas.InputUpdateTrait?.properties?.spellRepository).toBeDefined();
+    expect(schemas.Trait?.properties?.spellRepository).toBeDefined();
   });
 
   it("documents skillProficiencies on Trait write and read schemas", () => {

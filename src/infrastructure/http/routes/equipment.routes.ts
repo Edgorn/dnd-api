@@ -379,14 +379,17 @@ const router = Router();
  *           description: Indica si el objeto es mágico.
  *         isBond:
  *           type: boolean
- *           description: Indica si el objeto está vinculado por pacto.
- *         pactOrigin:
+ *           description: Indica si el objeto está vinculado.
+ *         bondOrigin:
  *           type: string
  *           enum: [summoned, bound]
- *           description: Origen del arma de pacto. summoned es invocada; bound es un arma mágica ritual.
- *         pactStored:
+ *           description: Origen del arma vinculada. summoned es invocada; bound es un arma mágica ritual.
+ *         bondStored:
  *           type: boolean
- *           description: True si el arma de pacto está en el espacio extradimensional.
+ *           description: True si el arma vinculada está en el espacio extradimensional.
+ *         uniqueGranted:
+ *           type: boolean
+ *           description: True si el objeto es la instancia única concedida por un rasgo.
  *         bonuses:
  *           type: object
  *           description: Bonificaciones adicionales del equipamiento.

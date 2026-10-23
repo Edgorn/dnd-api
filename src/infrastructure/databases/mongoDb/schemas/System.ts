@@ -50,7 +50,7 @@ const system: Schema = new Schema<System>({
       }],
       spellSlotRecovery: [{
         restKey: String,
-        pools: [{ type: String, enum: ["standard", "uniform"] }],
+        pools: [{ type: String, enum: ["standard", "fixedLevel"] }],
         _id: false,
       }],
       hitDiceSpending: {

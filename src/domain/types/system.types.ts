@@ -55,7 +55,7 @@ export interface SystemHitPointRecovery {
   hitDice: HitPointHitDiceMode;
 }
 
-export const SPELL_SLOT_POOLS = ["standard", "uniform"] as const;
+export const SPELL_SLOT_POOLS = ["standard", "fixedLevel"] as const;
 export type SpellSlotPool = (typeof SPELL_SLOT_POOLS)[number];
 
 export interface SystemSpellSlotRecovery {

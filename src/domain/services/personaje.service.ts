@@ -1,5 +1,5 @@
 import IPersonajeRepository from "../repositories/IPersonajeRepository";
-import { CharacterCampaignLink, ConsultarPersonajeOptions, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, ConsultarPersonajeOptions, LevelUpData, PersonajeApi, PersonajeBasico, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
 
 export default class PersonajeService {
   constructor(private readonly personajeRepository: IPersonajeRepository) { }
@@ -64,12 +64,16 @@ export default class PersonajeService {
     return this.personajeRepository.assignToCampaign(characterId, campaignId);
   }
 
-  bindPactEquipment(data: TypeBindPactEquipment): Promise<{ completo: PersonajeApi; basico: PersonajeBasico }> {
-    return this.personajeRepository.bindPactEquipment(data);
+  bindWeaponBond(data: TypeBindWeaponBond): Promise<{ completo: PersonajeApi; basico: PersonajeBasico }> {
+    return this.personajeRepository.bindWeaponBond(data);
   }
 
   learnSpells(data: TypeLearnSpells): Promise<PersonajeApi> {
     return this.personajeRepository.learnSpells(data);
+  }
+
+  copySpells(data: TypeCopySpells): Promise<PersonajeApi> {
+    return this.personajeRepository.copySpells(data);
   }
 
   prepareSpells(data: TypePrepareSpells): Promise<PersonajeApi> {

@@ -11,8 +11,9 @@ import GenerateCharacterPdf from "../../../application/use-cases/personaje/gener
 import UpdateMoney from "../../../application/use-cases/personaje/updateMoney.use-case";
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
-import BindPactEquipment from "../../../application/use-cases/personaje/bindPactEquipment.use-case";
+import BindWeaponBond from "../../../application/use-cases/personaje/bindWeaponBond.use-case";
 import LearnSpells from "../../../application/use-cases/personaje/learnSpells.use-case";
+import CopySpells from "../../../application/use-cases/personaje/copySpells.use-case";
 import AñadirForma from "../../../application/use-cases/personaje/añadirForma.use-case";
 import ActivateCharacterForm from "../../../application/use-cases/personaje/activateCharacterForm.use-case";
 import DeactivateCharacterForm from "../../../application/use-cases/personaje/deactivateCharacterForm.use-case";
@@ -44,8 +45,9 @@ export class PersonajeController {
     private readonly equipEquipment: EquipEquipment,
     private readonly updateMoneyUseCase: UpdateMoney,
     private readonly generateCharacterPdf: GenerateCharacterPdf,
-    private readonly bindPactEquipment: BindPactEquipment,
+    private readonly bindWeaponBond: BindWeaponBond,
     private readonly learnSpellsUseCase: LearnSpells,
+    private readonly copySpellsUseCase: CopySpells,
     private readonly añadirForma: AñadirForma,
     private readonly activateCharacterFormUseCase: ActivateCharacterForm,
     private readonly deactivateCharacterFormUseCase: DeactivateCharacterForm,
@@ -173,7 +175,7 @@ export class PersonajeController {
     }
   };
 
-  bindPactEquipmentHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  bindWeaponBondHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { id, instanceId } = req.params;
 
@@ -185,10 +187,10 @@ export class PersonajeController {
         throw new ValidationError("Se requiere el ID de la instancia de equipamiento");
       }
 
-      const data = await this.bindPactEquipment.execute({ id, instanceId, ...req.body });
+      const data = await this.bindWeaponBond.execute({ id, instanceId, ...req.body });
       res.status(200).json(data);
     } catch (e) {
-      console.error("[PersonajeController.bindPactEquipmentHandler] Error:", e);
+      console.error("[PersonajeController.bindWeaponBondHandler] Error:", e);
       next(e);
     }
   };
@@ -326,6 +328,29 @@ export class PersonajeController {
       res.status(200).json(data);
     } catch (e) {
       console.error("[PersonajeController.learnSpells] Error:", e);
+      next(e);
+    }
+  };
+
+  copySpells = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      const { class: classId, spells, traitId } = req.body;
+      const data = await this.copySpellsUseCase.execute({
+        id,
+        classId,
+        spells,
+        traitId,
+        userId: req.user!,
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.copySpells] Error:", e);
       next(e);
     }
   };

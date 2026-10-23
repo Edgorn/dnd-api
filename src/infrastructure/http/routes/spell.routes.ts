@@ -693,6 +693,37 @@ router.get('/spells/rituals', authMiddleware, spellController.getRitualSpells);
 
 /**
  * @openapi
+ * /spells/non-rituals:
+ *   get:
+ *     summary: Obtener conjuros que no son rituales
+ *     tags:
+ *       - Conjuros
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema para filtrar.
+ *     responses:
+ *       200:
+ *         description: Lista de conjuros no rituales devuelta con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Spell'
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.get('/spells/non-rituals', authMiddleware, spellController.getNonRitualSpells);
+
+/**
+ * @openapi
  * /spells/level/{level}:
  *   get:
  *     summary: Obtener conjuros filtrados por nivel y opcionalmente clase
@@ -717,6 +748,11 @@ router.get('/spells/rituals', authMiddleware, spellController.getRitualSpells);
  *         schema:
  *           type: string
  *         description: Nombre de la clase (ej. wizard, cleric).
+ *       - in: query
+ *         name: ritual
+ *         schema:
+ *           type: boolean
+ *         description: Si es true, solo rituales. Si es false, solo no rituales.
  *     responses:
  *       200:
  *         description: Lista de conjuros devuelta con éxito.

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindWeaponBondSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, CopySpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -512,7 +512,7 @@ const router = Router();
  *     CharacterSpellSlot:
  *       type: object
  *       description: >
- *         Ranuras derivadas de la tabla de clase (`slots` o `uniformSlots`).
+ *         Ranuras derivadas de la tabla de clase (`slots` o `fixedLevelSlots`).
  *         Solo se persiste `spent` en el personaje.
  *       required:
  *         - classId
@@ -527,10 +527,10 @@ const router = Router();
  *           description: ID de MongoDB de la clase.
  *         pool:
  *           type: string
- *           enum: [standard, uniform]
+ *           enum: [standard, fixedLevel]
  *           description: >
- *             `standard` es la tabla por nivel. `uniform` es una bolsa de nivel único
- *             (p. ej. magia de pacto). El `level` de uniform es el de esa bolsa, no el del conjuro.
+ *             `standard` es la tabla por nivel. `fixedLevel` es una bolsa de nivel fijo.
+ *             El `level` de fixedLevel es el de esa bolsa, no el del conjuro.
  *         level:
  *           type: integer
  *           minimum: 1
@@ -1312,7 +1312,7 @@ router.post('/character/:id/equipment', authMiddleware, validateParams(Character
  *       404:
  *         description: Personaje o instancia de equipamiento no encontrada.
  *       409:
- *         description: El equipamiento está marcado como favorito, está equipado o es un arma de pacto.
+ *         description: El equipamiento está marcado como favorito, está equipado o es un arma vinculada.
  *       500:
  *         description: Error del servidor.
  */
@@ -1455,10 +1455,10 @@ router.patch('/character/:id/equipment/:instanceId/favorite', authMiddleware, va
  * @openapi
  * /character/{id}/equipment/{instanceId}/bond:
  *   patch:
- *     summary: Vincular o desvincular el pacto de una instancia
+ *     summary: Vincular o desvincular un arma de una instancia
  *     description: |
- *       Actualiza isBond de una instancia. Vincular exige un rasgo con pactWeapon, que el objeto
- *       sea un arma mágica (cuerpo a cuerpo si pactWeapon.melee) y deja un solo vínculo.
+ *       Actualiza isBond de una instancia. Vincular exige un rasgo con weaponBond, que el objeto
+ *       sea un arma mágica (cuerpo a cuerpo si weaponBond.melee) y deja un solo vínculo.
  *       Destruye un arma invocada previa. No equipa el arma. Desvincular solo aplica a origin
  *       bound; las invocadas se descartan con deactivate. Si la pila tiene quantity mayor que 1,
  *       se parte una unidad.
@@ -1490,10 +1490,10 @@ router.patch('/character/:id/equipment/:instanceId/favorite', authMiddleware, va
  *             properties:
  *               isBond:
  *                 type: boolean
- *                 description: true para vincular el pacto, false para desvincularlo.
+ *                 description: true para vincular el arma, false para desvincularla.
  *     responses:
  *       200:
- *         description: Pacto actualizado con éxito.
+ *         description: Vínculo actualizado con éxito.
  *         content:
  *           application/json:
  *             schema:
@@ -1515,7 +1515,7 @@ router.patch('/character/:id/equipment/:instanceId/favorite', authMiddleware, va
  *       500:
  *         description: Error del servidor.
  */
-router.patch('/character/:id/equipment/:instanceId/bond', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(BindPactEquipmentSchema), personajeController.bindPactEquipmentHandler);
+router.patch('/character/:id/equipment/:instanceId/bond', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(BindWeaponBondSchema), personajeController.bindWeaponBondHandler);
 
 /**
  * @openapi
@@ -2256,6 +2256,7 @@ router.put('/character/:id/prepared-spells', authMiddleware, validateParams(Char
  *       regla **activa** (`atLevel` menor o igual al nivel de la clase indicada) y debe tener
  *       exactamente `choose` conjuros del nivel indicado, de la lista de la clase.
  *       Si `source` es `known`, deben estar entre los conocidos de esa clase.
+ *       Si `source` es `anyClassList`, cada conjuro debe pertenecer a alguna lista de clase.
  *       El primer vínculo de cada regla está permitido. Añadir grupos de reglas que acaban de
  *       desbloquearse también lo está, aunque `replace` sea nulo. Cambiar un grupo ya guardado
  *       solo se admite si esa regla tiene `replace` (p. ej. 8 horas de estudio).
@@ -2328,11 +2329,14 @@ router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateP
  *       (400 si ya estaba activa). Falla si `suppressedByArmorTypeIds` coincide con
  *       armadura equipada. `uses: unlimited` no incrementa `spent`. No recarga PG.
  *       Si `action.recoverSpellSlots` está definido, recupera las ranuras gastadas de
- *       esa bolsa (`standard` o `uniform`) en la clase otorgante. Sin clase otorgante
+ *       esa bolsa (`standard` o `fixedLevel`) en la clase otorgante. Sin clase otorgante
  *       el uso se gasta igual y las ranuras no cambian.
- *       Si el rasgo tiene `pactWeapon`, invoca o materializa el arma de pacto. Con un arma
+ *       Si el rasgo tiene `weaponBond`, invoca o materializa el arma vinculada. Con un arma
  *       vinculada guardada ignora `equipmentId`. Si no hay vínculo, `equipmentId` es la forma
  *       (arma cuerpo a cuerpo del catálogo). No se equipa. Un arma vinculada ya manifiesta responde 400.
+ *       Si el rasgo tiene `uniqueEquipmentGrant`, realiza la ceremonia: destruye cualquier
+ *       instancia única concedida y crea una nueva desde `uniqueEquipmentGrant.id`. No usa `equipmentId`
+ *       del body. La acción suele ser `uses: unlimited`.
  *     tags:
  *       - Personajes
  *     security:
@@ -2359,16 +2363,16 @@ router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateP
  *             properties:
  *               equipmentId:
  *                 type: string
- *                 description: ID de MongoDB del arma de catálogo que adopta el arma de pacto invocada.
+ *                 description: ID de MongoDB del arma de catálogo que adopta el arma vinculada invocada.
  *     responses:
  *       200:
- *         description: Personaje actualizado con el uso gastado, la stance o el arma de pacto, si aplica.
+ *         description: Personaje actualizado con el uso gastado, la stance, el arma vinculada o el objeto concedido, si aplica.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PersonajeApi'
  *       400:
- *         description: Sin usos, stance ya activa, rasgo sin acción, suprimido por armadura o arma de pacto inválida.
+ *         description: Sin usos, stance ya activa, rasgo sin acción, suprimido por armadura o arma vinculada inválida.
  *       401:
  *         description: No autorizado.
  *       403:
@@ -2384,10 +2388,10 @@ router.post('/character/:id/traits/:traitId/use', authMiddleware, validateParams
  * @openapi
  * /character/{id}/traits/{traitId}/deactivate:
  *   post:
- *     summary: Apagar la stance o descartar el arma de pacto
+ *     summary: Apagar la stance o descartar el arma vinculada
  *     description: |
- *       Si el rasgo tiene `pactWeapon` y hay un arma manifiesta, la descarta: borra
- *       una invocada o guarda en extradimensional (`pactStored`) una vinculada.
+ *       Si el rasgo tiene `weaponBond` y hay un arma manifiesta, la descarta: borra
+ *       una invocada o guarda en extradimensional (`bondStored`) una vinculada.
  *       Si no, quita el rasgo de `activeTraitIds` (y `traits[].action.active` pasa a false).
  *       No modifica `traitResources[].spent` ni `action.remaining`.
  *       Falla si no hay arma manifiesta ni stance activa.
@@ -2452,7 +2456,7 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *       en el orden de `classes`). Fuera de un descanso, el gasto de dados es
  *       POST `/character/{id}/hit-dice/spend`.
  *       Si `spellSlotRecovery` cubre el `type`, pone a 0 el spent de las bolsas listadas
- *       (`standard` y/o `uniform`). El gasto de ranuras es POST `/character/{id}/spell-slots/spend`.
+ *       (`standard` y/o `fixedLevel`). El gasto de ranuras es POST `/character/{id}/spell-slots/spend`.
  *       A cada `activeConditions` cuyo `Condition.recovery` cubra el `type` le aplica la suma
  *       de `delta`; si el nivel baja de 1, quita el estado.
  *     tags:
@@ -2701,9 +2705,9 @@ router.post('/character/:id/hp/heal', authMiddleware, validateParams(CharacterId
  *   post:
  *     summary: Gastar una ranura de conjuro
  *     description: |
- *       El cuerpo indica `classId`, `pool` (`standard` o `uniform`) y `level`.
- *       Gasta 1 ranura de esa bolsa. En `uniform`, `level` es el de la bolsa
- *       (el de `uniformSlots.level`), no el del conjuro lanzado.
+ *       El cuerpo indica `classId`, `pool` (`standard` o `fixedLevel`) y `level`.
+ *       Gasta 1 ranura de esa bolsa. En `fixedLevel`, `level` es el de la bolsa
+ *       (el de `fixedLevelSlots.level`), no el del conjuro lanzado.
  *       Valida que queden ranuras (`total - spent`). Incrementa `spellSlots[].spent`.
  *       No exige un descanso en curso.
  *     tags:
@@ -2733,7 +2737,7 @@ router.post('/character/:id/hp/heal', authMiddleware, validateParams(CharacterId
  *                 description: ID de la clase cuyas ranuras se gastan.
  *               pool:
  *                 type: string
- *                 enum: [standard, uniform]
+ *                 enum: [standard, fixedLevel]
  *               level:
  *                 type: integer
  *                 minimum: 1
@@ -2964,6 +2968,71 @@ router.delete('/character/:id/conditions/:conditionId', authMiddleware, validate
  *         description: Error del servidor.
  */
 router.post('/character/:id/known-spells', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(LearnSpellsSchema), personajeController.learnSpells);
+
+/**
+ * @openapi
+ * /character/{id}/copied-spells:
+ *   post:
+ *     summary: Copiar conjuros a un repositorio
+ *     description: |
+ *       Copia conjuros fuera de la subida de nivel. Sin `traitId` usa `spellRepository` de la clase
+ *       (libro de mago: lista de la clase, conocidos, nivel con ranura). Con `traitId` usa el
+ *       `spellRepository` del rasgo (p. ej. Libro de Secretos Ancestrales: rituales de cualquier
+ *       lista, extra, mitad del nivel de clase).
+ *       No descuenta oro ni registra horas: el cliente aplica `copy` del repositorio.
+ *       Si `equipmentId` está definido, el personaje debe tener ese objeto en el inventario.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - class
+ *               - spells
+ *             properties:
+ *               class:
+ *                 type: string
+ *                 description: ID de MongoDB de la clase asociada al repositorio.
+ *               spells:
+ *                 type: array
+ *                 minItems: 1
+ *                 description: IDs de los conjuros a copiar.
+ *                 items:
+ *                   type: string
+ *               traitId:
+ *                 type: string
+ *                 description: ID del rasgo cuyo spellRepository se usa. Si falta, se usa el de la clase.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado con los conjuros copiados.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Datos inválidos, sin repositorio, ritual, tope de nivel o objeto ausente.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje, rasgo o clase no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/copied-spells', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(CopySpellsSchema), personajeController.copySpells);
 /**
  * @openapi
  * /character/{id}/addForm:

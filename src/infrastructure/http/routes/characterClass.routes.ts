@@ -250,8 +250,8 @@ const router = Router();
  *             minimum: 0
  *           description: >
  *             Ranuras por nivel de conjuro (clave "1".."9", valor = cantidad).
- *             Excluyente con uniformSlots.
- *         uniformSlots:
+ *             Excluyente con fixedLevelSlots.
+ *         fixedLevelSlots:
  *           type: object
  *           required:
  *             - count
@@ -267,8 +267,8 @@ const router = Router();
  *               maximum: 9
  *               description: Nivel de esas ranuras. Permite conocer y preparar conjuros de 1 hasta este nivel.
  *           description: >
- *             Progresión uniforme (cantidad + nivel de ranura). Excluyente con slots.
- *             Toda la clase debe usar un solo modo (tabla o uniforme).
+ *             Progresión de nivel fijo (cantidad + nivel de ranura). Excluyente con slots.
+ *             Toda la clase debe usar un solo modo (tabla o nivel fijo).
  *     SubclassChoiceConfig:
  *       type: object
  *       required:
@@ -438,6 +438,27 @@ const router = Router();
  *         recoverPreparedOnLoss:
  *           type: boolean
  *           description: Si se pierde el repositorio, se pueden transcribir los conjuros preparados actuales.
+ *         source:
+ *           type: string
+ *           enum: [classList, anyClassList]
+ *           description: >
+ *             Origen al copiar. classList es la lista de la clase (mago). anyClassList
+ *             admite conjuros de cualquier lista (Libro de Secretos Ancestrales). Por defecto classList.
+ *         destination:
+ *           type: string
+ *           enum: [known, extra]
+ *           description: >
+ *             Dónde se guardan los conjuros copiados. known suma a conocidos; extra no cuenta
+ *             para el tope. Por defecto known.
+ *         ritualOnly:
+ *           type: boolean
+ *           description: Si es true, solo se pueden copiar conjuros rituales. Por defecto false.
+ *         maxLevel:
+ *           type: string
+ *           enum: [castable, halfClassLevelCeil]
+ *           description: >
+ *             Tope de nivel al copiar. castable usa las ranuras actuales; halfClassLevelCeil
+ *             es la mitad del nivel de clase redondeando hacia arriba. Por defecto castable.
  *     SpellReplacementConfig:
  *       type: object
  *       required:

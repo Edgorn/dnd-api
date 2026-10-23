@@ -10,7 +10,7 @@ export interface ChoiceApi<T> {
   choose: number;
   options: T[];
   query_type?: "all" | "options" | "filter";
-  query_filter?: Record<string, string | number | (string | number)[]>;
+  query_filter?: Record<string, string | number | boolean | (string | number)[]>;
 }
 
 export interface OptionSelectApi {

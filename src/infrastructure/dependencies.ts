@@ -68,9 +68,10 @@ import DeleteEquipment from "../application/use-cases/personaje/deleteEquipment.
 import EquipEquipment from "../application/use-cases/personaje/equipEquipment.use-case";
 import UpdateMoney from "../application/use-cases/personaje/updateMoney.use-case";
 import GenerateCharacterPdf from "../application/use-cases/personaje/generateCharacterPdf.use-case";
-import BindPactEquipment from "../application/use-cases/personaje/bindPactEquipment.use-case";
+import BindWeaponBond from "../application/use-cases/personaje/bindWeaponBond.use-case";
 import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
 import LearnSpells from "../application/use-cases/personaje/learnSpells.use-case";
+import CopySpells from "../application/use-cases/personaje/copySpells.use-case";
 import PrepareSpells from "../application/use-cases/personaje/prepareSpells.use-case";
 import BindSpellPrivileges from "../application/use-cases/personaje/bindSpellPrivileges.use-case";
 import UpdateCompanions from "../application/use-cases/personaje/updateCompanions.use-case";
@@ -271,6 +272,7 @@ import GetSpellsBySystems from "../application/use-cases/spell/getSpellsBySystem
 import GetSpellById from "../application/use-cases/spell/getSpellById.use-case";
 import GetSpellsByLevel from "../application/use-cases/spell/getSpellsByLevel.use-case";
 import GetRitualSpells from "../application/use-cases/spell/getRitualSpells.use-case";
+import GetNonRitualSpells from "../application/use-cases/spell/getNonRitualSpells.use-case";
 
 import MagicSchoolRepository from "./databases/mongoDb/repositories/magicSchool.repository";
 import MagicSchoolService from "../domain/services/magicSchool.service";
@@ -300,7 +302,7 @@ const creatureTypeService = new CreatureTypeService(creatureTypeRepository)
 const conditionRepository = new ConditionRepository(systemRepository)
 const conditionService = new ConditionService(conditionRepository)
 const attributeRepository = new AttributeRepository(systemRepository)
-const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, conditionRepository, skillRepository, languageRepository, creatureTypeRepository, attributeRepository)
+const traitRepository = new TraitRepository(damageRepository, proficiencyRepository, spellRepository, conditionRepository, skillRepository, languageRepository, creatureTypeRepository, attributeRepository, equipmentRepository)
 const attributeService = new AttributeService(attributeRepository, systemRepository)
 const featRepository = new FeatRepository(systemRepository, attributeService)
 const skillService = new SkillService(skillRepository)
@@ -514,9 +516,10 @@ const generateCharacterPdf = new GenerateCharacterPdf(
   userRepository,
   characterSheetPdfGenerator
 );
-const bindPactEquipment = new BindPactEquipment(personajeService);
+const bindWeaponBond = new BindWeaponBond(personajeService);
 const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
 const learnSpells = new LearnSpells(personajeService);
+const copySpells = new CopySpells(personajeService);
 const prepareSpells = new PrepareSpells(personajeService);
 const bindSpellPrivileges = new BindSpellPrivileges(personajeService);
 const updateCompanions = new UpdateCompanions(personajeService);
@@ -549,13 +552,14 @@ const getSpellsBySystems = new GetSpellsBySystems(spellService);
 const getSpellById = new GetSpellById(spellService);
 const getSpellsByLevel = new GetSpellsByLevel(spellService);
 const getRitualSpells = new GetRitualSpells(spellService);
+const getNonRitualSpells = new GetNonRitualSpells(spellService);
 
 const languageService = new LanguageService(languageRepository)
 const damageService = new DamageService(damageRepository)
 
 const getTraitsBySystemsUseCase = new GetTraitsBySystemsUseCase(traitService, systemService)
-const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService, conditionService, creatureService)
-const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService, conditionService, creatureService)
+const createTraitUseCase = new CreateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService, conditionService, creatureService, equipmentService)
+const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, armorTypeService, languageService, damageService, creatureTypeService, attributeService, spellService, conditionService, creatureService, equipmentService)
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 
@@ -680,8 +684,9 @@ export const personajeController = new PersonajeController(
   equipEquipment,
   updateMoney,
   generateCharacterPdf,
-  bindPactEquipment,
+  bindWeaponBond,
   learnSpells,
+  copySpells,
   añadirForma,
   activateCharacterForm,
   deactivateCharacterForm,
@@ -708,7 +713,8 @@ export const spellController = new SpellController(
   getSpellsBySystems,
   getSpellById,
   getSpellsByLevel,
-  getRitualSpells
+  getRitualSpells,
+  getNonRitualSpells
 );
 
 export const systemController = new SystemController(

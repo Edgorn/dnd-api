@@ -3,7 +3,7 @@ import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { Types } from 'mongoose';
-import { CharacterCampaignLink, CharacterSubclassApi, ConsultarPersonajeOptions, LevelUpData, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource } from '../../../../domain/types/personajes.types';
+import { CharacterCampaignLink, CharacterSubclassApi, ConsultarPersonajeOptions, LevelUpData, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLearnSpells, TypeCopySpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource } from '../../../../domain/types/personajes.types';
 import { CharacterFormApi, CharacterFormMongo, formPurposeOverlaysCharacter } from '../../../../domain/types/creatureForm.types';
 import {
   CharacterOptionSelection,
@@ -57,7 +57,7 @@ import {
   unionUnique,
   validateChoiceListPicks
 } from '../../../../utils/characterMulticlass';
-import { CharacterClassApi } from '../../../../domain/types/characterClass.types';
+import { CharacterClassApi, SpellRepositoryConfig } from '../../../../domain/types/characterClass.types';
 import { resolveTraitActions } from '../../../../utils/resolveTraitActions';
 import { displaySummary } from '../../../../utils/traitSummary';
 import { buildTraitGrantingClasses } from '../../../../utils/traitProgression';
@@ -137,6 +137,8 @@ import {
   resolveSlotProgressionForLevel,
   shouldOfferSpellReplacement,
   validateKnownSpellPicks,
+  validateCopiedSpellPicks,
+  resolveSpellRepositoryCopyRules,
   validateLevelUpSpellPicks,
   validatePreparedSpellPicks,
   validateSpellReplacements,
@@ -146,22 +148,30 @@ import {
   getCharacterSpellPrivileges,
   privilegeSpellIdsExcludedFromCap,
   alwaysPreparedSpellIds,
+  extraPrivilegeSpellIds,
   mergePreparedWithPrivileges,
   activeSpellPrivilegeRuleIndexes,
   alignPrivilegeSelections,
 } from '../../../../utils/characterSpellcasting';
 import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
 import {
-  applyBindPactWeapon,
-  applyDismissPactWeapon,
-  applyManifestPactWeapon,
-  applySummonPactWeapon,
-  applyUnbindPactWeapon,
-  clearPactWeaponOnTraitLost,
-  ownedPactWeapon,
-  pactWeaponFormRejection,
-  resolvePactWeaponUse
-} from '../../../../utils/pactWeapon';
+  applyBindWeaponBond,
+  applyDismissWeaponBond,
+  applyManifestWeaponBond,
+  applySummonWeaponBond,
+  applyUnbindWeaponBond,
+  clearWeaponBondOnTraitLost,
+  ownedWeaponBond,
+  weaponBondFormRejection,
+  resolveWeaponBondUse
+} from '../../../../utils/weaponBond';
+import {
+  applyGrantUniqueEquipment,
+  applyReplaceUniqueEquipment,
+  clearUniqueGrantedOnTraitLost,
+  hasUniqueGranted,
+  ownedUniqueEquipmentGrant
+} from '../../../../utils/uniqueEquipmentGrant';
 import {
   addToInventory,
   cloneInventory,
@@ -429,7 +439,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       skills: [...skills ?? []],
       proficiencies,
       spells,
-      equipment: equipment,
+      equipment: await this.ensureUniqueEquipmentGranted(this.toInventoryRows(equipment), loadedTraits),
       feats: feats ?? [],
       money: moneyArray,
       HPMax: HP,
@@ -495,7 +505,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const item = this.requireInventoryInstance(inventory, instanceId);
 
     if (item.isBond) {
-      throw new ConflictError("No se puede eliminar un arma de pacto");
+      throw new ConflictError("No se puede eliminar un arma vinculada");
     }
 
     if (item.isFavorite || item.equipped) {
@@ -1011,9 +1021,22 @@ export default class PersonajeRepository implements IPersonajeRepository {
     let nextEquipment: PersonajeEquipmentMongo[] | undefined;
     if (optionPickResult.removedTraitIds.length) {
       const removedTraits = await this.traitRepository.getTraitsByIndexes(optionPickResult.removedTraitIds);
-      if (removedTraits.some(trait => trait.pactWeapon)) {
-        nextEquipment = clearPactWeaponOnTraitLost(this.toInventoryRows(personaje.equipment));
+      if (removedTraits.some(trait => trait.weaponBond)) {
+        nextEquipment = clearWeaponBondOnTraitLost(this.toInventoryRows(personaje.equipment));
       }
+      if (removedTraits.some(trait => trait.uniqueEquipmentGrant)) {
+        nextEquipment = clearUniqueGrantedOnTraitLost(nextEquipment ?? this.toInventoryRows(personaje.equipment));
+      }
+    }
+    const previouslyOwnedSet = new Set(previouslyOwnedTraitIds);
+    const enteringUniqueGrantTraits = [...stackingGranted, ...optionGrantedTraits].filter(
+      trait => trait.uniqueEquipmentGrant && trait.id && !previouslyOwnedSet.has(trait.id)
+    );
+    if (enteringUniqueGrantTraits.length) {
+      nextEquipment = await this.ensureUniqueEquipmentGranted(
+        nextEquipment ?? this.toInventoryRows(personaje.equipment),
+        enteringUniqueGrantTraits
+      );
     }
 
     const resultado = await Personaje.findByIdAndUpdate(
@@ -1116,7 +1139,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return this.formatBasicCharacter(resultado);
   }
 
-  async bindPactEquipment(data: TypeBindPactEquipment): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
+  async bindWeaponBond(data: TypeBindWeaponBond): Promise<{ completo: PersonajeApi, basico: PersonajeBasico }> {
     const { id, instanceId, isBond } = data;
     const personaje = await Personaje.findById(id);
 
@@ -1129,9 +1152,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     if (isBond) {
       const traits = await this.traitRepository.getTraitsByIndexes(personaje.traits ?? []);
-      const config = ownedPactWeapon(traits);
+      const config = ownedWeaponBond(traits);
       if (!config) {
-        throw new ValidationError("El personaje no tiene un rasgo de arma de pacto");
+        throw new ValidationError("El personaje no tiene un rasgo de arma vinculada");
       }
 
       const split = splitOne(inventory, instanceId);
@@ -1139,26 +1162,26 @@ export default class PersonajeRepository implements IPersonajeRepository {
       const boundId = split.instance.instanceId;
       const boundItem = this.requireInventoryInstance(inventory, boundId);
       if (!boundItem.isMagic) {
-        throw new ValidationError("Solo se puede vincular un pacto con equipamiento mágico");
+        throw new ValidationError("Solo se puede vincular equipamiento mágico");
       }
 
       const catalogItem = await this.equipmentRepository.getById(boundItem.equipmentId);
-      const formError = pactWeaponFormRejection(config, catalogItem);
+      const formError = weaponBondFormRejection(config, catalogItem);
       if (formError) {
         throw new ValidationError(
-          formError === "La forma del arma de pacto debe ser un arma"
+          formError === "La forma del arma vinculada debe ser un arma"
             ? "Solo se puede vincular un arma"
             : "Solo se puede vincular un arma cuerpo a cuerpo"
         );
       }
 
-      const bound = applyBindPactWeapon(inventory, boundId);
+      const bound = applyBindWeaponBond(inventory, boundId);
       if (!bound.ok) {
         throw new ValidationError(bound.message);
       }
       inventory = bound.inventory;
     } else {
-      const unbound = applyUnbindPactWeapon(inventory, instanceId);
+      const unbound = applyUnbindWeaponBond(inventory, instanceId);
       if (!unbound.ok) {
         throw new ValidationError(unbound.message);
       }
@@ -1227,6 +1250,126 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       { $set: { spells: spellsUpdate } },
+      { returnDocument: "after" }
+    )
+
+    if (!resultado) {
+      throw new NotFoundError("Personaje no encontrado")
+    }
+
+    return this.formatCharacter(resultado)
+  }
+
+  async copySpells(data: TypeCopySpells): Promise<PersonajeApi> {
+    const { id, classId, spells, traitId, userId } = data
+    const personaje = await Personaje.findById(id)
+
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado")
+    }
+
+    await this.assertCanAccessCharacter(personaje, userId)
+
+    const classEntry = personaje.classes?.find(clas => clas.class === classId)
+    if (!classEntry) {
+      throw new ValidationError("El personaje no tiene esa clase")
+    }
+
+    let config: SpellRepositoryConfig | undefined
+    if (traitId) {
+      const loadedTraits = await this.traitRepository.getTraitsByIndexes([traitId])
+      const trait = loadedTraits[0]
+      if (!trait) {
+        throw new NotFoundError("Rasgo no encontrado")
+      }
+      if (!characterHasTrait(personaje.traits ?? [], [traitId, trait.id])) {
+        throw new ValidationError("El personaje no tiene ese rasgo")
+      }
+      if (!trait.spellRepository) {
+        throw new ValidationError("Este rasgo no define un repositorio de conjuros")
+      }
+      config = trait.spellRepository
+    } else {
+      const classDoc = await this.claseRepository.getById(classId)
+      if (!classDoc?.spellRepository) {
+        throw new ValidationError("Esta clase no define un repositorio de conjuros")
+      }
+      config = classDoc.spellRepository
+    }
+
+    const rules = resolveSpellRepositoryCopyRules(config)
+    if (rules.equipmentId) {
+      const inventory = this.toInventoryRows(personaje.equipment)
+      const hasBook = inventory.some(item => item.equipmentId === rules.equipmentId)
+      if (!hasBook) {
+        throw new ValidationError("El personaje no tiene el repositorio de conjuros")
+      }
+    }
+
+    let castableLevels: number[] = []
+    if (rules.maxLevel === "castable") {
+      const sources = await this.claseRepository.getSpellcastingSources([
+        { id: classId, level: classEntry.level }
+      ])
+      const source = sources.find(item => item?.class === classId) ?? sources[0] ?? null
+      if (!source) {
+        throw new ValidationError("Esta clase no puede copiar conjuros a este nivel")
+      }
+      castableLevels = castableSpellLevels(source.slots)
+    }
+
+    const knownIds = this.getClassSpellIds(personaje, classId)
+    const extraIds = getExtraSpellIds(personaje.extraSpells, classId)
+    const privilegeIds = getCharacterSpellPrivileges(personaje.spellPrivileges)
+      .filter(item => item.classId === classId)
+      .flatMap(item => item.selections.flat())
+      .filter((spellId): spellId is string => Boolean(spellId))
+    const ownedIds = [...new Set([...knownIds, ...extraIds, ...privilegeIds])]
+
+    const [loadedSpells, extraClassSpellIds] = await Promise.all([
+      this.spellRepository.getSpellsByIndexes(spells),
+      this.extraClassSpellIds(personaje, classId),
+    ])
+
+    const validation = validateCopiedSpellPicks({
+      spellIds: spells,
+      ownedIds,
+      classId,
+      spells: loadedSpells
+        .filter((spell): spell is SpellApi & { id: string } => Boolean(spell.id))
+        .map(spell => ({
+          id: spell.id,
+          level: spell.level,
+          classIds: (spell.classes ?? []).map(clas => clas.id),
+          ritual: spell.ritual
+        })),
+      source: rules.source,
+      ritualOnly: rules.ritualOnly,
+      includesCantrips: rules.includesCantrips,
+      maxLevel: rules.maxLevel,
+      classLevel: classEntry.level,
+      castableLevels,
+      extraClassSpellIds,
+    })
+
+    if (validation.error) {
+      throw new ValidationError(validation.error)
+    }
+
+    const update: Record<string, unknown> = {}
+    if (rules.destination === "extra") {
+      update.extraSpells = concatExtraSpellIds(personaje.extraSpells, classId, spells)
+    } else {
+      const spellsUpdate = this.mergeClassSpellIds(personaje, classId, spells)
+      if (!spellsUpdate) {
+        throw new ValidationError("Debe indicar al menos un conjuro")
+      }
+      update.spells = spellsUpdate
+    }
+
+    const resultado = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: update },
       { returnDocument: "after" }
     )
 
@@ -1375,7 +1518,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
         .map(spell => ({
           id: spell.id,
           level: spell.level,
-          classIds: (spell.classes ?? []).map(clas => clas.id)
+          classIds: (spell.classes ?? []).map(clas => clas.id),
+          ritual: spell.ritual
         })),
       extraClassSpellIds,
       classLevel,
@@ -1449,13 +1593,20 @@ export default class PersonajeRepository implements IPersonajeRepository {
       throw new ValidationError(result.message);
     }
 
-    const inventory = trait.pactWeapon
-      ? await this.applyPactWeaponUse(
+    let inventory: PersonajeEquipmentMongo[] | undefined;
+    if (trait.weaponBond) {
+      inventory = await this.applyWeaponBondUse(
         this.toInventoryRows(personaje.equipment),
-        trait.pactWeapon,
+        trait.weaponBond,
         equipmentId
-      )
-      : undefined;
+      );
+    }
+    if (trait.uniqueEquipmentGrant) {
+      inventory = await this.replaceUniqueEquipmentGrant(
+        inventory ?? this.toInventoryRows(personaje.equipment),
+        trait.uniqueEquipmentGrant.id
+      );
+    }
 
     const recover = trait.action?.recoverSpellSlots;
     if (!recover || !grant?.classId) {
@@ -1485,8 +1636,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const loadedTraits = await this.traitRepository.getTraitsByIndexes([traitId]);
     const trait = loadedTraits[0];
-    if (trait?.pactWeapon) {
-      const dismissed = applyDismissPactWeapon(this.toInventoryRows(personaje.equipment));
+    if (trait?.weaponBond) {
+      const dismissed = applyDismissWeaponBond(this.toInventoryRows(personaje.equipment));
       if (dismissed.ok) {
         return this.persistTraitStance(
           id,
@@ -2651,31 +2802,31 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return subclass;
   }
 
-  private async applyPactWeaponUse(
+  private async applyWeaponBondUse(
     inventory: PersonajeEquipmentMongo[],
-    config: NonNullable<TraitApi["pactWeapon"]>,
+    config: NonNullable<TraitApi["weaponBond"]>,
     equipmentId?: string
   ): Promise<PersonajeEquipmentMongo[]> {
-    const resolved = resolvePactWeaponUse(inventory);
+    const resolved = resolveWeaponBondUse(inventory);
     if (resolved.kind === "already-manifest") {
-      throw new ValidationError("El arma de pacto ya está manifiesta");
+      throw new ValidationError("El arma vinculada ya está manifiesta");
     }
 
     if (resolved.kind === "manifest" && resolved.instanceId) {
-      const manifested = applyManifestPactWeapon(inventory);
+      const manifested = applyManifestWeaponBond(inventory);
       if (!manifested.ok || !manifested.instanceId) {
-        throw new ValidationError(manifested.ok ? "No hay un arma de pacto guardada" : manifested.message);
+        throw new ValidationError(manifested.ok ? "No hay un arma vinculada guardada" : manifested.message);
       }
       return manifested.inventory;
     }
 
     if (!equipmentId) {
-      throw new ValidationError("Debe indicar la forma del arma de pacto");
+      throw new ValidationError("Debe indicar la forma del arma vinculada");
     }
     const catalog = await this.equipmentRepository.getById(equipmentId);
-    const formError = pactWeaponFormRejection(config, catalog);
+    const formError = weaponBondFormRejection(config, catalog);
     if (!catalog || formError) {
-      throw new ValidationError(formError ?? "La forma del arma de pacto debe ser un arma");
+      throw new ValidationError(formError ?? "La forma del arma vinculada debe ser un arma");
     }
 
     const instance = createInventoryInstance({
@@ -2683,10 +2834,47 @@ export default class PersonajeRepository implements IPersonajeRepository {
       quantity: 1,
       isMagic: config.magical ? true : catalog.isMagic === true,
       isBond: true,
-      pactOrigin: "summoned",
+      bondOrigin: "summoned",
       equipped: false
     });
-    return applySummonPactWeapon(inventory, instance).inventory;
+    return applySummonWeaponBond(inventory, instance).inventory;
+  }
+
+  private async ensureUniqueEquipmentGranted(
+    inventory: PersonajeEquipmentMongo[],
+    traits: TraitApi[]
+  ): Promise<PersonajeEquipmentMongo[]> {
+    const equipmentId = ownedUniqueEquipmentGrant(traits);
+    if (!equipmentId) return inventory;
+    return this.materializeUniqueEquipmentGrant(inventory, equipmentId, applyGrantUniqueEquipment);
+  }
+
+  private async replaceUniqueEquipmentGrant(
+    inventory: PersonajeEquipmentMongo[],
+    equipmentId: string
+  ): Promise<PersonajeEquipmentMongo[]> {
+    return this.materializeUniqueEquipmentGrant(inventory, equipmentId, applyReplaceUniqueEquipment);
+  }
+
+  private async materializeUniqueEquipmentGrant(
+    inventory: PersonajeEquipmentMongo[],
+    equipmentId: string,
+    apply: (
+      current: PersonajeEquipmentMongo[],
+      instance: PersonajeEquipmentMongo
+    ) => PersonajeEquipmentMongo[]
+  ): Promise<PersonajeEquipmentMongo[]> {
+    const catalog = await this.equipmentRepository.getById(equipmentId);
+    if (!catalog) {
+      throw new ValidationError("El objeto concedido no existe en el catálogo");
+    }
+    const instance = createInventoryInstance({
+      equipmentId: catalog.id,
+      quantity: 1,
+      isMagic: catalog.isMagic === true,
+      uniqueGranted: true
+    });
+    return apply(inventory, instance);
   }
 
   private async persistTraitStance(
@@ -3283,12 +3471,27 @@ export default class PersonajeRepository implements IPersonajeRepository {
         : undefined
     }
 
+    const gatedUniqueGrantTraitIds = hasUniqueGranted(this.toInventoryRows(personaje.equipment))
+      ? []
+      : privilegeTraits
+        .filter(trait => trait.uniqueEquipmentGrant && trait.id)
+        .map(trait => trait.id as string)
+
     await Promise.all(
       [...spellGroupKeys].map(async groupSpells => {
         const knownIds = Array.isArray(spells[groupSpells]) ? [...spells[groupSpells]] : []
         const extraIds = mergeExtraSpellIds(
           getExtraSpellIds(extraSpellsMap, groupSpells),
-          derivedExtraByClass[groupSpells] ?? [],
+          [
+            ...(derivedExtraByClass[groupSpells] ?? []),
+            ...extraPrivilegeSpellIds(
+              privilegeInstances,
+              rulesByTraitId,
+              groupSpells,
+              classLevelByClassId,
+              gatedUniqueGrantTraitIds
+            )
+          ],
           knownIds
         )
         const alwaysIds = groupSpells === "race"
@@ -3395,7 +3598,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       proficiencyBonus: personaje?.prof_bonus ?? 0,
       level,
       rules: rulesConfig,
-      pactProficiency: ownedPactWeapon(traits ?? [])?.grantsProficiency === true,
+      pactProficiency: ownedWeaponBond(traits ?? [])?.grantsProficiency === true,
     });
 
     const { CA } = await this.calcularCA(personaje, traits, {
@@ -3613,8 +3816,9 @@ export default class PersonajeRepository implements IPersonajeRepository {
       isMagic: item.isMagic,
       isBond: item.isBond,
       isFavorite: item.isFavorite,
-      ...(item.pactOrigin ? { pactOrigin: item.pactOrigin } : {}),
-      ...(item.pactStored ? { pactStored: true } : {}),
+      ...(item.bondOrigin ? { bondOrigin: item.bondOrigin } : {}),
+      ...(item.bondStored ? { bondStored: true } : {}),
+      ...(item.uniqueGranted ? { uniqueGranted: true } : {}),
       ...(item.customization ?? {}),
     }));
   }
@@ -3735,7 +3939,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       proficiencyBonus: personaje?.prof_bonus ?? 0,
       level,
       rules: rulesConfig,
-      pactProficiency: ownedPactWeapon(traits ?? [])?.grantsProficiency === true,
+      pactProficiency: ownedWeaponBond(traits ?? [])?.grantsProficiency === true,
     });
   }
 

@@ -205,7 +205,7 @@ export function assertRestRulesShape(rules: SystemRestRules): RestRulesIssue[] {
     (entry.pools ?? []).forEach((pool, poolIndex) => {
       if (!SPELL_SLOT_POOLS.includes(pool)) {
         issues.push({
-          message: `spellSlotRecovery.pools debe ser standard o uniform: ${pool}`,
+          message: `spellSlotRecovery.pools debe ser standard o fixedLevel: ${pool}`,
           path: ["spellSlotRecovery", index, "pools", poolIndex],
         });
       }

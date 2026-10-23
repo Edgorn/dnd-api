@@ -215,7 +215,7 @@ export const systemRulesFields = {
       spellSlotRecovery: z.array(
         z.object({
           restKey: z.string().min(1, "La clave de recuperación no puede estar vacía"),
-          pools: z.array(z.enum(SPELL_SLOT_POOLS, { error: "Cada pool debe ser standard o uniform" })),
+          pools: z.array(z.enum(SPELL_SLOT_POOLS, { error: "Cada pool debe ser standard o fixedLevel" })),
         }).strict()
       ).optional(),
       hitDiceSpending: z.object({

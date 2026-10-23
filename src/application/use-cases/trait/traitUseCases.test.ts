@@ -16,6 +16,7 @@ describe("Trait Use Cases armor type suppression", () => {
   let spellServiceMock: any;
   let conditionServiceMock: any;
   let creatureServiceMock: any;
+  let equipmentServiceMock: any;
 
   beforeEach(() => {
     traitServiceMock = {
@@ -61,6 +62,9 @@ describe("Trait Use Cases armor type suppression", () => {
     creatureServiceMock = {
       getById: vi.fn()
     };
+    equipmentServiceMock = {
+      getById: vi.fn()
+    };
   });
 
   const createUseCase = () => new CreateTraitUseCase(
@@ -73,7 +77,8 @@ describe("Trait Use Cases armor type suppression", () => {
     attributeServiceMock,
     spellServiceMock,
     conditionServiceMock,
-    creatureServiceMock
+    creatureServiceMock,
+    equipmentServiceMock
   );
 
   const updateUseCase = () => new UpdateTraitUseCase(
@@ -86,7 +91,8 @@ describe("Trait Use Cases armor type suppression", () => {
     attributeServiceMock,
     spellServiceMock,
     conditionServiceMock,
-    creatureServiceMock
+    creatureServiceMock,
+    equipmentServiceMock
   );
 
   const baseTrait = {
@@ -656,6 +662,69 @@ describe("Trait Use Cases armor type suppression", () => {
         statusCode: 404
       });
       expect(traitServiceMock.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("uniqueEquipmentGrant catalog refs", () => {
+    const bookId = "507f1f77bcf86cd799439041";
+
+    beforeEach(() => {
+      systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
+      systemServiceMock.getSystemsAndAncestors.mockResolvedValue(["sys1"]);
+      traitServiceMock.create.mockResolvedValue({ id: "trait1" });
+    });
+
+    it("persists uniqueEquipmentGrant when the equipment belongs to the system", async () => {
+      equipmentServiceMock.getById.mockResolvedValue({ id: bookId, ruleset: "sys1" });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        action: { activation: "action", uses: "unlimited" },
+        uniqueEquipmentGrant: { equipmentId: bookId }
+      }, "user1");
+
+      expect(traitServiceMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({ uniqueEquipmentGrant: { equipmentId: bookId } })
+      );
+    });
+
+    it("persists spellRepository when the equipment belongs to the system", async () => {
+      equipmentServiceMock.getById.mockResolvedValue({ id: bookId, ruleset: "sys1" });
+      const spellRepository = {
+        name: "Libro de las Sombras",
+        equipmentId: bookId,
+        includesCantrips: false,
+        copy: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: 50, unit: bookId } },
+        duplicate: { hoursPerSpellLevel: 2, costPerSpellLevel: { quantity: 50, unit: bookId } },
+        recoverPreparedOnLoss: false,
+        source: "anyClassList" as const,
+        destination: "extra" as const,
+        ritualOnly: true,
+        maxLevel: "halfClassLevelCeil" as const
+      };
+
+      await createUseCase().execute({
+        ...baseTrait,
+        spellRepository
+      }, "user1");
+
+      expect(traitServiceMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({ spellRepository })
+      );
+    });
+
+    it("rejects a missing grimorio", async () => {
+      equipmentServiceMock.getById.mockResolvedValue(null);
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        action: { activation: "action", uses: "unlimited" },
+        uniqueEquipmentGrant: { equipmentId: bookId }
+      }, "user1")).rejects.toMatchObject({
+        message: "Equipamiento no encontrado",
+        statusCode: 404
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
     });
   });
 

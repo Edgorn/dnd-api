@@ -9,7 +9,7 @@ import {
 } from "./spellSlots";
 
 const wizard = { class: "wizard", slots: { slots: { "1": 4, "2": 3 } } };
-const warlock = { class: "warlock", slots: { uniformSlots: { count: 2, level: 3 } } };
+const warlock = { class: "warlock", slots: { fixedLevelSlots: { count: 2, level: 3 } } };
 const pools = slotPoolsFromSources([wizard, warlock]);
 
 describe("slotPoolsFromSources", () => {
@@ -17,7 +17,7 @@ describe("slotPoolsFromSources", () => {
     expect(pools).toEqual([
       { classId: "wizard", pool: "standard", level: 1, total: 4 },
       { classId: "wizard", pool: "standard", level: 2, total: 3 },
-      { classId: "warlock", pool: "uniform", level: 3, total: 2 },
+      { classId: "warlock", pool: "fixedLevel", level: 3, total: 2 },
     ]);
   });
 });
@@ -28,7 +28,7 @@ describe("normalizeSpellSlotsSpent", () => {
       [
         { classId: "wizard", pool: "standard", level: 1, spent: 9 },
         { classId: "ghost", pool: "standard", level: 1, spent: 1 },
-        { classId: "warlock", pool: "uniform", level: 3, spent: 0 },
+        { classId: "warlock", pool: "fixedLevel", level: 3, spent: 0 },
       ],
       pools
     )).toEqual([{ classId: "wizard", pool: "standard", level: 1, spent: 4 }]);
@@ -37,10 +37,10 @@ describe("normalizeSpellSlotsSpent", () => {
 
 describe("toSpellSlotsApi", () => {
   it("derives remaining from the class table", () => {
-    expect(toSpellSlotsApi(pools, [{ classId: "warlock", pool: "uniform", level: 3, spent: 1 }])).toEqual([
+    expect(toSpellSlotsApi(pools, [{ classId: "warlock", pool: "fixedLevel", level: 3, spent: 1 }])).toEqual([
       { classId: "wizard", pool: "standard", level: 1, total: 4, spent: 0, remaining: 4 },
       { classId: "wizard", pool: "standard", level: 2, total: 3, spent: 0, remaining: 3 },
-      { classId: "warlock", pool: "uniform", level: 3, total: 2, spent: 1, remaining: 1 },
+      { classId: "warlock", pool: "fixedLevel", level: 3, total: 2, spent: 1, remaining: 1 },
     ]);
   });
 });
@@ -74,17 +74,17 @@ describe("applySpendSpellSlot", () => {
   it("rejects when no slots remain", () => {
     expect(applySpendSpellSlot({
       classId: "warlock",
-      pool: "uniform",
+      pool: "fixedLevel",
       level: 3,
       pools,
-      spent: [{ classId: "warlock", pool: "uniform", level: 3, spent: 2 }],
+      spent: [{ classId: "warlock", pool: "fixedLevel", level: 3, spent: 2 }],
     })).toEqual({ ok: false, message: "No quedan ranuras de ese nivel" });
   });
 
   it("rejects an unknown class or level", () => {
     expect(applySpendSpellSlot({
       classId: "wizard",
-      pool: "uniform",
+      pool: "fixedLevel",
       level: 3,
       pools,
       spent: [],
@@ -95,17 +95,17 @@ describe("applySpendSpellSlot", () => {
 describe("applySpellSlotRecovery", () => {
   const spent = [
     { classId: "wizard", pool: "standard" as const, level: 1, spent: 2 },
-    { classId: "warlock", pool: "uniform" as const, level: 3, spent: 1 },
+    { classId: "warlock", pool: "fixedLevel" as const, level: 3, spent: 1 },
   ];
 
   it("clears only the recovered pools", () => {
-    expect(applySpellSlotRecovery(spent, ["uniform"])).toEqual([
+    expect(applySpellSlotRecovery(spent, ["fixedLevel"])).toEqual([
       { classId: "wizard", pool: "standard", level: 1, spent: 2 },
     ]);
   });
 
   it("clears both pools when a long rest recovers them", () => {
-    expect(applySpellSlotRecovery(spent, ["standard", "uniform"])).toEqual([]);
+    expect(applySpellSlotRecovery(spent, ["standard", "fixedLevel"])).toEqual([]);
   });
 
   it("keeps spent when nothing recovers", () => {
@@ -116,11 +116,11 @@ describe("applySpellSlotRecovery", () => {
 describe("applyRecoverClassSpellSlots", () => {
   const spent = [
     { classId: "wizard", pool: "standard" as const, level: 1, spent: 2 },
-    { classId: "warlock", pool: "uniform" as const, level: 3, spent: 2 },
+    { classId: "warlock", pool: "fixedLevel" as const, level: 3, spent: 2 },
   ];
 
   it("clears only the granting class pool", () => {
-    expect(applyRecoverClassSpellSlots(spent, { classId: "warlock", pool: "uniform" })).toEqual([
+    expect(applyRecoverClassSpellSlots(spent, { classId: "warlock", pool: "fixedLevel" })).toEqual([
       { classId: "wizard", pool: "standard", level: 1, spent: 2 },
     ]);
   });
@@ -128,11 +128,11 @@ describe("applyRecoverClassSpellSlots", () => {
   it("does not clear the same pool on another class", () => {
     const twoUniforms = [
       ...spent,
-      { classId: "hexblade", pool: "uniform" as const, level: 1, spent: 1 },
+      { classId: "hexblade", pool: "fixedLevel" as const, level: 1, spent: 1 },
     ];
-    expect(applyRecoverClassSpellSlots(twoUniforms, { classId: "warlock", pool: "uniform" })).toEqual([
+    expect(applyRecoverClassSpellSlots(twoUniforms, { classId: "warlock", pool: "fixedLevel" })).toEqual([
       { classId: "wizard", pool: "standard", level: 1, spent: 2 },
-      { classId: "hexblade", pool: "uniform", level: 1, spent: 1 },
+      { classId: "hexblade", pool: "fixedLevel", level: 1, spent: 1 },
     ]);
   });
 });

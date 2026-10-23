@@ -179,7 +179,7 @@ export default class SpellRepository implements ISpellRepository {
       };
     }
 
-    const filter: Record<string, string | number | (string | number)[]> = {
+    const filter: Record<string, string | number | boolean | (string | number)[]> = {
       ...(choice.filter ?? {})
     };
     if (castableLevels) {
@@ -278,7 +278,12 @@ export default class SpellRepository implements ISpellRepository {
     return ordenarPorNombre(await this.formatSpells(spells));
   }
 
-  async getSpellsByLevelAndClass(level: number, rulesets: string[] = [], className?: string): Promise<SpellApi[]> {
+  async getSpellsByLevelAndClass(
+    level: number,
+    rulesets: string[] = [],
+    className?: string,
+    ritual?: boolean
+  ): Promise<SpellApi[]> {
     const query: any = { deletedAt: null };
 
     if (rulesets && rulesets.length > 0) {
@@ -287,6 +292,7 @@ export default class SpellRepository implements ISpellRepository {
     }
 
     if (level !== undefined) query.level = level;
+    if (ritual !== undefined) query.ritual = ritual;
     if (className !== undefined) {
       if (!className) {
         return [];
@@ -303,7 +309,15 @@ export default class SpellRepository implements ISpellRepository {
   }
 
   async getRitualSpells(rulesets: string[] = []): Promise<SpellApi[]> {
-    const query: any = { ritual: true, deletedAt: null };
+    return this.getSpellsByRitualFlag(true, rulesets);
+  }
+
+  async getNonRitualSpells(rulesets: string[] = []): Promise<SpellApi[]> {
+    return this.getSpellsByRitualFlag(false, rulesets);
+  }
+
+  private async getSpellsByRitualFlag(ritual: boolean, rulesets: string[] = []): Promise<SpellApi[]> {
+    const query: any = { ritual, deletedAt: null };
 
     if (rulesets && rulesets.length > 0) {
       const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);

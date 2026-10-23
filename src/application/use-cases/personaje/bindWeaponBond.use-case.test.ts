@@ -1,20 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import BindPactEquipment from "./bindPactEquipment.use-case";
+import BindWeaponBond from "./bindWeaponBond.use-case";
 import { NotFoundError, ValidationError } from "../../../domain/errors/AppError";
 
-describe("BindPactEquipment", () => {
+describe("BindWeaponBond", () => {
   let personajeServiceMock: {
-    bindPactEquipment: ReturnType<typeof vi.fn>;
+    bindWeaponBond: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
     personajeServiceMock = {
-      bindPactEquipment: vi.fn(),
+      bindWeaponBond: vi.fn(),
     };
   });
 
-  it("should delegate to personajeService.bindPactEquipment", async () => {
-    const useCase = new BindPactEquipment(personajeServiceMock as any);
+  it("should delegate to personajeService.bindWeaponBond", async () => {
+    const useCase = new BindWeaponBond(personajeServiceMock as any);
     const input = {
       id: "char1",
       instanceId: "inst1",
@@ -24,18 +24,18 @@ describe("BindPactEquipment", () => {
       completo: { id: "char1" },
       basico: { id: "char1" },
     };
-    personajeServiceMock.bindPactEquipment.mockResolvedValue(expected);
+    personajeServiceMock.bindWeaponBond.mockResolvedValue(expected);
 
     const result = await useCase.execute(input);
 
     expect(result).toEqual(expected);
-    expect(personajeServiceMock.bindPactEquipment).toHaveBeenCalledWith(input);
+    expect(personajeServiceMock.bindWeaponBond).toHaveBeenCalledWith(input);
   });
 
   it("should propagate ValidationError when the item is not magic", async () => {
-    const useCase = new BindPactEquipment(personajeServiceMock as any);
-    personajeServiceMock.bindPactEquipment.mockRejectedValue(
-      new ValidationError("Solo se puede vincular un pacto con equipamiento mágico")
+    const useCase = new BindWeaponBond(personajeServiceMock as any);
+    personajeServiceMock.bindWeaponBond.mockRejectedValue(
+      new ValidationError("Solo se puede vincular equipamiento mágico")
     );
 
     await expect(
@@ -48,8 +48,8 @@ describe("BindPactEquipment", () => {
   });
 
   it("should propagate NotFoundError when the instance does not exist", async () => {
-    const useCase = new BindPactEquipment(personajeServiceMock as any);
-    personajeServiceMock.bindPactEquipment.mockRejectedValue(
+    const useCase = new BindWeaponBond(personajeServiceMock as any);
+    personajeServiceMock.bindWeaponBond.mockRejectedValue(
       new NotFoundError("No se encontró el equipamiento en el personaje")
     );
 

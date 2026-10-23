@@ -139,6 +139,19 @@ export default class EquipmentRepository implements IEquipmentRepository {
     return await this.formatEquipment(equipment);
   }
 
+  async getNamesByIds(ids: string[]): Promise<Array<{ id: string; name: string }>> {
+    const validIds = ids.filter(id => Types.ObjectId.isValid(id));
+    if (!validIds.length) return [];
+    const equipments = await EquipmentModel.find({
+      _id: { $in: validIds } as any,
+      deletedAt: null
+    }).select("name").lean();
+    return equipments.map(item => ({
+      id: item._id.toString(),
+      name: item.name
+    }));
+  }
+
   async getBySystems(rulesets: string[]): Promise<EquipmentApi[]> {
     let filter: any = { deletedAt: null };
 
@@ -600,8 +613,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
         armor: this.formatArmorSync(charEquipment.armor, lookups),
         isMagic: charEquipment.isMagic ?? false,
         isBond: charEquipment.isBond ?? false,
-        ...(charEquipment.pactOrigin ? { pactOrigin: charEquipment.pactOrigin } : {}),
-        ...(charEquipment.pactStored ? { pactStored: true } : {}),
+        ...(charEquipment.bondOrigin ? { bondOrigin: charEquipment.bondOrigin } : {}),
+        ...(charEquipment.bondStored ? { bondStored: true } : {}),
+        ...(charEquipment.uniqueGranted ? { uniqueGranted: true } : {}),
         isFavorite: charEquipment.isFavorite ?? false,
         equipped: charEquipment.equipped ?? false,
         deletedAt: null
@@ -645,8 +659,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
         : formattedEq.armor,
       isMagic: charEquipment.isMagic ?? formattedEq.isMagic ?? false,
       isBond: charEquipment.isBond ?? false,
-      ...(charEquipment.pactOrigin ? { pactOrigin: charEquipment.pactOrigin } : {}),
-      ...(charEquipment.pactStored ? { pactStored: true } : {}),
+      ...(charEquipment.bondOrigin ? { bondOrigin: charEquipment.bondOrigin } : {}),
+      ...(charEquipment.bondStored ? { bondStored: true } : {}),
+      ...(charEquipment.uniqueGranted ? { uniqueGranted: true } : {}),
       isFavorite: charEquipment.isFavorite ?? false,
       equipped: charEquipment.equipped ?? false,
       cost: charEquipment.cost
@@ -946,8 +961,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
         : base.armor,
       isMagic: override.isMagic ?? base.isMagic,
       isBond: override.isBond !== undefined ? override.isBond : base.isBond,
-      ...(override.pactOrigin ? { pactOrigin: override.pactOrigin } : {}),
-      ...(override.pactStored ? { pactStored: true } : {}),
+      ...(override.bondOrigin ? { bondOrigin: override.bondOrigin } : {}),
+      ...(override.bondStored ? { bondStored: true } : {}),
+      ...(override.uniqueGranted ? { uniqueGranted: true } : {}),
       cost: override.cost
         ? this.formatEquipmentCostSync(override.cost, lookups)
         : base.cost

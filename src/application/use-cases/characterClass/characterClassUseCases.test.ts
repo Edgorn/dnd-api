@@ -155,15 +155,15 @@ describe("CharacterClass Use Cases", () => {
       expect(characterClassServiceMock.create).toHaveBeenCalledWith(input);
     });
 
-    it("should create class with uniformSlots progression", async () => {
+    it("should create class with fixedLevelSlots progression", async () => {
       const useCase = createUseCase();
       systemServiceMock.getById.mockResolvedValue({ id: "sys1", publisher: "user1" });
       characterClassServiceMock.create.mockResolvedValue({
         ...createdClass,
         name: "Brujo",
         levels: [
-          { level: 1, spellcasting: { cantrips: 2, spellsLearned: 2, uniformSlots: { count: 1, level: 1 } } },
-          { level: 5, spellcasting: { spellsLearned: 1, uniformSlots: { count: 2, level: 3 } } }
+          { level: 1, spellcasting: { cantrips: 2, spellsLearned: 2, fixedLevelSlots: { count: 1, level: 1 } } },
+          { level: 5, spellcasting: { spellsLearned: 1, fixedLevelSlots: { count: 2, level: 3 } } }
         ]
       });
 
@@ -173,8 +173,8 @@ describe("CharacterClass Use Cases", () => {
         hit_die: 8,
         spellcasting: "507f1f77bcf86cd799439011",
         levels: [
-          { level: 1, spellcasting: { cantrips: 2, spellsLearned: 2, uniformSlots: { count: 1, level: 1 } } },
-          { level: 5, spellcasting: { spellsLearned: 1, uniformSlots: { count: 2, level: 3 } } }
+          { level: 1, spellcasting: { cantrips: 2, spellsLearned: 2, fixedLevelSlots: { count: 1, level: 1 } } },
+          { level: 5, spellcasting: { spellsLearned: 1, fixedLevelSlots: { count: 2, level: 3 } } }
         ]
       };
 

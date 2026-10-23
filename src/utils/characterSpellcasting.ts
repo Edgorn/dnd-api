@@ -6,6 +6,10 @@ import {
   SpellcastingLevelSource,
   SpellPreparedFrom,
   SpellReplacementConfig,
+  SpellRepositoryConfig,
+  SpellRepositoryDestination,
+  SpellRepositoryMaxLevel,
+  SpellRepositorySource,
 } from "../domain/types/characterClass.types";
 import { SpellPrivilegeRule } from "../domain/types/traits.types";
 import { CharacterSpellPrivilegeMongo } from "../domain/types/personajes.types";
@@ -35,14 +39,14 @@ export interface ClassSlotView {
 }
 
 function hasSlotProgression(spellcasting?: ClassSpellSlots): boolean {
-  return Boolean(spellcasting?.slots || spellcasting?.uniformSlots);
+  return Boolean(spellcasting?.slots || spellcasting?.fixedLevelSlots);
 }
 
 function isSlotCountTable(
   value: ClassSpellSlots | Record<string, number>
 ): value is Record<string, number> {
   return !("slots" in value)
-    && !("uniformSlots" in value)
+    && !("fixedLevelSlots" in value)
     && !("cantrips" in value)
     && !("spellsLearned" in value);
 }
@@ -63,8 +67,8 @@ export function resolveClassSlotView(spellcasting?: ClassSpellSlots): ClassSlotV
     return { table: {}, castableLevels: [] };
   }
 
-  if (spellcasting.uniformSlots) {
-    const { count, level } = spellcasting.uniformSlots;
+  if (spellcasting.fixedLevelSlots) {
+    const { count, level } = spellcasting.fixedLevelSlots;
     if (count <= 0 || !Number.isInteger(level) || level < 1 || level > 9) {
       return { table: {}, castableLevels: [] };
     }
@@ -84,7 +88,7 @@ export function resolveClassSlotView(spellcasting?: ClassSpellSlots): ClassSlotV
   return { table, castableLevels: tableCastableLevels(table) };
 }
 
-/** Latest table or uniform progression at or below the class level. */
+/** Latest table or fixed-level progression at or below the class level. */
 export function resolveSlotProgressionForLevel(
   levels: { level: number; spellcasting?: ClassSpellSlots }[],
   characterLevel: number
@@ -93,8 +97,8 @@ export function resolveSlotProgressionForLevel(
     .filter(lev => lev.level <= characterLevel && hasSlotProgression(lev.spellcasting))
     .sort((a, b) => b.level - a.level)[0];
 
-  if (row?.spellcasting?.uniformSlots) {
-    return { uniformSlots: row.spellcasting.uniformSlots };
+  if (row?.spellcasting?.fixedLevelSlots) {
+    return { fixedLevelSlots: row.spellcasting.fixedLevelSlots };
   }
   if (row?.spellcasting?.slots) {
     return { slots: row.spellcasting.slots };
@@ -293,8 +297,8 @@ export function collectExpandedSpells<T extends { id?: string }>(
 }
 
 function spellChoiceAllowedLevels(choice: {
-  query_filter?: Record<string, string | number | (string | number)[]>;
-  filter?: Record<string, string | number | (string | number)[]>;
+  query_filter?: Record<string, string | number | boolean | (string | number)[]>;
+  filter?: Record<string, string | number | boolean | (string | number)[]>;
 }): number[] | undefined {
   const raw = choice.query_filter?.level ?? choice.filter?.level;
   if (typeof raw === "number") return [raw];
@@ -709,6 +713,7 @@ export interface SpellPrivilegePickInput {
   id: string;
   level: number;
   classIds: string[];
+  ritual?: boolean;
 }
 
 export function validateSpellPrivilegePicks(params: {
@@ -789,7 +794,16 @@ export function validateSpellPrivilegePicks(params: {
       if (!spellLevelMatchesFilter(spell.level, rule.filter.level)) {
         return { error: `El conjuro no coincide con el nivel de la regla ${ruleIndex + 1}` };
       }
-      if (!spellOnExpandedClassList(spell, classId, extraClassSpellIds)) {
+      if (rule.filter.ritual !== undefined && Boolean(spell.ritual) !== rule.filter.ritual) {
+        return { error: rule.filter.ritual
+          ? "El conjuro debe ser un ritual"
+          : "El conjuro no puede ser un ritual" };
+      }
+      if (rule.source === "anyClassList") {
+        if (!spell.classIds.length) {
+          return { error: "El conjuro no pertenece a ninguna lista de clase" };
+        }
+      } else if (!spellOnExpandedClassList(spell, classId, extraClassSpellIds)) {
         return { error: "El conjuro no pertenece a la lista de esta clase" };
       }
       if (rule.source === "known" && !known.has(id)) {
@@ -835,6 +849,38 @@ export function privilegeSpellIdsExcludedFromCap(
   }
 
   return excluded;
+}
+
+export function extraPrivilegeSpellIds(
+  instances: CharacterSpellPrivilegeMongo[] | undefined,
+  rulesByTraitId: Map<string, SpellPrivilegeRule[]>,
+  classId: string,
+  classLevelByClassId?: Map<string, number>,
+  excludeTraitIds?: Iterable<string>
+): string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  const excluded = new Set(excludeTraitIds ?? []);
+  if (!instances?.length) return ids;
+
+  for (const instance of instances) {
+    if (instance.classId !== classId) continue;
+    if (excluded.has(instance.traitId)) continue;
+    const rules = rulesByTraitId.get(instance.traitId) ?? [];
+    const classLevel = privilegeClassLevel(classLevelByClassId, instance.classId);
+    const active = new Set(activeSpellPrivilegeRuleIndexes(rules, classLevel));
+    for (let i = 0; i < rules.length; i++) {
+      const rule = rules[i];
+      if (!active.has(i) || rule.alwaysPrepared || rule.countsTowardPreparedCap) continue;
+      for (const id of instance.selections[i] ?? []) {
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        ids.push(id);
+      }
+    }
+  }
+
+  return ids;
 }
 
 export function alwaysPreparedSpellIds(
@@ -962,6 +1008,116 @@ export function validateKnownSpellPicks(params: {
   return {};
 }
 
+export interface ResolvedSpellRepositoryCopyRules {
+  source: SpellRepositorySource;
+  destination: SpellRepositoryDestination;
+  ritualOnly: boolean;
+  maxLevel: SpellRepositoryMaxLevel;
+  includesCantrips: boolean;
+  equipmentId?: string;
+}
+
+export function resolveSpellRepositoryCopyRules(
+  config: SpellRepositoryConfig
+): ResolvedSpellRepositoryCopyRules {
+  return {
+    source: config.source ?? "classList",
+    destination: config.destination ?? "known",
+    ritualOnly: config.ritualOnly ?? false,
+    maxLevel: config.maxLevel ?? "castable",
+    includesCantrips: config.includesCantrips,
+    ...(config.equipmentId ? { equipmentId: config.equipmentId } : {}),
+  };
+}
+
+export function halfClassLevelCeil(classLevel: number): number {
+  return Math.max(0, Math.ceil(classLevel / 2));
+}
+
+export interface CopiedSpellPickInput {
+  id: string;
+  level: number;
+  classIds: string[];
+  ritual?: boolean;
+}
+
+export function validateCopiedSpellPicks(params: {
+  spellIds: string[];
+  ownedIds: string[];
+  classId: string;
+  spells: CopiedSpellPickInput[];
+  source: SpellRepositorySource;
+  ritualOnly: boolean;
+  includesCantrips: boolean;
+  maxLevel: SpellRepositoryMaxLevel;
+  classLevel: number;
+  castableLevels: number[];
+  extraClassSpellIds?: Iterable<string>;
+}): { error?: string } {
+  const {
+    spellIds,
+    ownedIds,
+    classId,
+    spells,
+    source,
+    ritualOnly,
+    includesCantrips,
+    maxLevel,
+    classLevel,
+    castableLevels,
+    extraClassSpellIds,
+  } = params;
+
+  if (spellIds.length === 0) {
+    return { error: "Debe indicar al menos un conjuro" };
+  }
+
+  const seen = new Set<string>();
+  const owned = new Set(ownedIds);
+  const castable = new Set(castableLevels);
+  const byId = new Map(spells.map(spell => [spell.id, spell]));
+  const halfCap = halfClassLevelCeil(classLevel);
+
+  for (const id of spellIds) {
+    if (seen.has(id)) {
+      return { error: "El conjuro está duplicado" };
+    }
+    seen.add(id);
+
+    if (owned.has(id)) {
+      return { error: "El conjuro ya está en el repositorio" };
+    }
+
+    const spell = byId.get(id);
+    if (!spell) {
+      return { error: "El conjuro no existe o no está disponible" };
+    }
+    if (ritualOnly && spell.ritual !== true) {
+      return { error: "El conjuro debe ser un ritual" };
+    }
+    if (source === "anyClassList") {
+      if (!spell.classIds.length) {
+        return { error: "El conjuro no pertenece a ninguna lista de clase" };
+      }
+    } else if (!spellOnExpandedClassList(spell, classId, extraClassSpellIds)) {
+      return { error: "El conjuro no pertenece a la lista de esta clase" };
+    }
+    if (spell.level === 0) {
+      if (!includesCantrips) {
+        return { error: "Este repositorio no admite trucos" };
+      }
+    } else if (maxLevel === "halfClassLevelCeil") {
+      if (spell.level > halfCap) {
+        return { error: "El conjuro supera la mitad del nivel de clase" };
+      }
+    } else if (!castable.has(spell.level)) {
+      return { error: "El conjuro es de un nivel para el que esta clase no tiene ranuras" };
+    }
+  }
+
+  return {};
+}
+
 /**
  * Builds a hydrated SpellcastingLevel for a character from class source data.
  */
@@ -996,7 +1152,7 @@ export function buildSpellcastingLevel(
     : undefined;
 
   const sourceSlots = source.slots;
-  const projectedSlots = sourceSlots?.uniformSlots && !sourceSlots.slots
+  const projectedSlots = sourceSlots?.fixedLevelSlots && !sourceSlots.slots
     ? { ...sourceSlots, slots: resolveClassSlotView(sourceSlots).table }
     : sourceSlots;
 

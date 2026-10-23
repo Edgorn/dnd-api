@@ -61,8 +61,8 @@ const router = Router();
  *           description: |
  *             Recuperación de ranuras. Se aplica si el descanso cubre `restKey` (directo o por
  *             `includes`). Si varias filas coinciden, se unen los `pools`. `standard` es la
- *             tabla de ranuras por nivel; `uniform` es la bolsa de nivel único (p. ej. pacto).
- *             Ejemplo 5e: corto recupera `uniform`; largo recupera ambos.
+ *             tabla de ranuras por nivel; `fixedLevel` es la bolsa de nivel fijo.
+ *             Ejemplo 5e: corto recupera `fixedLevel`; largo recupera ambos.
  *           items:
  *             $ref: '#/components/schemas/SystemSpellSlotRecovery'
  *         hitDiceSpending:
@@ -120,7 +120,7 @@ const router = Router();
  *           minItems: 1
  *           items:
  *             type: string
- *             enum: [standard, uniform]
+ *             enum: [standard, fixedLevel]
  *           description: Bolsas que ponen spent a 0.
  *     SystemRestKind:
  *       type: object
@@ -633,8 +633,8 @@ router.get('/systems', authMiddleware, validateQuery(ListSystemsQuerySchema), sy
  *             "bonusFormula": "@attributes.con.modifier"
  *           },
  *           "spellSlotRecovery": [
- *             { "restKey": "shortRest", "pools": ["uniform"] },
- *             { "restKey": "longRest", "pools": ["standard", "uniform"] }
+ *             { "restKey": "shortRest", "pools": ["fixedLevel"] },
+ *             { "restKey": "longRest", "pools": ["standard", "fixedLevel"] }
  *           ]
  *         }
  *       }

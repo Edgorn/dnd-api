@@ -14,6 +14,7 @@ export default interface ISpellRepository {
     context?: FormatSpellChoicesContext
   ): Promise<SpellChoiceApi[] | undefined>;
   getSpellsByIndexes(indexes: string[]): Promise<SpellApi[]>;
-  getSpellsByLevelAndClass(level: number, rulesets: string[], className?: string): Promise<SpellApi[]>;
+  getSpellsByLevelAndClass(level: number, rulesets: string[], className?: string, ritual?: boolean): Promise<SpellApi[]>;
   getRitualSpells(rulesets: string[]): Promise<SpellApi[]>;
+  getNonRitualSpells(rulesets: string[]): Promise<SpellApi[]>;
 }

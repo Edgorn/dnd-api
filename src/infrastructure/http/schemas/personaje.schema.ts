@@ -183,6 +183,16 @@ export const LearnSpellsSchema = z.object({
     .min(1, "Debe indicar al menos un conjuro"),
 });
 
+export const CopySpellsSchema = z.object({
+  class: z.string().regex(objectIdRegex, "El ID de clase debe ser un ObjectId válido de MongoDB"),
+  spells: z
+    .array(
+      z.string().regex(objectIdRegex, "Cada conjuro debe ser un ObjectId válido de MongoDB")
+    )
+    .min(1, "Debe indicar al menos un conjuro"),
+  traitId: z.string().regex(objectIdRegex, "El ID de rasgo debe ser un ObjectId válido de MongoDB").optional(),
+});
+
 export const SpendHitDiceSchema = z.object({
   classId: z.string().regex(objectIdRegex, "El ID de clase debe ser un ObjectId válido de MongoDB"),
   count: z.number().int().min(1, "Debe gastar al menos 1 dado de golpe"),
@@ -201,7 +211,7 @@ export const CharacterRestSchema = z.object({
 
 export const SpendSpellSlotSchema = z.object({
   classId: z.string().regex(objectIdRegex, "El ID de clase debe ser un ObjectId válido de MongoDB"),
-  pool: z.enum(SPELL_SLOT_POOLS, { error: "pool debe ser standard o uniform" }),
+  pool: z.enum(SPELL_SLOT_POOLS, { error: "pool debe ser standard o fixedLevel" }),
   level: z.number().int().min(1, "El nivel de ranura debe estar entre 1 y 9").max(9, "El nivel de ranura debe estar entre 1 y 9"),
 });
 
@@ -257,7 +267,7 @@ export const UpdateCharacterEquipmentEquippedSchema = z.object({
   equipped: z.boolean(),
 });
 
-export const BindPactEquipmentSchema = z.object({
+export const BindWeaponBondSchema = z.object({
   isBond: z.boolean(),
 });
 

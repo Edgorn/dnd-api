@@ -206,11 +206,29 @@ const router = Router();
  *           description: >
  *             Bono de daño a armas mientras el rasgo está activo (p. ej. Furia).
  *             No se aplica en el PDF; solo en la ficha de juego cuando la stance está on.
- *         pactWeapon:
- *           $ref: '#/components/schemas/TraitPactWeapon'
+ *         weaponBond:
+ *           $ref: '#/components/schemas/TraitWeaponBond'
  *           description: >
- *             El rasgo invoca o materializa un arma de pacto. Exige action distinta de stance.
+ *             El rasgo invoca o materializa un arma vinculada. Exige action distinta de stance.
  *             POST use crea o saca el arma; POST deactivate la descarta.
+ *         uniqueEquipmentGrant:
+ *           $ref: '#/components/schemas/TraitUniqueEquipmentGrantApi'
+ *           description: >
+ *             Objeto único concedido, hidratado en GET (`id` y `name` del catálogo
+ *             en el momento de leer). El nombre no se persiste en el rasgo. Si el
+ *             equipo se borra, el grant se omite. Exige action distinta de stance.
+ *             Al ganar el rasgo se crea el objeto. POST use sustituye esa instancia
+ *             (ceremonia) y destruye la anterior. Los trucos de spellPrivileges con
+ *             source anyClassList solo salen en spells.extra mientras el personaje
+ *             tenga el objeto concedido. En POST/PUT envíe TraitUniqueEquipmentGrant
+ *             (`equipmentId`) o null para borrar.
+ *         spellRepository:
+ *           allOf:
+ *             - $ref: '#/components/schemas/SpellRepositoryConfig'
+ *           description: >
+ *             Repositorio de conjuros del rasgo (p. ej. Libro de Secretos Ancestrales).
+ *             El cliente usa copy para horas y oro. POST /character/{id}/copied-spells
+ *             con traitId copia según source, destination, ritualOnly y maxLevel.
  *     EquipmentRestriction:
  *       type: object
  *       required:
@@ -476,8 +494,8 @@ const router = Router();
  *           description: >
  *             Al usar el rasgo, recupera todas las ranuras gastadas de esa bolsa
  *             en la clase otorgante. Solo en acciones instantáneas. Maestro Sobrenatural
- *             usa pool uniform y scope grantingClass.
- *     TraitPactWeapon:
+ *             usa pool fixedLevel y scope grantingClass.
+ *     TraitWeaponBond:
  *       type: object
  *       required:
  *         - melee
@@ -489,10 +507,30 @@ const router = Router();
  *           description: Si es true, la forma y el vínculo solo admiten armas cuerpo a cuerpo.
  *         grantsProficiency:
  *           type: boolean
- *           description: Competencia con el arma de pacto mientras está manifiesta.
+ *           description: Competencia con el arma vinculada mientras está manifiesta.
  *         magical:
  *           type: boolean
  *           description: Las invocadas se marcan isMagic aunque el catálogo sea mundano.
+ *     TraitUniqueEquipmentGrant:
+ *       type: object
+ *       required:
+ *         - equipmentId
+ *       properties:
+ *         equipmentId:
+ *           type: string
+ *           description: ID de MongoDB del objeto de catálogo que se concede como instancia única.
+ *     TraitUniqueEquipmentGrantApi:
+ *       type: object
+ *       required:
+ *         - id
+ *         - name
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: ID de MongoDB del objeto de catálogo concedido.
+ *         name:
+ *           type: string
+ *           description: Nombre actual del objeto en el catálogo. No se persiste en el rasgo.
  *     TraitRecoverSpellSlots:
  *       type: object
  *       required:
@@ -501,10 +539,10 @@ const router = Router();
  *       properties:
  *         pool:
  *           type: string
- *           enum: [standard, uniform]
+ *           enum: [standard, fixedLevel]
  *           description: >
- *             Bolsa a recuperar. `uniform` es Magia del Pacto. `standard` es la tabla
- *             de ranuras por nivel.
+ *             Bolsa a recuperar. `fixedLevel` es una bolsa de nivel fijo.
+ *             `standard` es la tabla de ranuras por nivel.
  *         scope:
  *           type: string
  *           enum: [grantingClass]
@@ -812,10 +850,11 @@ const router = Router();
  *           description: Número de conjuros que el personaje debe vincular a esta regla.
  *         source:
  *           type: string
- *           enum: [known, classList]
+ *           enum: [known, classList, anyClassList]
  *           description: >
  *             Origen de los conjuros elegibles. `known` exige que estén en los conocidos
- *             de la clase (p. ej. libro de conjuros); `classList` usa la lista de la clase.
+ *             de la clase (p. ej. libro de conjuros); `classList` usa la lista de la clase;
+ *             `anyClassList` admite conjuros de cualquier lista (Pacto del Grimorio).
  *         atLevel:
  *           type: integer
  *           minimum: 1
@@ -840,6 +879,9 @@ const router = Router();
  *                     type: integer
  *                     minimum: 0
  *                     maximum: 9
+ *             ritual:
+ *               type: boolean
+ *               description: Si está presente, el conjuro debe coincidir con ese valor de ritual.
  *         alwaysPrepared:
  *           type: boolean
  *           description: Si es true, los conjuros vinculados se consideran siempre preparados.
@@ -1312,11 +1354,24 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitWeaponDamageBonus'
  *           description: Bono de daño a armas mientras la stance está activa. null borra el campo.
- *         pactWeapon:
+ *         weaponBond:
  *           nullable: true
  *           allOf:
- *             - $ref: '#/components/schemas/TraitPactWeapon'
- *           description: Arma de pacto. Exige action distinta de stance. null borra el campo.
+ *             - $ref: '#/components/schemas/TraitWeaponBond'
+ *           description: Arma vinculada. Exige action distinta de stance. null borra el campo.
+ *         uniqueEquipmentGrant:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitUniqueEquipmentGrant'
+ *           description: >
+ *             Objeto único concedido (`equipmentId`). Exige action distinta de stance.
+ *             null borra el campo. En GET el rasgo devuelve id y name hidratados.
+ *         spellRepository:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/SpellRepositoryConfig'
+ *           description: >
+ *             Repositorio de conjuros del rasgo. null borra el campo.
  *     TraitLanguagesInput:
  *       type: object
  *       properties:
@@ -1550,11 +1605,24 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitWeaponDamageBonus'
  *           description: Bono de daño a armas mientras la stance está activa. null borra el campo.
- *         pactWeapon:
+ *         weaponBond:
  *           nullable: true
  *           allOf:
- *             - $ref: '#/components/schemas/TraitPactWeapon'
- *           description: Arma de pacto. Exige action distinta de stance. null borra el campo.
+ *             - $ref: '#/components/schemas/TraitWeaponBond'
+ *           description: Arma vinculada. Exige action distinta de stance. null borra el campo.
+ *         uniqueEquipmentGrant:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitUniqueEquipmentGrant'
+ *           description: >
+ *             Objeto único concedido (`equipmentId`). Exige action distinta de stance.
+ *             null borra el campo. En GET el rasgo devuelve id y name hidratados.
+ *         spellRepository:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/SpellRepositoryConfig'
+ *           description: >
+ *             Repositorio de conjuros del rasgo. null borra el campo.
  */
 
 /**

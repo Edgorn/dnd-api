@@ -24,10 +24,10 @@ export function slotPoolsFromSources(
   for (const source of sources) {
     if (!source?.class || !source.slots) continue;
 
-    if (source.slots.uniformSlots) {
-      const { count, level } = source.slots.uniformSlots;
+    if (source.slots.fixedLevelSlots) {
+      const { count, level } = source.slots.fixedLevelSlots;
       if (count > 0 && Number.isInteger(level) && level >= 1 && level <= 9) {
-        pools.push({ classId: source.class, pool: "uniform", level, total: count });
+        pools.push({ classId: source.class, pool: "fixedLevel", level, total: count });
       }
       continue;
     }
@@ -61,7 +61,7 @@ export function normalizeSpellSlotsSpent(
     const pool = (item as { pool?: unknown }).pool;
     const level = (item as { level?: unknown }).level;
     const spent = (item as { spent?: unknown }).spent;
-    if (pool !== "standard" && pool !== "uniform") continue;
+    if (pool !== "standard" && pool !== "fixedLevel") continue;
     if (typeof level !== "number" || !Number.isInteger(level) || level < 1 || level > 9) continue;
     if (typeof spent !== "number" || !Number.isInteger(spent) || spent < 0) continue;
 

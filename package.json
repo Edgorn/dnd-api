@@ -19,6 +19,8 @@
     "migrate:rest-recharge-keys": "tsx scripts/migrate-rest-recharge-keys.ts",
     "migrate:strip-creature-feature-attack": "tsx scripts/strip-creature-feature-attack.ts",
     "migrate:spell-privilege-at-level": "tsx scripts/migrate-spell-privilege-at-level.ts",
+    "migrate:weapon-bond-and-grants": "tsx scripts/migrate-weapon-bond-and-grants.ts",
+    "migrate:fixed-level-spell-slots": "tsx scripts/migrate-fixed-level-spell-slots.ts",
     "commit:ai": "git commit -F COMMIT_MESSAGE.md && del COMMIT_MESSAGE.md"
   },
   "keywords": [],

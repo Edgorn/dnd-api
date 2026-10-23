@@ -16,6 +16,7 @@ export default interface IEquipmentRepository {
   create(data: InputCreateEquipment): Promise<EquipmentApi>;
   update(data: InputUpdateEquipment): Promise<EquipmentApi>;
   getById(id: string): Promise<EquipmentApi | null>;
+  getNamesByIds(ids: string[]): Promise<Array<{ id: string; name: string }>>;
   getBySystems(rulesets: string[]): Promise<EquipmentApi[]>;
   softDelete(id: string): Promise<void>;
   restore(id: string): Promise<void>;

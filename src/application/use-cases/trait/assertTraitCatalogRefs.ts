@@ -7,6 +7,7 @@ import ConditionService from "../../../domain/services/condition.service";
 import SystemService from "../../../domain/services/system.service";
 import TraitService from "../../../domain/services/trait.service";
 import CreatureService from "../../../domain/services/creature.service";
+import EquipmentService from "../../../domain/services/equipment.service";
 import { AppError } from "../../../domain/errors/AppError";
 import {
   TraitAbilityScore,
@@ -16,8 +17,10 @@ import {
   TraitDamageChoiceRef,
   TraitInnateSpells,
   TraitLanguages,
+  TraitUniqueEquipmentGrant,
   TraitSkillProficiency
 } from "../../../domain/types/traits.types";
+import { SpellRepositoryConfig } from "../../../domain/types/characterClass.types";
 import { assertSpellCreatureFormRefs } from "../spell/assertSpellCreatureFormRefs";
 
 export async function assertTraitCatalogRefs(input: {
@@ -32,6 +35,8 @@ export async function assertTraitCatalogRefs(input: {
   innateSpells?: TraitInnateSpells | null;
   grantedSpells?: string[] | null;
   creatureFormExtensions?: TraitCreatureFormExtension[] | null;
+  uniqueEquipmentGrant?: TraitUniqueEquipmentGrant | null;
+  spellRepository?: SpellRepositoryConfig | null;
   abilityScores?: TraitAbilityScore[] | null;
   skillProficiencies?: TraitSkillProficiency[] | null;
   languageService: LanguageService;
@@ -43,6 +48,7 @@ export async function assertTraitCatalogRefs(input: {
   systemService: SystemService;
   traitService: TraitService;
   creatureService: CreatureService;
+  equipmentService: EquipmentService;
 }): Promise<{
   languages?: TraitLanguages | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
@@ -77,9 +83,11 @@ export async function assertTraitCatalogRefs(input: {
     ...(input.creatureFormExtensions ?? []).map(extension => extension.spellId)
   ]);
   const conditionIds = uniqueIds(input.conditionalConditionImmunities ?? []);
+  const uniqueGrantEquipmentId = input.uniqueEquipmentGrant?.equipmentId;
+  const spellRepositoryEquipmentId = input.spellRepository?.equipmentId;
   const publicLanguageIds = new Map<string, string>();
 
-  if (languageIds.length || damageIds.length || creatureTypeIds.length || attributeIds.length || spellIds.length || conditionIds.length) {
+  if (languageIds.length || damageIds.length || creatureTypeIds.length || attributeIds.length || spellIds.length || conditionIds.length || uniqueGrantEquipmentId || spellRepositoryEquipmentId) {
     const allowedRulesets = await input.systemService.getSystemsAndAncestors([input.ruleset]);
 
     for (const languageId of languageIds) {
@@ -149,6 +157,26 @@ export async function assertTraitCatalogRefs(input: {
       const spell = spellsById.get(grant.spellId);
       if (spell?.level === 0 && grant.slotLevel !== "spellLevel") {
         throw new AppError("Los trucos innatos deben usar slotLevel spellLevel", 400);
+      }
+    }
+
+    if (uniqueGrantEquipmentId) {
+      const equipment = await input.equipmentService.getById(uniqueGrantEquipmentId);
+      if (!equipment || equipment.deletedAt) {
+        throw new AppError("Equipamiento no encontrado", 404);
+      }
+      if (!allowedRulesets.includes(equipment.ruleset)) {
+        throw new AppError("El equipo concedido no pertenece a este sistema ni a sus ancestros", 400);
+      }
+    }
+
+    if (spellRepositoryEquipmentId && spellRepositoryEquipmentId !== uniqueGrantEquipmentId) {
+      const equipment = await input.equipmentService.getById(spellRepositoryEquipmentId);
+      if (!equipment || equipment.deletedAt) {
+        throw new AppError("Equipamiento no encontrado", 404);
+      }
+      if (!allowedRulesets.includes(equipment.ruleset)) {
+        throw new AppError("El repositorio de conjuros no pertenece a este sistema ni a sus ancestros", 400);
       }
     }
 

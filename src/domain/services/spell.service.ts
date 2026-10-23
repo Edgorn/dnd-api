@@ -30,12 +30,21 @@ export default class SpellService {
     return this.spellRepository.restore(id);
   }
 
-  getSpellsByLevel(level: number, rulesets: string[] = [], className?: string): Promise<SpellApi[]> {
-    return this.spellRepository.getSpellsByLevelAndClass(level, rulesets, className);
+  getSpellsByLevel(
+    level: number,
+    rulesets: string[] = [],
+    className?: string,
+    ritual?: boolean
+  ): Promise<SpellApi[]> {
+    return this.spellRepository.getSpellsByLevelAndClass(level, rulesets, className, ritual);
   }
 
   getRitualSpells(rulesets: string[] = []): Promise<SpellApi[]> {
     return this.spellRepository.getRitualSpells(rulesets);
+  }
+
+  getNonRitualSpells(rulesets: string[] = []): Promise<SpellApi[]> {
+    return this.spellRepository.getNonRitualSpells(rulesets);
   }
 
   formatSpellChoices(

@@ -9,10 +9,11 @@ import ILanguageRepository from '../../../../domain/repositories/ILanguageReposi
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
 import ICreatureRepository from '../../../../domain/repositories/ICreatureRepository';
 import IAttributeRepository from '../../../../domain/repositories/IAttributeRepository';
+import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, SpellPrivilegeRule, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitPactWeapon, TraitRecoverSpellSlots, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_SPELL_SLOT_RECOVER_SCOPES, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
+import { CreateTrait, SpellPrivilegeRule, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUniqueEquipmentGrant, TraitUniqueEquipmentGrantApi, TraitWeaponBond, TraitRecoverSpellSlots, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_SPELL_SLOT_RECOVER_SCOPES, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
 import { SPELL_SLOT_POOLS } from "../../../../domain/types/system.types";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
@@ -27,6 +28,7 @@ import { normalizeTraitSpeed } from "../../../../utils/applyTraitSpeed";
 import { storedSummary, summaryToPersist } from "../../../../utils/traitSummary";
 import { Types } from 'mongoose';
 import { AppError } from '../../../../domain/errors/AppError';
+import { hydrateUniqueEquipmentGrant } from '../../../../utils/uniqueEquipmentGrant';
 
 export default class TraitRepository implements ITraitRepository {
   private creatureRepository?: ICreatureRepository;
@@ -39,7 +41,8 @@ export default class TraitRepository implements ITraitRepository {
     private readonly skillRepository: ISkillRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly creatureTypeRepository: ICreatureTypeRepository,
-    private readonly attributeRepository: IAttributeRepository
+    private readonly attributeRepository: IAttributeRepository,
+    private readonly equipmentRepository: IEquipmentRepository
   ) {}
 
   bindCreatureCatalog(creatureRepository: ICreatureRepository): void {
@@ -134,6 +137,7 @@ export default class TraitRepository implements ITraitRepository {
     const allChoiceDamages = new Set<string>();
     const allSaveAttributes = new Set<string>();
     const allCreatureTypes = new Set<string>();
+    const allUniqueGrantEquipment = new Set<string>();
 
     for (const trait of traits) {
       (trait.resistances ?? []).forEach(r => allResistances.add(r));
@@ -153,6 +157,7 @@ export default class TraitRepository implements ITraitRepository {
       this.extensionSpellIds(trait).forEach(id => allSpells.add(id));
       this.catalogCreatureTypeIds(trait).forEach(id => allCreatureTypes.add(id));
       this.extensionCreatureTypeIds(trait).forEach(id => allCreatureTypes.add(id));
+      this.uniqueEquipmentGrantId(trait).forEach(id => allUniqueGrantEquipment.add(id));
     }
 
     const [
@@ -167,7 +172,8 @@ export default class TraitRepository implements ITraitRepository {
       fetchedChoiceDamages,
       fetchedSaveAttributes,
       fetchedCreatureTypes,
-      fetchedExtensionCreatures
+      fetchedExtensionCreatures,
+      fetchedUniqueGrantEquipment
     ] = await Promise.all([
       allResistances.size ? this.damageRepository.getByIds(Array.from(allResistances)) : [],
       allConditionalResistances.size ? this.damageRepository.getByIds(Array.from(allConditionalResistances)) : [],
@@ -180,7 +186,10 @@ export default class TraitRepository implements ITraitRepository {
       allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : [],
       allSaveAttributes.size ? this.attributeRepository.getByIds(Array.from(allSaveAttributes)) : [],
       allCreatureTypes.size ? this.creatureTypeRepository.getByIds(Array.from(allCreatureTypes)) : [],
-      this.loadExtensionCreatures(traits)
+      this.loadExtensionCreatures(traits),
+      allUniqueGrantEquipment.size
+        ? this.equipmentRepository.getNamesByIds(Array.from(allUniqueGrantEquipment))
+        : []
     ]);
 
     const resistanceMap = new Map<string, Damage>(fetchedResistances.map(item => [item.id!, item]));
@@ -206,6 +215,9 @@ export default class TraitRepository implements ITraitRepository {
     const saveAttributeMap = new Map<string, AttributeApi>(fetchedSaveAttributes.map(item => [item.id, item]));
     const creatureTypeMap = new Map<string, CreatureTypeApi>(fetchedCreatureTypes.map(item => [item.id, item]));
     const creatureMap = new Map<string, CreatureApi>(fetchedExtensionCreatures.map(item => [item.id, item]));
+    const uniqueGrantEquipmentMap = new Map<string, { id: string; name: string }>(
+      fetchedUniqueGrantEquipment.map(item => [item.id, item])
+    );
 
     return traits.map(trait => {
       const resistances = (trait.resistances ?? [])
@@ -293,7 +305,9 @@ export default class TraitRepository implements ITraitRepository {
         ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {}),
         ...this.formatAction(trait.action),
         ...this.formatWeaponDamageBonus(trait.weaponDamageBonus),
-        ...this.formatPactWeapon(trait.pactWeapon),
+        ...this.formatWeaponBond(trait.weaponBond),
+        ...this.formatUniqueEquipmentGrant(trait.uniqueEquipmentGrant, uniqueGrantEquipmentMap),
+        ...(trait.spellRepository ? { spellRepository: trait.spellRepository } : {}),
         ...this.formatInnateSpells(trait.innateSpells, spellMap, saveAttributeMap),
         ...this.formatGrantedSpells(trait.grantedSpells, spellMap),
         ...this.formatCreatureFormExtensions(trait.creatureFormExtensions, spellMap, creatureMap, creatureTypeMap),
@@ -315,7 +329,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, pactWeapon, innateSpells, grantedSpells, creatureFormExtensions, abilityScores, skillProficiencies, stackGroup, conditionalResistanceGroup, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, weaponBond, uniqueEquipmentGrant, spellRepository, innateSpells, grantedSpells, creatureFormExtensions, abilityScores, skillProficiencies, stackGroup, conditionalResistanceGroup, ...rest } = trait;
     return {
       ...rest,
       summary: summaryToPersist(trait.summary, trait.description),
@@ -330,7 +344,9 @@ export default class TraitRepository implements ITraitRepository {
       ...(hitPoints ? { hitPoints } : {}),
       ...(action ? { action } : {}),
       ...(weaponDamageBonus ? { weaponDamageBonus } : {}),
-      ...(pactWeapon ? { pactWeapon } : {}),
+      ...(weaponBond ? { weaponBond } : {}),
+      ...(uniqueEquipmentGrant ? { uniqueEquipmentGrant } : {}),
+      ...(spellRepository ? { spellRepository } : {}),
       ...(innateSpells ? { innateSpells } : {}),
       ...(Array.isArray(grantedSpells) && grantedSpells.length ? { grantedSpells } : {}),
       ...(Array.isArray(creatureFormExtensions) && creatureFormExtensions.length
@@ -359,7 +375,9 @@ export default class TraitRepository implements ITraitRepository {
       hitPoints,
       action,
       weaponDamageBonus,
-      pactWeapon,
+      weaponBond,
+      uniqueEquipmentGrant,
+      spellRepository,
       innateSpells,
       grantedSpells,
       creatureFormExtensions,
@@ -401,7 +419,9 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "hitPoints", hitPoints);
     this.assignNullable($set, $unset, "action", action);
     this.assignNullable($set, $unset, "weaponDamageBonus", weaponDamageBonus);
-    this.assignNullable($set, $unset, "pactWeapon", pactWeapon);
+    this.assignNullable($set, $unset, "weaponBond", weaponBond);
+    this.assignNullable($set, $unset, "uniqueEquipmentGrant", uniqueEquipmentGrant);
+    this.assignNullable($set, $unset, "spellRepository", spellRepository);
     this.assignNullable($set, $unset, "innateSpells", innateSpells);
     this.assignNullable($set, $unset, "grantedSpells", grantedSpells);
     this.assignNullable($set, $unset, "creatureFormExtensions", creatureFormExtensions);
@@ -780,20 +800,33 @@ export default class TraitRepository implements ITraitRepository {
     return { pool: value.pool, scope: value.scope };
   }
 
-  private formatPactWeapon(
-    value: TraitPactWeapon | undefined
-  ): { pactWeapon: TraitPactWeapon } | Record<string, never> {
+  private formatWeaponBond(
+    value: TraitWeaponBond | undefined
+  ): { weaponBond: TraitWeaponBond } | Record<string, never> {
     if (!value || typeof value !== "object") return {};
     if (typeof value.melee !== "boolean") return {};
     if (typeof value.grantsProficiency !== "boolean") return {};
     if (typeof value.magical !== "boolean") return {};
     return {
-      pactWeapon: {
+      weaponBond: {
         melee: value.melee,
         grantsProficiency: value.grantsProficiency,
         magical: value.magical
       }
     };
+  }
+
+  private uniqueEquipmentGrantId(trait: TraitMongo): string[] {
+    const equipmentId = trait.uniqueEquipmentGrant?.equipmentId;
+    return typeof equipmentId === "string" && equipmentId ? [equipmentId] : [];
+  }
+
+  private formatUniqueEquipmentGrant(
+    value: TraitUniqueEquipmentGrant | undefined,
+    equipmentById: Map<string, { id: string; name: string }>
+  ): { uniqueEquipmentGrant: TraitUniqueEquipmentGrantApi } | Record<string, never> {
+    const hydrated = hydrateUniqueEquipmentGrant(value, equipmentById);
+    return hydrated ? { uniqueEquipmentGrant: hydrated } : {};
   }
 
   private formatWeaponDamageBonus(

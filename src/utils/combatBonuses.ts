@@ -11,7 +11,7 @@ import {
   resolveWeaponAttributeStats,
   weaponHasTwoHandedProperty,
 } from "./weaponAttackAttributes";
-import { grantsPactWeaponProficiency } from "./pactWeapon";
+import { grantsWeaponBondProficiency } from "./weaponBond";
 
 export interface EnrichEquipmentCombatBonusesInput {
   equipment: EquipmentInstanceApi[];
@@ -99,7 +99,7 @@ export function enrichEquipmentWithCombatBonuses(
   const hasCombatFormulas = Boolean(rules.attackBonusFormula || rules.damageBonusFormula);
 
   return equipment.map(item => {
-    const isProficient = grantsPactWeaponProficiency(item, pactProficiency === true)
+    const isProficient = grantsWeaponBondProficiency(item, pactProficiency === true)
       || isEquipmentProficient(item, proficiencies);
     const enriched: CharacterEquipmentApi = {
       ...item,

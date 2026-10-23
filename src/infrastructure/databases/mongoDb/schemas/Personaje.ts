@@ -50,8 +50,9 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
       equipped: { type: Boolean, required: true, default: false },
       isMagic: { type: Boolean, required: true, default: false },
       isBond: { type: Boolean, required: true, default: false },
-      pactOrigin: { type: String, enum: ["summoned", "bound"], default: undefined },
-      pactStored: { type: Boolean, default: undefined },
+      bondOrigin: { type: String, enum: ["summoned", "bound"], default: undefined },
+      bondStored: { type: Boolean, default: undefined },
+      uniqueGranted: { type: Boolean, default: undefined },
       isFavorite: { type: Boolean, required: true, default: false },
       customization: { type: Schema.Types.Mixed, default: undefined }
     }],
@@ -115,7 +116,7 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
     type: [{
       _id: false,
       classId: { type: String },
-      pool: { type: String, enum: ["standard", "uniform"], required: true },
+      pool: { type: String, enum: ["standard", "fixedLevel"], required: true },
       level: { type: Number, required: true, min: 1, max: 9 },
       spent: { type: Number, required: true, min: 0 }
     }],

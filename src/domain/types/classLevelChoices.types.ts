@@ -7,7 +7,7 @@ export type SpellChoiceSource = typeof SPELL_CHOICE_SOURCES[number];
 export interface SpellChoiceMongo {
   choose: number;
   options?: string[];
-  filter?: Record<string, string | number | (string | number)[]>;
+  filter?: Record<string, string | number | boolean | (string | number)[]>;
   source?: SpellChoiceSource;
   levels?: "castable";
   includeCantrips?: boolean;

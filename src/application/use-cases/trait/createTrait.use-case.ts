@@ -8,6 +8,7 @@ import AttributeService from "../../../domain/services/attribute.service";
 import SpellService from "../../../domain/services/spell.service";
 import ConditionService from "../../../domain/services/condition.service";
 import CreatureService from "../../../domain/services/creature.service";
+import EquipmentService from "../../../domain/services/equipment.service";
 import { AppError } from "../../../domain/errors/AppError";
 import { CreateTrait, TraitApi } from "../../../domain/types/traits.types";
 import { assertArmorTypesForRuleset } from "../equipment/assertArmorTypeForRuleset";
@@ -25,7 +26,8 @@ export default class CreateTraitUseCase {
     private readonly attributeService: AttributeService,
     private readonly spellService: SpellService,
     private readonly conditionService: ConditionService,
-    private readonly creatureService: CreatureService
+    private readonly creatureService: CreatureService,
+    private readonly equipmentService: EquipmentService
   ) { }
 
   async execute(trait: CreateTrait, userId: string): Promise<TraitApi> {
@@ -65,6 +67,8 @@ export default class CreateTraitUseCase {
       innateSpells: trait.innateSpells,
       grantedSpells: trait.grantedSpells,
       creatureFormExtensions: trait.creatureFormExtensions,
+      uniqueEquipmentGrant: trait.uniqueEquipmentGrant,
+      spellRepository: trait.spellRepository,
       abilityScores: trait.abilityScores,
       skillProficiencies: trait.skillProficiencies,
       languageService: this.languageService,
@@ -75,7 +79,8 @@ export default class CreateTraitUseCase {
       conditionService: this.conditionService,
       systemService: this.systemService,
       traitService: this.traitService,
-      creatureService: this.creatureService
+      creatureService: this.creatureService,
+      equipmentService: this.equipmentService
     });
 
     return this.traitService.create({

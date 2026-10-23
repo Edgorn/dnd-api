@@ -9,6 +9,7 @@ import { CreatureTypeApi } from "./creatureType.types"
 import { AttributeApi } from "./attribute.types"
 import { CreatureFormPoolApi, CreatureFormPoolStored } from "./creatureForm.types"
 import { SpellSlotPool } from "./system.types"
+import type { SpellRepositoryConfig } from "./characterClass.types"
 
 export const EQUIPMENT_RESTRICTION_SCOPES = ["armor", "shield"] as const;
 export type EquipmentRestrictionScope = typeof EQUIPMENT_RESTRICTION_SCOPES[number];
@@ -42,7 +43,8 @@ export interface TraitSpeed {
   condition?: TraitSpeedCondition;
 }
 
-export type SpellPrivilegeSource = "known" | "classList";
+export const SPELL_PRIVILEGE_SOURCES = ["known", "classList", "anyClassList"] as const;
+export type SpellPrivilegeSource = typeof SPELL_PRIVILEGE_SOURCES[number];
 export type RestKey = string;
 export type SpellPrivilegeRecharge = RestKey;
 
@@ -82,6 +84,7 @@ export interface TraitCreatureFormExtensionApi {
 
 export interface SpellPrivilegeFilter {
   level: number | number[];
+  ritual?: boolean;
 }
 
 export interface SpellPrivilegeFreeCast {
@@ -331,10 +334,19 @@ export interface TraitWeaponDamageBonus {
   amountByClassLevel?: Record<string, number>;
 }
 
-export interface TraitPactWeapon {
+export interface TraitWeaponBond {
   melee: boolean;
   grantsProficiency: boolean;
   magical: boolean;
+}
+
+export interface TraitUniqueEquipmentGrant {
+  equipmentId: string;
+}
+
+export interface TraitUniqueEquipmentGrantApi {
+  id: string;
+  name: string;
 }
 
 export interface TraitAbilityScore {
@@ -387,7 +399,9 @@ export interface TraitMongo {
   hitPoints?: TraitHitPoints,
   action?: TraitAction,
   weaponDamageBonus?: TraitWeaponDamageBonus,
-  pactWeapon?: TraitPactWeapon,
+  weaponBond?: TraitWeaponBond,
+  uniqueEquipmentGrant?: TraitUniqueEquipmentGrant,
+  spellRepository?: SpellRepositoryConfig,
   innateSpells?: TraitInnateSpells,
   grantedSpells?: string[],
   creatureFormExtensions?: TraitCreatureFormExtension[],
@@ -439,7 +453,9 @@ export interface TraitApi {
   hitPoints?: TraitHitPoints,
   action?: TraitActionApi,
   weaponDamageBonus?: TraitWeaponDamageBonus,
-  pactWeapon?: TraitPactWeapon,
+  weaponBond?: TraitWeaponBond,
+  uniqueEquipmentGrant?: TraitUniqueEquipmentGrantApi,
+  spellRepository?: SpellRepositoryConfig,
   innateSpells?: TraitInnateSpellsApi,
   grantedSpells?: SpellApi[],
   creatureFormExtensions?: TraitCreatureFormExtensionApi[],
@@ -474,7 +490,9 @@ export interface CreateTrait {
   hitPoints?: TraitHitPoints | null,
   action?: TraitAction | null,
   weaponDamageBonus?: TraitWeaponDamageBonus | null,
-  pactWeapon?: TraitPactWeapon | null,
+  weaponBond?: TraitWeaponBond | null,
+  uniqueEquipmentGrant?: TraitUniqueEquipmentGrant | null,
+  spellRepository?: SpellRepositoryConfig | null,
   innateSpells?: TraitInnateSpells | null,
   grantedSpells?: string[] | null,
   creatureFormExtensions?: TraitCreatureFormExtension[] | null,
@@ -510,7 +528,9 @@ export interface UpdateTrait {
   hitPoints?: TraitHitPoints | null,
   action?: TraitAction | null,
   weaponDamageBonus?: TraitWeaponDamageBonus | null,
-  pactWeapon?: TraitPactWeapon | null,
+  weaponBond?: TraitWeaponBond | null,
+  uniqueEquipmentGrant?: TraitUniqueEquipmentGrant | null,
+  spellRepository?: SpellRepositoryConfig | null,
   innateSpells?: TraitInnateSpells | null,
   grantedSpells?: string[] | null,
   creatureFormExtensions?: TraitCreatureFormExtension[] | null,
