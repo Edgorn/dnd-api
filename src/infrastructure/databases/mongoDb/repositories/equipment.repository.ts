@@ -25,11 +25,13 @@ import {
   ResolvedEquipmentChoiceApi,
   EquipmentChoiceFilter,
   EquipmentBasic,
+  EquipmentWeaponList,
   WeaponMongo,
   WeaponApi,
   WeaponDamageMongo,
   WeaponDamageApi,
   WeaponBasic,
+  WeaponList,
   ArmorMongo,
   ArmorApi,
   ArmorBasic,
@@ -213,7 +215,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     return ordenarPorNombre(equipments.map(e => this.formatEquipmentBasicSync(e, lookups)));
   }
 
-  async getWeapons(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+  async getWeapons(rulesets: string[] = []): Promise<EquipmentWeaponList[]> {
     const query: Record<string, unknown> = {
       weapon: { $exists: true, $ne: null },
       deletedAt: null
@@ -229,7 +231,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
     const equipments = await EquipmentModel.find(query).lean();
     if (!equipments.length) return [];
     const lookups = await this.buildLookups(equipments);
-    return ordenarPorNombre(equipments.map(e => this.formatEquipmentBasicSync(e, lookups)));
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentWeaponListSync(e, lookups)));
   }
 
   async getArmor(rulesets: string[] = []): Promise<EquipmentBasic[]> {
@@ -484,6 +486,28 @@ export default class EquipmentRepository implements IEquipmentRepository {
     };
   }
 
+  private formatEquipmentWeaponListSync(equipment: any, lookups: EquipmentLookups): EquipmentWeaponList {
+    return {
+      id: equipment._id.toString(),
+      name: equipment.name || "",
+      category: equipment.category || "",
+      subcategory: equipment.subcategory || "",
+      equipSlot: equipment.equipSlot ?? null,
+      weapon: this.formatWeaponList(equipment.weapon, lookups),
+      armor: this.formatArmorBasicSync(equipment.armor, lookups)
+    };
+  }
+
+  private formatWeaponList(weapon: WeaponMongo | undefined, lookups: EquipmentLookups): WeaponList | undefined {
+    if (!weapon) return undefined;
+    return {
+      category: weapon.category,
+      range: weapon.range,
+      damage: this.formatDamagesSync(weapon.damage ?? [], lookups),
+      two_handed_damage: this.formatDamagesSync(weapon.two_handed_damage ?? [], lookups)
+    };
+  }
+
   private formatArmorBasicSync(armor: ArmorMongo | undefined, lookups: EquipmentLookups): ArmorBasic | undefined {
     if (!armor) return undefined;
     const formatted = this.formatArmorSync(armor, lookups);
@@ -576,6 +600,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
         armor: this.formatArmorSync(charEquipment.armor, lookups),
         isMagic: charEquipment.isMagic ?? false,
         isBond: charEquipment.isBond ?? false,
+        ...(charEquipment.pactOrigin ? { pactOrigin: charEquipment.pactOrigin } : {}),
+        ...(charEquipment.pactStored ? { pactStored: true } : {}),
         isFavorite: charEquipment.isFavorite ?? false,
         equipped: charEquipment.equipped ?? false,
         deletedAt: null
@@ -619,6 +645,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
         : formattedEq.armor,
       isMagic: charEquipment.isMagic ?? formattedEq.isMagic ?? false,
       isBond: charEquipment.isBond ?? false,
+      ...(charEquipment.pactOrigin ? { pactOrigin: charEquipment.pactOrigin } : {}),
+      ...(charEquipment.pactStored ? { pactStored: true } : {}),
       isFavorite: charEquipment.isFavorite ?? false,
       equipped: charEquipment.equipped ?? false,
       cost: charEquipment.cost
@@ -918,6 +946,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
         : base.armor,
       isMagic: override.isMagic ?? base.isMagic,
       isBond: override.isBond !== undefined ? override.isBond : base.isBond,
+      ...(override.pactOrigin ? { pactOrigin: override.pactOrigin } : {}),
+      ...(override.pactStored ? { pactStored: true } : {}),
       cost: override.cost
         ? this.formatEquipmentCostSync(override.cost, lookups)
         : base.cost

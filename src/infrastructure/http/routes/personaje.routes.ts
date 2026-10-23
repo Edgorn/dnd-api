@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema, SpendHitDiceSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindPactEquipmentSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -317,14 +317,18 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/SpellPrivilegeRule'
- *           description: Reglas del rasgo aplicadas a esta instancia.
+ *           description: >
+ *             Todas las reglas del rasgo (con `atLevel`). El cliente filtra las activas
+ *             con el nivel de la clase vinculada.
  *         selections:
  *           type: array
  *           items:
  *             type: array
  *             items:
  *               $ref: '#/components/schemas/Spell'
- *           description: Conjuros vinculados, un grupo por cada regla del rasgo.
+ *           description: >
+ *             Conjuros vinculados, un grupo por cada regla activa (`atLevel` menor o igual
+ *             al nivel de esa clase), en el mismo orden que esas reglas.
  *
  *     CharacterOptionSelection:
  *       type: object
@@ -546,13 +550,15 @@ const router = Router();
  *       type: object
  *       description: >
  *         Bolsa de dados de golpe derivada. `total` es el nivel de esa clase;
- *         solo se persiste `spent` en el personaje.
+ *         solo se persiste `spent` en el personaje. `bonusPerDie` es
+ *         `restRules.hitDiceSpending.bonusFormula` evaluada (0 si se omite).
  *       required:
  *         - classId
  *         - hitDie
  *         - total
  *         - spent
  *         - remaining
+ *         - bonusPerDie
  *       properties:
  *         classId:
  *           type: string
@@ -572,6 +578,11 @@ const router = Router();
  *           type: integer
  *           minimum: 0
  *           description: total menos spent.
+ *         bonusPerDie:
+ *           type: integer
+ *           description: >
+ *             Bono que el cliente suma a cada dado al gastar. Sale de
+ *             `restRules.hitDiceSpending.bonusFormula` (0 si no hay fórmula).
  *
  *     CharacterActiveCondition:
  *       type: object
@@ -799,8 +810,9 @@ const router = Router();
  *           type: array
  *           description: >
  *             Dados de golpe por clase. POST `/character/{id}/hit-dice/spend` incrementa spent
- *             y suma PG (la tirada la hace el cliente). El descanso recupera según
- *             `restRules.hitPointRecovery`.
+ *             y suma PG (la tirada la hace el cliente). Durante un descanso, `hitDiceSpends`
+ *             en POST `/character/{id}/rest` si `restRules.hitDiceSpending.on` incluye el `type`.
+ *             El descanso recupera dados según `restRules.hitPointRecovery`.
  *           items:
  *             $ref: '#/components/schemas/CharacterHitDice'
  *         spellSlots:
@@ -1253,7 +1265,7 @@ router.post('/character/:id/equipment', authMiddleware, validateParams(Character
  * /character/{id}/equipment/{instanceId}:
  *   delete:
  *     summary: Eliminar equipamiento del inventario de un personaje
- *     description: Reduce o elimina una instancia del inventario por instanceId. Si se indica quantity y es menor que la pila, decrementa; si no, elimina la fila. No permite eliminar ítems favoritos o equipados.
+ *     description: Reduce o elimina una instancia del inventario por instanceId. Si se indica quantity y es menor que la pila, decrementa; si no, elimina la fila. No permite eliminar ítems favoritos, equipados o vinculados por pacto.
  *     tags:
  *       - Personajes
  *     security:
@@ -1300,7 +1312,7 @@ router.post('/character/:id/equipment', authMiddleware, validateParams(Character
  *       404:
  *         description: Personaje o instancia de equipamiento no encontrada.
  *       409:
- *         description: El equipamiento está marcado como favorito o está equipado.
+ *         description: El equipamiento está marcado como favorito, está equipado o es un arma de pacto.
  *       500:
  *         description: Error del servidor.
  */
@@ -1445,9 +1457,11 @@ router.patch('/character/:id/equipment/:instanceId/favorite', authMiddleware, va
  *   patch:
  *     summary: Vincular o desvincular el pacto de una instancia
  *     description: |
- *       Actualiza isBond de una instancia. Vincular (isBond true) solo es válido si el objeto es mágico.
- *       Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se vincula esa.
- *       Los objetos vinculados nunca se apilan. Al desvincular, se intenta fusionar con una pila compatible.
+ *       Actualiza isBond de una instancia. Vincular exige un rasgo con pactWeapon, que el objeto
+ *       sea un arma mágica (cuerpo a cuerpo si pactWeapon.melee) y deja un solo vínculo.
+ *       Destruye un arma invocada previa. No equipa el arma. Desvincular solo aplica a origin
+ *       bound; las invocadas se descartan con deactivate. Si la pila tiene quantity mayor que 1,
+ *       se parte una unidad.
  *     tags:
  *       - Personajes
  *     security:
@@ -2237,12 +2251,14 @@ router.put('/character/:id/prepared-spells', authMiddleware, validateParams(Char
  *     summary: Vincular conjuros a un rasgo con privilegio de conjuro
  *     description: |
  *       Sustituye la elección de conjuros vinculada a un rasgo del personaje (p. ej. Maestría
- *       sobre Conjuros o Conjuros característicos).
+ *       sobre Conjuros, Conjuros característicos o Arcanum Místico).
  *       El rasgo debe definir `spellPrivileges`. Cada grupo de `selections` corresponde a una
- *       regla y debe tener exactamente `choose` conjuros del nivel indicado, de la lista de la
- *       clase. Si `source` es `known`, deben estar entre los conocidos de esa clase.
- *       El primer vínculo siempre está permitido. Un vínculo posterior solo se admite si todas
- *       las reglas tienen `replace` (p. ej. 8 horas de estudio); si `replace` es nulo, se rechaza.
+ *       regla **activa** (`atLevel` menor o igual al nivel de la clase indicada) y debe tener
+ *       exactamente `choose` conjuros del nivel indicado, de la lista de la clase.
+ *       Si `source` es `known`, deben estar entre los conocidos de esa clase.
+ *       El primer vínculo de cada regla está permitido. Añadir grupos de reglas que acaban de
+ *       desbloquearse también lo está, aunque `replace` sea nulo. Cambiar un grupo ya guardado
+ *       solo se admite si esa regla tiene `replace` (p. ej. 8 horas de estudio).
  *     tags:
  *       - Personajes
  *     security:
@@ -2310,7 +2326,13 @@ router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateP
  *       `usesByClassLevel` y el nivel de la clase otorgante). Si no quedan usos, 400.
  *       Incrementa `spent`. Si `action.kind` es stance, añade el id a `activeTraitIds`
  *       (400 si ya estaba activa). Falla si `suppressedByArmorTypeIds` coincide con
- *       armadura equipada. `uses: unlimited` no incrementa `spent`. No recarga PG ni conjuros.
+ *       armadura equipada. `uses: unlimited` no incrementa `spent`. No recarga PG.
+ *       Si `action.recoverSpellSlots` está definido, recupera las ranuras gastadas de
+ *       esa bolsa (`standard` o `uniform`) en la clase otorgante. Sin clase otorgante
+ *       el uso se gasta igual y las ranuras no cambian.
+ *       Si el rasgo tiene `pactWeapon`, invoca o materializa el arma de pacto. Con un arma
+ *       vinculada guardada ignora `equipmentId`. Si no hay vínculo, `equipmentId` es la forma
+ *       (arma cuerpo a cuerpo del catálogo). No se equipa. Un arma vinculada ya manifiesta responde 400.
  *     tags:
  *       - Personajes
  *     security:
@@ -2328,15 +2350,25 @@ router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateP
  *         schema:
  *           type: string
  *         description: ID del rasgo.
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               equipmentId:
+ *                 type: string
+ *                 description: ID de MongoDB del arma de catálogo que adopta el arma de pacto invocada.
  *     responses:
  *       200:
- *         description: Personaje actualizado con el uso gastado y la stance, si aplica.
+ *         description: Personaje actualizado con el uso gastado, la stance o el arma de pacto, si aplica.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PersonajeApi'
  *       400:
- *         description: Sin usos, stance ya activa, rasgo sin acción o suprimido por armadura.
+ *         description: Sin usos, stance ya activa, rasgo sin acción, suprimido por armadura o arma de pacto inválida.
  *       401:
  *         description: No autorizado.
  *       403:
@@ -2346,17 +2378,19 @@ router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateP
  *       500:
  *         description: Error del servidor.
  */
-router.post('/character/:id/traits/:traitId/use', authMiddleware, validateParams(BindSpellPrivilegesParamsSchema), personajeController.useTrait);
+router.post('/character/:id/traits/:traitId/use', authMiddleware, validateParams(BindSpellPrivilegesParamsSchema), validateSchema(UseTraitSchema), personajeController.useTrait);
 
 /**
  * @openapi
  * /character/{id}/traits/{traitId}/deactivate:
  *   post:
- *     summary: Apagar la stance de un rasgo
+ *     summary: Apagar la stance o descartar el arma de pacto
  *     description: |
- *       Quita el rasgo de `activeTraitIds` (y `traits[].action.active` pasa a false).
+ *       Si el rasgo tiene `pactWeapon` y hay un arma manifiesta, la descarta: borra
+ *       una invocada o guarda en extradimensional (`pactStored`) una vinculada.
+ *       Si no, quita el rasgo de `activeTraitIds` (y `traits[].action.active` pasa a false).
  *       No modifica `traitResources[].spent` ni `action.remaining`.
- *       Falla si la stance no estaba activa.
+ *       Falla si no hay arma manifiesta ni stance activa.
  *     tags:
  *       - Personajes
  *     security:
@@ -2409,10 +2443,14 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *       (directo o por `includes`). Si `endStancesOn` se omite, las stances se conservan.
  *       `traitChoices` es opcional: solo admite claves de daño con `replaceOn` compatible
  *       con el descanso. Si se omite, se conserva la elección anterior.
+ *       Si `hitDiceSpending.on` incluye el `type` (coincidencia exacta), `hitDiceSpends`
+ *       gasta dados y suma PG **antes** de `hitPointRecovery`. Cada entrada es
+ *       `{ classId, count, hpGained }` como en POST `/character/{id}/hit-dice/spend`.
+ *       Si el array llega y el `type` no está en `on`, responde 400.
  *       Si `hitPointRecovery` cubre el `type`, aplica `hp` (`full` pone HPActual a HPMax)
  *       y `hitDice` (`all` o `half` de los dados totales, mínimo 1, restando spent por clase
- *       en el orden de `classes`). El gasto de dados
- *       durante un descanso corto es POST `/character/{id}/hit-dice/spend`.
+ *       en el orden de `classes`). Fuera de un descanso, el gasto de dados es
+ *       POST `/character/{id}/hit-dice/spend`.
  *       Si `spellSlotRecovery` cubre el `type`, pone a 0 el spent de las bolsas listadas
  *       (`standard` y/o `uniform`). El gasto de ranuras es POST `/character/{id}/spell-slots/spend`.
  *       A cada `activeConditions` cuyo `Condition.recovery` cubra el `type` le aplica la suma
@@ -2446,6 +2484,26 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *                   Recambio opcional de elecciones de daño con replaceOn. La clave
  *                   exterior es el id del rasgo y la interior la clave de la elección.
  *                   La lista tiene tantos nombres (ids de tipo de daño) como indique choose.
+ *               hitDiceSpends:
+ *                 type: array
+ *                 description: >
+ *                   Gastos de dados de golpe durante este descanso. Solo si
+ *                   `restRules.hitDiceSpending.on` incluye `type`.
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - classId
+ *                     - count
+ *                     - hpGained
+ *                   properties:
+ *                     classId:
+ *                       type: string
+ *                     count:
+ *                       type: integer
+ *                       minimum: 1
+ *                     hpGained:
+ *                       type: integer
+ *                       minimum: 0
  *     responses:
  *       200:
  *         description: Personaje actualizado tras el descanso.
@@ -2474,7 +2532,8 @@ router.post('/character/:id/rest', authMiddleware, validateParams(CharacterIdPar
  *     description: |
  *       El cliente tira los dados. El cuerpo indica `classId`, `count` y `hpGained`.
  *       Valida que queden dados de esa clase (`level - spent`) y que `hpGained` no supere
- *       `count * hitDie + count * modificador de con` (0 si no hay característica `con`).
+ *       `count * (hitDie + bonusPerDie)`. `bonusPerDie` sale de
+ *       `restRules.hitDiceSpending.bonusFormula` (0 si se omite).
  *       Suma `hpGained` a `HPActual` y recorta a `HPMax`. Incrementa `hitDice[].spent`.
  *       No exige un descanso en curso.
  *     tags:
@@ -2529,6 +2588,112 @@ router.post('/character/:id/rest', authMiddleware, validateParams(CharacterIdPar
  *         description: Error del servidor.
  */
 router.post('/character/:id/hit-dice/spend', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(SpendHitDiceSchema), personajeController.spendHitDice);
+
+/**
+ * @openapi
+ * /character/{id}/hp/damage:
+ *   post:
+ *     summary: Aplicar daño a los puntos de golpe actuales
+ *     description: |
+ *       Resta `amount` a `HPActual` del personaje. El cliente ya calculó el daño
+ *       (resistencias, inmunidades y vulnerabilidades no se aplican aquí).
+ *       Si `amount` supera los PG actuales, `HPActual` queda en 0. No lanza error
+ *       por exceso. No aplica PG temporales ni salvaciones contra muerte.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *             properties:
+ *               amount:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Puntos de golpe a restar.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado tras el daño.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Cantidad inválida.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/hp/damage', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(ApplyCharacterHpSchema), personajeController.applyHpDamage);
+
+/**
+ * @openapi
+ * /character/{id}/hp/heal:
+ *   post:
+ *     summary: Curar puntos de golpe actuales
+ *     description: |
+ *       Suma `amount` a `HPActual` y recorta al `HPMax` persistido. Superar el
+ *       máximo no es error. No gasta dados de golpe ni aplica reglas de descanso.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *             properties:
+ *               amount:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Puntos de golpe a recuperar.
+ *     responses:
+ *       200:
+ *         description: Personaje actualizado tras la curación.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PersonajeApi'
+ *       400:
+ *         description: Cantidad inválida.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/hp/heal', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(ApplyCharacterHpSchema), personajeController.applyHpHeal);
 
 /**
  * @openapi

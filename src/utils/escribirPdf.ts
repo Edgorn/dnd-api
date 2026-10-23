@@ -589,15 +589,6 @@ export function formatCompanionSheetRow(companion: Pick<CharacterCompanion, "nam
   return `${companion.name}${role}${notes}`;
 }
 
-const nombres: any = {
-  'Agarre electrizante': 'Controlar llamas',
-  Amistad: 'Saeta de fuego',
-  'Descarga de fuego': 'Soplo de viento',
-  'Zancada prodigiosa': 'Absorber elementos',
-  'Toque helado': 'Hoja de llamas verdes',
-  'Flecha ácida de Melf': 'Pirotecnia'
-}
-
 export async function escribirConjuros({ form, personaje }: { form: any, personaje: PersonajeApi }) {
   const checkSpells: any = []
 
@@ -618,14 +609,6 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
   personaje.classes.forEach(clas => {
     const spells = personaje.spells[clas.class]
     const spellcastingClas = personaje?.spellcasting?.find(spell => spell.class === clas.class)
-
-    if (clas.class === 'warlock') {
-      spells.list.push(
-        ...personaje.spells["pact-tome"]?.list ?? [],
-        ...personaje.spells["book-ancestral-secrets"]?.list ?? [],
-        ...personaje.spells["warlock_infernal"]?.list ?? []
-      )
-    }
 
     if (spells && spellcastingClas) {
       form.getDropdown('SpellClass').addOptions([clas.name]);
@@ -669,9 +652,7 @@ export async function escribirConjuros({ form, personaje }: { form: any, persona
           const campoTexto = form.getTextField(nombreCampo);
           const valorPrevio = campoTexto.getText() ?? '';
 
-          const name = personaje?.name === 'Kohlembart Holimion' ? (nombres[spell.name] ?? spell.name) : spell.name
-
-          campoTexto.setText(valorPrevio ? `${valorPrevio}, ${name}` : name);
+          campoTexto.setText(valorPrevio ? `${valorPrevio}, ${spell.name}` : spell.name);
           checkSpells[index]++
         })
 

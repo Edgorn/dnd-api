@@ -3,7 +3,7 @@ import Personaje from '../schemas/Personaje';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { Types } from 'mongoose';
-import { CharacterCampaignLink, CharacterSubclassApi, ConsultarPersonajeOptions, LevelUpData, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource } from '../../../../domain/types/personajes.types';
+import { CharacterCampaignLink, CharacterSubclassApi, ConsultarPersonajeOptions, LevelUpData, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, PersonajeApi, PersonajeBasico, PersonajeMongo, PersonajeEquipmentMongo, TypeAddEquipment, TypeCrearPersonaje, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, TypeLearnSpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource } from '../../../../domain/types/personajes.types';
 import { CharacterFormApi, CharacterFormMongo, formPurposeOverlaysCharacter } from '../../../../domain/types/creatureForm.types';
 import {
   CharacterOptionSelection,
@@ -14,7 +14,7 @@ import {
 import { PrerequisiteContext } from '../../../../domain/types/prerequisite.types';
 import IGroupOptionRepository from '../../../../domain/repositories/IGroupOptionRepository';
 import IOptionGroupRepository from '../../../../domain/repositories/IOptionGroupRepository';
-import { characterRestRejection, resolveHitPointRecovery, resolveSpellSlotRecovery } from '../../../../domain/services/restRules';
+import { characterRestRejection, hitDiceSpendAllowed, resolveHitPointRecovery, resolveSpellSlotRecovery } from '../../../../domain/services/restRules';
 import { NotFoundError, ConflictError, ValidationError, AppError } from '../../../../domain/errors/AppError';
 import { ChoiceApi, Damage } from '../../../../domain/types';
 import AttributeService from '../../../../domain/services/attribute.service';
@@ -60,7 +60,7 @@ import {
 import { CharacterClassApi } from '../../../../domain/types/characterClass.types';
 import { resolveTraitActions } from '../../../../utils/resolveTraitActions';
 import { displaySummary } from '../../../../utils/traitSummary';
-import { buildTraitGrantingClassLevels } from '../../../../utils/traitProgression';
+import { buildTraitGrantingClasses } from '../../../../utils/traitProgression';
 import { grantedExtraSpellIdsByClass, mergeExtraSpellIds } from '../../../../utils/traitGrantedSpells';
 import { overlaySpellsCreatureForms } from '../../../../utils/creatureFormPool';
 import {
@@ -141,15 +141,27 @@ import {
   validatePreparedSpellPicks,
   validateSpellReplacements,
   validateSpellPrivilegePicks,
-  canReplaceSpellPrivileges,
   characterHasTrait,
   findSpellPrivilegeInstance,
   getCharacterSpellPrivileges,
   privilegeSpellIdsExcludedFromCap,
   alwaysPreparedSpellIds,
   mergePreparedWithPrivileges,
+  activeSpellPrivilegeRuleIndexes,
+  alignPrivilegeSelections,
 } from '../../../../utils/characterSpellcasting';
 import { enrichEquipmentWithCombatBonuses } from '../../../../utils/combatBonuses';
+import {
+  applyBindPactWeapon,
+  applyDismissPactWeapon,
+  applyManifestPactWeapon,
+  applySummonPactWeapon,
+  applyUnbindPactWeapon,
+  clearPactWeaponOnTraitLost,
+  ownedPactWeapon,
+  pactWeaponFormRejection,
+  resolvePactWeaponUse
+} from '../../../../utils/pactWeapon';
 import {
   addToInventory,
   cloneInventory,
@@ -181,13 +193,15 @@ import { MAX_CHARACTER_FORMS, normalizeCharacterForms } from '../../../../utils/
 import { normalizeActiveTraitIds, normalizeTraitResources } from '../../../../utils/traitResources';
 import {
   applyHitPointRecovery,
+  applyRestHitDiceSpends,
   applySpendHitDice,
   classPoolsFromCharacter,
-  HIT_DICE_ABILITY_KEY,
   normalizeHitDiceSpent,
   toHitDiceApi
 } from '../../../../utils/hitDice';
+import { applyHpDamage, applyHpHeal } from '../../../../utils/hitPoints';
 import {
+  applyRecoverClassSpellSlots,
   applySpendSpellSlot,
   applySpellSlotRecovery,
   normalizeSpellSlotsSpent,
@@ -479,6 +493,10 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const inventory = this.toInventoryRows(personaje.equipment);
     const item = this.requireInventoryInstance(inventory, instanceId);
+
+    if (item.isBond) {
+      throw new ConflictError("No se puede eliminar un arma de pacto");
+    }
 
     if (item.isFavorite || item.equipped) {
       throw new ConflictError(
@@ -990,6 +1008,14 @@ export default class PersonajeRepository implements IPersonajeRepository {
       throw new ValidationError(choiceResult.error);
     }
 
+    let nextEquipment: PersonajeEquipmentMongo[] | undefined;
+    if (optionPickResult.removedTraitIds.length) {
+      const removedTraits = await this.traitRepository.getTraitsByIndexes(optionPickResult.removedTraitIds);
+      if (removedTraits.some(trait => trait.pactWeapon)) {
+        nextEquipment = clearPactWeaponOnTraitLost(this.toInventoryRows(personaje.equipment));
+      }
+    }
+
     const resultado = await Personaje.findByIdAndUpdate(
       id,
       {
@@ -1009,6 +1035,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           ...(isNewClass || skillPickResult.ids.length ? { skills: nextSkills } : {}),
           ...(isNewClass ? { proficiencies: nextProficiencies } : {}),
           optionSelections: optionPickResult.selections,
+          ...(nextEquipment ? { equipment: nextEquipment } : {}),
         },
         $inc: isNewClass
           ? { HPMax: HP, HPActual: HP }
@@ -1098,21 +1125,44 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }
 
     let inventory = this.toInventoryRows(personaje.equipment);
-    const item = this.requireInventoryInstance(inventory, instanceId);
+    this.requireInventoryInstance(inventory, instanceId);
 
     if (isBond) {
-      if (!item.isMagic) {
-        throw new ValidationError("Solo se puede vincular un pacto con equipamiento mágico");
+      const traits = await this.traitRepository.getTraitsByIndexes(personaje.traits ?? []);
+      const config = ownedPactWeapon(traits);
+      if (!config) {
+        throw new ValidationError("El personaje no tiene un rasgo de arma de pacto");
       }
 
       const split = splitOne(inventory, instanceId);
       inventory = split.inventory;
-      const idx = inventory.findIndex(eq => eq.instanceId === split.instance.instanceId);
-      inventory[idx] = { ...inventory[idx], isBond: true, quantity: 1 };
+      const boundId = split.instance.instanceId;
+      const boundItem = this.requireInventoryInstance(inventory, boundId);
+      if (!boundItem.isMagic) {
+        throw new ValidationError("Solo se puede vincular un pacto con equipamiento mágico");
+      }
+
+      const catalogItem = await this.equipmentRepository.getById(boundItem.equipmentId);
+      const formError = pactWeaponFormRejection(config, catalogItem);
+      if (formError) {
+        throw new ValidationError(
+          formError === "La forma del arma de pacto debe ser un arma"
+            ? "Solo se puede vincular un arma"
+            : "Solo se puede vincular un arma cuerpo a cuerpo"
+        );
+      }
+
+      const bound = applyBindPactWeapon(inventory, boundId);
+      if (!bound.ok) {
+        throw new ValidationError(bound.message);
+      }
+      inventory = bound.inventory;
     } else {
-      const idx = inventory.findIndex(eq => eq.instanceId === instanceId);
-      inventory[idx] = { ...inventory[idx], isBond: false };
-      inventory = tryMerge(inventory, instanceId);
+      const unbound = applyUnbindPactWeapon(inventory, instanceId);
+      if (!unbound.ok) {
+        throw new ValidationError(unbound.message);
+      }
+      inventory = unbound.inventory;
     }
 
     return this.saveInventoryAndFormatCharacter(id, inventory);
@@ -1231,7 +1281,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ? await this.traitRepository.getTraitsByIndexes(privilegeTraitIds)
       : []
     const rulesByTraitId = this.buildPrivilegeRulesMap(privilegeTraits, privilegeInstances)
-    const excludedFromCap = privilegeSpellIdsExcludedFromCap(privilegeInstances, rulesByTraitId, classId)
+    const excludedFromCap = privilegeSpellIdsExcludedFromCap(
+      privilegeInstances,
+      rulesByTraitId,
+      classId,
+      this.classLevelByClassId(personaje)
+    )
     const persistIds = spells.filter(id => !excludedFromCap.has(id))
     const [loadedSpells, extraClassSpellIds] = await Promise.all([
       persistIds.length ? this.spellRepository.getSpellsByIndexes(persistIds) : Promise.resolve([]),
@@ -1298,13 +1353,6 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const rules = trait.spellPrivileges ?? []
     const instances = getCharacterSpellPrivileges(personaje.spellPrivileges)
     const existing = findSpellPrivilegeInstance(instances, traitId, classId, [trait.id])
-    const replaceCheck = canReplaceSpellPrivileges({
-      hasExistingInstance: Boolean(existing),
-      rules
-    })
-    if (replaceCheck.error) {
-      throw new ValidationError(replaceCheck.error)
-    }
 
     const selectionIds = selections.flat()
     const [loadedSpells, extraClassSpellIds] = await Promise.all([
@@ -1314,6 +1362,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       this.extraClassSpellIds(personaje, classId)
     ])
     const classEntry = personaje.classes?.find(clas => clas.class === classId)
+    const classLevel = classEntry?.level ?? 0
     const validation = validateSpellPrivilegePicks({
       hasClass: Boolean(classEntry),
       hasTrait: characterHasTrait(personaje.traits ?? [], [traitId, trait.id]),
@@ -1328,16 +1377,19 @@ export default class PersonajeRepository implements IPersonajeRepository {
           level: spell.level,
           classIds: (spell.classes ?? []).map(clas => clas.id)
         })),
-      extraClassSpellIds
+      extraClassSpellIds,
+      classLevel,
+      existingSelections: existing?.selections
     })
     if (validation.error) {
       throw new ValidationError(validation.error)
     }
 
+    const activeIndexes = activeSpellPrivilegeRuleIndexes(rules, classLevel)
     const nextInstance: CharacterSpellPrivilegeMongo = {
       traitId,
       classId,
-      selections: selections.map(group => [...group])
+      selections: alignPrivilegeSelections(rules.length, activeIndexes, selections)
     }
     const nextPrivileges = [
       ...instances.filter(item =>
@@ -1360,7 +1412,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
   }
 
   async useTrait(data: TypeUseTrait): Promise<PersonajeApi> {
-    const { id, traitId, userId } = data;
+    const { id, traitId, userId, equipmentId } = data;
     const personaje = await Personaje.findById(id);
     if (!personaje) {
       throw new NotFoundError("Personaje no encontrado");
@@ -1373,7 +1425,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       throw new NotFoundError("Rasgo no encontrado");
     }
 
-    const grantingClassLevelByTraitId = await this.loadGrantingClassLevels(personaje);
+    const grantingClassByTraitId = await this.loadGrantingClasses(personaje);
+    const grant = grantingClassByTraitId.get(trait.id);
     const traitResources = normalizeTraitResources(personaje.traitResources);
     const activeTraitIds = normalizeActiveTraitIds(personaje.activeTraitIds);
     const equipment = await this.equipmentRepository.getCharacterEquipmentsByIds(
@@ -1383,7 +1436,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ownsTrait: characterHasTrait(personaje.traits ?? [], [traitId, trait.id]),
       trait,
       requestedTraitId: traitId,
-      classLevel: grantingClassLevelByTraitId.get(trait.id),
+      classLevel: grant?.level,
       spent: spentForTrait(traitResources, [trait.id, traitId]),
       traitResources,
       activeTraitIds,
@@ -1396,7 +1449,30 @@ export default class PersonajeRepository implements IPersonajeRepository {
       throw new ValidationError(result.message);
     }
 
-    return this.persistTraitStance(id, result.traitResources, result.activeTraitIds);
+    const inventory = trait.pactWeapon
+      ? await this.applyPactWeaponUse(
+        this.toInventoryRows(personaje.equipment),
+        trait.pactWeapon,
+        equipmentId
+      )
+      : undefined;
+
+    const recover = trait.action?.recoverSpellSlots;
+    if (!recover || !grant?.classId) {
+      return this.persistTraitStance(id, result.traitResources, result.activeTraitIds, undefined, {
+        ...(inventory ? { equipment: inventory } : {})
+      });
+    }
+
+    const slotPools = await this.loadSpellSlotPools(personaje);
+    const slotSpent = normalizeSpellSlotsSpent(personaje.spellSlotsSpent, slotPools);
+    return this.persistTraitStance(id, result.traitResources, result.activeTraitIds, undefined, {
+      spellSlotsSpent: applyRecoverClassSpellSlots(slotSpent, {
+        classId: grant.classId,
+        pool: recover.pool
+      }),
+      ...(inventory ? { equipment: inventory } : {})
+    });
   }
 
   async deactivateTrait(data: TypeUseTrait): Promise<PersonajeApi> {
@@ -1409,6 +1485,19 @@ export default class PersonajeRepository implements IPersonajeRepository {
 
     const loadedTraits = await this.traitRepository.getTraitsByIndexes([traitId]);
     const trait = loadedTraits[0];
+    if (trait?.pactWeapon) {
+      const dismissed = applyDismissPactWeapon(this.toInventoryRows(personaje.equipment));
+      if (dismissed.ok) {
+        return this.persistTraitStance(
+          id,
+          normalizeTraitResources(personaje.traitResources),
+          normalizeActiveTraitIds(personaje.activeTraitIds),
+          undefined,
+          { equipment: dismissed.inventory }
+        );
+      }
+    }
+
     const result = applyDeactivateTrait({
       traitId,
       aliases: trait?.id ? [trait.id] : [],
@@ -1466,13 +1555,25 @@ export default class PersonajeRepository implements IPersonajeRepository {
       personaje.hitDiceSpent,
       pools.map((pool) => pool.classId)
     );
+    const spentResult = applyRestHitDiceSpends({
+      spends: data.hitDiceSpends,
+      allowed: hitDiceSpendAllowed(rulesConfig.restRules, type),
+      pools,
+      spent,
+      hpActual: Number(personaje.HPActual) || 0,
+      hpMax: Number(personaje.HPMax) || 0,
+      bonusPerDie: await this.resolveHitDiceBonusPerDie(personaje, rulesConfig.restRules),
+    });
+    if (!spentResult.ok) {
+      throw new ValidationError(spentResult.message);
+    }
     const recovery = resolveHitPointRecovery(rulesConfig.restRules, type);
     const recovered = applyHitPointRecovery({
       hp: recovery.hp,
       hitDice: recovery.hitDice,
       pools,
-      spent,
-      hpActual: Number(personaje.HPActual) || 0,
+      spent: spentResult.spent,
+      hpActual: spentResult.hpActual,
       hpMax: Number(personaje.HPMax) || 0,
     });
 
@@ -1521,8 +1622,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       personaje.hitDiceSpent,
       pools.map((pool) => pool.classId)
     );
-    const attributes = await this.formatSheetAttributes(personaje);
-    const abilityModifier = attributes.find((attr) => attr.key === HIT_DICE_ABILITY_KEY)?.modifier ?? 0;
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
+    const bonusPerDie = await this.resolveHitDiceBonusPerDie(personaje, rulesConfig.restRules);
     const result = applySpendHitDice({
       classId,
       count,
@@ -1531,7 +1632,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       spent,
       hpActual: Number(personaje.HPActual) || 0,
       hpMax: Number(personaje.HPMax) || 0,
-      abilityModifier,
+      bonusPerDie,
     });
     if (!result.ok) {
       throw new ValidationError(result.message);
@@ -1540,6 +1641,31 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const updated = await Personaje.findByIdAndUpdate(
       id,
       { $set: { HPActual: result.hpActual, hitDiceSpent: result.spent } },
+      { returnDocument: "after" }
+    );
+    if (!updated) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    return this.formatCharacter(updated);
+  }
+
+  async applyHp(data: TypeApplyCharacterHp): Promise<PersonajeApi> {
+    const { id, amount, kind, userId } = data;
+    const personaje = await Personaje.findById(id);
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+    await this.assertCanAccessCharacter(personaje, userId);
+
+    const hpActual = Number(personaje.HPActual) || 0;
+    const hpMax = Number(personaje.HPMax) || 0;
+    const nextHp = kind === "heal"
+      ? applyHpHeal(hpActual, hpMax, amount)
+      : applyHpDamage(hpActual, amount);
+
+    const updated = await Personaje.findByIdAndUpdate(
+      id,
+      { $set: { HPActual: nextHp } },
       { returnDocument: "after" }
     );
     if (!updated) {
@@ -1730,6 +1856,12 @@ export default class PersonajeRepository implements IPersonajeRepository {
   private getClassSpellIds(personaje: PersonajeMongo, classId: string): string[] {
     const ids = personaje.spells?.[classId];
     return Array.isArray(ids) ? ids : [];
+  }
+
+  private classLevelByClassId(personaje: PersonajeMongo): Map<string, number> {
+    return new Map(
+      (personaje.classes ?? []).map(entry => [entry.class, entry.level])
+    );
   }
 
   private buildPrivilegeRulesMap(
@@ -2519,12 +2651,50 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return subclass;
   }
 
+  private async applyPactWeaponUse(
+    inventory: PersonajeEquipmentMongo[],
+    config: NonNullable<TraitApi["pactWeapon"]>,
+    equipmentId?: string
+  ): Promise<PersonajeEquipmentMongo[]> {
+    const resolved = resolvePactWeaponUse(inventory);
+    if (resolved.kind === "already-manifest") {
+      throw new ValidationError("El arma de pacto ya está manifiesta");
+    }
+
+    if (resolved.kind === "manifest" && resolved.instanceId) {
+      const manifested = applyManifestPactWeapon(inventory);
+      if (!manifested.ok || !manifested.instanceId) {
+        throw new ValidationError(manifested.ok ? "No hay un arma de pacto guardada" : manifested.message);
+      }
+      return manifested.inventory;
+    }
+
+    if (!equipmentId) {
+      throw new ValidationError("Debe indicar la forma del arma de pacto");
+    }
+    const catalog = await this.equipmentRepository.getById(equipmentId);
+    const formError = pactWeaponFormRejection(config, catalog);
+    if (!catalog || formError) {
+      throw new ValidationError(formError ?? "La forma del arma de pacto debe ser un arma");
+    }
+
+    const instance = createInventoryInstance({
+      equipmentId,
+      quantity: 1,
+      isMagic: config.magical ? true : catalog.isMagic === true,
+      isBond: true,
+      pactOrigin: "summoned",
+      equipped: false
+    });
+    return applySummonPactWeapon(inventory, instance).inventory;
+  }
+
   private async persistTraitStance(
     id: string,
     traitResources: CharacterTraitResource[],
     activeTraitIds: string[],
     traitChoices?: TraitChoices,
-    extras?: { HPActual?: number; hitDiceSpent?: CharacterHitDiceSpent[]; spellSlotsSpent?: CharacterSpellSlotSpent[]; activeConditions?: CharacterActiveCondition[] }
+    extras?: { HPActual?: number; hitDiceSpent?: CharacterHitDiceSpent[]; spellSlotsSpent?: CharacterSpellSlotSpent[]; activeConditions?: CharacterActiveCondition[]; equipment?: PersonajeEquipmentMongo[] }
   ): Promise<PersonajeApi> {
     const resultado = await Personaje.findByIdAndUpdate(
       id,
@@ -2536,7 +2706,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
           ...(extras?.HPActual !== undefined ? { HPActual: extras.HPActual } : {}),
           ...(extras?.hitDiceSpent !== undefined ? { hitDiceSpent: extras.hitDiceSpent } : {}),
           ...(extras?.spellSlotsSpent !== undefined ? { spellSlotsSpent: extras.spellSlotsSpent } : {}),
-          ...(extras?.activeConditions !== undefined ? { activeConditions: extras.activeConditions } : {})
+          ...(extras?.activeConditions !== undefined ? { activeConditions: extras.activeConditions } : {}),
+          ...(extras?.equipment !== undefined ? { equipment: extras.equipment } : {})
         }
       },
       { returnDocument: "after" }
@@ -2600,21 +2771,32 @@ export default class PersonajeRepository implements IPersonajeRepository {
     return slotPoolsFromSources(sources);
   }
 
-  private async loadGrantingClassLevels(
+  private async loadGrantingClasses(
     personaje: PersonajeMongo,
     subclassById?: Map<string, SubclassApi>
-  ): Promise<Map<string, number>> {
+  ) {
     const classCatalogs = (
       await Promise.all(
         (personaje.classes ?? []).map(entry => this.claseRepository.getById(entry.class))
       )
     ).filter((item): item is CharacterClassApi => Boolean(item));
     const subclasses = subclassById ?? await this.getSubclassMapByIds(personaje.subclasses ?? []);
-    return buildTraitGrantingClassLevels(
+    return buildTraitGrantingClasses(
       personaje.classes ?? [],
       classCatalogs,
       [...subclasses.values()]
     );
+  }
+
+  private async loadGrantingClassLevels(
+    personaje: PersonajeMongo,
+    subclassById?: Map<string, SubclassApi>
+  ): Promise<Map<string, number>> {
+    const levels = new Map<string, number>();
+    for (const [traitId, grant] of await this.loadGrantingClasses(personaje, subclassById)) {
+      levels.set(traitId, grant.level);
+    }
+    return levels;
   }
 
   private async getSubclassMapByIds(ids: string[]): Promise<Map<string, SubclassApi>> {
@@ -3072,6 +3254,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
     }> = {}
 
     const privilegeInstances = getCharacterSpellPrivileges(personaje.spellPrivileges)
+    const classLevelByClassId = this.classLevelByClassId(personaje)
     const loadedTraitIds = new Set(traits.map(trait => trait.id))
     const missingPrivilegeTraitIds = [...new Set(
       privilegeInstances
@@ -3110,7 +3293,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
         )
         const alwaysIds = groupSpells === "race"
           ? []
-          : alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells)
+          : alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells, classLevelByClassId)
         const preparedIds = groupSpells === "race"
           ? []
           : mergePreparedWithPrivileges(
@@ -3212,6 +3395,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       proficiencyBonus: personaje?.prof_bonus ?? 0,
       level,
       rules: rulesConfig,
+      pactProficiency: ownedPactWeapon(traits ?? [])?.grantsProficiency === true,
     });
 
     const { CA } = await this.calcularCA(personaje, traits, {
@@ -3269,13 +3453,15 @@ export default class PersonajeRepository implements IPersonajeRepository {
       const rules = rulesByTraitId.get(instance.traitId)
         ?? privilegeTraits.find(trait => trait.id === instance.traitId)?.spellPrivileges
         ?? []
+      const classLevel = classLevelByClassId.get(instance.classId) ?? 0
+      const activeIndexes = activeSpellPrivilegeRuleIndexes(rules, classLevel)
       return {
         traitId: instance.traitId,
         classId: instance.classId,
         rules,
-        selections: (instance.selections ?? []).map(group => {
+        selections: activeIndexes.map(ruleIndex => {
           const hydrated: SpellApi[] = []
-          for (const spellId of group) {
+          for (const spellId of instance.selections?.[ruleIndex] ?? []) {
             const spell = privilegeSpellById.get(spellId)
             if (spell) hydrated.push(spell)
           }
@@ -3289,9 +3475,17 @@ export default class PersonajeRepository implements IPersonajeRepository {
     const spentByTraitId = new Map(traitResources.map(item => [item.traitId, item.spent]));
     const activeTraitIds = normalizeActiveTraitIds(personaje.activeTraitIds);
     const hitDicePools = classPoolsFromCharacter(personaje.classes ?? []);
+    const hitDiceBonusPerDie = rulesConfig.restRules?.hitDiceSpending?.bonusFormula
+      ? evaluateFormula(
+        rulesConfig.restRules.hitDiceSpending.bonusFormula,
+        apiAttributes,
+        { proficiencyBonus: Number(personaje.prof_bonus) || 0 }
+      )
+      : 0;
     const hitDice = toHitDiceApi(
       hitDicePools,
-      normalizeHitDiceSpent(personaje.hitDiceSpent, hitDicePools.map((pool) => pool.classId))
+      normalizeHitDiceSpent(personaje.hitDiceSpent, hitDicePools.map((pool) => pool.classId)),
+      hitDiceBonusPerDie
     );
     const spellSlotPools = slotPoolsFromSources(spellcastingSources);
     const spellSlots = toSpellSlotsApi(
@@ -3419,6 +3613,8 @@ export default class PersonajeRepository implements IPersonajeRepository {
       isMagic: item.isMagic,
       isBond: item.isBond,
       isFavorite: item.isFavorite,
+      ...(item.pactOrigin ? { pactOrigin: item.pactOrigin } : {}),
+      ...(item.pactStored ? { pactStored: true } : {}),
       ...(item.customization ?? {}),
     }));
   }
@@ -3539,6 +3735,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       proficiencyBonus: personaje?.prof_bonus ?? 0,
       level,
       rules: rulesConfig,
+      pactProficiency: ownedPactWeapon(traits ?? [])?.grantsProficiency === true,
     });
   }
 
@@ -3579,6 +3776,18 @@ export default class PersonajeRepository implements IPersonajeRepository {
         };
       })
       .filter(Boolean) as ({ quantity: number } & CoinApi)[];
+  }
+
+  private async resolveHitDiceBonusPerDie(
+    personaje: Pick<PersonajeMongo, "attributes" | "systems" | "traits" | "prof_bonus">,
+    restRules?: { hitDiceSpending?: { bonusFormula?: string } }
+  ): Promise<number> {
+    const formula = restRules?.hitDiceSpending?.bonusFormula;
+    if (!formula) return 0;
+    const attributes = await this.formatSheetAttributes(personaje);
+    return evaluateFormula(formula, attributes, {
+      proficiencyBonus: Number(personaje.prof_bonus) || 0
+    });
   }
 
   private async formatSheetAttributes(

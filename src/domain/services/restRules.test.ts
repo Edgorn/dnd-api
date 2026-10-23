@@ -5,6 +5,7 @@ import {
   collectConditionRestKeys,
   collectTraitRestKeys,
   restEndsStances,
+  hitDiceSpendAllowed,
   resolveHitPointRecovery,
   resolveSpellSlotRecovery,
   restKindCovers,
@@ -111,6 +112,39 @@ describe("assertRestRulesShape", () => {
     ]);
   });
 
+  it("accepts hitDiceSpending.on keys from kinds", () => {
+    expect(assertRestRulesShape({
+      ...fivee,
+      hitDiceSpending: { on: ["shortRest"], bonusFormula: "@attributes.con.modifier" },
+    })).toEqual([]);
+  });
+
+  it("rejects hitDiceSpending.on keys missing from kinds", () => {
+    const issues = assertRestRulesShape({
+      ...fivee,
+      hitDiceSpending: { on: ["watch"] },
+    });
+    expect(issues).toEqual([
+      expect.objectContaining({
+        message: "hitDiceSpending.on apunta a una clave inexistente: watch",
+        path: ["hitDiceSpending", "on", 0],
+      }),
+    ]);
+  });
+
+  it("rejects duplicate hitDiceSpending.on keys", () => {
+    const issues = assertRestRulesShape({
+      ...fivee,
+      hitDiceSpending: { on: ["shortRest", "shortRest"] },
+    });
+    expect(issues).toEqual([
+      expect.objectContaining({
+        message: "hitDiceSpending.on contiene la clave duplicada shortRest",
+        path: ["hitDiceSpending", "on", 1],
+      }),
+    ]);
+  });
+
   it("rejects endStancesOn keys missing from kinds", () => {
     const issues = assertRestRulesShape({
       ...fivee,
@@ -150,6 +184,23 @@ describe("restEndsStances", () => {
     };
     expect(restEndsStances(watchOnly, "shortRest")).toBe(false);
     expect(restEndsStances(watchOnly, "watch")).toBe(false);
+  });
+});
+
+describe("hitDiceSpendAllowed", () => {
+  const withSpend: SystemRestRules = {
+    ...fivee,
+    hitDiceSpending: { on: ["shortRest"] },
+  };
+
+  it("matches only the listed rest key", () => {
+    expect(hitDiceSpendAllowed(withSpend, "shortRest")).toBe(true);
+    expect(hitDiceSpendAllowed(withSpend, "longRest")).toBe(false);
+  });
+
+  it("is false when omitted", () => {
+    expect(hitDiceSpendAllowed(fivee, "shortRest")).toBe(false);
+    expect(hitDiceSpendAllowed(undefined, "shortRest")).toBe(false);
   });
 });
 

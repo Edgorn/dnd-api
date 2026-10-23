@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyRecoverClassSpellSlots,
   applySpendSpellSlot,
   applySpellSlotRecovery,
   normalizeSpellSlotsSpent,
@@ -109,5 +110,29 @@ describe("applySpellSlotRecovery", () => {
 
   it("keeps spent when nothing recovers", () => {
     expect(applySpellSlotRecovery(spent, [])).toEqual(spent);
+  });
+});
+
+describe("applyRecoverClassSpellSlots", () => {
+  const spent = [
+    { classId: "wizard", pool: "standard" as const, level: 1, spent: 2 },
+    { classId: "warlock", pool: "uniform" as const, level: 3, spent: 2 },
+  ];
+
+  it("clears only the granting class pool", () => {
+    expect(applyRecoverClassSpellSlots(spent, { classId: "warlock", pool: "uniform" })).toEqual([
+      { classId: "wizard", pool: "standard", level: 1, spent: 2 },
+    ]);
+  });
+
+  it("does not clear the same pool on another class", () => {
+    const twoUniforms = [
+      ...spent,
+      { classId: "hexblade", pool: "uniform" as const, level: 1, spent: 1 },
+    ];
+    expect(applyRecoverClassSpellSlots(twoUniforms, { classId: "warlock", pool: "uniform" })).toEqual([
+      { classId: "wizard", pool: "standard", level: 1, spent: 2 },
+      { classId: "hexblade", pool: "uniform", level: 1, spent: 1 },
+    ]);
   });
 });

@@ -206,6 +206,11 @@ const router = Router();
  *           description: >
  *             Bono de daño a armas mientras el rasgo está activo (p. ej. Furia).
  *             No se aplica en el PDF; solo en la ficha de juego cuando la stance está on.
+ *         pactWeapon:
+ *           $ref: '#/components/schemas/TraitPactWeapon'
+ *           description: >
+ *             El rasgo invoca o materializa un arma de pacto. Exige action distinta de stance.
+ *             POST use crea o saca el arma; POST deactivate la descarta.
  *     EquipmentRestriction:
  *       type: object
  *       required:
@@ -466,6 +471,44 @@ const router = Router();
  *             Clave de `restRules.kinds` del ruleset. POST `/character/{id}/rest` pone spent a 0
  *             si el descanso cubre esa clave (directa o por `includes`). null si no se recargan
  *             o si uses es unlimited.
+ *         recoverSpellSlots:
+ *           $ref: '#/components/schemas/TraitRecoverSpellSlots'
+ *           description: >
+ *             Al usar el rasgo, recupera todas las ranuras gastadas de esa bolsa
+ *             en la clase otorgante. Solo en acciones instantáneas. Maestro Sobrenatural
+ *             usa pool uniform y scope grantingClass.
+ *     TraitPactWeapon:
+ *       type: object
+ *       required:
+ *         - melee
+ *         - grantsProficiency
+ *         - magical
+ *       properties:
+ *         melee:
+ *           type: boolean
+ *           description: Si es true, la forma y el vínculo solo admiten armas cuerpo a cuerpo.
+ *         grantsProficiency:
+ *           type: boolean
+ *           description: Competencia con el arma de pacto mientras está manifiesta.
+ *         magical:
+ *           type: boolean
+ *           description: Las invocadas se marcan isMagic aunque el catálogo sea mundano.
+ *     TraitRecoverSpellSlots:
+ *       type: object
+ *       required:
+ *         - pool
+ *         - scope
+ *       properties:
+ *         pool:
+ *           type: string
+ *           enum: [standard, uniform]
+ *           description: >
+ *             Bolsa a recuperar. `uniform` es Magia del Pacto. `standard` es la tabla
+ *             de ranuras por nivel.
+ *         scope:
+ *           type: string
+ *           enum: [grantingClass]
+ *           description: Solo las ranuras de la clase que otorga el rasgo.
  *     TraitActionSheet:
  *       allOf:
  *         - $ref: '#/components/schemas/TraitAction'
@@ -773,6 +816,14 @@ const router = Router();
  *           description: >
  *             Origen de los conjuros elegibles. `known` exige que estén en los conocidos
  *             de la clase (p. ej. libro de conjuros); `classList` usa la lista de la clase.
+ *         atLevel:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *           description: >
+ *             Nivel de la clase que otorga el rasgo a partir del cual esta regla está
+ *             activa. Si se omite, vale 1 (activa en cuanto el personaje tiene el rasgo).
+ *             Varias reglas pueden compartir el mismo nivel (p. ej. Maestría sobre Conjuros).
  *         filter:
  *           type: object
  *           required:
@@ -1261,6 +1312,11 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitWeaponDamageBonus'
  *           description: Bono de daño a armas mientras la stance está activa. null borra el campo.
+ *         pactWeapon:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitPactWeapon'
+ *           description: Arma de pacto. Exige action distinta de stance. null borra el campo.
  *     TraitLanguagesInput:
  *       type: object
  *       properties:
@@ -1494,6 +1550,11 @@ const router = Router();
  *           allOf:
  *             - $ref: '#/components/schemas/TraitWeaponDamageBonus'
  *           description: Bono de daño a armas mientras la stance está activa. null borra el campo.
+ *         pactWeapon:
+ *           nullable: true
+ *           allOf:
+ *             - $ref: '#/components/schemas/TraitPactWeapon'
+ *           description: Arma de pacto. Exige action distinta de stance. null borra el campo.
  */
 
 /**

@@ -10,6 +10,8 @@ const ROW_ONLY_FIELDS = new Set([
   "isFavorite",
   "isBond",
   "isMagic",
+  "pactOrigin",
+  "pactStored",
   "content"
 ]);
 

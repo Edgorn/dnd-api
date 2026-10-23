@@ -113,6 +113,34 @@ describe("enrichEquipmentWithCombatBonuses", () => {
     expect(result[0].damageBonus).toBeUndefined();
   });
 
+  it("forces proficiency on a manifested pact weapon", () => {
+    const result = enrichEquipmentWithCombatBonuses({
+      equipment: [{ ...baseEquipment, isBond: true, pactOrigin: "summoned" }],
+      attributes: sampleAttributes as any,
+      proficiencies: [],
+      proficiencyBonus: 2,
+      level: 1,
+      rules: {},
+      pactProficiency: true,
+    });
+
+    expect(result[0].isProficient).toBe(true);
+  });
+
+  it("does not force proficiency on a stored pact weapon", () => {
+    const result = enrichEquipmentWithCombatBonuses({
+      equipment: [{ ...baseEquipment, isBond: true, pactOrigin: "bound", pactStored: true }],
+      attributes: sampleAttributes as any,
+      proficiencies: [],
+      proficiencyBonus: 2,
+      level: 1,
+      rules: {},
+      pactProficiency: true,
+    });
+
+    expect(result[0].isProficient).toBe(false);
+  });
+
   it("sets isProficient false when character is not proficient", () => {
     const result = enrichEquipmentWithCombatBonuses({
       equipment: [baseEquipment],

@@ -18,6 +18,7 @@
     "migrate:spell-casting-times": "tsx scripts/migrate-spell-casting-times.ts",
     "migrate:rest-recharge-keys": "tsx scripts/migrate-rest-recharge-keys.ts",
     "migrate:strip-creature-feature-attack": "tsx scripts/strip-creature-feature-attack.ts",
+    "migrate:spell-privilege-at-level": "tsx scripts/migrate-spell-privilege-at-level.ts",
     "commit:ai": "git commit -F COMMIT_MESSAGE.md && del COMMIT_MESSAGE.md"
   },
   "keywords": [],
@@ -60,7 +61,8 @@
       "js-yaml": ">=5.4.1",
       "fast-uri": ">=4.1.5",
       "qs@>=2.2.5 <6.16.0": ">=6.16.0",
-      "ip-address": ">=10.5.1"
+      "ip-address": ">=10.5.1",
+      "vite": "7.3.7"
     }
   }
 }

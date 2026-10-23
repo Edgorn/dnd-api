@@ -207,6 +207,39 @@ describe("CreateSystemSchema restRules", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts hitDiceSpending keys from kinds", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      restRules: {
+        ...restRules,
+        hitDiceSpending: { on: ["shortRest"], bonusFormula: "@attributes.con.modifier" },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects hitDiceSpending keys missing from kinds", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      restRules: {
+        ...restRules,
+        hitDiceSpending: { on: ["watch"] },
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid hitDiceSpending bonusFormula", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      restRules: {
+        ...restRules,
+        hitDiceSpending: { on: ["shortRest"], bonusFormula: "1d8 + @attributes.con.modifier" },
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects restRules on a setting", () => {
     const result = CreateSystemSchema.safeParse({
       name: "Forgotten Realms",

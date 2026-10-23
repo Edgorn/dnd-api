@@ -63,13 +63,18 @@ export function resolveActionRemaining(uses: TraitUses | undefined, spent: numbe
   return Math.max(0, uses - spent);
 }
 
-export function buildTraitGrantingClassLevels(
+export interface TraitGrantingClass {
+  classId: string;
+  level: number;
+}
+
+export function buildTraitGrantingClasses(
   classes: CharacterClassLevelEntry[],
   catalogs: ClassCatalogForTraits[],
   subclasses: SubclassCatalogForTraits[]
-): Map<string, number> {
+): Map<string, TraitGrantingClass> {
   const catalogById = new Map(catalogs.map(item => [item.id, item]));
-  const result = new Map<string, number>();
+  const result = new Map<string, TraitGrantingClass>();
 
   for (const entry of classes) {
     const classLevel = entry.level;
@@ -83,10 +88,24 @@ export function buildTraitGrantingClassLevels(
       classLevel
     );
     for (const traitId of granted) {
-      const previous = result.get(traitId) ?? 0;
-      if (classLevel > previous) result.set(traitId, classLevel);
+      const previous = result.get(traitId);
+      if (!previous || classLevel > previous.level) {
+        result.set(traitId, { classId: entry.class, level: classLevel });
+      }
     }
   }
 
   return result;
+}
+
+export function buildTraitGrantingClassLevels(
+  classes: CharacterClassLevelEntry[],
+  catalogs: ClassCatalogForTraits[],
+  subclasses: SubclassCatalogForTraits[]
+): Map<string, number> {
+  const levels = new Map<string, number>();
+  for (const [traitId, grant] of buildTraitGrantingClasses(classes, catalogs, subclasses)) {
+    levels.set(traitId, grant.level);
+  }
+  return levels;
 }

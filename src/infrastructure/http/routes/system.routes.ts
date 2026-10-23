@@ -33,6 +33,9 @@ const router = Router();
  *         (p. ej. un descanso largo cubre uno corto).
  *         `endStancesOn` indica qué descansos cierran las stances; también aplica
  *         por `includes`. Si se omite, ningún descanso vacía `activeTraitIds`.
+ *         `hitDiceSpending` indica en qué descansos el jugador puede gastar dados
+ *         de golpe (coincidencia exacta, sin `includes`). Si se omite, el descanso
+ *         rechaza `hitDiceSpends`.
  *       properties:
  *         kinds:
  *           type: array
@@ -62,6 +65,27 @@ const router = Router();
  *             Ejemplo 5e: corto recupera `uniform`; largo recupera ambos.
  *           items:
  *             $ref: '#/components/schemas/SystemSpellSlotRecovery'
+ *         hitDiceSpending:
+ *           $ref: '#/components/schemas/SystemHitDiceSpending'
+ *     SystemHitDiceSpending:
+ *       type: object
+ *       required:
+ *         - on
+ *       properties:
+ *         on:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             Claves de `kinds` en las que POST `/character/{id}/rest` admite
+ *             `hitDiceSpends`. Coincidencia exacta: un descanso largo que incluye
+ *             el corto no hereda este permiso.
+ *         bonusFormula:
+ *           $ref: '#/components/schemas/SystemCharacterFormulaSyntax'
+ *           description: |
+ *             Bono por dado al gastar dados de golpe. Se evalúa con los atributos
+ *             del personaje. Si se omite, el bono es 0. Ejemplo 5e:
+ *             `@attributes.con.modifier`.
  *     SystemHitPointRecovery:
  *       type: object
  *       required:
@@ -604,6 +628,10 @@ router.get('/systems', authMiddleware, validateQuery(ListSystemsQuerySchema), sy
  *           "hitPointRecovery": [
  *             { "restKey": "longRest", "hp": "full", "hitDice": "half" }
  *           ],
+ *           "hitDiceSpending": {
+ *             "on": ["shortRest"],
+ *             "bonusFormula": "@attributes.con.modifier"
+ *           },
  *           "spellSlotRecovery": [
  *             { "restKey": "shortRest", "pools": ["uniform"] },
  *             { "restKey": "longRest", "pools": ["standard", "uniform"] }

@@ -35,6 +35,9 @@ import {
   alwaysPreparedSpellIds,
   mergePreparedWithPrivileges,
   characterHasTrait,
+  privilegeRuleAtLevel,
+  activeSpellPrivilegeRuleIndexes,
+  alignPrivilegeSelections,
 } from "./characterSpellcasting";
 import { SpellPrivilegeRule } from "../domain/types/traits.types";
 import { AttributeApi, CharacterAttributeApi } from "../domain/types/attribute.types";
@@ -1024,6 +1027,7 @@ const masteryRules: SpellPrivilegeRule[] = [
     choose: 1,
     source: "known",
     filter: { level: 1 },
+    atLevel: 1,
     alwaysPrepared: false,
     countsTowardPreparedCap: true,
     freeCast: { slotLevel: "spellLevel", uses: "unlimited", recharge: null },
@@ -1033,6 +1037,7 @@ const masteryRules: SpellPrivilegeRule[] = [
     choose: 1,
     source: "known",
     filter: { level: 2 },
+    atLevel: 1,
     alwaysPrepared: false,
     countsTowardPreparedCap: true,
     freeCast: { slotLevel: "spellLevel", uses: "unlimited", recharge: null },
@@ -1045,11 +1050,41 @@ const signatureRules: SpellPrivilegeRule[] = [
     choose: 2,
     source: "known",
     filter: { level: 3 },
+    atLevel: 1,
     alwaysPrepared: true,
     countsTowardPreparedCap: false,
     freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "shortRest" },
     replace: null,
   },
+];
+
+const arcanumRules: SpellPrivilegeRule[] = [
+  {
+    choose: 1,
+    source: "classList",
+    filter: { level: 6 },
+    atLevel: 11,
+    alwaysPrepared: true,
+    countsTowardPreparedCap: false,
+    freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "longRest" },
+    replace: null,
+  },
+  {
+    choose: 1,
+    source: "classList",
+    filter: { level: 7 },
+    atLevel: 13,
+    alwaysPrepared: true,
+    countsTowardPreparedCap: false,
+    freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "longRest" },
+    replace: null,
+  },
+];
+
+const arcanumSpells = [
+  { id: "spell-6", level: 6, classIds: ["warlock"] },
+  { id: "spell-7", level: 7, classIds: ["warlock"] },
+  { id: "spell-6b", level: 6, classIds: ["warlock"] },
 ];
 
 const privilegeSpells = [
@@ -1134,27 +1169,110 @@ describe("validateSpellPrivilegePicks", () => {
       spells: privilegeSpells,
     }).error).toMatch(/no tiene ese rasgo/);
   });
+
+  it("accepts only the unlocked arcanum at class level 11", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: arcanumRules,
+      classLevel: 11,
+      selections: [["spell-6"]],
+      knownIds: [],
+      classId: "warlock",
+      spells: arcanumSpells,
+    });
+    expect(result).toEqual({});
+  });
+
+  it("rejects sending locked arcanum rules before they unlock", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: arcanumRules,
+      classLevel: 11,
+      selections: [["spell-6"], ["spell-7"]],
+      knownIds: [],
+      classId: "warlock",
+      spells: arcanumSpells,
+    });
+    expect(result.error).toMatch(/regla de privilegio activa/);
+  });
+
+  it("accepts appending the level 7 arcanum at class level 13", () => {
+    const result = validateSpellPrivilegePicks({
+      hasClass: true,
+      hasTrait: true,
+      rules: arcanumRules,
+      classLevel: 13,
+      existingSelections: [["spell-6"]],
+      selections: [["spell-6"], ["spell-7"]],
+      knownIds: [],
+      classId: "warlock",
+      spells: arcanumSpells,
+    });
+    expect(result).toEqual({});
+  });
+});
+
+describe("spell privilege atLevel", () => {
+  it("treats a missing atLevel as 1", () => {
+    expect(privilegeRuleAtLevel({})).toBe(1);
+    expect(privilegeRuleAtLevel({ atLevel: 13 })).toBe(13);
+  });
+
+  it("lists active rule indexes by class level", () => {
+    expect(activeSpellPrivilegeRuleIndexes(arcanumRules, 11)).toEqual([0]);
+    expect(activeSpellPrivilegeRuleIndexes(arcanumRules, 13)).toEqual([0, 1]);
+    expect(activeSpellPrivilegeRuleIndexes(masteryRules, 1)).toEqual([0, 1]);
+  });
+
+  it("aligns compact selections to the full rule array", () => {
+    expect(alignPrivilegeSelections(4, [0], [["spell-6"]])).toEqual([
+      ["spell-6"], [], [], []
+    ]);
+    expect(alignPrivilegeSelections(2, [0, 1], [["a"], ["b"]])).toEqual([["a"], ["b"]]);
+  });
 });
 
 describe("canReplaceSpellPrivileges", () => {
   it("allows the first bind", () => {
     expect(canReplaceSpellPrivileges({
-      hasExistingInstance: false,
       rules: signatureRules,
+      incomingSelections: [["spell-3a", "spell-3b"]],
     })).toEqual({});
   });
 
   it("allows replacing mastery spells", () => {
     expect(canReplaceSpellPrivileges({
-      hasExistingInstance: true,
       rules: masteryRules,
+      existingSelections: [["spell-1"], ["spell-2"]],
+      incomingSelections: [["spell-1b"], ["spell-2"]],
     })).toEqual({});
   });
 
   it("blocks replacing signature spells", () => {
     expect(canReplaceSpellPrivileges({
-      hasExistingInstance: true,
       rules: signatureRules,
+      existingSelections: [["spell-3a", "spell-3b"]],
+      incomingSelections: [["spell-3a", "spell-3c"]],
+    }).error).toMatch(/cambiar/);
+  });
+
+  it("allows growing arcanum selections when a new rule unlocks", () => {
+    expect(canReplaceSpellPrivileges({
+      rules: arcanumRules,
+      classLevel: 13,
+      existingSelections: [["spell-6"]],
+      incomingSelections: [["spell-6"], ["spell-7"]],
+    })).toEqual({});
+  });
+
+  it("blocks changing an arcanum already bound without replace", () => {
+    expect(canReplaceSpellPrivileges({
+      rules: arcanumRules,
+      classLevel: 13,
+      existingSelections: [["spell-6"]],
+      incomingSelections: [["spell-6b"], ["spell-7"]],
     }).error).toMatch(/cambiar/);
   });
 });
@@ -1172,6 +1290,16 @@ describe("privilege prepared helpers", () => {
   it("excludes always-prepared signature spells from the cap", () => {
     const excluded = privilegeSpellIdsExcludedFromCap(instances, rulesByTraitId, wizardId);
     expect([...excluded].sort()).toEqual(["spell-3a", "spell-3b"]);
+  });
+
+  it("ignores always-prepared picks from rules that are still locked", () => {
+    const locked = [
+      { traitId: "arcanum", classId: "warlock", selections: [["spell-6"], ["spell-7"]] },
+    ];
+    const rules = new Map<string, SpellPrivilegeRule[]>([["arcanum", arcanumRules]]);
+    const classLevels = new Map([["warlock", 11]]);
+    expect(alwaysPreparedSpellIds(locked, rules, "warlock", classLevels)).toEqual(["spell-6"]);
+    expect([...privilegeSpellIdsExcludedFromCap(locked, rules, "warlock", classLevels)]).toEqual(["spell-6"]);
   });
 
   it("lists always-prepared spell ids for a class", () => {

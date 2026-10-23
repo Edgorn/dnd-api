@@ -77,6 +77,9 @@ export interface ArmorApi {
   disadvantageSkillKeys?: string[];
 }
 
+export const PACT_WEAPON_ORIGINS = ["summoned", "bound"] as const;
+export type PactWeaponOrigin = typeof PACT_WEAPON_ORIGINS[number];
+
 export const EQUIPMENT_MATERIALS = [
   "metal",
   "wood",
@@ -162,6 +165,8 @@ export interface CharacterEquipmentMongo {
   armor?: ArmorMongo;
   isMagic?: boolean;
   isBond?: boolean;
+  pactOrigin?: PactWeaponOrigin;
+  pactStored?: boolean;
   isFavorite?: boolean;
   equipped?: boolean;
   bonuses?: {
@@ -217,6 +222,8 @@ export interface EquipmentApi {
   armor?: ArmorApi;
   isMagic?: boolean;
   isBond?: boolean;
+  pactOrigin?: PactWeaponOrigin;
+  pactStored?: boolean;
   bonuses?: {
     armor_class?: number;
     saving_throws?: number;
@@ -319,6 +326,15 @@ export interface EquipmentBasic {
 export interface WeaponBasic {
   category?: string;
   range?: string;
+}
+
+export interface WeaponList extends WeaponBasic {
+  damage: WeaponDamageApi[];
+  two_handed_damage: WeaponDamageApi[];
+}
+
+export interface EquipmentWeaponList extends Omit<EquipmentBasic, "weapon"> {
+  weapon?: WeaponList;
 }
 
 export interface ArmorBasic {

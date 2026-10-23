@@ -24,6 +24,15 @@ describe("UseTrait", () => {
     expect(personajeServiceMock.useTrait).toHaveBeenCalledWith(input);
   });
 
+  it("forwards equipmentId for a pact weapon form", async () => {
+    const useCase = new UseTrait(personajeServiceMock as never);
+    const withForm = { ...input, equipmentId: "507f1f77bcf86cd799439011" };
+    personajeServiceMock.useTrait.mockResolvedValue({ id: "char1" });
+
+    await useCase.execute(withForm);
+    expect(personajeServiceMock.useTrait).toHaveBeenCalledWith(withForm);
+  });
+
   it("propagates ValidationError when no uses remain", async () => {
     const useCase = new UseTrait(personajeServiceMock as never);
     personajeServiceMock.useTrait.mockRejectedValue(

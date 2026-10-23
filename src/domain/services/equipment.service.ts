@@ -9,7 +9,8 @@ import {
   EquipmentChoiceApi,
   EquipmentChoiceMongo,
   ResolvedEquipmentChoiceApi,
-  EquipmentBasic
+  EquipmentBasic,
+  EquipmentWeaponList
 } from "../types/equipment.types";
 
 export default class EquipmentService {
@@ -58,7 +59,7 @@ export default class EquipmentService {
     return this.equipmentRepository.getEquipmentsByTypes(types);
   }
 
-  getWeapons(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+  getWeapons(rulesets: string[] = []): Promise<EquipmentWeaponList[]> {
     return this.equipmentRepository.getWeapons(rulesets);
   }
 

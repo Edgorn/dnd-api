@@ -1,10 +1,10 @@
 import EquipmentService from "../../../domain/services/equipment.service";
-import { EquipmentBasic } from "../../../domain/types/equipment.types";
+import { EquipmentWeaponList } from "../../../domain/types/equipment.types";
 
 export default class GetEquipmentsWeapons {
   constructor(private readonly equipmentService: EquipmentService) { }
 
-  async execute(rulesets?: string[]): Promise<EquipmentBasic[]> {
+  async execute(rulesets?: string[]): Promise<EquipmentWeaponList[]> {
     return this.equipmentService.getWeapons(rulesets ?? []);
   }
 }

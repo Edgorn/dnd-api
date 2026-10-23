@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyHitPointRecovery,
+  applyRestHitDiceSpends,
   applySpendHitDice,
   classPoolsFromCharacter,
   halfHitDiceRecovered,
@@ -24,9 +25,9 @@ describe("normalizeHitDiceSpent", () => {
 
 describe("toHitDiceApi", () => {
   it("derives remaining from level minus spent", () => {
-    expect(toHitDiceApi(pools, [{ classId: "fighter", spent: 2 }])).toEqual([
-      { classId: "fighter", hitDie: 10, total: 5, spent: 2, remaining: 3 },
-      { classId: "wizard", hitDie: 6, total: 3, spent: 0, remaining: 3 },
+    expect(toHitDiceApi(pools, [{ classId: "fighter", spent: 2 }], 2)).toEqual([
+      { classId: "fighter", hitDie: 10, total: 5, spent: 2, remaining: 3, bonusPerDie: 2 },
+      { classId: "wizard", hitDie: 6, total: 3, spent: 0, remaining: 3, bonusPerDie: 2 },
     ]);
   });
 });
@@ -50,7 +51,7 @@ describe("applySpendHitDice", () => {
       spent: [],
       hpActual: 20,
       hpMax: 30,
-      abilityModifier: 2,
+      bonusPerDie: 2,
     });
     expect(result).toEqual({
       ok: true,
@@ -68,7 +69,7 @@ describe("applySpendHitDice", () => {
       spent: [{ classId: "fighter", spent: 2 }],
       hpActual: 10,
       hpMax: 30,
-      abilityModifier: 2,
+      bonusPerDie: 2,
     });
     expect(result).toEqual({ ok: false, message: "No quedan dados de golpe de esta clase" });
   });
@@ -83,7 +84,7 @@ describe("applySpendHitDice", () => {
       spent: [],
       hpActual: 1,
       hpMax: 40,
-      abilityModifier: 3,
+      bonusPerDie: 3,
     });
     expect(result).toEqual({
       ok: false,
@@ -100,7 +101,7 @@ describe("applySpendHitDice", () => {
       spent: [],
       hpActual: 5,
       hpMax: 40,
-      abilityModifier: 2,
+      bonusPerDie: 2,
     });
     expect(first.ok).toBe(true);
     if (!first.ok) return;
@@ -112,12 +113,67 @@ describe("applySpendHitDice", () => {
       spent: first.spent,
       hpActual: first.hpActual,
       hpMax: 40,
-      abilityModifier: 2,
+      bonusPerDie: 2,
     });
     expect(second).toEqual({
       ok: true,
       spent: [{ classId: "fighter", spent: 3 }],
       hpActual: 21,
+    });
+  });
+});
+
+describe("applyRestHitDiceSpends", () => {
+  it("leaves HP and spent when there are no spends", () => {
+    const spent = [{ classId: "fighter", spent: 1 }];
+    expect(applyRestHitDiceSpends({
+      allowed: false,
+      pools,
+      spent,
+      hpActual: 8,
+      hpMax: 40,
+      bonusPerDie: 2,
+    })).toEqual({ ok: true, spent, hpActual: 8 });
+  });
+
+  it("rejects spends when the rest does not allow them", () => {
+    expect(applyRestHitDiceSpends({
+      spends: [{ classId: "fighter", count: 1, hpGained: 8 }],
+      allowed: false,
+      pools,
+      spent: [],
+      hpActual: 8,
+      hpMax: 40,
+      bonusPerDie: 2,
+    })).toEqual({ ok: false, message: "Este descanso no admite gastar dados de golpe" });
+  });
+
+  it("spends dice before a later hit-point recovery can run", () => {
+    const spentResult = applyRestHitDiceSpends({
+      spends: [{ classId: "fighter", count: 2, hpGained: 14 }],
+      allowed: true,
+      pools,
+      spent: [],
+      hpActual: 4,
+      hpMax: 40,
+      bonusPerDie: 2,
+    });
+    expect(spentResult).toEqual({
+      ok: true,
+      spent: [{ classId: "fighter", spent: 2 }],
+      hpActual: 18,
+    });
+    if (!spentResult.ok) return;
+    expect(applyHitPointRecovery({
+      hp: "full",
+      hitDice: "half",
+      pools,
+      spent: spentResult.spent,
+      hpActual: spentResult.hpActual,
+      hpMax: 40,
+    })).toEqual({
+      hpActual: 40,
+      spent: [],
     });
   });
 });

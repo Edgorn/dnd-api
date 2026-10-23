@@ -219,7 +219,31 @@ export function assertRestRulesShape(rules: SystemRestRules): RestRulesIssue[] {
     });
   });
 
+  const spendKeys = new Set<string>();
+  (rules.hitDiceSpending?.on ?? []).forEach((key, index) => {
+    if (!seenKeys.has(key)) {
+      issues.push({
+        message: `hitDiceSpending.on apunta a una clave inexistente: ${key}`,
+        path: ["hitDiceSpending", "on", index],
+      });
+    }
+    if (spendKeys.has(key)) {
+      issues.push({
+        message: `hitDiceSpending.on contiene la clave duplicada ${key}`,
+        path: ["hitDiceSpending", "on", index],
+      });
+    }
+    spendKeys.add(key);
+  });
+
   return issues;
+}
+
+export function hitDiceSpendAllowed(
+  rules: SystemRestRules | undefined,
+  type: string
+): boolean {
+  return (rules?.hitDiceSpending?.on ?? []).includes(type);
 }
 
 export function resolveHitPointRecovery(

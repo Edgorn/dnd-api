@@ -50,6 +50,8 @@ const personajeSchema: Schema = new Schema<PersonajeMongo>({
       equipped: { type: Boolean, required: true, default: false },
       isMagic: { type: Boolean, required: true, default: false },
       isBond: { type: Boolean, required: true, default: false },
+      pactOrigin: { type: String, enum: ["summoned", "bound"], default: undefined },
+      pactStored: { type: Boolean, default: undefined },
       isFavorite: { type: Boolean, required: true, default: false },
       customization: { type: Schema.Types.Mixed, default: undefined }
     }],

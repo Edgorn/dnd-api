@@ -135,6 +135,15 @@ export function applySpellSlotRecovery(
   return spent.filter((item) => !recovered.has(item.pool));
 }
 
+export function applyRecoverClassSpellSlots(
+  spent: CharacterSpellSlotSpent[],
+  input: { classId: string; pool: SpellSlotPool }
+): CharacterSpellSlotSpent[] {
+  return spent.filter(
+    (item) => !(item.classId === input.classId && item.pool === input.pool)
+  );
+}
+
 function upsertSpent(
   spent: CharacterSpellSlotSpent[],
   classId: string,

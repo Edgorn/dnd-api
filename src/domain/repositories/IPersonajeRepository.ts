@@ -1,4 +1,4 @@
-import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, ConsultarPersonajeOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
+import { CharacterCampaignLink, TypeCrearPersonaje, PersonajeBasico, PersonajeApi, ConsultarPersonajeOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindPactEquipment, LevelUpData, TypeLevelUp, TypeLearnSpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse } from "../types/personajes.types";
 
 export default interface IPersonajeRepository {
   consultarPorUsuario(id: string): Promise<PersonajeBasico[]>
@@ -23,6 +23,7 @@ export default interface IPersonajeRepository {
   deactivateTrait(data: TypeUseTrait): Promise<PersonajeApi>
   restCharacter(data: TypeRestCharacter): Promise<PersonajeApi>
   spendHitDice(data: TypeSpendHitDice): Promise<PersonajeApi>
+  applyHp(data: TypeApplyCharacterHp): Promise<PersonajeApi>
   spendSpellSlot(data: TypeSpendSpellSlot): Promise<PersonajeApi>
   applyCharacterCondition(data: TypeApplyCharacterCondition): Promise<PersonajeApi>
   updateCharacterCondition(data: TypeUpdateCharacterCondition): Promise<PersonajeApi>

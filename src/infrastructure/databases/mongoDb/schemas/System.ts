@@ -53,6 +53,14 @@ const system: Schema = new Schema<System>({
         pools: [{ type: String, enum: ["standard", "uniform"] }],
         _id: false,
       }],
+      hitDiceSpending: {
+        type: {
+          on: [String],
+          bonusFormula: String,
+        },
+        _id: false,
+        default: undefined,
+      },
     },
     default: undefined,
   },

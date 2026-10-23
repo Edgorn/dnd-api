@@ -24,6 +24,7 @@ import UseTrait from "../../../application/use-cases/personaje/useTrait.use-case
 import DeactivateTrait from "../../../application/use-cases/personaje/deactivateTrait.use-case";
 import RestCharacter from "../../../application/use-cases/personaje/restCharacter.use-case";
 import SpendHitDice from "../../../application/use-cases/personaje/spendHitDice.use-case";
+import ApplyCharacterHp from "../../../application/use-cases/personaje/applyCharacterHp.use-case";
 import SpendSpellSlot from "../../../application/use-cases/personaje/spendSpellSlot.use-case";
 import ApplyCharacterCondition from "../../../application/use-cases/personaje/applyCharacterCondition.use-case";
 import UpdateCharacterCondition from "../../../application/use-cases/personaje/updateCharacterCondition.use-case";
@@ -56,6 +57,7 @@ export class PersonajeController {
     private readonly deactivateTraitUseCase: DeactivateTrait,
     private readonly restCharacterUseCase: RestCharacter,
     private readonly spendHitDiceUseCase: SpendHitDice,
+    private readonly applyCharacterHpUseCase: ApplyCharacterHp,
     private readonly spendSpellSlotUseCase: SpendSpellSlot,
     private readonly applyCharacterConditionUseCase: ApplyCharacterCondition,
     private readonly updateCharacterConditionUseCase: UpdateCharacterCondition,
@@ -444,7 +446,8 @@ export class PersonajeController {
       const data = await this.useTraitUseCase.execute({
         id,
         traitId,
-        userId: req.user!
+        userId: req.user!,
+        equipmentId: req.body?.equipmentId
       });
       res.status(200).json(data);
     } catch (e) {
@@ -484,7 +487,8 @@ export class PersonajeController {
         id,
         type: req.body.type,
         userId: req.user!,
-        traitChoices: req.body.traitChoices
+        traitChoices: req.body.traitChoices,
+        hitDiceSpends: req.body.hitDiceSpends
       });
       res.status(200).json(data);
     } catch (e) {
@@ -509,6 +513,44 @@ export class PersonajeController {
       res.status(200).json(data);
     } catch (e) {
       console.error("[PersonajeController.spendHitDice] Error:", e);
+      next(e);
+    }
+  };
+
+  applyHpDamage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      const data = await this.applyCharacterHpUseCase.execute({
+        id,
+        amount: req.body.amount,
+        kind: "damage",
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.applyHpDamage] Error:", e);
+      next(e);
+    }
+  };
+
+  applyHpHeal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      const data = await this.applyCharacterHpUseCase.execute({
+        id,
+        amount: req.body.amount,
+        kind: "heal",
+        userId: req.user!
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[PersonajeController.applyHpHeal] Error:", e);
       next(e);
     }
   };

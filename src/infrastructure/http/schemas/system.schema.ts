@@ -218,6 +218,10 @@ export const systemRulesFields = {
           pools: z.array(z.enum(SPELL_SLOT_POOLS, { error: "Cada pool debe ser standard o uniform" })),
         }).strict()
       ).optional(),
+      hitDiceSpending: z.object({
+        on: z.array(z.string().min(1, "Cada clave de hitDiceSpending.on no puede estar vacía")),
+        bonusFormula: systemFormulaSchema("bonusFormula"),
+      }).strict().optional(),
     })
     .strict()
     .superRefine((data, ctx) => {

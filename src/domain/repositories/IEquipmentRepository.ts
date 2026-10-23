@@ -8,7 +8,8 @@ import {
   EquipmentChoiceApi,
   EquipmentChoiceMongo,
   ResolvedEquipmentChoiceApi,
-  EquipmentBasic
+  EquipmentBasic,
+  EquipmentWeaponList
 } from "../types/equipment.types";
 
 export default interface IEquipmentRepository {
@@ -24,6 +25,6 @@ export default interface IEquipmentRepository {
   formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined>;
   formatEquipmentItemChoices(choices: EquipmentChoiceMongo[] | undefined, ruleset?: string): Promise<ResolvedEquipmentChoiceApi[] | undefined>;
   getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]>;
-  getWeapons(rulesets: string[]): Promise<EquipmentBasic[]>;
+  getWeapons(rulesets: string[]): Promise<EquipmentWeaponList[]>;
   getArmor(rulesets: string[]): Promise<EquipmentBasic[]>;
 }

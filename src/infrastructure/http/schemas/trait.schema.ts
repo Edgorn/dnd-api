@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
 import { EquipmentMaterialSchema } from "./equipment.schema";
 import { CreatureFormPoolFilterSchema, CreatureFormPoolIdsSchema } from "./spell.schema";
+import { SPELL_SLOT_POOLS } from "../../../domain/types/system.types";
 import {
   EQUIPMENT_RESTRICTION_ENFORCEMENTS,
   EQUIPMENT_RESTRICTION_SCOPES,
@@ -12,8 +13,11 @@ import {
   TRAIT_DAMAGE_CHOICE_SOURCES,
   TRAIT_DURATION_UNITS,
   TRAIT_SKILL_PROFICIENCY_VALUES,
+  TRAIT_SPELL_SLOT_RECOVER_SCOPES,
   TRAIT_STACK_POLICIES,
-  TRAIT_WEAPON_DAMAGE_BONUS_WHENS
+  TRAIT_WEAPON_DAMAGE_BONUS_WHENS,
+  TraitAction,
+  TraitPactWeapon
 } from "../../../domain/types/traits.types";
 
 const restKeySchema = z.string().min(1, "La clave de recarga no puede estar vacía");
@@ -29,6 +33,7 @@ export const SpellPrivilegeRuleSchema = z.object({
   filter: z.object({
     level: SpellPrivilegeLevelFilterSchema
   }),
+  atLevel: z.number().int().min(1, "El nivel de la concesión debe ser al menos 1").default(1),
   alwaysPrepared: z.boolean(),
   countsTowardPreparedCap: z.boolean(),
   freeCast: z.object({
@@ -380,6 +385,11 @@ export const TraitDurationSchema = z.object({
   unit: z.enum(TRAIT_DURATION_UNITS)
 }).strict();
 
+export const TraitRecoverSpellSlotsSchema = z.object({
+  pool: z.enum(SPELL_SLOT_POOLS, { error: "pool debe ser standard o uniform" }),
+  scope: z.enum(TRAIT_SPELL_SLOT_RECOVER_SCOPES, { error: "scope debe ser grantingClass" })
+}).strict();
+
 export const TraitActionSchema = z.object({
   activation: z.enum(TRAIT_ACTIVATIONS),
   kind: z.enum(TRAIT_ACTION_KINDS).optional().default("instant"),
@@ -388,7 +398,8 @@ export const TraitActionSchema = z.object({
   saveDcFormula: saveDcFormulaSchema.optional(),
   uses: traitUsesSchema.optional(),
   usesByClassLevel: usesByClassLevelSchema.optional(),
-  recharge: restKeySchema.nullable().optional()
+  recharge: restKeySchema.nullable().optional(),
+  recoverSpellSlots: TraitRecoverSpellSlotsSchema.optional()
 }).strict().superRefine((action, ctx) => {
   if (action.uses === "unlimited" && action.recharge != null) {
     ctx.addIssue({
@@ -397,7 +408,20 @@ export const TraitActionSchema = z.object({
       path: ["recharge"]
     });
   }
+  if (action.recoverSpellSlots && action.kind === "stance") {
+    ctx.addIssue({
+      code: "custom",
+      message: "recoverSpellSlots solo aplica a acciones instantáneas",
+      path: ["recoverSpellSlots"]
+    });
+  }
 });
+
+export const TraitPactWeaponSchema = z.object({
+  melee: z.boolean(),
+  grantsProficiency: z.boolean(),
+  magical: z.boolean()
+}).strict();
 
 export const TraitWeaponDamageBonusSchema = z.object({
   when: z.enum(TRAIT_WEAPON_DAMAGE_BONUS_WHENS),
@@ -517,6 +541,31 @@ export const TraitSkillProficiencySchema = z.object({
 
 export const TraitSkillProficienciesSchema = z.array(TraitSkillProficiencySchema).min(1, "Debe indicar al menos una regla de competencia");
 
+function requirePactWeaponAction(
+  data: {
+    pactWeapon?: TraitPactWeapon | null;
+    action?: TraitAction | null;
+  },
+  ctx: z.RefinementCtx
+): void {
+  if (!data.pactWeapon) return;
+  if (!data.action) {
+    ctx.addIssue({
+      code: "custom",
+      message: "pactWeapon exige una acción",
+      path: ["action"]
+    });
+    return;
+  }
+  if ((data.action.kind ?? "instant") === "stance") {
+    ctx.addIssue({
+      code: "custom",
+      message: "pactWeapon no admite acciones de tipo stance",
+      path: ["action", "kind"]
+    });
+  }
+}
+
 function uniqueTraitChoiceKeys(
   data: {
     damageChoices?: Array<{ key: string }> | null;
@@ -625,6 +674,7 @@ export const CreateTraitSchema = z.object({
   hitPoints: TraitHitPointsSchema.nullish(),
   action: TraitActionSchema.nullish(),
   weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
+  pactWeapon: TraitPactWeaponSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
   grantedSpells: TraitGrantedSpellsSchema.nullish(),
   creatureFormExtensions: TraitCreatureFormExtensionsSchema.nullish(),
@@ -632,7 +682,7 @@ export const CreateTraitSchema = z.object({
   skillProficiencies: TraitSkillProficienciesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
   conditionalResistanceGroup: conditionalResistanceGroupSchema
-}).superRefine(uniqueTraitChoiceKeys);
+}).superRefine(uniqueTraitChoiceKeys).superRefine(requirePactWeaponAction);
 
 export const UpdateTraitSchema = z.object({
   ruleset: z.string().min(1, "El sistema no puede estar vacío").optional(),
@@ -659,6 +709,7 @@ export const UpdateTraitSchema = z.object({
   hitPoints: TraitHitPointsSchema.nullish(),
   action: TraitActionSchema.nullish(),
   weaponDamageBonus: TraitWeaponDamageBonusSchema.nullish(),
+  pactWeapon: TraitPactWeaponSchema.nullish(),
   innateSpells: TraitInnateSpellsSchema.nullish(),
   grantedSpells: TraitGrantedSpellsSchema.nullish(),
   creatureFormExtensions: TraitCreatureFormExtensionsSchema.nullish(),
@@ -666,6 +717,6 @@ export const UpdateTraitSchema = z.object({
   skillProficiencies: TraitSkillProficienciesSchema.nullish(),
   stackGroup: TraitStackGroupSchema.nullish(),
   conditionalResistanceGroup: conditionalResistanceGroupSchema
-}).superRefine(uniqueTraitChoiceKeys).refine(data => Object.keys(data).length > 0, {
+}).superRefine(uniqueTraitChoiceKeys).superRefine(requirePactWeaponAction).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });

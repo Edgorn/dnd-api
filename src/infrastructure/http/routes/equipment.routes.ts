@@ -159,6 +159,60 @@ const router = Router();
  *           example: "Melee"
  *         range_throw:
  *           $ref: '#/components/schemas/WeaponRangeThrow'
+ *     WeaponList:
+ *       type: object
+ *       required:
+ *         - damage
+ *         - two_handed_damage
+ *       properties:
+ *         category:
+ *           type: string
+ *           description: Categoría del arma (ej. Simple Melee, Martial Melee).
+ *           example: "Simple Melee"
+ *         range:
+ *           type: string
+ *           description: Alcance del arma.
+ *           example: "Melee"
+ *         damage:
+ *           type: array
+ *           description: Daño de golpe a una mano.
+ *           items:
+ *             $ref: '#/components/schemas/WeaponDamageApi'
+ *         two_handed_damage:
+ *           type: array
+ *           description: Daño de golpe a dos manos.
+ *           items:
+ *             $ref: '#/components/schemas/WeaponDamageApi'
+ *     EquipmentWeaponList:
+ *       type: object
+ *       required:
+ *         - id
+ *         - name
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: ID de MongoDB del equipamiento.
+ *         name:
+ *           type: string
+ *           description: Nombre del arma.
+ *         category:
+ *           type: string
+ *           description: Categoría del equipamiento.
+ *         subcategory:
+ *           type: string
+ *           description: Subcategoría del equipamiento.
+ *         equipSlot:
+ *           $ref: '#/components/schemas/EquipSlot'
+ *         weapon:
+ *           $ref: '#/components/schemas/WeaponList'
+ *         armor:
+ *           type: object
+ *           description: Recorte de armadura si el objeto también la define.
+ *           properties:
+ *             typeId:
+ *               type: string
+ *             typeName:
+ *               type: string
  *     WeaponInput:
  *       type: object
  *       properties:
@@ -326,6 +380,13 @@ const router = Router();
  *         isBond:
  *           type: boolean
  *           description: Indica si el objeto está vinculado por pacto.
+ *         pactOrigin:
+ *           type: string
+ *           enum: [summoned, bound]
+ *           description: Origen del arma de pacto. summoned es invocada; bound es un arma mágica ritual.
+ *         pactStored:
+ *           type: boolean
+ *           description: True si el arma de pacto está en el espacio extradimensional.
  *         bonuses:
  *           type: object
  *           description: Bonificaciones adicionales del equipamiento.
@@ -567,24 +628,13 @@ router.get("/equipment", authMiddleware, equipmentController.getBySystems);
  *         description: ID o nombre del sistema para filtrar equipamientos (incluye ancestros).
  *     responses:
  *       200:
- *         description: Lista de armas devuelta con éxito.
+ *         description: Lista de armas devuelta con éxito (recorte con daño de golpe).
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   name:
- *                     type: string
- *                   category:
- *                     type: string
- *                   subcategory:
- *                     type: string
- *                   weapon:
- *                     $ref: '#/components/schemas/Weapon'
+ *                 $ref: '#/components/schemas/EquipmentWeaponList'
  *       401:
  *         description: No autorizado.
  *       500:

@@ -10,7 +10,7 @@ import { SkillApi, SkillPersonajeApi } from "./skill.types"
 import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceApi, Damage, Speed } from "."
-import { CharacterEquipmentApi, CharacterEquipmentMongo } from "./equipment.types"
+import { CharacterEquipmentApi, CharacterEquipmentMongo, PactWeaponOrigin } from "./equipment.types"
 import { FeatApi, FeatRequirements } from "./feat.types"
 import { SpellApi } from "./spell.types"
 import { ConditionApi } from "./condition.types"
@@ -37,6 +37,8 @@ export type PersonajeEquipmentCustomization = Omit<
   | "isFavorite"
   | "isBond"
   | "isMagic"
+  | "pactOrigin"
+  | "pactStored"
   | "content"
 >;
 
@@ -48,6 +50,8 @@ export interface PersonajeEquipmentMongo {
   isMagic: boolean;
   isBond: boolean;
   isFavorite: boolean;
+  pactOrigin?: PactWeaponOrigin;
+  pactStored?: boolean;
   customization?: PersonajeEquipmentCustomization;
 }
 
@@ -69,6 +73,7 @@ export interface CharacterHitDiceApi {
   total: number;
   spent: number;
   remaining: number;
+  bonusPerDie: number;
 }
 
 export interface TypeSpendHitDice {
@@ -76,6 +81,15 @@ export interface TypeSpendHitDice {
   classId: string;
   count: number;
   hpGained: number;
+  userId: string;
+}
+
+export type CharacterHpChangeKind = "damage" | "heal";
+
+export interface TypeApplyCharacterHp {
+  id: string;
+  amount: number;
+  kind: CharacterHpChangeKind;
   userId: string;
 }
 
@@ -245,6 +259,13 @@ export interface TypeUseTrait {
   id: string;
   traitId: string;
   userId: string;
+  equipmentId?: string;
+}
+
+export interface TypeHitDiceSpend {
+  classId: string;
+  count: number;
+  hpGained: number;
 }
 
 export interface TypeRestCharacter {
@@ -252,6 +273,7 @@ export interface TypeRestCharacter {
   type: CharacterRestType;
   userId: string;
   traitChoices?: TraitChoices;
+  hitDiceSpends?: TypeHitDiceSpend[];
 }
 
 export interface CharacterSpellPrivilegeMongo {

@@ -650,14 +650,59 @@ export function findSpellPrivilegeInstance(
   return instances.find(item => item.classId === classId && keys.has(item.traitId));
 }
 
+export function privilegeRuleAtLevel(rule: { atLevel?: number } | undefined): number {
+  return Number.isInteger(rule?.atLevel) && (rule?.atLevel ?? 0) >= 1 ? rule!.atLevel! : 1;
+}
+
+export function activeSpellPrivilegeRuleIndexes(
+  rules: Array<{ atLevel?: number }>,
+  classLevel: number
+): number[] {
+  return rules.flatMap((rule, index) => privilegeRuleAtLevel(rule) <= classLevel ? [index] : []);
+}
+
+export function alignPrivilegeSelections(
+  rulesLength: number,
+  activeIndexes: number[],
+  compactSelections: string[][]
+): string[][] {
+  const aligned: string[][] = Array.from({ length: rulesLength }, () => []);
+  activeIndexes.forEach((ruleIndex, compactIndex) => {
+    aligned[ruleIndex] = [...(compactSelections[compactIndex] ?? [])];
+  });
+  return aligned;
+}
+
+function privilegeGroupUnchanged(existing: string[] | undefined, incoming: string[]): boolean {
+  if (!existing?.length) return true;
+  return existing.length === incoming.length && existing.every((id, index) => id === incoming[index]);
+}
+
 export function canReplaceSpellPrivileges(params: {
-  hasExistingInstance: boolean;
   rules: SpellPrivilegeRule[];
+  classLevel?: number;
+  existingSelections?: string[][];
+  incomingSelections: string[][];
 }): { error?: string } {
-  const { hasExistingInstance, rules } = params;
-  if (!hasExistingInstance) return {};
-  if (rules.length > 0 && rules.every(rule => rule.replace)) return {};
-  return { error: "No se pueden cambiar los conjuros vinculados a este rasgo" };
+  const { rules, existingSelections, incomingSelections } = params;
+  const classLevel = params.classLevel ?? Number.POSITIVE_INFINITY;
+  const activeIndexes = activeSpellPrivilegeRuleIndexes(rules, classLevel);
+  if (incomingSelections.length !== activeIndexes.length) {
+    return { error: "Debe enviar una selección por cada regla de privilegio activa" };
+  }
+
+  for (let compactIndex = 0; compactIndex < activeIndexes.length; compactIndex++) {
+    const ruleIndex = activeIndexes[compactIndex];
+    const rule = rules[ruleIndex];
+    const incoming = incomingSelections[compactIndex] ?? [];
+    const existing = existingSelections?.[ruleIndex];
+    if (privilegeGroupUnchanged(existing, incoming)) continue;
+    if (!rule.replace) {
+      return { error: "No se pueden cambiar los conjuros vinculados a este rasgo" };
+    }
+  }
+
+  return {};
 }
 
 export interface SpellPrivilegePickInput {
@@ -675,8 +720,21 @@ export function validateSpellPrivilegePicks(params: {
   classId: string;
   spells: SpellPrivilegePickInput[];
   extraClassSpellIds?: Iterable<string>;
+  classLevel?: number;
+  existingSelections?: string[][];
 }): { error?: string } {
-  const { hasClass, hasTrait, rules, selections, knownIds, classId, spells, extraClassSpellIds } = params;
+  const {
+    hasClass,
+    hasTrait,
+    rules,
+    selections,
+    knownIds,
+    classId,
+    spells,
+    extraClassSpellIds,
+    existingSelections
+  } = params;
+  const classLevel = params.classLevel ?? Number.POSITIVE_INFINITY;
 
   if (!hasClass) {
     return { error: "El personaje no tiene esa clase" };
@@ -687,19 +745,33 @@ export function validateSpellPrivilegePicks(params: {
   if (!rules.length) {
     return { error: "Este rasgo no otorga privilegios de conjuro" };
   }
-  if (selections.length !== rules.length) {
-    return { error: "Debe enviar una selección por cada regla de privilegio del rasgo" };
+
+  const activeIndexes = activeSpellPrivilegeRuleIndexes(rules, classLevel);
+  if (!activeIndexes.length) {
+    return { error: "Ninguna regla de privilegio está desbloqueada a este nivel" };
   }
+  if (selections.length !== activeIndexes.length) {
+    return { error: "Debe enviar una selección por cada regla de privilegio activa" };
+  }
+
+  const replaceCheck = canReplaceSpellPrivileges({
+    rules,
+    classLevel,
+    existingSelections,
+    incomingSelections: selections
+  });
+  if (replaceCheck.error) return replaceCheck;
 
   const known = new Set(knownIds);
   const byId = new Map(spells.map(spell => [spell.id, spell]));
   const across = new Set<string>();
 
-  for (let i = 0; i < rules.length; i++) {
-    const rule = rules[i];
-    const group = selections[i] ?? [];
+  for (let compactIndex = 0; compactIndex < activeIndexes.length; compactIndex++) {
+    const ruleIndex = activeIndexes[compactIndex];
+    const rule = rules[ruleIndex];
+    const group = selections[compactIndex] ?? [];
     if (group.length !== rule.choose) {
-      return { error: `La regla ${i + 1} requiere ${rule.choose} conjuro(s)` };
+      return { error: `La regla ${ruleIndex + 1} requiere ${rule.choose} conjuro(s)` };
     }
 
     const inGroup = new Set<string>();
@@ -715,7 +787,7 @@ export function validateSpellPrivilegePicks(params: {
         return { error: "El conjuro no existe o no está disponible" };
       }
       if (!spellLevelMatchesFilter(spell.level, rule.filter.level)) {
-        return { error: `El conjuro no coincide con el nivel de la regla ${i + 1}` };
+        return { error: `El conjuro no coincide con el nivel de la regla ${ruleIndex + 1}` };
       }
       if (!spellOnExpandedClassList(spell, classId, extraClassSpellIds)) {
         return { error: "El conjuro no pertenece a la lista de esta clase" };
@@ -729,10 +801,22 @@ export function validateSpellPrivilegePicks(params: {
   return {};
 }
 
+function privilegeClassLevel(
+  classLevelByClassId: Map<string, number> | undefined,
+  classId: string,
+  fallback?: number
+): number {
+  const fromMap = classLevelByClassId?.get(classId);
+  if (typeof fromMap === "number") return fromMap;
+  if (typeof fallback === "number") return fallback;
+  return Number.POSITIVE_INFINITY;
+}
+
 export function privilegeSpellIdsExcludedFromCap(
   instances: CharacterSpellPrivilegeMongo[] | undefined,
   rulesByTraitId: Map<string, SpellPrivilegeRule[]>,
-  classId?: string
+  classId?: string,
+  classLevelByClassId?: Map<string, number>
 ): Set<string> {
   const excluded = new Set<string>();
   if (!instances?.length) return excluded;
@@ -740,8 +824,10 @@ export function privilegeSpellIdsExcludedFromCap(
   for (const instance of instances) {
     if (classId && instance.classId !== classId) continue;
     const rules = rulesByTraitId.get(instance.traitId) ?? [];
+    const classLevel = privilegeClassLevel(classLevelByClassId, instance.classId);
+    const active = new Set(activeSpellPrivilegeRuleIndexes(rules, classLevel));
     for (let i = 0; i < rules.length; i++) {
-      if (rules[i].countsTowardPreparedCap) continue;
+      if (!active.has(i) || rules[i].countsTowardPreparedCap) continue;
       for (const id of instance.selections[i] ?? []) {
         if (id) excluded.add(id);
       }
@@ -754,7 +840,8 @@ export function privilegeSpellIdsExcludedFromCap(
 export function alwaysPreparedSpellIds(
   instances: CharacterSpellPrivilegeMongo[] | undefined,
   rulesByTraitId: Map<string, SpellPrivilegeRule[]>,
-  classId: string
+  classId: string,
+  classLevelByClassId?: Map<string, number>
 ): string[] {
   const ids: string[] = [];
   const seen = new Set<string>();
@@ -763,8 +850,10 @@ export function alwaysPreparedSpellIds(
   for (const instance of instances) {
     if (instance.classId !== classId) continue;
     const rules = rulesByTraitId.get(instance.traitId) ?? [];
+    const classLevel = privilegeClassLevel(classLevelByClassId, instance.classId);
+    const active = new Set(activeSpellPrivilegeRuleIndexes(rules, classLevel));
     for (let i = 0; i < rules.length; i++) {
-      if (!rules[i].alwaysPrepared) continue;
+      if (!active.has(i) || !rules[i].alwaysPrepared) continue;
       for (const id of instance.selections[i] ?? []) {
         if (!id || seen.has(id)) continue;
         seen.add(id);

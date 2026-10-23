@@ -30,6 +30,57 @@ describe("CreateTraitSchema spellPrivileges", () => {
       spellPrivileges: masteryPrivileges,
     });
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.spellPrivileges?.map(rule => rule.atLevel)).toEqual([1, 1]);
+    }
+  });
+
+  it("accepts staggered atLevel privilege rules", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Arcanum Místico",
+      spellPrivileges: [{
+        choose: 1,
+        source: "classList",
+        filter: { level: 6 },
+        atLevel: 11,
+        alwaysPrepared: true,
+        countsTowardPreparedCap: false,
+        freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "longRest" },
+        replace: null,
+      }, {
+        choose: 1,
+        source: "classList",
+        filter: { level: 7 },
+        atLevel: 13,
+        alwaysPrepared: true,
+        countsTowardPreparedCap: false,
+        freeCast: { slotLevel: "spellLevel", uses: 1, recharge: "longRest" },
+        replace: null,
+      }],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.spellPrivileges?.map(rule => rule.atLevel)).toEqual([11, 13]);
+    }
+  });
+
+  it("rejects atLevel below 1", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      spellPrivileges: [{
+        choose: 1,
+        source: "classList",
+        filter: { level: 6 },
+        atLevel: 0,
+        alwaysPrepared: true,
+        countsTowardPreparedCap: false,
+        freeCast: null,
+        replace: null,
+      }],
+    });
+    expect(result.success).toBe(false);
   });
 
   it("accepts signature-style privilege rules", () => {
@@ -956,6 +1007,42 @@ describe("CreateTraitSchema area, save and action", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts recoverSpellSlots on an instant action", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Maestro Sobrenatural",
+      action: {
+        activation: "action",
+        uses: 1,
+        recharge: "longRest",
+        recoverSpellSlots: { pool: "uniform", scope: "grantingClass" }
+      }
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.action?.kind).toBe("instant");
+      expect(result.data.action?.recoverSpellSlots).toEqual({
+        pool: "uniform",
+        scope: "grantingClass"
+      });
+    }
+  });
+
+  it("rejects recoverSpellSlots on a stance", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Maestro Sobrenatural",
+      action: {
+        activation: "bonusAction",
+        kind: "stance",
+        uses: 1,
+        recharge: "longRest",
+        recoverSpellSlots: { pool: "uniform", scope: "grantingClass" }
+      }
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects unlimited uses with a recharge on the action", () => {
     const result = CreateTraitSchema.safeParse({
       ruleset: "sys1",
@@ -967,6 +1054,34 @@ describe("CreateTraitSchema area, save and action", () => {
       }
     });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts pactWeapon with an instant action", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto del Filo",
+      action: { activation: "action", uses: "unlimited", recharge: null },
+      pactWeapon: { melee: true, grantsProficiency: true, magical: true }
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects pactWeapon without action or with a stance", () => {
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto del Filo",
+      pactWeapon: { melee: true, grantsProficiency: true, magical: true }
+    }).success).toBe(false);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto del Filo",
+      action: { activation: "bonusAction", kind: "stance", uses: 1, recharge: "longRest" },
+      pactWeapon: { melee: true, grantsProficiency: true, magical: true }
+    }).success).toBe(false);
+  });
+
+  it("accepts null to clear pactWeapon", () => {
+    expect(UpdateTraitSchema.safeParse({ pactWeapon: null }).success).toBe(true);
   });
 
   it("accepts weaponDamageBonus with amountByClassLevel", () => {

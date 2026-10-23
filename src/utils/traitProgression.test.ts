@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildTraitGrantingClassLevels,
+  buildTraitGrantingClasses,
   lookupByClassLevel,
   resolveActionRemaining,
   resolveActionUses,
@@ -95,5 +96,39 @@ describe("buildTraitGrantingClassLevels", () => {
     expect(map.get("bear-totem")).toBe(5);
     expect(map.get("fighting-style")).toBe(3);
     expect(map.has("unknown")).toBe(false);
+  });
+});
+
+describe("buildTraitGrantingClasses", () => {
+  it("maps each granted trait to classId and level", () => {
+    const map = buildTraitGrantingClasses(
+      [
+        { class: "barbarian", level: 5 },
+        { class: "fighter", level: 3 }
+      ],
+      [
+        {
+          id: "barbarian",
+          levels: [
+            { level: 1, traits: ["rage"] },
+            { level: 2, traits: ["reckless"] }
+          ]
+        },
+        {
+          id: "fighter",
+          levels: [{ level: 1, traits: ["fighting-style"] }]
+        }
+      ],
+      [
+        {
+          classId: "barbarian",
+          levels: [{ level: 3, traits: [{ id: "bear-totem" }] }]
+        }
+      ]
+    );
+
+    expect(map.get("rage")).toEqual({ classId: "barbarian", level: 5 });
+    expect(map.get("bear-totem")).toEqual({ classId: "barbarian", level: 5 });
+    expect(map.get("fighting-style")).toEqual({ classId: "fighter", level: 3 });
   });
 });

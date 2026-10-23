@@ -2,9 +2,8 @@ import { HitPointHitDiceMode, HitPointHpMode } from "../domain/types/system.type
 import {
   CharacterHitDiceApi,
   CharacterHitDiceSpent,
+  TypeHitDiceSpend,
 } from "../domain/types/personajes.types";
-
-export const HIT_DICE_ABILITY_KEY = "con";
 
 export interface HitDiceClassPool {
   classId: string;
@@ -53,7 +52,8 @@ export function classPoolsFromCharacter(
 
 export function toHitDiceApi(
   pools: HitDiceClassPool[],
-  spent: CharacterHitDiceSpent[]
+  spent: CharacterHitDiceSpent[],
+  bonusPerDie = 0
 ): CharacterHitDiceApi[] {
   const spentByClass = new Map(spent.map((item) => [item.classId, item.spent]));
   return pools.map((pool) => {
@@ -64,12 +64,13 @@ export function toHitDiceApi(
       total: pool.level,
       spent: used,
       remaining: pool.level - used,
+      bonusPerDie,
     };
   });
 }
 
-export function maxHpFromHitDice(count: number, hitDie: number, abilityModifier: number): number {
-  return Math.max(0, count * (hitDie + abilityModifier));
+export function maxHpFromHitDice(count: number, hitDie: number, bonusPerDie: number): number {
+  return Math.max(0, count * (hitDie + bonusPerDie));
 }
 
 export function applySpendHitDice(input: {
@@ -80,7 +81,7 @@ export function applySpendHitDice(input: {
   spent: CharacterHitDiceSpent[];
   hpActual: number;
   hpMax: number;
-  abilityModifier: number;
+  bonusPerDie: number;
 }): { ok: true; spent: CharacterHitDiceSpent[]; hpActual: number } | { ok: false; message: string } {
   if (!Number.isInteger(input.count) || input.count < 1) {
     return { ok: false, message: "Debe gastar al menos 1 dado de golpe" };
@@ -100,7 +101,7 @@ export function applySpendHitDice(input: {
     return { ok: false, message: "No quedan dados de golpe de esta clase" };
   }
 
-  const maxHp = maxHpFromHitDice(input.count, pool.hitDie, input.abilityModifier);
+  const maxHp = maxHpFromHitDice(input.count, pool.hitDie, input.bonusPerDie);
   if (input.hpGained > maxHp) {
     return {
       ok: false,
@@ -111,6 +112,43 @@ export function applySpendHitDice(input: {
   const nextSpent = upsertSpent(input.spent, input.classId, currentSpent + input.count);
   const hpActual = Math.min(input.hpMax, input.hpActual + input.hpGained);
   return { ok: true, spent: nextSpent, hpActual };
+}
+
+export function applyRestHitDiceSpends(input: {
+  spends?: TypeHitDiceSpend[];
+  allowed: boolean;
+  pools: HitDiceClassPool[];
+  spent: CharacterHitDiceSpent[];
+  hpActual: number;
+  hpMax: number;
+  bonusPerDie: number;
+}): { ok: true; spent: CharacterHitDiceSpent[]; hpActual: number } | { ok: false; message: string } {
+  const spends = input.spends ?? [];
+  if (spends.length === 0) {
+    return { ok: true, spent: input.spent, hpActual: input.hpActual };
+  }
+  if (!input.allowed) {
+    return { ok: false, message: "Este descanso no admite gastar dados de golpe" };
+  }
+
+  let spent = input.spent;
+  let hpActual = input.hpActual;
+  for (const spend of spends) {
+    const result = applySpendHitDice({
+      classId: spend.classId,
+      count: spend.count,
+      hpGained: spend.hpGained,
+      pools: input.pools,
+      spent,
+      hpActual,
+      hpMax: input.hpMax,
+      bonusPerDie: input.bonusPerDie,
+    });
+    if (!result.ok) return result;
+    spent = result.spent;
+    hpActual = result.hpActual;
+  }
+  return { ok: true, spent, hpActual };
 }
 
 export function halfHitDiceRecovered(totalDice: number): number {

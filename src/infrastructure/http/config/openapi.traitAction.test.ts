@@ -25,6 +25,7 @@ describe("OpenAPI trait action schemas", () => {
       "uses",
       "usesByClassLevel",
       "recharge",
+      "recoverSpellSlots",
       "saveDcFormula"
     ]));
     expect(props).not.toHaveProperty("remaining");
@@ -72,6 +73,26 @@ describe("OpenAPI trait action schemas", () => {
     expect(schemas.InputUpdateTrait?.properties?.abilityScores).toBeDefined();
   });
 
+  it("documents recoverSpellSlots on TraitAction", () => {
+    expect(schemas.TraitRecoverSpellSlots?.required).toEqual(["pool", "scope"]);
+    expect(schemas.TraitAction?.properties?.recoverSpellSlots).toBeDefined();
+    expect(schemas.TraitRecoverSpellSlots?.properties?.pool?.description).toMatch(/pacto/i);
+    expect(schemas.TraitRecoverSpellSlots?.properties?.scope?.description).toMatch(/otorga/i);
+  });
+
+  it("documents atLevel on SpellPrivilegeRule without requiring it", () => {
+    expect(schemas.SpellPrivilegeRule?.properties?.atLevel).toBeDefined();
+    expect(schemas.SpellPrivilegeRule?.required).not.toContain("atLevel");
+    expect(schemas.SpellPrivilegeRule?.properties?.atLevel?.description).toMatch(/omite/i);
+  });
+
+  it("documents pactWeapon on Trait write and read schemas", () => {
+    expect(schemas.TraitPactWeapon?.required).toEqual(["melee", "grantsProficiency", "magical"]);
+    expect(schemas.Trait?.properties?.pactWeapon).toBeDefined();
+    expect(schemas.InputCreateTrait?.properties?.pactWeapon).toBeDefined();
+    expect(schemas.InputUpdateTrait?.properties?.pactWeapon).toBeDefined();
+  });
+
   it("documents skillProficiencies on Trait write and read schemas", () => {
     expect(schemas.TraitSkillProficiency?.required).toEqual(["value"]);
     expect(schemas.Trait?.properties?.skillProficiencies).toBeDefined();
@@ -103,5 +124,16 @@ describe("OpenAPI trait action schemas", () => {
     });
     expect(option.properties).not.toHaveProperty("label");
     expect(schemas.TraitDamageChoiceOption?.properties?.label?.readOnly).toBe(true);
+  });
+});
+
+describe("OpenAPI restRules hitDiceSpending", () => {
+  const spec = generateSwaggerSpec() as OpenApiSpec;
+  const schemas = spec.components.schemas;
+
+  it("documents hitDiceSpending on SystemRestRules", () => {
+    expect(schemas.SystemRestRules?.properties?.hitDiceSpending).toBeDefined();
+    expect(schemas.SystemHitDiceSpending?.required).toEqual(["on"]);
+    expect(schemas.CharacterHitDice?.required).toEqual(expect.arrayContaining(["bonusPerDie"]));
   });
 });

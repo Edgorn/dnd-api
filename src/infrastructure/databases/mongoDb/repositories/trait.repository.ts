@@ -12,7 +12,8 @@ import IAttributeRepository from '../../../../domain/repositories/IAttributeRepo
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
+import { CreateTrait, SpellPrivilegeRule, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitPactWeapon, TraitRecoverSpellSlots, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_SPELL_SLOT_RECOVER_SCOPES, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
+import { SPELL_SLOT_POOLS } from "../../../../domain/types/system.types";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import { Damage } from "../../../../domain/types";
@@ -283,9 +284,7 @@ export default class TraitRepository implements ITraitRepository {
         suppressedByArmorTypeIds: trait?.suppressedByArmorTypeIds,
         ignoresArmorSpeedPenaltyForTypeIds: trait?.ignoresArmorSpeedPenaltyForTypeIds,
         ...(trait.equipmentRestriction ? { equipmentRestriction: trait.equipmentRestriction } : {}),
-        ...(Array.isArray(trait.spellPrivileges) && trait.spellPrivileges.length
-          ? { spellPrivileges: trait.spellPrivileges }
-          : {}),
+        ...this.formatSpellPrivileges(trait.spellPrivileges),
         ...(trait.companionRoster ? { companionRoster: trait.companionRoster } : {}),
         ...this.formatLanguages(trait.languages, languageMap),
         ...this.formatDamageChoices(trait, choiceDamageMap, saveAttributeMap),
@@ -294,6 +293,7 @@ export default class TraitRepository implements ITraitRepository {
         ...(trait.hitPoints ? { hitPoints: trait.hitPoints } : {}),
         ...this.formatAction(trait.action),
         ...this.formatWeaponDamageBonus(trait.weaponDamageBonus),
+        ...this.formatPactWeapon(trait.pactWeapon),
         ...this.formatInnateSpells(trait.innateSpells, spellMap, saveAttributeMap),
         ...this.formatGrantedSpells(trait.grantedSpells, spellMap),
         ...this.formatCreatureFormExtensions(trait.creatureFormExtensions, spellMap, creatureMap, creatureTypeMap),
@@ -315,7 +315,7 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private toMongooseWritePayload(trait: CreateTrait): Record<string, unknown> {
-    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, innateSpells, grantedSpells, creatureFormExtensions, abilityScores, skillProficiencies, stackGroup, conditionalResistanceGroup, ...rest } = trait;
+    const { acFormula, suppressedByArmorTypeIds, ignoresArmorSpeedPenaltyForTypeIds, equipmentRestriction, languages, damageChoices, catalogChoices, damageChoiceRef, hitPoints, action, weaponDamageBonus, pactWeapon, innateSpells, grantedSpells, creatureFormExtensions, abilityScores, skillProficiencies, stackGroup, conditionalResistanceGroup, ...rest } = trait;
     return {
       ...rest,
       summary: summaryToPersist(trait.summary, trait.description),
@@ -330,6 +330,7 @@ export default class TraitRepository implements ITraitRepository {
       ...(hitPoints ? { hitPoints } : {}),
       ...(action ? { action } : {}),
       ...(weaponDamageBonus ? { weaponDamageBonus } : {}),
+      ...(pactWeapon ? { pactWeapon } : {}),
       ...(innateSpells ? { innateSpells } : {}),
       ...(Array.isArray(grantedSpells) && grantedSpells.length ? { grantedSpells } : {}),
       ...(Array.isArray(creatureFormExtensions) && creatureFormExtensions.length
@@ -358,6 +359,7 @@ export default class TraitRepository implements ITraitRepository {
       hitPoints,
       action,
       weaponDamageBonus,
+      pactWeapon,
       innateSpells,
       grantedSpells,
       creatureFormExtensions,
@@ -399,6 +401,7 @@ export default class TraitRepository implements ITraitRepository {
     this.assignNullable($set, $unset, "hitPoints", hitPoints);
     this.assignNullable($set, $unset, "action", action);
     this.assignNullable($set, $unset, "weaponDamageBonus", weaponDamageBonus);
+    this.assignNullable($set, $unset, "pactWeapon", pactWeapon);
     this.assignNullable($set, $unset, "innateSpells", innateSpells);
     this.assignNullable($set, $unset, "grantedSpells", grantedSpells);
     this.assignNullable($set, $unset, "creatureFormExtensions", creatureFormExtensions);
@@ -671,6 +674,18 @@ export default class TraitRepository implements ITraitRepository {
     return formatted;
   }
 
+  private formatSpellPrivileges(
+    spellPrivileges: SpellPrivilegeRule[] | undefined
+  ): { spellPrivileges: SpellPrivilegeRule[] } | Record<string, never> {
+    if (!Array.isArray(spellPrivileges) || spellPrivileges.length === 0) return {};
+    return {
+      spellPrivileges: spellPrivileges.map(rule => ({
+        ...rule,
+        atLevel: Number.isInteger(rule?.atLevel) && rule.atLevel >= 1 ? rule.atLevel : 1
+      }))
+    };
+  }
+
   private formatInnateSpells(
     innateSpells: TraitInnateSpells | undefined,
     spellMap: Map<string, SpellApi>,
@@ -735,6 +750,7 @@ export default class TraitRepository implements ITraitRepository {
     const validRecharge = recharge === null || (typeof recharge === "string" && recharge.length > 0);
     const usesByClassLevel = this.formatUsesByClassLevel(action.usesByClassLevel);
     const duration = this.formatDuration(action.duration);
+    const recoverSpellSlots = this.formatRecoverSpellSlots(action.recoverSpellSlots);
 
     return {
       action: {
@@ -749,7 +765,33 @@ export default class TraitRepository implements ITraitRepository {
           : {}),
         ...(this.isTraitUses(action.uses) ? { uses: action.uses } : {}),
         ...(usesByClassLevel ? { usesByClassLevel } : {}),
-        ...(validRecharge ? { recharge } : {})
+        ...(validRecharge ? { recharge } : {}),
+        ...(recoverSpellSlots ? { recoverSpellSlots } : {})
+      }
+    };
+  }
+
+  private formatRecoverSpellSlots(
+    value: TraitAction["recoverSpellSlots"]
+  ): TraitRecoverSpellSlots | undefined {
+    if (!value || typeof value !== "object") return undefined;
+    if (!(SPELL_SLOT_POOLS as readonly string[]).includes(value.pool)) return undefined;
+    if (!(TRAIT_SPELL_SLOT_RECOVER_SCOPES as readonly string[]).includes(value.scope)) return undefined;
+    return { pool: value.pool, scope: value.scope };
+  }
+
+  private formatPactWeapon(
+    value: TraitPactWeapon | undefined
+  ): { pactWeapon: TraitPactWeapon } | Record<string, never> {
+    if (!value || typeof value !== "object") return {};
+    if (typeof value.melee !== "boolean") return {};
+    if (typeof value.grantsProficiency !== "boolean") return {};
+    if (typeof value.magical !== "boolean") return {};
+    return {
+      pactWeapon: {
+        melee: value.melee,
+        grantsProficiency: value.grantsProficiency,
+        magical: value.magical
       }
     };
   }

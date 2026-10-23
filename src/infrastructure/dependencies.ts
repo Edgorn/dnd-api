@@ -78,6 +78,7 @@ import UseTrait from "../application/use-cases/personaje/useTrait.use-case";
 import DeactivateTrait from "../application/use-cases/personaje/deactivateTrait.use-case";
 import RestCharacter from "../application/use-cases/personaje/restCharacter.use-case";
 import SpendHitDice from "../application/use-cases/personaje/spendHitDice.use-case";
+import ApplyCharacterHp from "../application/use-cases/personaje/applyCharacterHp.use-case";
 import SpendSpellSlot from "../application/use-cases/personaje/spendSpellSlot.use-case";
 import ApplyCharacterCondition from "../application/use-cases/personaje/applyCharacterCondition.use-case";
 import UpdateCharacterCondition from "../application/use-cases/personaje/updateCharacterCondition.use-case";
@@ -523,6 +524,7 @@ const useTrait = new UseTrait(personajeService);
 const deactivateTrait = new DeactivateTrait(personajeService);
 const restCharacter = new RestCharacter(personajeService);
 const spendHitDice = new SpendHitDice(personajeService);
+const applyCharacterHp = new ApplyCharacterHp(personajeService);
 const spendSpellSlot = new SpendSpellSlot(personajeService);
 const applyCharacterCondition = new ApplyCharacterCondition(personajeService);
 const updateCharacterCondition = new UpdateCharacterCondition(personajeService);
@@ -691,6 +693,7 @@ export const personajeController = new PersonajeController(
   deactivateTrait,
   restCharacter,
   spendHitDice,
+  applyCharacterHp,
   spendSpellSlot,
   applyCharacterCondition,
   updateCharacterCondition,

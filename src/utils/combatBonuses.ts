@@ -11,6 +11,7 @@ import {
   resolveWeaponAttributeStats,
   weaponHasTwoHandedProperty,
 } from "./weaponAttackAttributes";
+import { grantsPactWeaponProficiency } from "./pactWeapon";
 
 export interface EnrichEquipmentCombatBonusesInput {
   equipment: EquipmentInstanceApi[];
@@ -25,6 +26,7 @@ export interface EnrichEquipmentCombatBonusesInput {
     | "meleeAttackAttributes"
     | "rangedAttackAttributes"
   >;
+  pactProficiency?: boolean;
 }
 
 export function characterHasRequiredProficiency(
@@ -62,7 +64,8 @@ function buildWeaponContext(
   equipment: EquipmentInstanceApi,
   attributes: CharacterAttributeApi[],
   proficiencies: ProficiencyApi[],
-  rules: Pick<SystemRulesConfig, "meleeAttackAttributes" | "rangedAttackAttributes">
+  rules: Pick<SystemRulesConfig, "meleeAttackAttributes" | "rangedAttackAttributes">,
+  isProficient: boolean
 ) {
   const weapon = equipment.weapon;
   if (!weapon) return undefined;
@@ -75,7 +78,7 @@ function buildWeaponContext(
   return {
     attributeModifier: stats.attributeModifier,
     attributeValue: stats.attributeValue,
-    isProficient: isEquipmentProficient(equipment, proficiencies) ? 1 : 0,
+    isProficient: isProficient ? 1 : 0,
     isMagic: equipment.isMagic ? 1 : 0,
     isRanged: isRangedWeapon(weapon) ? 1 : 0,
     isTwoHanded: weaponHasTwoHandedProperty(weapon) ? 1 : 0,
@@ -86,7 +89,7 @@ function buildWeaponContext(
 export function enrichEquipmentWithCombatBonuses(
   input: EnrichEquipmentCombatBonusesInput
 ): CharacterEquipmentApi[] {
-  const { equipment, attributes, proficiencies, proficiencyBonus, level, rules } = input;
+  const { equipment, attributes, proficiencies, proficiencyBonus, level, rules, pactProficiency } = input;
 
   const variables = {
     proficiencyBonus,
@@ -96,7 +99,8 @@ export function enrichEquipmentWithCombatBonuses(
   const hasCombatFormulas = Boolean(rules.attackBonusFormula || rules.damageBonusFormula);
 
   return equipment.map(item => {
-    const isProficient = isEquipmentProficient(item, proficiencies);
+    const isProficient = grantsPactWeaponProficiency(item, pactProficiency === true)
+      || isEquipmentProficient(item, proficiencies);
     const enriched: CharacterEquipmentApi = {
       ...item,
       instanceId: item.instanceId ?? "",
@@ -107,7 +111,7 @@ export function enrichEquipmentWithCombatBonuses(
       return enriched;
     }
 
-    const weaponContext = buildWeaponContext(item, attributes, proficiencies, rules);
+    const weaponContext = buildWeaponContext(item, attributes, proficiencies, rules, isProficient);
     if (!weaponContext) {
       return enriched;
     }

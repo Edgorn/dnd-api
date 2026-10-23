@@ -63,11 +63,17 @@ export interface SystemSpellSlotRecovery {
   pools: SpellSlotPool[];
 }
 
+export interface SystemHitDiceSpending {
+  on: string[];
+  bonusFormula?: string;
+}
+
 export interface SystemRestRules {
   kinds: SystemRestKind[];
   endStancesOn?: string[];
   hitPointRecovery?: SystemHitPointRecovery[];
   spellSlotRecovery?: SystemSpellSlotRecovery[];
+  hitDiceSpending?: SystemHitDiceSpending;
 }
 
 export function resolveSystemKind(kind: string | null | undefined): SystemKind {

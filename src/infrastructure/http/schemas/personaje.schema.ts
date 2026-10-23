@@ -183,15 +183,20 @@ export const LearnSpellsSchema = z.object({
     .min(1, "Debe indicar al menos un conjuro"),
 });
 
-export const CharacterRestSchema = z.object({
-  type: z.string().min(1, "El descanso debe indicar un tipo"),
-  traitChoices: TraitChoicesSchema.optional(),
-});
-
 export const SpendHitDiceSchema = z.object({
   classId: z.string().regex(objectIdRegex, "El ID de clase debe ser un ObjectId válido de MongoDB"),
   count: z.number().int().min(1, "Debe gastar al menos 1 dado de golpe"),
   hpGained: z.number().int().min(0, "Los PG recuperados no pueden ser negativos"),
+});
+
+export const ApplyCharacterHpSchema = z.object({
+  amount: z.number().int().min(1, "La cantidad debe ser un entero positivo"),
+});
+
+export const CharacterRestSchema = z.object({
+  type: z.string().min(1, "El descanso debe indicar un tipo"),
+  traitChoices: TraitChoicesSchema.optional(),
+  hitDiceSpends: z.array(SpendHitDiceSchema).optional(),
 });
 
 export const SpendSpellSlotSchema = z.object({
@@ -255,6 +260,17 @@ export const UpdateCharacterEquipmentEquippedSchema = z.object({
 export const BindPactEquipmentSchema = z.object({
   isBond: z.boolean(),
 });
+
+export const UseTraitSchema = z.preprocess(
+  value => value ?? {},
+  z.object({
+    equipmentId: z
+      .string()
+      .min(1, "ID de equipamiento requerido")
+      .regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB")
+      .optional()
+  })
+);
 
 export const CompanionInputSchema = z.object({
   id: z.string().optional(),

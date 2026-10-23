@@ -17,7 +17,8 @@ describe("RestCharacter", () => {
     id: "char1",
     type: "longRest" as const,
     userId: "user1",
-    traitChoices: { "infernal-resilience": { resistance: ["fire"] } }
+    traitChoices: { "infernal-resilience": { resistance: ["fire"] } },
+    hitDiceSpends: [{ classId: "507f1f77bcf86cd799439011", count: 2, hpGained: 14 }]
   };
 
   it("delegates to personajeService.restCharacter", async () => {
@@ -46,6 +47,18 @@ describe("RestCharacter", () => {
 
     await expect(useCase.execute(input)).rejects.toMatchObject({
       message: "Este sistema no define descansos",
+      statusCode: 400
+    });
+  });
+
+  it("propagates when the rest does not allow hit dice spends", async () => {
+    const useCase = new RestCharacter(personajeServiceMock as never);
+    personajeServiceMock.restCharacter.mockRejectedValue(
+      new ValidationError("Este descanso no admite gastar dados de golpe")
+    );
+
+    await expect(useCase.execute(input)).rejects.toMatchObject({
+      message: "Este descanso no admite gastar dados de golpe",
       statusCode: 400
     });
   });

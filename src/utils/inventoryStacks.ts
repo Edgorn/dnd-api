@@ -13,6 +13,8 @@ export function createInventoryInstance(input: {
   equipped?: boolean;
   isBond?: boolean;
   isFavorite?: boolean;
+  pactOrigin?: PersonajeEquipmentMongo["pactOrigin"];
+  pactStored?: boolean;
   customization?: PersonajeEquipmentMongo["customization"];
 }): PersonajeEquipmentMongo {
   return {
@@ -23,6 +25,8 @@ export function createInventoryInstance(input: {
     equipped: input.equipped ?? false,
     isBond: input.isBond ?? false,
     isFavorite: input.isFavorite ?? false,
+    ...(input.pactOrigin ? { pactOrigin: input.pactOrigin } : {}),
+    ...(input.pactStored ? { pactStored: true } : {}),
     ...(input.customization ? { customization: input.customization } : {}),
   };
 }
@@ -38,6 +42,8 @@ export function cloneInventory(
     isMagic: item.isMagic,
     isBond: item.isBond,
     isFavorite: item.isFavorite,
+    ...(item.pactOrigin ? { pactOrigin: item.pactOrigin } : {}),
+    ...(item.pactStored ? { pactStored: true } : {}),
     ...(item.customization ? { customization: item.customization } : {}),
   }));
 }

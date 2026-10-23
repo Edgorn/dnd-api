@@ -451,6 +451,60 @@ describe("EquipmentRepository lookup batching", () => {
     });
   });
 
+  describe("getWeapons", () => {
+    it("queries equipment with a defined weapon field", async () => {
+      mockFindLean([]);
+
+      await repository.getWeapons();
+
+      expect(EquipmentModel.find).toHaveBeenCalledWith({
+        weapon: { $exists: true, $ne: null },
+        deletedAt: null
+      });
+    });
+
+    it("applies expanded ruleset filter when rulesets are provided", async () => {
+      mockFindLean([]);
+
+      await repository.getWeapons([RULESET]);
+
+      expect(systemRepository.getSystemsAndAncestors).toHaveBeenCalledWith([RULESET]);
+      expect(EquipmentModel.find).toHaveBeenCalledWith({
+        weapon: { $exists: true, $ne: null },
+        deletedAt: null,
+        ruleset: { $in: [RULESET] }
+      });
+    });
+
+    it("returns a reduced equipment with resolved strike damage and no properties", async () => {
+      mockFindLean([dagger]);
+
+      const result = await repository.getWeapons();
+
+      expect(result).toEqual([
+        {
+          id: DAGGER_ID,
+          name: "Dagger",
+          category: "Weapon",
+          subcategory: "Simple",
+          equipSlot: null,
+          weapon: {
+            category: "Simple Melee",
+            range: "Melee",
+            damage: [
+              { dice: "1d4", name: "Piercing", desc: "A puncture" },
+              { dice: "1d4", name: "Slashing", desc: "A cut" }
+            ],
+            two_handed_damage: [{ dice: "1d6", name: "Slashing", desc: "A cut" }]
+          },
+          armor: undefined
+        }
+      ]);
+      expect(result[0].weapon).not.toHaveProperty("properties");
+      expect(result[0].weapon).not.toHaveProperty("range_throw");
+    });
+  });
+
   describe("getArmor", () => {
     it("queries body equip slots or off_hand items with armor class (shields)", async () => {
       mockFindLean([]);
