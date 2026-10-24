@@ -646,22 +646,32 @@ export const TraitInnateSpellsSchema = z.object({
   });
 });
 
-const uniqueMongoIdArray = (message: string) =>
-  z.array(mongoObjectId(message)).min(1, "Debe indicar al menos un conjuro").superRefine((ids, ctx) => {
-    const seen = new Set<string>();
-    ids.forEach((id, index) => {
-      if (seen.has(id)) {
-        ctx.addIssue({
-          code: "custom",
-          message: "El conjuro está repetido",
-          path: [index]
-        });
-      }
-      seen.add(id);
-    });
+const uniqueGrantedSpellIds = (
+  entries: Array<{ spellId: string }>,
+  ctx: z.RefinementCtx,
+  pathPrefix: (string | number)[] = []
+): void => {
+  const seen = new Set<string>();
+  entries.forEach((entry, index) => {
+    if (seen.has(entry.spellId)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "El conjuro está repetido",
+        path: [...pathPrefix, index]
+      });
+    }
+    seen.add(entry.spellId);
   });
+};
 
-export const TraitGrantedSpellsSchema = uniqueMongoIdArray("Cada conjuro extra debe ser un ID de Mongo válido");
+export const TraitGrantedSpellInputSchema = z.object({
+  spellId: mongoObjectId("Cada conjuro extra debe ser un ID de Mongo válido"),
+  ritualOnly: z.boolean().optional().default(false)
+}).strict();
+
+export const TraitGrantedSpellsSchema = z.array(TraitGrantedSpellInputSchema)
+  .min(1, "Debe indicar al menos un conjuro")
+  .superRefine((entries, ctx) => uniqueGrantedSpellIds(entries, ctx));
 
 export const TraitCreatureFormExtensionSchema = z.object({
   spellId: mongoObjectId("El conjuro debe ser un ID de Mongo válido"),

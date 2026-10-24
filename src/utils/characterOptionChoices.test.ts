@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   buildPendingOptionChoices,
+  mapSubclassMenuOptionChoices,
   mergeOptionChoices,
   optionReplacementsToChoices,
+  subclassMenuOptionChoiceGroupIds,
   validateLevelUpOptionPicks
 } from "./characterOptionChoices";
 import { PrerequisiteContext } from "../domain/types/prerequisite.types";
@@ -136,6 +138,45 @@ describe("buildPendingOptionChoices", () => {
       "Llamar al familiar",
       "Visión diabólica"
     ]);
+  });
+});
+
+describe("mapSubclassMenuOptionChoices", () => {
+  const pending = [{
+    groupId: GROUP,
+    groupName: "Espíritus totémicos",
+    choose: 1,
+    options: catalog.map(item => ({ ...item, available: true, unmet: false })),
+    selected: []
+  }];
+
+  it("hydrates optionChoices on subclass levels that have configs and leaves the rest intact", () => {
+    const menu = [
+      {
+        name: "Senda del Berserker",
+        levels: [
+          { level: 3, traits: ["frenzy"] },
+          { level: 6, traits: ["mindless"] }
+        ]
+      },
+      {
+        name: "Senda del Guerrero Totémico",
+        levels: [
+          { level: 3, traits: ["spirit"], optionChoices: [{ groupId: GROUP, choose: 1 }] },
+          { level: 6, traits: ["aspect"] }
+        ]
+      }
+    ];
+
+    const hydrated = mapSubclassMenuOptionChoices(menu, configs => {
+      expect(configs).toEqual([{ groupId: GROUP, choose: 1 }]);
+      return pending;
+    });
+
+    expect(hydrated[0]).toEqual(menu[0]);
+    expect(hydrated[1].levels[0].optionChoices).toEqual(pending);
+    expect(hydrated[1].levels[1]).toEqual(menu[1].levels[1]);
+    expect(subclassMenuOptionChoiceGroupIds(menu)).toEqual([GROUP]);
   });
 });
 

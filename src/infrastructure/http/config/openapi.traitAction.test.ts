@@ -107,6 +107,17 @@ describe("OpenAPI trait action schemas", () => {
     expect(schemas.Trait?.properties?.spellRepository).toBeDefined();
   });
 
+  it("documents grantedSpells as TraitGrantedSpell on Trait GET", () => {
+    expect(schemas.TraitGrantedSpell?.required).toEqual(["spellId", "ritualOnly"]);
+    expect(schemas.TraitGrantedSpellInput?.required).toEqual(["spellId"]);
+    expect((schemas.Trait?.properties?.grantedSpells as { items?: { $ref?: string } } | undefined)?.items?.$ref)
+      .toBe("#/components/schemas/TraitGrantedSpell");
+    expect((schemas.InputCreateTrait?.properties?.grantedSpells as { items?: { $ref?: string } } | undefined)?.items?.$ref)
+      .toBe("#/components/schemas/TraitGrantedSpellInput");
+    expect((schemas.InputUpdateTrait?.properties?.grantedSpells as { items?: { $ref?: string } } | undefined)?.items?.$ref)
+      .toBe("#/components/schemas/TraitGrantedSpellInput");
+  });
+
   it("documents skillProficiencies on Trait write and read schemas", () => {
     expect(schemas.TraitSkillProficiency?.required).toEqual(["value"]);
     expect(schemas.Trait?.properties?.skillProficiencies).toBeDefined();

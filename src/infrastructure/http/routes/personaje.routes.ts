@@ -262,6 +262,14 @@ const router = Router();
  *           description: >
  *             Conjuros que cuentan como de esa clase pero no suman al total conocido
  *             (p. ej. Secretos Mágicos). Ya van incluidos en list.
+ *         ritualOnlyExtraIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: >
+ *             IDs de extra que el rasgo solo concede como ritual. No se marcan si
+ *             el mismo conjuro está en conocidos, extras persistidos u otra fuente
+ *             con ranura. El cliente no debe ofrecer gastar ranura para ellos.
  *         prepared:
  *           type: array
  *           items:
@@ -1734,6 +1742,10 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       `skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase
  *       ya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones
  *       de cada opción van en `subclassChoice.options[].levels[].skill_choices`.
+ *       `optionChoices` de la raíz son grupos de opciones de este nivel de clase o de una subclase
+ *       ya asignada. Si aún debe elegir subclase, las elecciones de cada opción van hidratadas
+ *       (`PendingOptionChoice`: groupName, options con available/unmet, selected) en
+ *       `subclassChoice.options[].levels[].optionChoices`.
  *       `spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`
  *       de la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos
  *       sintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con
@@ -1825,7 +1837,9 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   nullable: true
  *                   description: >
  *                     Menú de subclases si el personaje debe elegir en este nivel.
- *                     Incluye name, description, level y options hidratadas. Nulo si ya tiene subclase o aún no toca elegir.
+ *                     Incluye name, description, level y options hidratadas. En cada opción,
+ *                     `levels[].optionChoices` es `PendingOptionChoice` (opciones del grupo, no solo groupId).
+ *                     Nulo si ya tiene subclase o aún no toca elegir.
  *                   properties:
  *                     name:
  *                       type: string
@@ -1876,7 +1890,9 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                 optionChoices:
  *                   type: array
  *                   description: >
- *                     Elecciones de grupos de opciones de este nivel (p. ej. invocaciones).
+ *                     Elecciones de grupos de opciones de este nivel (p. ej. invocaciones)
+ *                     de la clase o de una subclase ya asignada. Omitido si aún debe elegir
+ *                     subclase: entonces van en `subclassChoice.options[].levels[].optionChoices`.
  *                     choose es cuántas hay que añadir. replace es cuántas se pueden cambiar
  *                     (incluye `optionReplacements` de la clase o subclase si el personaje
  *                     ya tiene opciones de ese grupo). options marca available/unmet según
@@ -1981,9 +1997,10 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       nivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de
  *       modificador a los PG de los niveles previos.
  *       Si el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).
- *       Si el GET devolvió `optionChoices`, el body debe incluir `optionPicks` con un elemento por
- *       grupo: `add` tiene longitud `choose` y `replace` como máximo `replace` (el `replace` del
- *       GET ya incluye `optionReplacements` de clase o subclase). Cada id debe
+ *       Si el GET devolvió `optionChoices` en la raíz, o la subclase enviada tiene `optionChoices`
+ *       en este nivel (`subclassChoice.options[].levels[]`), el body debe incluir `optionPicks`
+ *       con un elemento por grupo: `add` tiene longitud `choose` y `replace` como máximo `replace`
+ *       (el `replace` del GET ya incluye `optionReplacements` de clase o subclase). Cada id debe
  *       pertenecer al grupo, cumplir requisitos y no estar ya elegida salvo que sea repetible.
  *     tags:
  *       - Personajes
@@ -2047,7 +2064,8 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *               optionPicks:
  *                 type: array
  *                 description: >
- *                   Elecciones de grupos de opciones alineadas con `optionChoices` del GET.
+ *                   Elecciones de grupos de opciones alineadas con `optionChoices` del GET
+ *                   (raíz o `levels[].optionChoices` de la subclase enviada en `subclass`).
  *                   `add` tiene la misma longitud que `choose`. `replace` es opcional (0..replace).
  *                 items:
  *                   type: object

@@ -1483,20 +1483,65 @@ describe("CreateTraitSchema grantedSpells and creatureFormExtensions", () => {
     const result = CreateTraitSchema.safeParse({
       ruleset: "sys1",
       name: "Pacto de la Cadena",
-      grantedSpells: [spellId],
+      grantedSpells: [{ spellId }],
       creatureFormExtensions: [{
         spellId,
         extraPool: { mode: "ids", creatureIds: [impId] }
       }]
     });
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grantedSpells).toEqual([{ spellId, ritualOnly: false }]);
+    }
+  });
+
+  it("rejects legacy string ids", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto",
+      grantedSpells: [spellId]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("defaults ritualOnly to false on object grants", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Buscador",
+      grantedSpells: [{ spellId }]
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grantedSpells).toEqual([{ spellId, ritualOnly: false }]);
+    }
+  });
+
+  it("accepts ritualOnly granted spells", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Buscador de Espíritus",
+      grantedSpells: [{ spellId, ritualOnly: true }]
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grantedSpells).toEqual([{ spellId, ritualOnly: true }]);
+    }
   });
 
   it("rejects a duplicated granted spell", () => {
     const result = CreateTraitSchema.safeParse({
       ruleset: "sys1",
       name: "Pacto",
-      grantedSpells: [spellId, spellId]
+      grantedSpells: [{ spellId }, { spellId }]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a duplicated granted spellId in objects", () => {
+    const result = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Pacto",
+      grantedSpells: [{ spellId, ritualOnly: true }, { spellId, ritualOnly: false }]
     });
     expect(result.success).toBe(false);
   });

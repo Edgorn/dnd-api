@@ -8,6 +8,7 @@ import { CharacterFormApi, CharacterFormMongo, formPurposeOverlaysCharacter } fr
 import {
   CharacterOptionSelection,
   CharacterOptionSelectionApi,
+  GroupOptionApi,
   OptionChoiceMongo,
   PendingOptionChoice
 } from '../../../../domain/types/optionGroup.types';
@@ -44,8 +45,10 @@ import { RaceRef } from '../../../../domain/types/race.types';
 import { applyTraitStacking, closeLevelUpTraitText, damageChoiceSourceIdsToLoad, levelUpTraitIds, mergeClassAndRaceLevelUp, mergeLevelUpTraits, mergedTraitsDataAtLevel, mergeTraitDataMaps, orderTraitsByIds, traitIdsWithChangedData } from '../../../../utils/characterLevelUpTraits';
 import {
   buildPendingOptionChoices,
+  mapSubclassMenuOptionChoices,
   mergeOptionChoices,
   optionReplacementsToChoices,
+  subclassMenuOptionChoiceGroupIds,
   validateLevelUpOptionPicks
 } from '../../../../utils/characterOptionChoices';
 import {
@@ -61,7 +64,12 @@ import { CharacterClassApi, SpellRepositoryConfig } from '../../../../domain/typ
 import { resolveTraitActions } from '../../../../utils/resolveTraitActions';
 import { displaySummary } from '../../../../utils/traitSummary';
 import { buildTraitGrantingClasses } from '../../../../utils/traitProgression';
-import { grantedExtraSpellIdsByClass, mergeExtraSpellIds } from '../../../../utils/traitGrantedSpells';
+import {
+  grantedExtraSpellIdsByClass,
+  mergeExtraSpellIds,
+  ritualOnlyExtraSpellIds,
+  ritualOnlyGrantedExtraIdsByClass
+} from '../../../../utils/traitGrantedSpells';
 import { overlaySpellsCreatureForms } from '../../../../utils/creatureFormPool';
 import {
   collectClassGrantedTraitIds,
@@ -710,14 +718,41 @@ export default class PersonajeRepository implements IPersonajeRepository {
       [...(personaje.skills ?? []), ...(skill_choices?.options.map(item => item.id) ?? [])]
     );
     const requirementsMet = await this.levelUpRequirementsMet(personaje, catalog, isNewClass);
-    const optionChoices = await this.pendingLevelOptionChoices(
+    const menuGroupIds = subclassMenuOptionChoiceGroupIds(subclassChoice?.options ?? []);
+    const optionGroupIds = [
+      ...new Set([
+        ...optionChoiceConfigs.map(config => config.groupId),
+        ...menuGroupIds
+      ])
+    ];
+    const optionCatalog = await this.loadOptionChoiceCatalog(
+      personaje.systems ?? [],
+      optionGroupIds
+    );
+    const extraTraitIds = stacked.granted
+      .map(trait => trait.id)
+      .filter((id): id is string => Boolean(id));
+    const optionContext = this.prerequisiteContext(
       personaje,
       classId,
       nextLevel,
       totalLevels + 1,
-      stacked.granted,
-      optionChoiceConfigs
+      extraTraitIds
     );
+    const optionChoices = this.pendingLevelOptionChoices(
+      personaje,
+      optionChoiceConfigs,
+      optionCatalog,
+      optionContext
+    );
+    const hydratedSubclassChoice = subclassChoice
+      ? {
+          ...subclassChoice,
+          options: mapSubclassMenuOptionChoices(subclassChoice.options, configs =>
+            this.pendingLevelOptionChoices(personaje, configs, optionCatalog, optionContext)
+          )
+        }
+      : null;
 
     return {
       class: classId,
@@ -727,7 +762,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
       ...(spell_changes ? { spell_changes } : {}),
       traits,
       traits_data,
-      subclassChoice: subclassChoice ?? null,
+      subclassChoice: hydratedSubclassChoice,
       ability_score,
       feats,
       catalogChoices,
@@ -2563,27 +2598,39 @@ export default class PersonajeRepository implements IPersonajeRepository {
     );
   }
 
-  private async pendingLevelOptionChoices(
-    personaje: PersonajeMongo,
-    classId: string,
-    nextLevel: number,
-    characterLevel: number,
-    extraTraits: TraitApi[],
-    configs: OptionChoiceMongo[] | undefined
-  ): Promise<PendingOptionChoice[]> {
-    if (!configs?.length) return [];
+  private async loadOptionChoiceCatalog(
+    systems: string[],
+    groupIds: string[]
+  ): Promise<{ options: GroupOptionApi[]; groupNames: Record<string, string> }> {
+    if (!groupIds.length) {
+      return { options: [], groupNames: {} };
+    }
 
-    const extraTraitIds = extraTraits.map(trait => trait.id).filter((id): id is string => Boolean(id));
-    const options = await this.groupOptionRepository.getBySystems(personaje.systems ?? []);
-    const groups = await this.optionGroupRepository.getByIds(configs.map(config => config.groupId));
-    const groupNames = Object.fromEntries(groups.map(group => [group.id, group.name]));
+    const [options, groups] = await Promise.all([
+      this.groupOptionRepository.getBySystems(systems),
+      this.optionGroupRepository.getByIds(groupIds)
+    ]);
+
+    return {
+      options,
+      groupNames: Object.fromEntries(groups.map(group => [group.id, group.name]))
+    };
+  }
+
+  private pendingLevelOptionChoices(
+    personaje: PersonajeMongo,
+    configs: OptionChoiceMongo[] | undefined,
+    catalog: { options: GroupOptionApi[]; groupNames: Record<string, string> },
+    context: PrerequisiteContext
+  ): PendingOptionChoice[] {
+    if (!configs?.length) return [];
 
     return buildPendingOptionChoices({
       configs,
-      options,
+      options: catalog.options,
       selections: personaje.optionSelections ?? [],
-      context: this.prerequisiteContext(personaje, classId, nextLevel, characterLevel, extraTraitIds),
-      groupNames
+      context,
+      groupNames: catalog.groupNames
     });
   }
 
@@ -3427,18 +3474,21 @@ export default class PersonajeRepository implements IPersonajeRepository {
         (personaje.classes ?? []).map(entry => this.claseRepository.getById(entry.class))
       )
     ).filter((item): item is CharacterClassApi => Boolean(item));
-    const derivedExtraByClass = grantedExtraSpellIdsByClass({
+    const grantedExtraInput = {
       traits,
       optionSelections: personaje.optionSelections ?? [],
       classes: personaje.classes ?? [],
       classCatalogs,
       subclasses: [...subclassById.values()]
-    });
+    };
+    const derivedExtraByClass = grantedExtraSpellIdsByClass(grantedExtraInput);
+    const ritualOnlyExtraByClass = ritualOnlyGrantedExtraIdsByClass(grantedExtraInput);
     const updatedSpells: Record<string, {
       list: SpellApi[],
       extra?: SpellApi[],
       prepared?: SpellApi[],
-      type?: AttributeApi
+      type?: AttributeApi,
+      ritualOnlyExtraIds?: string[]
     }> = {}
 
     const privilegeInstances = getCharacterSpellPrivileges(personaje.spellPrivileges)
@@ -3480,20 +3530,28 @@ export default class PersonajeRepository implements IPersonajeRepository {
     await Promise.all(
       [...spellGroupKeys].map(async groupSpells => {
         const knownIds = Array.isArray(spells[groupSpells]) ? [...spells[groupSpells]] : []
+        const persistedExtraIds = getExtraSpellIds(extraSpellsMap, groupSpells)
+        const privilegeExtraIds = extraPrivilegeSpellIds(
+          privilegeInstances,
+          rulesByTraitId,
+          groupSpells,
+          classLevelByClassId,
+          gatedUniqueGrantTraitIds
+        )
         const extraIds = mergeExtraSpellIds(
-          getExtraSpellIds(extraSpellsMap, groupSpells),
+          persistedExtraIds,
           [
             ...(derivedExtraByClass[groupSpells] ?? []),
-            ...extraPrivilegeSpellIds(
-              privilegeInstances,
-              rulesByTraitId,
-              groupSpells,
-              classLevelByClassId,
-              gatedUniqueGrantTraitIds
-            )
+            ...privilegeExtraIds
           ],
           knownIds
         )
+        const ritualOnlyExtraIds = ritualOnlyExtraSpellIds({
+          extraIds,
+          persistedExtraIds,
+          otherDerivedExtraIds: privilegeExtraIds,
+          ritualOnlyFromTraits: ritualOnlyExtraByClass[groupSpells] ?? []
+        })
         const alwaysIds = groupSpells === "race"
           ? []
           : alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells, classLevelByClassId)
@@ -3536,6 +3594,7 @@ export default class PersonajeRepository implements IPersonajeRepository {
           list: overlaidExtra.length ? [...overlaidKnown, ...overlaidExtra] : overlaidKnown,
           ...(overlaidExtra.length ? { extra: overlaidExtra } : {}),
           ...(hasPreparedKey ? { prepared: overlaidPrepared } : {}),
+          ...(ritualOnlyExtraIds.length ? { ritualOnlyExtraIds } : {}),
           type
         }
       })

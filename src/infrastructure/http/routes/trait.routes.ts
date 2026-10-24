@@ -91,10 +91,11 @@ const router = Router();
  *         grantedSpells:
  *           type: array
  *           items:
- *             $ref: '#/components/schemas/Spell'
+ *             $ref: '#/components/schemas/TraitGrantedSpell'
  *           description: >
  *             Conjuros extra fijos (p. ej. Pacto de la Cadena: encontrar familiar).
- *             No cuentan como conocidos. En GET van hidratados. En POST/PUT envíe IDs.
+ *             No cuentan como conocidos. En GET van hidratados. ritualOnly marca
+ *             que solo se lanzan como ritual (p. ej. Buscador de Espíritus).
  *         creatureFormExtensions:
  *           type: array
  *           items:
@@ -1014,6 +1015,35 @@ const router = Router();
  *           nullable: true
  *           type: string
  *           description: Clave de `restRules.kinds`. Obligatorio si uses es un número. Nulo si es a voluntad.
+ *     TraitGrantedSpellInput:
+ *       type: object
+ *       required:
+ *         - spellId
+ *       properties:
+ *         spellId:
+ *           type: string
+ *           description: ID de MongoDB del conjuro extra.
+ *         ritualOnly:
+ *           type: boolean
+ *           default: false
+ *           description: >
+ *             Si es true, el conjuro solo se lanza como ritual. El conjuro debe
+ *             tener ritual true. Si se omite, es false.
+ *     TraitGrantedSpell:
+ *       type: object
+ *       required:
+ *         - spellId
+ *         - ritualOnly
+ *       properties:
+ *         spellId:
+ *           type: string
+ *           description: ID de MongoDB del conjuro extra.
+ *         ritualOnly:
+ *           type: boolean
+ *           description: True si el rasgo solo permite lanzarlo como ritual.
+ *         spell:
+ *           $ref: '#/components/schemas/Spell'
+ *           description: Conjuro hidratado. Solo aparece en las respuestas GET.
  *     TraitCreatureFormExtension:
  *       type: object
  *       required:
@@ -1249,10 +1279,10 @@ const router = Router();
  *           type: array
  *           minItems: 1
  *           items:
- *             type: string
+ *             $ref: '#/components/schemas/TraitGrantedSpellInput'
  *           description: >
- *             IDs de conjuros extra. No cuentan como conocidos. IDs únicos.
- *             null borra el campo.
+ *             Conjuros extra. IDs únicos. El conjuro con ritualOnly true debe ser
+ *             un ritual. null borra el campo.
  *         creatureFormExtensions:
  *           nullable: true
  *           type: array
@@ -1510,8 +1540,8 @@ const router = Router();
  *           type: array
  *           minItems: 1
  *           items:
- *             type: string
- *           description: IDs de conjuros extra. null borra el campo.
+ *             $ref: '#/components/schemas/TraitGrantedSpellInput'
+ *           description: Conjuros extra. IDs únicos. null borra el campo.
  *         creatureFormExtensions:
  *           nullable: true
  *           type: array

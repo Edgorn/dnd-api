@@ -71,6 +71,17 @@ export interface TraitInnateSpellsApi {
   grants: TraitInnateSpellGrantApi[];
 }
 
+export interface TraitGrantedSpell {
+  spellId: string;
+  ritualOnly: boolean;
+}
+
+export interface TraitGrantedSpellApi {
+  spellId: string;
+  ritualOnly: boolean;
+  spell?: SpellApi;
+}
+
 export interface TraitCreatureFormExtension {
   spellId: string;
   extraPool: CreatureFormPoolStored;
@@ -403,7 +414,7 @@ export interface TraitMongo {
   uniqueEquipmentGrant?: TraitUniqueEquipmentGrant,
   spellRepository?: SpellRepositoryConfig,
   innateSpells?: TraitInnateSpells,
-  grantedSpells?: string[],
+  grantedSpells?: TraitGrantedSpell[],
   creatureFormExtensions?: TraitCreatureFormExtension[],
   abilityScores?: TraitAbilityScore[],
   skillProficiencies?: TraitSkillProficiency[],
@@ -457,7 +468,7 @@ export interface TraitApi {
   uniqueEquipmentGrant?: TraitUniqueEquipmentGrantApi,
   spellRepository?: SpellRepositoryConfig,
   innateSpells?: TraitInnateSpellsApi,
-  grantedSpells?: SpellApi[],
+  grantedSpells?: TraitGrantedSpellApi[],
   creatureFormExtensions?: TraitCreatureFormExtensionApi[],
   abilityScores?: TraitAbilityScore[],
   skillProficiencies?: TraitSkillProficiency[],
@@ -494,7 +505,7 @@ export interface CreateTrait {
   uniqueEquipmentGrant?: TraitUniqueEquipmentGrant | null,
   spellRepository?: SpellRepositoryConfig | null,
   innateSpells?: TraitInnateSpells | null,
-  grantedSpells?: string[] | null,
+  grantedSpells?: TraitGrantedSpell[] | null,
   creatureFormExtensions?: TraitCreatureFormExtension[] | null,
   abilityScores?: TraitAbilityScore[] | null,
   skillProficiencies?: TraitSkillProficiency[] | null,
@@ -532,7 +543,7 @@ export interface UpdateTrait {
   uniqueEquipmentGrant?: TraitUniqueEquipmentGrant | null,
   spellRepository?: SpellRepositoryConfig | null,
   innateSpells?: TraitInnateSpells | null,
-  grantedSpells?: string[] | null,
+  grantedSpells?: TraitGrantedSpell[] | null,
   creatureFormExtensions?: TraitCreatureFormExtension[] | null,
   abilityScores?: TraitAbilityScore[] | null,
   skillProficiencies?: TraitSkillProficiency[] | null,

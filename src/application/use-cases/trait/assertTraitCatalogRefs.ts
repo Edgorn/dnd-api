@@ -15,6 +15,7 @@ import {
   TraitCreatureFormExtension,
   TraitDamageChoice,
   TraitDamageChoiceRef,
+  TraitGrantedSpell,
   TraitInnateSpells,
   TraitLanguages,
   TraitUniqueEquipmentGrant,
@@ -33,7 +34,7 @@ export async function assertTraitCatalogRefs(input: {
   catalogChoices?: TraitCatalogChoice[] | null;
   damageChoiceRef?: TraitDamageChoiceRef | null;
   innateSpells?: TraitInnateSpells | null;
-  grantedSpells?: string[] | null;
+  grantedSpells?: TraitGrantedSpell[] | null;
   creatureFormExtensions?: TraitCreatureFormExtension[] | null;
   uniqueEquipmentGrant?: TraitUniqueEquipmentGrant | null;
   spellRepository?: SpellRepositoryConfig | null;
@@ -79,7 +80,7 @@ export async function assertTraitCatalogRefs(input: {
   ]);
   const spellIds = uniqueIds([
     ...(input.innateSpells?.grants ?? []).map(grant => grant.spellId),
-    ...(input.grantedSpells ?? []),
+    ...(input.grantedSpells ?? []).map(grant => grant.spellId),
     ...(input.creatureFormExtensions ?? []).map(extension => extension.spellId)
   ]);
   const conditionIds = uniqueIds(input.conditionalConditionImmunities ?? []);
@@ -157,6 +158,13 @@ export async function assertTraitCatalogRefs(input: {
       const spell = spellsById.get(grant.spellId);
       if (spell?.level === 0 && grant.slotLevel !== "spellLevel") {
         throw new AppError("Los trucos innatos deben usar slotLevel spellLevel", 400);
+      }
+    }
+
+    for (const grant of input.grantedSpells ?? []) {
+      if (!grant.ritualOnly) continue;
+      if (spellsById.get(grant.spellId)?.ritual !== true) {
+        throw new AppError("El conjuro debe ser un ritual", 400);
       }
     }
 

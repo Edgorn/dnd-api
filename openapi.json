@@ -207,9 +207,9 @@
           "grantedSpells": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Spell"
+              "$ref": "#/components/schemas/TraitGrantedSpell"
             },
-            "description": "Conjuros extra fijos (p. ej. Pacto de la Cadena: encontrar familiar). No cuentan como conocidos. En GET van hidratados. En POST/PUT envíe IDs.\n"
+            "description": "Conjuros extra fijos (p. ej. Pacto de la Cadena: encontrar familiar). No cuentan como conocidos. En GET van hidratados. ritualOnly marca que solo se lanzan como ritual (p. ej. Buscador de Espíritus).\n"
           },
           "creatureFormExtensions": {
             "type": "array",
@@ -1403,6 +1403,44 @@
           }
         }
       },
+      "TraitGrantedSpellInput": {
+        "type": "object",
+        "required": [
+          "spellId"
+        ],
+        "properties": {
+          "spellId": {
+            "type": "string",
+            "description": "ID de MongoDB del conjuro extra."
+          },
+          "ritualOnly": {
+            "type": "boolean",
+            "default": false,
+            "description": "Si es true, el conjuro solo se lanza como ritual. El conjuro debe tener ritual true. Si se omite, es false.\n"
+          }
+        }
+      },
+      "TraitGrantedSpell": {
+        "type": "object",
+        "required": [
+          "spellId",
+          "ritualOnly"
+        ],
+        "properties": {
+          "spellId": {
+            "type": "string",
+            "description": "ID de MongoDB del conjuro extra."
+          },
+          "ritualOnly": {
+            "type": "boolean",
+            "description": "True si el rasgo solo permite lanzarlo como ritual."
+          },
+          "spell": {
+            "$ref": "#/components/schemas/Spell",
+            "description": "Conjuro hidratado. Solo aparece en las respuestas GET."
+          }
+        }
+      },
       "TraitCreatureFormExtension": {
         "type": "object",
         "required": [
@@ -1729,9 +1767,9 @@
             "type": "array",
             "minItems": 1,
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/TraitGrantedSpellInput"
             },
-            "description": "IDs de conjuros extra. No cuentan como conocidos. IDs únicos. null borra el campo.\n"
+            "description": "Conjuros extra. IDs únicos. El conjuro con ritualOnly true debe ser un ritual. null borra el campo.\n"
           },
           "creatureFormExtensions": {
             "nullable": true,
@@ -2066,9 +2104,9 @@
             "type": "array",
             "minItems": 1,
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/TraitGrantedSpellInput"
             },
-            "description": "IDs de conjuros extra. null borra el campo."
+            "description": "Conjuros extra. IDs únicos. null borra el campo."
           },
           "creatureFormExtensions": {
             "nullable": true,
@@ -5447,6 +5485,13 @@
               "$ref": "#/components/schemas/Spell"
             },
             "description": "Conjuros que cuentan como de esa clase pero no suman al total conocido (p. ej. Secretos Mágicos). Ya van incluidos en list.\n"
+          },
+          "ritualOnlyExtraIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de extra que el rasgo solo concede como ritual. No se marcan si el mismo conjuro está en conocidos, extras persistidos u otra fuente con ranura. El cliente no debe ofrecer gastar ranura para ellos.\n"
           },
           "prepared": {
             "type": "array",
@@ -15219,7 +15264,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skill_choices`.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spell_changes.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spell_choices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skill_choices`.\n`optionChoices` de la raíz son grupos de opciones de este nivel de clase o de una subclase\nya asignada. Si aún debe elegir subclase, las elecciones de cada opción van hidratadas\n(`PendingOptionChoice`: groupName, options con available/unmet, selected) en\n`subclassChoice.options[].levels[].optionChoices`.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spell_changes.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spell_choices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
         "tags": [
           "Personajes"
         ],
@@ -15315,7 +15360,7 @@
                     "subclassChoice": {
                       "type": "object",
                       "nullable": true,
-                      "description": "Menú de subclases si el personaje debe elegir en este nivel. Incluye name, description, level y options hidratadas. Nulo si ya tiene subclase o aún no toca elegir.\n",
+                      "description": "Menú de subclases si el personaje debe elegir en este nivel. Incluye name, description, level y options hidratadas. En cada opción, `levels[].optionChoices` es `PendingOptionChoice` (opciones del grupo, no solo groupId). Nulo si ya tiene subclase o aún no toca elegir.\n",
                       "properties": {
                         "name": {
                           "type": "string"
@@ -15364,7 +15409,7 @@
                     },
                     "optionChoices": {
                       "type": "array",
-                      "description": "Elecciones de grupos de opciones de este nivel (p. ej. invocaciones). choose es cuántas hay que añadir. replace es cuántas se pueden cambiar (incluye `optionReplacements` de la clase o subclase si el personaje ya tiene opciones de ese grupo). options marca available/unmet según requisitos. selected son las ya elegidas.\n",
+                      "description": "Elecciones de grupos de opciones de este nivel (p. ej. invocaciones) de la clase o de una subclase ya asignada. Omitido si aún debe elegir subclase: entonces van en `subclassChoice.options[].levels[].optionChoices`. choose es cuántas hay que añadir. replace es cuántas se pueden cambiar (incluye `optionReplacements` de la clase o subclase si el personaje ya tiene opciones de ese grupo). options marca available/unmet según requisitos. selected son las ya elegidas.\n",
                       "items": {
                         "$ref": "#/components/schemas/PendingOptionChoice"
                       }
@@ -15445,7 +15490,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\n`skillPicks` cubre el dip y las `skill_choices` del nivel (clase o subclase, incluida la\nenviada en `subclass` en el mismo POST). `proficiencyPicks` solo aplica al tomar una clase nueva.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`.\nSi el GET devolvió `spell_changes`, el body puede incluir `spellReplacements` (0..`choose`\npares `{ from, to }`). Es opcional: omitir o enviar vacío no sustituye. `from` debe estar\nen `spell_changes.from`; `to` en `spell_changes.to` y no puede ser un conjuro ya conocido\nni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se\nquita `from` de `preparedSpells` de esa clase si estaba preparado.\nAplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje.\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nLa dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\nSi el GET devolvió `optionChoices`, el body debe incluir `optionPicks` con un elemento por\ngrupo: `add` tiene longitud `choose` y `replace` como máximo `replace` (el `replace` del\nGET ya incluye `optionReplacements` de clase o subclase). Cada id debe\npertenecer al grupo, cumplir requisitos y no estar ya elegida salvo que sea repetible.\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\n`skillPicks` cubre el dip y las `skill_choices` del nivel (clase o subclase, incluida la\nenviada en `subclass` en el mismo POST). `proficiencyPicks` solo aplica al tomar una clase nueva.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`.\nSi el GET devolvió `spell_changes`, el body puede incluir `spellReplacements` (0..`choose`\npares `{ from, to }`). Es opcional: omitir o enviar vacío no sustituye. `from` debe estar\nen `spell_changes.from`; `to` en `spell_changes.to` y no puede ser un conjuro ya conocido\nni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se\nquita `from` de `preparedSpells` de esa clase si estaba preparado.\nAplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje.\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nLa dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\nSi el GET devolvió `optionChoices` en la raíz, o la subclase enviada tiene `optionChoices`\nen este nivel (`subclassChoice.options[].levels[]`), el body debe incluir `optionPicks`\ncon un elemento por grupo: `add` tiene longitud `choose` y `replace` como máximo `replace`\n(el `replace` del GET ya incluye `optionReplacements` de clase o subclase). Cada id debe\npertenecer al grupo, cumplir requisitos y no estar ya elegida salvo que sea repetible.\n",
         "tags": [
           "Personajes"
         ],
@@ -15519,7 +15564,7 @@
                   },
                   "optionPicks": {
                     "type": "array",
-                    "description": "Elecciones de grupos de opciones alineadas con `optionChoices` del GET. `add` tiene la misma longitud que `choose`. `replace` es opcional (0..replace).\n",
+                    "description": "Elecciones de grupos de opciones alineadas con `optionChoices` del GET (raíz o `levels[].optionChoices` de la subclase enviada en `subclass`). `add` tiene la misma longitud que `choose`. `replace` es opcional (0..replace).\n",
                     "items": {
                       "type": "object",
                       "required": [

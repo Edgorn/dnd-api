@@ -753,12 +753,52 @@ describe("Trait Use Cases armor type suppression", () => {
 
       await createUseCase().execute({
         ...baseTrait,
-        grantedSpells: [findFamiliarId]
+        grantedSpells: [{ spellId: findFamiliarId, ritualOnly: false }]
       }, "user1");
 
       expect(traitServiceMock.create).toHaveBeenCalledWith(
-        expect.objectContaining({ grantedSpells: [findFamiliarId] })
+        expect.objectContaining({
+          grantedSpells: [{ spellId: findFamiliarId, ritualOnly: false }]
+        })
       );
+    });
+
+    it("persists ritual-only granted spells", async () => {
+      spellServiceMock.getById.mockResolvedValue({
+        id: findFamiliarId,
+        ruleset: "sys1",
+        level: 1,
+        ritual: true
+      });
+
+      await createUseCase().execute({
+        ...baseTrait,
+        grantedSpells: [{ spellId: findFamiliarId, ritualOnly: true }]
+      }, "user1");
+
+      expect(traitServiceMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          grantedSpells: [{ spellId: findFamiliarId, ritualOnly: true }]
+        })
+      );
+    });
+
+    it("rejects ritual-only grants when the spell is not a ritual", async () => {
+      spellServiceMock.getById.mockResolvedValue({
+        id: findFamiliarId,
+        ruleset: "sys1",
+        level: 1,
+        ritual: false
+      });
+
+      await expect(createUseCase().execute({
+        ...baseTrait,
+        grantedSpells: [{ spellId: findFamiliarId, ritualOnly: true }]
+      }, "user1")).rejects.toMatchObject({
+        message: "El conjuro debe ser un ritual",
+        statusCode: 400
+      });
+      expect(traitServiceMock.create).not.toHaveBeenCalled();
     });
 
     it("rejects an extension whose spell has no creatureForm", async () => {

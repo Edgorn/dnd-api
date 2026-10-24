@@ -1,26 +1,15 @@
-import { collectClassGrantedTraitIds, TraitLevelRow } from "./traitHitPoints";
+import { collectClassGrantedTraitIds } from "./traitHitPoints";
 import type { CharacterClassLevelEntry, ClassCatalogForTraits, SubclassCatalogForTraits } from "./traitProgression";
+import type { TraitGrantedSpell } from "../domain/types/traits.types";
 
 export interface GrantedSpellTrait {
   id: string;
-  grantedSpells?: Array<string | { id?: string }>;
+  grantedSpells?: TraitGrantedSpell[];
 }
 
 export interface GrantedSpellOptionSelection {
   traitId: string;
   classId: string;
-}
-
-function grantedSpellIds(trait: GrantedSpellTrait): string[] {
-  return (trait.grantedSpells ?? [])
-    .map(entry => (typeof entry === "string" ? entry : entry.id))
-    .filter((id): id is string => typeof id === "string" && id.length > 0);
-}
-
-function addSpell(target: Record<string, string[]>, classId: string, spellId: string): void {
-  const current = target[classId] ?? [];
-  if (current.includes(spellId)) return;
-  target[classId] = [...current, spellId];
 }
 
 function classIdsGrantingTrait(
@@ -53,19 +42,19 @@ function classIdsGrantingTrait(
   return [...fromLevels];
 }
 
-export function grantedExtraSpellIdsByClass(input: {
+function collectGrantedExtrasByClass(input: {
   traits: GrantedSpellTrait[];
   optionSelections?: GrantedSpellOptionSelection[];
   classes: CharacterClassLevelEntry[];
   classCatalogs: ClassCatalogForTraits[];
   subclasses: SubclassCatalogForTraits[];
-}): Record<string, string[]> {
-  const result: Record<string, string[]> = {};
+}): Record<string, Map<string, boolean>> {
+  const result: Record<string, Map<string, boolean>> = {};
   const selections = input.optionSelections ?? [];
 
   for (const trait of input.traits) {
-    const spellIds = grantedSpellIds(trait);
-    if (!spellIds.length) continue;
+    const grants = trait.grantedSpells ?? [];
+    if (!grants.length) continue;
 
     const classIds = classIdsGrantingTrait(
       trait.id,
@@ -76,13 +65,60 @@ export function grantedExtraSpellIdsByClass(input: {
     );
     const targets = classIds.length ? classIds : ["race"];
     for (const classId of targets) {
-      for (const spellId of spellIds) {
-        addSpell(result, classId, spellId);
+      const map = result[classId] ?? new Map<string, boolean>();
+      for (const grant of grants) {
+        const current = map.get(grant.spellId);
+        map.set(grant.spellId, current === undefined ? grant.ritualOnly : current && grant.ritualOnly);
       }
+      result[classId] = map;
     }
   }
 
   return result;
+}
+
+export function grantedExtraSpellIdsByClass(input: {
+  traits: GrantedSpellTrait[];
+  optionSelections?: GrantedSpellOptionSelection[];
+  classes: CharacterClassLevelEntry[];
+  classCatalogs: ClassCatalogForTraits[];
+  subclasses: SubclassCatalogForTraits[];
+}): Record<string, string[]> {
+  const collected = collectGrantedExtrasByClass(input);
+  const result: Record<string, string[]> = {};
+  for (const [classId, map] of Object.entries(collected)) {
+    result[classId] = [...map.keys()];
+  }
+  return result;
+}
+
+export function ritualOnlyGrantedExtraIdsByClass(input: {
+  traits: GrantedSpellTrait[];
+  optionSelections?: GrantedSpellOptionSelection[];
+  classes: CharacterClassLevelEntry[];
+  classCatalogs: ClassCatalogForTraits[];
+  subclasses: SubclassCatalogForTraits[];
+}): Record<string, string[]> {
+  const collected = collectGrantedExtrasByClass(input);
+  const result: Record<string, string[]> = {};
+  for (const [classId, map] of Object.entries(collected)) {
+    const ids = [...map.entries()]
+      .filter(([, ritualOnly]) => ritualOnly)
+      .map(([spellId]) => spellId);
+    if (ids.length) result[classId] = ids;
+  }
+  return result;
+}
+
+export function ritualOnlyExtraSpellIds(params: {
+  extraIds: string[];
+  persistedExtraIds: string[];
+  otherDerivedExtraIds: string[];
+  ritualOnlyFromTraits: string[];
+}): string[] {
+  const blocked = new Set([...params.persistedExtraIds, ...params.otherDerivedExtraIds]);
+  const ritual = new Set(params.ritualOnlyFromTraits);
+  return params.extraIds.filter(id => ritual.has(id) && !blocked.has(id));
 }
 
 export function mergeExtraSpellIds(

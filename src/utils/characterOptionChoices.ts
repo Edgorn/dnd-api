@@ -115,6 +115,36 @@ export function buildPendingOptionChoices(params: {
   });
 }
 
+export function subclassMenuOptionChoiceGroupIds(
+  options: Array<{ levels: Array<{ optionChoices?: OptionChoiceMongo[] }> }>
+): string[] {
+  const ids = new Set<string>();
+  for (const option of options) {
+    for (const level of option.levels) {
+      for (const choice of level.optionChoices ?? []) {
+        ids.add(choice.groupId);
+      }
+    }
+  }
+  return [...ids];
+}
+
+export function mapSubclassMenuOptionChoices<
+  TLevel extends { optionChoices?: OptionChoiceMongo[] },
+  TOption extends { levels: TLevel[] }
+>(
+  options: TOption[],
+  hydrate: (configs: OptionChoiceMongo[]) => PendingOptionChoice[]
+): TOption[] {
+  return options.map(option => ({
+    ...option,
+    levels: option.levels.map(level => {
+      if (!level.optionChoices?.length) return level;
+      return { ...level, optionChoices: hydrate(level.optionChoices) };
+    })
+  }));
+}
+
 function applyOptionPicks(
   selections: CharacterOptionSelection[],
   picks: LevelUpOptionPick[],

@@ -546,7 +546,13 @@ export interface PersonajeApi {
   money: ({
     quantity: number;
   } & CoinApi)[],
-  spells: Record<string, { list: SpellApi[]; extra?: SpellApi[]; prepared?: SpellApi[]; type?: AttributeApi }>,
+  spells: Record<string, {
+    list: SpellApi[];
+    extra?: SpellApi[];
+    prepared?: SpellApi[];
+    type?: AttributeApi;
+    ritualOnlyExtraIds?: string[];
+  }>,
   maxCarryingCapacity: number,
   spellcasting?: SpellcastingLevel[],
   optionSelections?: CharacterOptionSelectionApi[],

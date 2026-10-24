@@ -13,7 +13,7 @@ import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepo
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, SpellPrivilegeRule, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUniqueEquipmentGrant, TraitUniqueEquipmentGrantApi, TraitWeaponBond, TraitRecoverSpellSlots, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_SPELL_SLOT_RECOVER_SCOPES, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
+import { CreateTrait, SpellPrivilegeRule, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitGrantedSpell, TraitGrantedSpellApi, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUniqueEquipmentGrant, TraitUniqueEquipmentGrantApi, TraitWeaponBond, TraitRecoverSpellSlots, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_SPELL_SLOT_RECOVER_SCOPES, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
 import { SPELL_SLOT_POOLS } from "../../../../domain/types/system.types";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
@@ -486,7 +486,9 @@ export default class TraitRepository implements ITraitRepository {
 
   private grantedSpellIds(trait: TraitMongo): string[] {
     if (!Array.isArray(trait.grantedSpells)) return [];
-    return trait.grantedSpells.filter((id): id is string => typeof id === "string" && id.length > 0);
+    return trait.grantedSpells
+      .map(grant => grant.spellId)
+      .filter((id): id is string => typeof id === "string" && id.length > 0);
   }
 
   private extensionSpellIds(trait: TraitMongo): string[] {
@@ -521,14 +523,16 @@ export default class TraitRepository implements ITraitRepository {
   }
 
   private formatGrantedSpells(
-    grantedSpells: string[] | undefined,
+    grantedSpells: TraitGrantedSpell[] | undefined,
     spellMap: Map<string, SpellApi>
-  ): { grantedSpells: SpellApi[] } | Record<string, never> {
+  ): { grantedSpells: TraitGrantedSpellApi[] } | Record<string, never> {
     if (!Array.isArray(grantedSpells) || !grantedSpells.length) return {};
-    const spells = grantedSpells
-      .map(id => spellMap.get(id))
-      .filter((item): item is SpellApi => Boolean(item));
-    return spells.length ? { grantedSpells: spells } : {};
+    const grants = grantedSpells.flatMap(grant => {
+      const spell = spellMap.get(grant.spellId);
+      if (!spell) return [];
+      return [{ spellId: grant.spellId, ritualOnly: grant.ritualOnly, spell }];
+    });
+    return grants.length ? { grantedSpells: grants } : {};
   }
 
   private formatCreatureFormExtensions(
