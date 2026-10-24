@@ -239,6 +239,7 @@ export default class SystemRepository implements ISystemRepository {
       xpProgression: data.xpProgression,
       proficiencyProgression: data.proficiencyProgression,
       abilityScoreProgression: data.abilityScoreProgression,
+      abilityScoreAlternativeGroupId: data.abilityScoreAlternativeGroupId,
       hpInitialFormula: data.hpInitialFormula,
       hpLevelUpFormula: data.hpLevelUpFormula,
       baseAcFormula: data.baseAcFormula,
@@ -276,6 +277,7 @@ export default class SystemRepository implements ISystemRepository {
       xpProgression,
       proficiencyProgression,
       abilityScoreProgression,
+      abilityScoreAlternativeGroupId,
       hpInitialFormula,
       hpLevelUpFormula,
       baseAcFormula,
@@ -307,6 +309,9 @@ export default class SystemRepository implements ISystemRepository {
     if (xpProgression !== undefined) updateFields.xpProgression = xpProgression;
     if (proficiencyProgression !== undefined) updateFields.proficiencyProgression = proficiencyProgression;
     if (abilityScoreProgression !== undefined) updateFields.abilityScoreProgression = abilityScoreProgression;
+    if (abilityScoreAlternativeGroupId !== undefined) {
+      updateFields.abilityScoreAlternativeGroupId = abilityScoreAlternativeGroupId;
+    }
     if (hpInitialFormula !== undefined) updateFields.hpInitialFormula = hpInitialFormula;
     if (hpLevelUpFormula !== undefined) updateFields.hpLevelUpFormula = hpLevelUpFormula;
     if (baseAcFormula !== undefined) updateFields.baseAcFormula = baseAcFormula;

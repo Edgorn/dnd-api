@@ -536,6 +536,35 @@ describe("CharacterClassSchema abilityScoreProgression", () => {
   });
 });
 
+describe("CharacterClassSchema abilityScoreAlternativeGroupId", () => {
+  const groupId = "507f1f77bcf86cd799439011";
+
+  it("accepts an ObjectId on create", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Guerrero",
+      abilityScoreAlternativeGroupId: groupId
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid id on create", () => {
+    const result = CreateCharacterClassSchema.safeParse({
+      ruleset: "sys1",
+      name: "Guerrero",
+      abilityScoreAlternativeGroupId: "feats"
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts null on update to disable the alternative", () => {
+    const result = UpdateCharacterClassSchema.safeParse({
+      abilityScoreAlternativeGroupId: null
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("CreateCharacterClassSchema proficiencies_choices", () => {
   const proficiencyId = "507f1f77bcf86cd799439011";
 

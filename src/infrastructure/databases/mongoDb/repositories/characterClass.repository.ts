@@ -1,7 +1,6 @@
 import ICharacterClassRepository from '../../../../domain/repositories/ICharacterClassRepository';
 import IProficiencyRepository from '../../../../domain/repositories/IProficiencyRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
-import IFeatRepository from '../../../../domain/repositories/IFeatRepository';
 import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
 import SkillService from '../../../../domain/services/skill.service';
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
@@ -30,9 +29,8 @@ import {
   SpellcastingLevelSource,
   SubclassChoiceMenuApi
 } from '../../../../domain/types/characterClass.types';
-import { FeatRequirements, FeatRequirementsCreate } from '../../../../domain/types/feat.types';
+import { AttributeRequirements, AttributeRequirementsCreate } from '../../../../domain/types/attributeRequirement.types';
 import { ChoiceSpell } from '../../../../domain/types/spell.types';
-import { FeatApi } from '../../../../domain/types/feat.types';
 import { EquipmentApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from '../../../../domain/types/equipment.types';
 import { AttributeApi } from '../../../../domain/types/attribute.types';
 import { TraitApi, TraitDataMongo } from '../../../../domain/types/traits.types';
@@ -51,6 +49,7 @@ import {
 } from '../../../../utils/characterSpellcasting';
 import {
   hasAbilityScoreAtLevel,
+  resolveAbilityScoreAlternativeGroupId,
   resolveAbilityScoreProgression
 } from '../../../../utils/abilityScoreProgression';
 import { mergeSkillChoices, mergeSkillProficiencyChoices } from '../../../../utils/characterMulticlass';
@@ -66,7 +65,6 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     private readonly equipmentRepository?: IEquipmentRepository,
     private readonly traitRepository?: ITraitRepository,
     private readonly spellRepository?: ISpellRepository,
-    private readonly featRepository?: IFeatRepository,
     private readonly languageRepository?: ILanguageRepository,
     private readonly attributeService?: AttributeService,
     private readonly subclassRepository?: ISubclassRepository
@@ -181,6 +179,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       spellReplacement: data.spellReplacement ?? undefined,
       optionReplacements: data.optionReplacements ?? undefined,
       abilityScoreProgression: data.abilityScoreProgression ?? undefined,
+      abilityScoreAlternativeGroupId: data.abilityScoreAlternativeGroupId ?? undefined,
       subclassChoice: data.subclassChoice ?? undefined,
       god: data.god ?? false,
       levels: this.mapLevelsForCreate(data.levels)
@@ -227,6 +226,10 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     if (updateFields.abilityScoreProgression === null) {
       (updateFields as Record<string, unknown>).abilityScoreProgression = null;
+    }
+
+    if (updateFields.abilityScoreAlternativeGroupId === null) {
+      (updateFields as Record<string, unknown>).abilityScoreAlternativeGroupId = null;
     }
 
     const unsetFields: Record<string, 1> = {};
@@ -540,6 +543,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       ...(Array.isArray(characterClass.abilityScoreProgression)
         ? { abilityScoreProgression: characterClass.abilityScoreProgression }
         : {}),
+      ...(characterClass.abilityScoreAlternativeGroupId !== undefined
+        ? { abilityScoreAlternativeGroupId: characterClass.abilityScoreAlternativeGroupId || null }
+        : {}),
       ...(characterClass.subclassChoice ? { subclassChoice: characterClass.subclassChoice } : {}),
       levels: this.toSlimLevels(characterClass.levels ?? []),
       proficiencies,
@@ -614,9 +620,9 @@ export default class CharacterClassRepository implements ICharacterClassReposito
   }
 
   private async formatMulticlassRequirements(
-    requirements: FeatRequirementsCreate | null | undefined,
+    requirements: AttributeRequirementsCreate | null | undefined,
     ruleset: string
-  ): Promise<FeatRequirements> {
+  ): Promise<AttributeRequirements> {
     const rawAttributes = Array.isArray(requirements?.attributes) ? requirements.attributes : [];
     const attributes = ruleset && this.attributeService
       ? await this.attributeService.getBySystems([ruleset])
@@ -728,14 +734,14 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     characterClass: CharacterClassMongo,
     level: number,
     legacyFlag?: boolean
-  ): Promise<{ ability_score?: boolean; feats?: ChoiceApi<FeatApi> }> {
+  ): Promise<{ ability_score?: boolean; abilityScoreAlternativeGroupId?: string }> {
     const ruleset = characterClass.ruleset;
-    const systemDefault = ruleset
-      ? (await this.systemRepository.getMergedRulesConfig([ruleset])).abilityScoreProgression
+    const rulesConfig = ruleset
+      ? await this.systemRepository.getMergedRulesConfig([ruleset])
       : undefined;
     const resolved = resolveAbilityScoreProgression(
       characterClass.abilityScoreProgression,
-      systemDefault
+      rulesConfig?.abilityScoreProgression
     );
     const ability_score = hasAbilityScoreAtLevel(level, resolved, legacyFlag);
 
@@ -743,11 +749,15 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       return { ability_score: false };
     }
 
-    const feats = this.featRepository
-      ? await this.featRepository.formatFeatChoices(1, ruleset)
-      : undefined;
+    const abilityScoreAlternativeGroupId = resolveAbilityScoreAlternativeGroupId(
+      characterClass.abilityScoreAlternativeGroupId,
+      rulesConfig?.abilityScoreAlternativeGroupId
+    );
 
-    return { ability_score: true, feats };
+    return {
+      ability_score: true,
+      ...(abilityScoreAlternativeGroupId ? { abilityScoreAlternativeGroupId } : {})
+    };
   }
 
   private mapLevelsForCreate(levels?: CharacterClassLevelInput[]): CharacterClassLevelMongo[] {

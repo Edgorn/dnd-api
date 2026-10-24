@@ -46,6 +46,7 @@ const characterClassSchema: Schema = new Schema<CharacterClassMongo>({
   spellReplacement: { type: Schema.Types.Mixed, default: undefined },
   optionReplacements: { type: Schema.Types.Mixed, default: undefined },
   abilityScoreProgression: { type: [Number], default: undefined },
+  abilityScoreAlternativeGroupId: { type: String, default: undefined },
   subclassChoice: { type: Schema.Types.Mixed, default: undefined },
   god: { type: Boolean, default: false }
 }, { collection: 'character_classes', timestamps: true });

@@ -5,9 +5,7 @@ const variantSchema = new Schema<VariantMongo>({
   name: String,
   ability_bonuses: [],
   skill_choices: Schema.Types.Mixed,
-  ability_bonus_choices: Schema.Types.Mixed,
-  feats: Number,
-  dotes: Number
+  ability_bonus_choices: Schema.Types.Mixed
 });
 
 const raceSchema: Schema = new Schema<RaceMongo>({

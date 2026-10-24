@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { FeatRequirements } from "../domain/types/feat.types";
+import { AttributeRequirements } from "../domain/types/attributeRequirement.types";
 import {
   characterMeetsAllClassRequirements,
   excludeOwnedChoiceOptions,
@@ -12,12 +12,12 @@ import {
   validateChoicePicks
 } from "./characterMulticlass";
 
-const str13: FeatRequirements = {
+const str13: AttributeRequirements = {
   attributeMode: "all",
   attributes: [{ key: "str", name: "Fuerza", min: 13 }]
 };
 
-const dex13: FeatRequirements = {
+const dex13: AttributeRequirements = {
   attributeMode: "all",
   attributes: [{ key: "dex", name: "Destreza", min: 13 }]
 };

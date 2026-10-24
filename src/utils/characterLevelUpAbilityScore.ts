@@ -1,6 +1,3 @@
-import { ChoiceApi } from "../domain/types";
-import { FeatApi } from "../domain/types/feat.types";
-
 export const ABILITY_SCORE_POINTS = 2;
 
 export interface AbilityScoreIncrease {
@@ -16,54 +13,7 @@ export interface CharacterAttributeValue {
 export type LevelUpAbilityScoreResult =
   | { kind: "none" }
   | { kind: "increases"; increases: AbilityScoreIncrease[] }
-  | { kind: "feat"; featId: string };
-
-export function getOwnedFeatIds(personaje: {
-  feats?: string[];
-  dotes?: string[];
-}): string[] {
-  const feats = Array.isArray(personaje.feats) ? personaje.feats : [];
-  const dotes = Array.isArray(personaje.dotes) ? personaje.dotes : [];
-  return [...new Set([...feats, ...dotes].filter((id): id is string => Boolean(id)))];
-}
-
-export function meetsAttributeRequirements(
-  requirements: { attributeMode?: "all" | "any"; attributes?: { key: string; min: number }[] } | undefined,
-  attributes: CharacterAttributeValue[]
-): boolean {
-  const requiredAttributes = requirements?.attributes ?? [];
-  if (requiredAttributes.length === 0) return true;
-
-  const values = new Map(attributes.map(attribute => [attribute.key, attribute.value]));
-  const checks = requiredAttributes.map(requirement => (values.get(requirement.key) ?? 0) >= requirement.min);
-
-  if (requirements?.attributeMode === "any") {
-    return checks.some(Boolean);
-  }
-
-  return checks.every(Boolean);
-}
-
-export function featMeetsRequirements(
-  feat: FeatApi,
-  attributes: CharacterAttributeValue[]
-): boolean {
-  return meetsAttributeRequirements(feat.requirements, attributes);
-}
-
-export function filterLevelUpFeatChoices(
-  feats: ChoiceApi<FeatApi> | undefined,
-  ownedFeatIds: Iterable<string>,
-  attributes: CharacterAttributeValue[]
-): ChoiceApi<FeatApi> | undefined {
-  if (!feats) return undefined;
-
-  const owned = new Set(ownedFeatIds);
-  return {
-    ...feats,
-    options: feats.options.filter(feat => !owned.has(feat.id) && featMeetsRequirements(feat, attributes))
-  };
-}
+  | { kind: "option"; optionId: string };
 
 export function applyAbilityScoreIncreases(
   attributes: CharacterAttributeValue[],
@@ -81,48 +31,51 @@ export function applyAbilityScoreIncreases(
 
 export function validateLevelUpAbilityScorePick(params: {
   abilityScoreGranted: boolean;
+  alternativeOffered?: boolean;
   increases?: AbilityScoreIncrease[];
-  featId?: string;
+  optionId?: string;
   attributes: CharacterAttributeValue[];
-  availableFeatIds: Iterable<string>;
   maxAttributeValue?: number;
   bonusByKey?: Record<string, number>;
   maxByKey?: Record<string, number>;
 }): { error: string } | LevelUpAbilityScoreResult {
   const {
     abilityScoreGranted,
+    alternativeOffered = false,
     increases,
-    featId,
+    optionId,
     attributes,
-    availableFeatIds,
     maxAttributeValue,
     bonusByKey,
     maxByKey
   } = params;
   const hasIncreases = Boolean(increases && increases.length > 0);
-  const hasFeat = Boolean(featId);
+  const hasOption = Boolean(optionId);
 
   if (!abilityScoreGranted) {
-    if (hasIncreases || hasFeat) {
-      return { error: "Este nivel no ofrece mejora de característica ni dote" };
+    if (hasIncreases || hasOption) {
+      return { error: "Este nivel no ofrece mejora de característica ni alternativa" };
     }
     return { kind: "none" };
   }
 
-  if (hasIncreases && hasFeat) {
-    return { error: "Debe elegir mejora de característica o dote, no ambas" };
+  if (hasIncreases && hasOption) {
+    return { error: "Debe elegir mejora de característica o una opción, no ambas" };
   }
 
-  if (!hasIncreases && !hasFeat) {
-    return { error: "Debe enviar abilityScore o feat en un nivel con mejora de característica" };
+  if (!hasIncreases && !hasOption) {
+    return {
+      error: alternativeOffered
+        ? "Debe enviar abilityScore o abilityScoreOption en un nivel con mejora de característica"
+        : "Debe enviar abilityScore en un nivel con mejora de característica"
+    };
   }
 
-  if (featId) {
-    const available = new Set(availableFeatIds);
-    if (!available.has(featId)) {
-      return { error: `La dote ${featId} no está entre las opciones disponibles` };
+  if (optionId) {
+    if (!alternativeOffered) {
+      return { error: "Este nivel no ofrece una alternativa a la mejora de característica" };
     }
-    return { kind: "feat", featId };
+    return { kind: "option", optionId };
   }
 
   return validateAbilityScoreIncreases(

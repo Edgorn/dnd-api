@@ -1,4 +1,5 @@
 import ISystemRepository from "../repositories/ISystemRepository";
+import OptionGroupService from "./optionGroup.service";
 import {
   System,
   SystemKind,
@@ -29,7 +30,10 @@ type HierarchyInput = {
 };
 
 export default class SystemService {
-  constructor(private readonly systemRepository: ISystemRepository) {}
+  constructor(
+    private readonly systemRepository: ISystemRepository,
+    private readonly optionGroupService?: OptionGroupService
+  ) {}
 
   getByUserId(userId: string, accessibleSystemIds: string[], kind?: SystemKind): Promise<System[]> {
     return this.systemRepository.getByUserId(userId, accessibleSystemIds, kind);
@@ -54,6 +58,7 @@ export default class SystemService {
       publisher: normalized.publisher,
       rulesSource: normalized as unknown as Record<string, unknown>,
     });
+    await this.assertAbilityScoreAlternativeGroup(normalized.abilityScoreAlternativeGroupId, parentIds);
 
     return this.systemRepository.create(normalized);
   }
@@ -91,6 +96,8 @@ export default class SystemService {
     if (hierarchyChanged) {
       await this.revalidateDescendants(data.id, { parentIds, isBase });
     }
+
+    await this.assertAbilityScoreAlternativeGroup(data.abilityScoreAlternativeGroupId, [data.id]);
 
     return this.systemRepository.update({ ...data, kind, isBase, parentIds });
   }
@@ -378,6 +385,23 @@ export default class SystemService {
 
     if (childKind === "ruleset" && parentKind !== "ruleset") {
       throw new AppError("Un ruleset solo puede tener como padre otro ruleset", 400);
+    }
+  }
+
+  private async assertAbilityScoreAlternativeGroup(
+    groupId: string | null | undefined,
+    rulesets: string[]
+  ): Promise<void> {
+    if (!groupId || !this.optionGroupService) return;
+
+    const group = await this.optionGroupService.getById(groupId);
+    if (!group) {
+      throw new AppError("Grupo de opciones no encontrado", 404);
+    }
+
+    const catalog = await this.optionGroupService.getBySystems(rulesets);
+    if (!catalog.some(item => item.id === groupId)) {
+      throw new AppError("El grupo de opciones no pertenece a este sistema ni a sus ancestros", 400);
     }
   }
 }

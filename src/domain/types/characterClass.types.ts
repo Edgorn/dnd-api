@@ -6,7 +6,7 @@ import {
   SpellChoiceApi,
   SpellChoiceMongo
 } from "./classLevelChoices.types"
-import { FeatApi, FeatRequirements, FeatRequirementsCreate } from "./feat.types"
+import { AttributeRequirements, AttributeRequirementsCreate } from "./attributeRequirement.types"
 import { EquipmentInstanceApi, CharacterEquipmentMongo, EquipmentChoiceMongo, EquipmentCost, ResolvedEquipmentChoiceApi } from "./equipment.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi } from "./language.types"
@@ -119,14 +119,14 @@ export interface CharacterClassLevelInput {
 }
 
 export interface CharacterClassMulticlassCreate {
-  requirements?: FeatRequirementsCreate;
+  requirements?: AttributeRequirementsCreate;
   proficiencies?: string[];
   skill_choices?: ChoiceMongo | null;
   proficiencies_choices?: ChoiceMongo[] | null;
 }
 
 export interface CharacterClassMulticlassApi {
-  requirements?: FeatRequirements;
+  requirements?: AttributeRequirements;
   proficiencies: ProficiencyApi[];
   skill_choices?: ChoiceApi<SkillApi>;
   proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
@@ -155,6 +155,7 @@ export interface InputCreateCharacterClass {
   optionReplacements?: OptionReplacementConfig[] | null;
   levels?: CharacterClassLevelInput[];
   abilityScoreProgression?: number[] | null;
+  abilityScoreAlternativeGroupId?: string | null;
   subclassChoice?: SubclassChoiceConfig | null;
   god?: boolean;
 }
@@ -184,6 +185,7 @@ export interface InputUpdateCharacterClass {
   optionReplacements?: OptionReplacementConfig[] | null;
   levels?: CharacterClassLevelInput[];
   abilityScoreProgression?: number[] | null;
+  abilityScoreAlternativeGroupId?: string | null;
   subclassChoice?: SubclassChoiceConfig | null;
   god?: boolean;
 }
@@ -214,6 +216,7 @@ export interface CharacterClassMongo {
   optionReplacements?: OptionReplacementConfig[] | null;
   subclassChoice?: SubclassChoiceConfig | null;
   abilityScoreProgression?: number[] | null;
+  abilityScoreAlternativeGroupId?: string | null;
   god?: boolean;
 }
 
@@ -321,6 +324,7 @@ export interface CharacterClassApi {
   optionReplacements?: OptionReplacementConfig[];
   levels?: CharacterClassLevelInput[];
   abilityScoreProgression?: number[];
+  abilityScoreAlternativeGroupId?: string | null;
   subclassChoice?: SubclassChoiceConfig;
   subclasses?: SubclassApi[];
   god: boolean;
@@ -360,7 +364,7 @@ export interface CharacterClassCatalogItem {
   name: string;
   ruleset: string;
   multiclass?: {
-    requirements: FeatRequirements;
+    requirements: AttributeRequirements;
   };
 }
 
@@ -395,7 +399,7 @@ export interface ClaseLevelUp {
   traits: TraitApi[];
   traits_data: TraitDataMongo;
   ability_score?: boolean;
-  feats?: ChoiceApi<FeatApi>;
+  abilityScoreAlternativeGroupId?: string;
   subclassChoice?: SubclassChoiceMenuApi | null;
   spells?: SpellApi[];
   spell_choices?: SpellChoiceApi[];

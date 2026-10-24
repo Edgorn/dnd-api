@@ -6,7 +6,6 @@ import ILanguageRepository from "../../../../domain/repositories/ILanguageReposi
 import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import SkillService from "../../../../domain/services/skill.service";
 import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
-import IFeatRepository from "../../../../domain/repositories/IFeatRepository";
 import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
 import AttributeService from "../../../../domain/services/attribute.service";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
@@ -40,9 +39,6 @@ function stubFormatDependencies() {
     proficiencyRepository: {
       formatProficiencyChoices: vi.fn().mockResolvedValue(undefined),
     } as unknown as IProficiencyRepository,
-    featRepository: {
-      formatFeatChoices: vi.fn().mockResolvedValue(undefined),
-    } as unknown as IFeatRepository,
     traitRepository: {
       getTraitsByIndexes: vi.fn().mockResolvedValue([]),
     } as unknown as ITraitRepository,
@@ -72,7 +68,6 @@ describe("RaceRepository.getRaceRefsByIds", () => {
       deps.spellRepository,
       deps.skillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       deps.attributeService,
       deps.equipmentRepository,
@@ -137,7 +132,6 @@ describe("RaceRepository.getRaceRefsBySystems", () => {
       deps.spellRepository,
       deps.skillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       deps.attributeService,
       deps.equipmentRepository,
@@ -204,7 +198,6 @@ describe("RaceRepository.getLevelUpData", () => {
       deps.spellRepository,
       deps.skillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       deps.attributeService,
       deps.equipmentRepository,
@@ -266,7 +259,6 @@ describe("RaceRepository.countRootRacesByRulesets", () => {
       deps.spellRepository,
       deps.skillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       deps.attributeService,
       deps.equipmentRepository,
@@ -305,7 +297,6 @@ describe("RaceRepository.countRootRacesByRulesets", () => {
       deps.spellRepository,
       deps.skillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       deps.attributeService,
       deps.equipmentRepository,
@@ -337,7 +328,6 @@ describe("RaceRepository.getSummaries", () => {
       deps.spellRepository,
       { formatSkillChoices } as unknown as SkillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       {
         ...deps.attributeService,
@@ -415,7 +405,6 @@ describe("RaceRepository.getCatalog", () => {
       deps.spellRepository,
       deps.skillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       deps.attributeService,
       deps.equipmentRepository,
@@ -468,7 +457,6 @@ describe("RaceRepository.getById", () => {
       deps.spellRepository,
       deps.skillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       deps.attributeService,
       deps.equipmentRepository,
@@ -521,7 +509,6 @@ describe("RaceRepository.getSummarySubtree", () => {
       deps.spellRepository,
       deps.skillService,
       deps.proficiencyRepository,
-      deps.featRepository,
       deps.traitRepository,
       { ...deps.attributeService, getBySystems } as unknown as AttributeService,
       deps.equipmentRepository,

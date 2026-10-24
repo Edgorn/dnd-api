@@ -3,7 +3,6 @@ import IAttributeRepository from "../../../domain/repositories/IAttributeReposit
 import ISkillRepository from "../../../domain/repositories/ISkillRepository";
 import ILanguageRepository from "../../../domain/repositories/ILanguageRepository";
 import IMagicSchoolRepository from "../../../domain/repositories/IMagicSchoolRepository";
-import IFeatRepository from "../../../domain/repositories/IFeatRepository";
 import IEntityOverrideRepository from "../../../domain/repositories/IEntityOverrideRepository";
 import IArmorTypeRepository from "../../../domain/repositories/IArmorTypeRepository";
 import ICreatureTypeRepository from "../../../domain/repositories/ICreatureTypeRepository";
@@ -22,7 +21,6 @@ export default class CascadeSoftDeleteSystem {
     private readonly skillRepository: ISkillRepository,
     private readonly languageRepository: ILanguageRepository,
     private readonly magicSchoolRepository?: IMagicSchoolRepository,
-    private readonly featRepository?: IFeatRepository,
     private readonly entityOverrideRepository?: IEntityOverrideRepository,
     private readonly armorTypeRepository?: IArmorTypeRepository,
     private readonly creatureTypeRepository?: ICreatureTypeRepository,
@@ -98,10 +96,6 @@ export default class CascadeSoftDeleteSystem {
 
     if (this.magicSchoolRepository) {
       cascadePromises.push(this.magicSchoolRepository.softDeleteByRuleset(id, deletedAt));
-    }
-
-    if (this.featRepository) {
-      cascadePromises.push(this.featRepository.softDeleteByRuleset(id, deletedAt));
     }
 
     if (this.entityOverrideRepository) {

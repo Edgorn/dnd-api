@@ -18,6 +18,24 @@ export interface GroupOptionForChoice {
   repeatable?: boolean;
 }
 
+export function mergeAbilityScoreOptionPick(
+  configs: OptionChoiceMongo[],
+  picks: LevelUpOptionPick[] | undefined,
+  groupId: string,
+  optionId: string
+): { configs: OptionChoiceMongo[]; picks: LevelUpOptionPick[] } {
+  const nextConfigs = mergeOptionChoices(configs, [{ groupId, choose: 1 }]);
+  const nextPicks = [...(picks ?? [])];
+  const index = nextPicks.findIndex(pick => pick.groupId === groupId);
+  if (index >= 0) {
+    const current = nextPicks[index];
+    nextPicks[index] = { ...current, add: [...current.add, optionId] };
+  } else {
+    nextPicks.push({ groupId, add: [optionId] });
+  }
+  return { configs: nextConfigs, picks: nextPicks };
+}
+
 export function mergeOptionChoices(
   ...lists: (OptionChoiceMongo[] | undefined)[]
 ): OptionChoiceMongo[] {

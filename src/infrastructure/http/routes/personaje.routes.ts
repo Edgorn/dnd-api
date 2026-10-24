@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { personajeController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindWeaponBondSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, CopySpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/personaje.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindWeaponBondSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, CopySpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, PatchCharacterFlavorSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/personaje.schema";
 
 const router = Router();
 
@@ -877,10 +877,6 @@ const router = Router();
  *         wearingArmorWithoutProficiency:
  *           type: boolean
  *           description: True si el personaje lleva armadura o escudo equipado sin la competencia requerida.
- *         feats:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/Feat'
  *         money:
  *           type: array
  *           items:
@@ -941,7 +937,6 @@ const router = Router();
  *         - traits
  *         - traits_data
  *         - money
- *         - feats
  *         - hit_die
  *         - prof_bonus
  *       properties:
@@ -1053,11 +1048,6 @@ const router = Router();
  *                 description: ID de la moneda.
  *               quantity:
  *                 type: number
- *         feats:
- *           type: array
- *           items:
- *             type: string
- *           description: IDs de los dotes del personaje.
  *         hit_die:
  *           type: number
  *         prof_bonus:
@@ -1069,6 +1059,138 @@ const router = Router();
  *           description: >
  *             Roster narrativo opcional (máximo 20). El recuento companionRoster.count
  *             de un rasgo es solo orientación de UI; el servidor no lo exige.
+ *     InputPatchCharacterFlavor:
+ *       type: object
+ *       additionalProperties: false
+ *       properties:
+ *         img:
+ *           type: string
+ *           description: URL de la imagen del personaje. Cadena vacía para vaciarla.
+ *         appearance:
+ *           type: object
+ *           additionalProperties: false
+ *           description: Parche parcial del aspecto. Debe incluir al menos un campo.
+ *           properties:
+ *             age:
+ *               type: number
+ *             height:
+ *               type: number
+ *             weight:
+ *               type: number
+ *             eyes:
+ *               type: string
+ *             hair:
+ *               type: string
+ *             skin:
+ *               type: string
+ *         background:
+ *           type: object
+ *           additionalProperties: false
+ *           description: Parche parcial de historia y flavor. No admite name ni type del trasfondo. Debe incluir al menos un campo.
+ *           properties:
+ *             history:
+ *               description: Texto con saltos de línea o array de párrafos. Se guarda como array.
+ *               oneOf:
+ *                 - type: string
+ *                 - type: array
+ *                   items:
+ *                     type: string
+ *             alignment:
+ *               type: string
+ *             personality:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             ideals:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   title:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   alignment:
+ *                     type: string
+ *             bonds:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             flaws:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             god:
+ *               type: string
+ *     CharacterFlavor:
+ *       type: object
+ *       required:
+ *         - img
+ *         - appearance
+ *         - background
+ *       properties:
+ *         img:
+ *           type: string
+ *         appearance:
+ *           type: object
+ *           properties:
+ *             age:
+ *               type: number
+ *             height:
+ *               type: number
+ *             weight:
+ *               type: number
+ *             eyes:
+ *               type: string
+ *             hair:
+ *               type: string
+ *             skin:
+ *               type: string
+ *         background:
+ *           type: object
+ *           properties:
+ *             name:
+ *               type: string
+ *             type:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 values:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *             history:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             alignment:
+ *               type: string
+ *             personality:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             ideals:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   title:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   alignment:
+ *                     type: string
+ *             bonds:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             flaws:
+ *               type: array
+ *               items:
+ *                 type: string
+ *             god:
+ *               type: string
  */
 
 /**
@@ -1166,6 +1288,54 @@ router.post('/character', authMiddleware, personajeController.createCharacter);
  *         description: Error del servidor.
  */
 router.get('/character/:id', authMiddleware, personajeController.getCharacter);
+
+/**
+ * @openapi
+ * /character/{id}:
+ *   patch:
+ *     summary: Actualizar imagen, aspecto e historia de un personaje
+ *     description: |
+ *       Parche parcial de flavor. Envíe al menos uno de `img`, `appearance` o `background`.
+ *       `appearance` y `background` se fusionan campo a campo; no reemplace el objeto entero
+ *       si solo cambia un valor. `history` admite texto (se parte por saltos de línea) o array.
+ *       No se puede cambiar el nombre ni el tipo del trasfondo. El identificador va en la URL.
+ *       Solo el dueño o el master de su campaña pueden modificarlo.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/InputPatchCharacterFlavor'
+ *     responses:
+ *       200:
+ *         description: Flavor actualizado con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CharacterFlavor'
+ *       400:
+ *         description: Datos de entrada inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje no encontrado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(PatchCharacterFlavorSchema), personajeController.updateFlavor);
 
 /**
  * @openapi
@@ -1756,9 +1926,9 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       Si la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa
  *       clase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`
  *       pares from/to). No forma parte de `spell_choices` y se puede omitir.
- *       Si el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes
- *       elegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2
- *       (un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.
+ *       Si el nivel otorga Mejora de característica (`ability_score: true`), `abilityScoreAlternative`
+ *       lista las opciones del grupo configurado en el sistema o la clase (elige 1 en lugar de los +2).
+ *       El POST debe enviar `abilityScore` o, si hay alternativa, `abilityScoreOption`.
  *     tags:
  *       - Personajes
  *     security:
@@ -1903,13 +2073,14 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   type: boolean
  *                   description: >
  *                     True si este nivel de clase otorga Mejora de característica.
- *                     En ese caso el POST debe enviar `abilityScore` (repartir 2 puntos) o `feat`.
- *                 feats:
+ *                     En ese caso el POST debe enviar `abilityScore` (repartir 2 puntos)
+ *                     o `abilityScoreOption` si hay `abilityScoreAlternative`.
+ *                 abilityScoreAlternative:
  *                   allOf:
- *                     - $ref: '#/components/schemas/FeatChoiceApi'
+ *                     - $ref: '#/components/schemas/PendingOptionChoice'
  *                   description: >
- *                     Dotes disponibles si `ability_score` es true (elige 1 en lugar de los +2).
- *                     Excluye dotes ya poseídas y las que no cumplen requisitos de atributo.
+ *                     Alternativa a la mejora de característica: una opción del grupo
+ *                     configurado (`choose` 1). Omitido si el sistema o la clase no definen grupo.
  *                 newClass:
  *                   type: boolean
  *                   description: True si el personaje aún no tiene esta clase (dip de nivel 1).
@@ -1923,7 +2094,7 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                   description: Solo si `newClass` es true. Competencias y requisitos del dip.
  *                   properties:
  *                     requirements:
- *                       $ref: '#/components/schemas/FeatRequirements'
+ *                       $ref: '#/components/schemas/AttributeRequirements'
  *                     requirementsMet:
  *                       type: boolean
  *                     proficiencies:
@@ -1990,10 +2161,12 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *       una opción ya elegida se rechaza.
  *       El nivel que abre la concesión es el de esa clase, no el nivel total del personaje.
  *       Si el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de
- *       `abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).
+ *       `abilityScore` (repartir 2 puntos: un +2 o dos +1) o `abilityScoreOption` (ObjectId de
+ *       una opción de `abilityScoreAlternative`). La opción se aplica como el resto de
+ *       `optionPicks` (trait, requisitos, `optionSelections`).
  *       El tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,
  *       `defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).
- *       La dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este
+ *       Un +CON de ASI afecta el PG de este
  *       nivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de
  *       modificador a los PG de los niveles previos.
  *       Si el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).
@@ -2099,8 +2272,8 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *               abilityScore:
  *                 type: object
  *                 description: >
- *                   Incrementos de característica (suma total 2). Mutuamente excluyente con `feat`.
- *                   Obligatorio si `ability_score` es true y no se envía `feat`.
+ *                   Incrementos de característica (suma total 2). Mutuamente excluyente con `abilityScoreOption`.
+ *                   Obligatorio si `ability_score` es true y no se envía `abilityScoreOption`.
  *                 required:
  *                   - increases
  *                 properties:
@@ -2121,11 +2294,11 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                           type: integer
  *                           enum: [1, 2]
  *                           description: Puntos a sumar a esa característica.
- *               feat:
+ *               abilityScoreOption:
  *                 type: string
  *                 description: >
- *                   ObjectId de la dote elegida en lugar de los +2. Mutuamente excluyente con
- *                   `abilityScore`. Debe estar en `feats.options` del GET.
+ *                   ObjectId de la opción elegida en lugar de los +2. Mutuamente excluyente con
+ *                   `abilityScore`. Debe estar en `abilityScoreAlternative.options` del GET.
  *               traitChoices:
  *                 type: object
  *                 description: >

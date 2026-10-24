@@ -21,3 +21,19 @@ export function hasAbilityScoreAtLevel(
   }
   return Boolean(legacyFlag);
 }
+
+export function resolveAbilityScoreAlternativeGroupId(
+  classOverride?: string | null,
+  systemDefault?: string
+): string | undefined {
+  if (classOverride === null || classOverride === "") {
+    return undefined;
+  }
+  if (typeof classOverride === "string") {
+    return classOverride;
+  }
+  if (typeof systemDefault === "string" && systemDefault.length > 0) {
+    return systemDefault;
+  }
+  return undefined;
+}

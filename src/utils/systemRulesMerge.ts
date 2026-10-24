@@ -51,6 +51,10 @@ export function mergeRulesFromAncestry(ancestry: System[]): SystemRulesConfig {
     if (config.abilityScoreProgression === undefined && Array.isArray(ancestor.abilityScoreProgression)) {
       config.abilityScoreProgression = ancestor.abilityScoreProgression;
     }
+
+    if (config.abilityScoreAlternativeGroupId === undefined && typeof ancestor.abilityScoreAlternativeGroupId === "string") {
+      config.abilityScoreAlternativeGroupId = ancestor.abilityScoreAlternativeGroupId;
+    }
   }
 
   return config;

@@ -150,6 +150,12 @@ const router = Router();
  *           description: |
  *             Override de niveles de clase con Mejora de característica.
  *             Si se omite, se usa el default del sistema. Array vacío desactiva la mejora en esta clase.
+ *         abilityScoreAlternativeGroupId:
+ *           type: string
+ *           nullable: true
+ *           description: |
+ *             Override del grupo de opciones alternativo a la mejora de característica.
+ *             Si se omite, se usa el del sistema. Null o cadena vacía desactiva la alternativa en esta clase.
  *         subclassChoice:
  *           $ref: '#/components/schemas/SubclassChoiceConfig'
  *           description: Tipo de elección de subclase (nombre del grupo, texto y nivel en el que se elige).
@@ -209,7 +215,7 @@ const router = Router();
  *           type: object
  *           properties:
  *             requirements:
- *               $ref: '#/components/schemas/FeatRequirements'
+ *               $ref: '#/components/schemas/AttributeRequirements'
  *           description: Solo se incluye con include=multiclass.
  *     SubclassSummary:
  *       type: object
@@ -473,11 +479,71 @@ const router = Router();
  *           description: >
  *             Si es true, también se pueden sustituir trucos. Si se omite o es false,
  *             solo conjuros de un nivel para el que la clase tenga espacios.
+ *     AttributeRequirement:
+ *       type: object
+ *       required:
+ *         - key
+ *         - name
+ *         - min
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Clave del atributo dentro del sistema (por ejemplo, str).
+ *         name:
+ *           type: string
+ *           description: Nombre del atributo resuelto (por ejemplo, Fuerza).
+ *         min:
+ *           type: integer
+ *           minimum: 1
+ *           description: Valor mínimo que debe tener el atributo.
+ *         icon:
+ *           type: string
+ *           description: Icono del atributo, si existe.
+ *     AttributeRequirements:
+ *       type: object
+ *       required:
+ *         - attributeMode
+ *         - attributes
+ *       properties:
+ *         attributeMode:
+ *           type: string
+ *           enum: [all, any]
+ *           description: all exige todos los atributos; any exige al menos uno.
+ *         attributes:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/AttributeRequirement'
+ *           description: Requisitos de puntuación de atributo.
+ *     AttributeRequirementInput:
+ *       type: object
+ *       required:
+ *         - key
+ *         - min
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Clave del atributo dentro del sistema (por ejemplo, str).
+ *         min:
+ *           type: integer
+ *           minimum: 1
+ *           description: Valor mínimo que debe tener el atributo.
+ *     AttributeRequirementsInput:
+ *       type: object
+ *       properties:
+ *         attributeMode:
+ *           type: string
+ *           enum: [all, any]
+ *           description: all exige todos los atributos; any exige al menos uno.
+ *         attributes:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/AttributeRequirementInput'
+ *           description: Requisitos de puntuación de atributo.
  *     CharacterClassMulticlass:
  *       type: object
  *       properties:
  *         requirements:
- *           $ref: '#/components/schemas/FeatRequirements'
+ *           $ref: '#/components/schemas/AttributeRequirements'
  *           description: Requisitos de atributo para tomar o mantener esta clase en un personaje multiclase. Hidratados con nombre e icono.
  *         proficiencies:
  *           type: array
@@ -496,8 +562,8 @@ const router = Router();
  *       type: object
  *       properties:
  *         requirements:
- *           $ref: '#/components/schemas/FeatRequirementsInput'
- *           description: Requisitos de atributo (misma forma que las dotes).
+ *           $ref: '#/components/schemas/AttributeRequirementsInput'
+ *           description: Requisitos de puntuación de atributo.
  *         proficiencies:
  *           type: array
  *           items:
@@ -625,6 +691,11 @@ const router = Router();
  *           description: |
  *             Override de niveles con Mejora de característica (reemplazo completo del default del sistema).
  *             Array vacío desactiva la mejora en esta clase. Si se omite, se hereda el default del sistema.
+ *         abilityScoreAlternativeGroupId:
+ *           type: string
+ *           description: |
+ *             Override del grupo de opciones alternativo a la mejora de característica.
+ *             Si se omite, se hereda el del sistema.
  *         subclassChoice:
  *           allOf:
  *             - $ref: '#/components/schemas/SubclassChoiceConfig'
@@ -744,6 +815,12 @@ const router = Router();
  *           description: |
  *             Override de niveles con Mejora de característica. Enviar null para volver al default del sistema.
  *             Array vacío desactiva la mejora en esta clase.
+ *         abilityScoreAlternativeGroupId:
+ *           type: string
+ *           nullable: true
+ *           description: |
+ *             Override del grupo de opciones alternativo a la mejora de característica.
+ *             Enviar null para desactivar la alternativa en esta clase.
  *         subclassChoice:
  *           allOf:
  *             - $ref: '#/components/schemas/SubclassChoiceConfig'

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CostSchema, EquipmentChoiceMongoSchema, GrantedEquipmentListSchema } from "./equipment.schema";
 import { validateSystemFormula } from "../../../utils/formulaValidation";
-import { abilityScoreProgressionSchema } from "./system.schema";
+import { abilityScoreAlternativeGroupIdSchema, abilityScoreProgressionSchema } from "./system.schema";
 import {
   LEVEL_SKILL_PROFICIENCY_FROMS,
   LEVEL_SKILL_PROFICIENCY_VALUES,
@@ -223,6 +223,7 @@ const characterClassFields = {
   optionReplacements: OptionReplacementsSchema.nullable().optional(),
   levels: z.array(CharacterClassLevelInputSchema).optional(),
   abilityScoreProgression: abilityScoreProgressionSchema.optional(),
+  abilityScoreAlternativeGroupId: abilityScoreAlternativeGroupIdSchema.optional(),
   subclassChoice: z.object({
     name: z.string().min(1, "El nombre del tipo de subclase no puede estar vacío"),
     description: z.array(z.string()).default([]),
@@ -250,6 +251,7 @@ export const UpdateCharacterClassSchema = z.object({
   img: z.string().optional(),
   ...characterClassFields,
   abilityScoreProgression: abilityScoreProgressionSchema.nullable().optional(),
+  abilityScoreAlternativeGroupId: abilityScoreAlternativeGroupIdSchema.nullable().optional(),
   multiclass: CharacterClassMulticlassSchema.nullable().optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);

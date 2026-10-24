@@ -11,7 +11,7 @@ import { CreatureLanguages, CreatureLanguagesCreate } from "./language.types"
 import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceApi, Damage, Speed } from "."
 import { CharacterEquipmentApi, CharacterEquipmentMongo, WeaponBondOrigin } from "./equipment.types"
-import { FeatApi, FeatRequirements } from "./feat.types"
+import { AttributeRequirements } from "./attributeRequirement.types"
 import { SpellApi } from "./spell.types"
 import { ConditionApi } from "./condition.types"
 import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
@@ -174,6 +174,31 @@ export interface UpdateCharacterCompanionsResponse {
   companions: CharacterCompanion[];
 }
 
+export interface InputUpdateCharacterFlavor {
+  id: string;
+  userId: string;
+  img?: string;
+  appearance?: {
+    age?: number;
+    height?: number;
+    weight?: number;
+    eyes?: string;
+    hair?: string;
+    skin?: string;
+  };
+  background?: {
+    history?: string | string[];
+    alignment?: string;
+    personality?: string[];
+    ideals?: Ideal[];
+    bonds?: string[];
+    flaws?: string[];
+    god?: string;
+  };
+}
+
+export type UpdateCharacterFlavorResponse = Pick<PersonajeApi, "img" | "appearance" | "background">;
+
 export interface TypeCrearPersonaje {
   name: string,
   user: string,
@@ -227,7 +252,6 @@ export interface TypeCrearPersonaje {
     unit: string,
     quantity: number
   }[],
-  feats: string[],
   hit_die: number,
   prof_bonus: number,
   companions?: CharacterCompanionInput[]
@@ -312,7 +336,7 @@ export interface TypeLevelUp {
   spells?: string[][];
   subclass?: string;
   abilityScore?: { increases: AbilityScoreIncreaseInput[] };
-  feat?: string;
+  abilityScoreOption?: string;
   traitChoices?: TraitChoices;
   skillPicks?: string[];
   skillProficiencyPicks?: string[];
@@ -457,8 +481,6 @@ export interface PersonajeMongo {
     quantity: number;
     unit: string;
   }[],
-  feats?: string[],
-  dotes?: string[],
   prof_bonus: number,
   proficiency_weapon: string[],
   proficiency_armor: string[],
@@ -542,7 +564,6 @@ export interface PersonajeApi {
   saving_throws: string[],
   equipment: CharacterEquipmentApi[],
   wearingArmorWithoutProficiency: boolean,
-  feats: FeatApi[],
   money: ({
     quantity: number;
   } & CoinApi)[],
@@ -596,7 +617,7 @@ export type AbilityKey = "str" | "dex" | "con" | "int" | "wis" | "cha";
 export type Abilities = Record<AbilityKey, number>;
 
 export interface LevelUpDipData {
-  requirements?: FeatRequirements;
+  requirements?: AttributeRequirements;
   requirementsMet: boolean;
   proficiencies: ProficiencyApi[];
   skill_choices?: ChoiceApi<SkillApi>;
@@ -625,7 +646,7 @@ export interface LevelUpData {
   spell_changes?: LevelUpSpellChanges;
   subclassChoice?: SubclassChoiceMenuApi | null;
   ability_score: boolean;
-  feats?: ChoiceApi<FeatApi>;
+  abilityScoreAlternative?: PendingOptionChoice;
   catalogChoices?: PendingCatalogChoice[];
   damageChoices?: PendingDamageChoice[];
   skillProficiencyChoices?: PendingSkillProficiencyChoice[];

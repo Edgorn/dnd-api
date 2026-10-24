@@ -46,7 +46,6 @@ function buildRepository(overrides: {
       overrides.traitRepository,
       overrides.spellRepository,
       undefined,
-      undefined,
       overrides.attributeService,
       overrides.subclassRepository
     )

@@ -260,3 +260,31 @@ describe("UpdateSystemSchema abilityScoreProgression", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("CreateSystemSchema abilityScoreAlternativeGroupId", () => {
+  const groupId = "507f1f77bcf86cd799439011";
+
+  it("accepts an ObjectId", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      abilityScoreAlternativeGroupId: groupId
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty string to disable the alternative", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      abilityScoreAlternativeGroupId: ""
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid id", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      abilityScoreAlternativeGroupId: "feats"
+    });
+    expect(result.success).toBe(false);
+  });
+});

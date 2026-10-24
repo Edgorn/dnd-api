@@ -1,24 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { FeatApi, FeatRequirements } from "../domain/types/feat.types";
 import {
   applyAbilityScoreIncreases,
-  featMeetsRequirements,
-  filterLevelUpFeatChoices,
-  getOwnedFeatIds,
   validateLevelUpAbilityScorePick
 } from "./characterLevelUpAbilityScore";
-
-const feat = (id: string, requirements?: Partial<FeatRequirements>): FeatApi => ({
-  id,
-  name: id,
-  description: [],
-  summary: [],
-  ruleset: "sys1",
-  requirements: {
-    attributeMode: requirements?.attributeMode ?? "all",
-    attributes: requirements?.attributes ?? []
-  }
-});
 
 const attributes = [
   { key: "str", value: 15 },
@@ -28,79 +12,6 @@ const attributes = [
   { key: "wis", value: 12 },
   { key: "cha", value: 8 }
 ];
-
-describe("getOwnedFeatIds", () => {
-  it("merges feats and legacy dotes without duplicates", () => {
-    expect(getOwnedFeatIds({
-      feats: ["feat-a", "feat-b"],
-      dotes: ["feat-b", "feat-c"]
-    })).toEqual(["feat-a", "feat-b", "feat-c"]);
-  });
-
-  it("treats missing arrays as empty", () => {
-    expect(getOwnedFeatIds({})).toEqual([]);
-  });
-});
-
-describe("featMeetsRequirements", () => {
-  it("passes when there are no attribute requirements", () => {
-    expect(featMeetsRequirements(feat("alert"), attributes)).toBe(true);
-  });
-
-  it("requires every attribute in all mode", () => {
-    const heavy = feat("heavy", {
-      attributeMode: "all",
-      attributes: [
-        { key: "str", name: "Fuerza", min: 13 },
-        { key: "con", name: "Constitución", min: 13 }
-      ]
-    });
-    expect(featMeetsRequirements(heavy, attributes)).toBe(true);
-    expect(featMeetsRequirements(heavy, [{ key: "str", value: 12 }, { key: "con", value: 13 }])).toBe(false);
-  });
-
-  it("requires any attribute in any mode", () => {
-    const flexible = feat("flexible", {
-      attributeMode: "any",
-      attributes: [
-        { key: "str", name: "Fuerza", min: 20 },
-        { key: "dex", name: "Destreza", min: 13 }
-      ]
-    });
-    expect(featMeetsRequirements(flexible, attributes)).toBe(true);
-    expect(featMeetsRequirements(flexible, [{ key: "str", value: 10 }, { key: "dex", value: 10 }])).toBe(false);
-  });
-
-  it("treats a missing attribute as 0", () => {
-    const requiresInt = feat("keen", {
-      attributes: [{ key: "int", name: "Inteligencia", min: 13 }]
-    });
-    expect(featMeetsRequirements(requiresInt, [{ key: "str", value: 18 }])).toBe(false);
-  });
-});
-
-describe("filterLevelUpFeatChoices", () => {
-  it("returns undefined when there is no choice", () => {
-    expect(filterLevelUpFeatChoices(undefined, [], attributes)).toBeUndefined();
-  });
-
-  it("drops owned feats and those that fail requirements", () => {
-    const filtered = filterLevelUpFeatChoices(
-      {
-        choose: 1,
-        options: [
-          feat("owned"),
-          feat("locked", { attributes: [{ key: "str", name: "Fuerza", min: 20 }] }),
-          feat("ok")
-        ]
-      },
-      ["owned"],
-      attributes
-    );
-
-    expect(filtered?.options.map(option => option.id)).toEqual(["ok"]);
-  });
-});
 
 describe("applyAbilityScoreIncreases", () => {
   it("applies a +2 to one score", () => {
@@ -125,13 +36,10 @@ describe("applyAbilityScoreIncreases", () => {
 });
 
 describe("validateLevelUpAbilityScorePick", () => {
-  const availableFeatIds = ["feat-ok"];
-
   it("returns none when the level has no ASI and no pick is sent", () => {
     expect(validateLevelUpAbilityScorePick({
       abilityScoreGranted: false,
-      attributes,
-      availableFeatIds
+      attributes
     })).toEqual({ kind: "none" });
   });
 
@@ -139,32 +47,50 @@ describe("validateLevelUpAbilityScorePick", () => {
     const result = validateLevelUpAbilityScorePick({
       abilityScoreGranted: false,
       increases: [{ key: "str", bonus: 2 }],
-      attributes,
-      availableFeatIds
+      attributes
     });
-    expect(result).toEqual({ error: "Este nivel no ofrece mejora de característica ni dote" });
+    expect(result).toEqual({ error: "Este nivel no ofrece mejora de característica ni alternativa" });
   });
 
-  it("requires a pick when the level grants ASI", () => {
+  it("requires abilityScore when the level grants ASI without alternative", () => {
     const result = validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,
-      attributes,
-      availableFeatIds
+      attributes
     });
     expect(result).toEqual({
-      error: "Debe enviar abilityScore o feat en un nivel con mejora de característica"
+      error: "Debe enviar abilityScore en un nivel con mejora de característica"
     });
   });
 
-  it("rejects sending both increases and a feat", () => {
+  it("requires abilityScore or abilityScoreOption when an alternative is offered", () => {
     const result = validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,
-      increases: [{ key: "str", bonus: 2 }],
-      featId: "feat-ok",
-      attributes,
-      availableFeatIds
+      alternativeOffered: true,
+      attributes
     });
-    expect(result).toEqual({ error: "Debe elegir mejora de característica o dote, no ambas" });
+    expect(result).toEqual({
+      error: "Debe enviar abilityScore o abilityScoreOption en un nivel con mejora de característica"
+    });
+  });
+
+  it("rejects sending both increases and an option", () => {
+    const result = validateLevelUpAbilityScorePick({
+      abilityScoreGranted: true,
+      alternativeOffered: true,
+      increases: [{ key: "str", bonus: 2 }],
+      optionId: "opt-ok",
+      attributes
+    });
+    expect(result).toEqual({ error: "Debe elegir mejora de característica o una opción, no ambas" });
+  });
+
+  it("rejects an option when the level has no alternative", () => {
+    const result = validateLevelUpAbilityScorePick({
+      abilityScoreGranted: true,
+      optionId: "opt-ok",
+      attributes
+    });
+    expect(result).toEqual({ error: "Este nivel no ofrece una alternativa a la mejora de característica" });
   });
 
   it("accepts a +2 increase", () => {
@@ -172,7 +98,6 @@ describe("validateLevelUpAbilityScorePick", () => {
       abilityScoreGranted: true,
       increases: [{ key: "str", bonus: 2 }],
       attributes,
-      availableFeatIds,
       maxAttributeValue: 20
     })).toEqual({ kind: "increases", increases: [{ key: "str", bonus: 2 }] });
   });
@@ -181,8 +106,7 @@ describe("validateLevelUpAbilityScorePick", () => {
     expect(validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,
       increases: [{ key: "str", bonus: 1 }, { key: "dex", bonus: 1 }],
-      attributes,
-      availableFeatIds
+      attributes
     })).toEqual({
       kind: "increases",
       increases: [{ key: "str", bonus: 1 }, { key: "dex", bonus: 1 }]
@@ -193,8 +117,7 @@ describe("validateLevelUpAbilityScorePick", () => {
     const result = validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,
       increases: [{ key: "str", bonus: 1 }],
-      attributes,
-      availableFeatIds
+      attributes
     });
     expect(result).toEqual({ error: "La mejora de característica debe sumar 2 puntos" });
   });
@@ -203,8 +126,7 @@ describe("validateLevelUpAbilityScorePick", () => {
     const result = validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,
       increases: [{ key: "str", bonus: 1 }, { key: "str", bonus: 1 }],
-      attributes,
-      availableFeatIds
+      attributes
     });
     expect(result).toEqual({ error: "La característica str está duplicada" });
   });
@@ -213,8 +135,7 @@ describe("validateLevelUpAbilityScorePick", () => {
     const result = validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,
       increases: [{ key: "luck", bonus: 2 }],
-      attributes,
-      availableFeatIds
+      attributes
     });
     expect(result).toEqual({ error: "El personaje no tiene la característica luck" });
   });
@@ -224,7 +145,6 @@ describe("validateLevelUpAbilityScorePick", () => {
       abilityScoreGranted: true,
       increases: [{ key: "str", bonus: 2 }],
       attributes: [{ key: "str", value: 19 }],
-      availableFeatIds,
       maxAttributeValue: 20
     });
     expect(result).toEqual({ error: "str no puede superar 20" });
@@ -234,8 +154,7 @@ describe("validateLevelUpAbilityScorePick", () => {
     expect(validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,
       increases: [{ key: "str", bonus: 2 }],
-      attributes: [{ key: "str", value: 19 }],
-      availableFeatIds
+      attributes: [{ key: "str", value: 19 }]
     })).toEqual({ kind: "increases", increases: [{ key: "str", bonus: 2 }] });
   });
 
@@ -244,7 +163,6 @@ describe("validateLevelUpAbilityScorePick", () => {
       abilityScoreGranted: true,
       increases: [{ key: "str", bonus: 2 }],
       attributes: [{ key: "str", value: 16 }],
-      availableFeatIds,
       maxAttributeValue: 20,
       bonusByKey: { str: 4 },
       maxByKey: { str: 24 }
@@ -256,7 +174,6 @@ describe("validateLevelUpAbilityScorePick", () => {
       abilityScoreGranted: true,
       increases: [{ key: "str", bonus: 2 }],
       attributes: [{ key: "str", value: 20 }],
-      availableFeatIds,
       maxAttributeValue: 20,
       bonusByKey: { str: 4 },
       maxByKey: { str: 24 }
@@ -264,22 +181,12 @@ describe("validateLevelUpAbilityScorePick", () => {
     expect(result).toEqual({ error: "str no puede superar 24" });
   });
 
-  it("accepts a feat from the filtered options", () => {
+  it("accepts an option when the alternative is offered", () => {
     expect(validateLevelUpAbilityScorePick({
       abilityScoreGranted: true,
-      featId: "feat-ok",
-      attributes,
-      availableFeatIds
-    })).toEqual({ kind: "feat", featId: "feat-ok" });
-  });
-
-  it("rejects a feat that is not available", () => {
-    const result = validateLevelUpAbilityScorePick({
-      abilityScoreGranted: true,
-      featId: "feat-locked",
-      attributes,
-      availableFeatIds
-    });
-    expect(result).toEqual({ error: "La dote feat-locked no está entre las opciones disponibles" });
+      alternativeOffered: true,
+      optionId: "opt-ok",
+      attributes
+    })).toEqual({ kind: "option", optionId: "opt-ok" });
   });
 });

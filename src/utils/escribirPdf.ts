@@ -2,7 +2,6 @@ import { rgb, StandardFonts } from "pdf-lib";
 import { CharacterCompanion, PersonajeApi } from "../domain/types/personajes.types";
 import { SpellApi } from "../domain/types/spell.types";
 import { CharacterEquipmentApi, BODY_EQUIP_SLOTS } from "../domain/types/equipment.types";
-import { FeatApi } from "../domain/types/feat.types";
 import { TraitApi } from "../domain/types/traits.types";
 import { Ideal } from "../domain/types/background.types";
 import { computeArmorPieceAc } from "./armorRules";
@@ -115,7 +114,7 @@ const escribirParrafo = ({ titulo, descripcion, fontTitle, fontText, maxWidth, p
   return { textY: textY - 1, actualHeight }
 }
 
-export async function escribirRasgos({ traits, feats, pdfDoc }: { traits: TraitApi[], feats: FeatApi[], pdfDoc: any }) {
+export async function escribirRasgos({ traits, pdfDoc }: { traits: TraitApi[], pdfDoc: any }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -132,7 +131,7 @@ export async function escribirRasgos({ traits, feats, pdfDoc }: { traits: TraitA
   // Ataques y lanzamientos de conjuros
   let textY4 = page1.getHeight() - 460;
 
-  const rasgos = [...traits ?? [], ...feats ?? []]
+  const rasgos = [...traits ?? []]
   const rasgosList = rasgos.map(rasg => ("id" in rasg ? rasg.id : undefined) ?? ("index" in rasg ? (rasg as { index?: string }).index : undefined))
 
   rasgos
@@ -148,7 +147,7 @@ export async function escribirRasgos({ traits, feats, pdfDoc }: { traits: TraitA
 
       return trait.type !== 'spell' && !trait.hidden && isDiscard
 
-    })?.forEach((trait: TraitApi | FeatApi) => {
+    })?.forEach((trait: TraitApi) => {
       const { textY, actualHeight: actualHeight1 } = escribirParrafo({
         titulo: trait?.name,
         descripcion: displaySummary(trait?.summary, trait?.description).join('\n'),

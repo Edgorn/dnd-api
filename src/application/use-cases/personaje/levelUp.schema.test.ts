@@ -75,21 +75,21 @@ describe("LevelUpSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts an optional feat ObjectId", () => {
+  it("accepts an optional abilityScoreOption ObjectId", () => {
     const result = LevelUpSchema.safeParse({
       class: "class1",
       hpIncrease: 5,
-      feat: validId,
+      abilityScoreOption: validId,
     });
     expect(result.success).toBe(true);
   });
 
-  it("rejects sending abilityScore and feat together", () => {
+  it("rejects sending abilityScore and abilityScoreOption together", () => {
     const result = LevelUpSchema.safeParse({
       class: "class1",
       hpIncrease: 5,
       abilityScore: { increases: [{ key: "str", bonus: 2 }] },
-      feat: validId,
+      abilityScoreOption: validId,
     });
     expect(result.success).toBe(false);
   });
@@ -145,11 +145,11 @@ describe("LevelUpSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects an invalid feat id", () => {
+  it("rejects an invalid abilityScoreOption id", () => {
     const result = LevelUpSchema.safeParse({
       class: "class1",
       hpIncrease: 5,
-      feat: "alert",
+      abilityScoreOption: "alert",
     });
     expect(result.success).toBe(false);
   });

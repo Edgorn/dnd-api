@@ -21,7 +21,6 @@ import {
 import { AttributeApi, AttributeBonus, AttributeBonusCreate } from '../../../../domain/types/attribute.types';
 import { ordenarPorNombre } from '../../../../utils/formatters';
 import RaceModel from '../schemas/Race';
-import IFeatRepository from '../../../../domain/repositories/IFeatRepository';
 import { TraitDataMongo } from '../../../../domain/types/traits.types';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepository';
@@ -58,7 +57,6 @@ export default class RaceRepository implements IRaceRepository {
     private readonly spellRepository: ISpellRepository,
     private readonly skillService: SkillService,
     private readonly proficiencyRepository: IProficiencyRepository,
-    private readonly featRepository: IFeatRepository,
     private readonly traitRepository: ITraitRepository,
     private readonly attributeService: AttributeService,
     private readonly equipmentRepository: IEquipmentRepository,
@@ -283,9 +281,8 @@ export default class RaceRepository implements IRaceRepository {
   }
 
   async formatVariant(variant: VariantMongo, ruleset?: string): Promise<VariantApi> {
-    const [skill_choices, feats, ability_bonuses, ability_bonus_choices] = await Promise.all([
+    const [skill_choices, ability_bonuses, ability_bonus_choices] = await Promise.all([
       ruleset ? this.skillService.formatSkillChoices(variant?.skill_choices, ruleset) : Promise.resolve(undefined),
-      this.featRepository.formatFeatChoices(variant.feats ?? variant.dotes, ruleset),
       ruleset ? this.attributeService.formatAbilityBonuses(variant?.ability_bonuses ?? [], ruleset) : Promise.resolve([]),
       ruleset ? this.attributeService.formatAbilityBonusChoices(variant?.ability_bonus_choices, ruleset) : Promise.resolve(undefined)
     ])
@@ -294,8 +291,7 @@ export default class RaceRepository implements IRaceRepository {
       name: variant.name,
       ability_bonuses,
       ability_bonus_choices,
-      skill_choices,
-      feats
+      skill_choices
     }
   }
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildPendingOptionChoices,
   mapSubclassMenuOptionChoices,
+  mergeAbilityScoreOptionPick,
   mergeOptionChoices,
   optionReplacementsToChoices,
   subclassMenuOptionChoiceGroupIds,
@@ -56,6 +57,26 @@ describe("mergeOptionChoices", () => {
       [{ groupId: GROUP, choose: 1 }],
       [{ groupId: GROUP, choose: 0, replace: 1 }]
     )).toEqual([{ groupId: GROUP, choose: 1, replace: 1 }]);
+  });
+});
+
+describe("mergeAbilityScoreOptionPick", () => {
+  it("adds a synthetic choose-1 config and a pick when the group is new", () => {
+    expect(mergeAbilityScoreOptionPick([], undefined, GROUP, OPT_A)).toEqual({
+      configs: [{ groupId: GROUP, choose: 1 }],
+      picks: [{ groupId: GROUP, add: [OPT_A] }]
+    });
+  });
+
+  it("sums choose when the group already has a level choice and appends the option to add", () => {
+    const result = mergeAbilityScoreOptionPick(
+      [{ groupId: GROUP, choose: 1 }],
+      [{ groupId: GROUP, add: [OPT_B] }],
+      GROUP,
+      OPT_A
+    );
+    expect(result.configs).toEqual([{ groupId: GROUP, choose: 2 }]);
+    expect(result.picks).toEqual([{ groupId: GROUP, add: [OPT_B, OPT_A] }]);
   });
 });
 

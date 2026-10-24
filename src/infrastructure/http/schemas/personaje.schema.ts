@@ -100,9 +100,9 @@ export const LevelUpSchema = z.object({
         .max(2, "Como máximo 2 incrementos"),
     })
     .optional(),
-  feat: z
+  abilityScoreOption: z
     .string()
-    .regex(objectIdRegex, "La dote debe ser un ObjectId válido de MongoDB")
+    .regex(objectIdRegex, "La opción alternativa debe ser un ObjectId válido de MongoDB")
     .optional(),
   traitChoices: TraitChoicesSchema.optional(),
   skillPicks: z
@@ -133,11 +133,11 @@ export const LevelUpSchema = z.object({
     )
     .optional(),
 }).superRefine((data, ctx) => {
-  if (data.abilityScore !== undefined && data.feat !== undefined) {
+  if (data.abilityScore !== undefined && data.abilityScoreOption !== undefined) {
     ctx.addIssue({
       code: "custom",
-      message: "Debe elegir mejora de característica o dote, no ambas",
-      path: ["feat"],
+      message: "Debe elegir mejora de característica o una opción, no ambas",
+      path: ["abilityScoreOption"],
     });
   }
 
@@ -296,6 +296,45 @@ export const CompanionInputListSchema = z
 
 export const UpdateCharacterCompanionsSchema = z.object({
   companions: CompanionInputListSchema,
+});
+
+const atLeastOneFieldMessage = "Debe proporcionar al menos un campo para modificar";
+
+const AppearancePatchSchema = z.object({
+  age: z.number().optional(),
+  height: z.number().optional(),
+  weight: z.number().optional(),
+  eyes: z.string().optional(),
+  hair: z.string().optional(),
+  skin: z.string().optional(),
+}).strict().refine(data => Object.keys(data).length > 0, {
+  message: atLeastOneFieldMessage,
+});
+
+const IdealPatchSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  alignment: z.string(),
+}).strict();
+
+const BackgroundPatchSchema = z.object({
+  history: z.union([z.string(), z.array(z.string())]).optional(),
+  alignment: z.string().optional(),
+  personality: z.array(z.string()).optional(),
+  ideals: z.array(IdealPatchSchema).optional(),
+  bonds: z.array(z.string()).optional(),
+  flaws: z.array(z.string()).optional(),
+  god: z.string().optional(),
+}).strict().refine(data => Object.keys(data).length > 0, {
+  message: atLeastOneFieldMessage,
+});
+
+export const PatchCharacterFlavorSchema = z.object({
+  img: z.string().optional(),
+  appearance: AppearancePatchSchema.optional(),
+  background: BackgroundPatchSchema.optional(),
+}).strict().refine(data => Object.keys(data).length > 0, {
+  message: atLeastOneFieldMessage,
 });
 
 export const AddCharacterFormSchema = z.object({

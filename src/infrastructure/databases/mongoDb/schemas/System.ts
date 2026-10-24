@@ -20,6 +20,7 @@ const system: Schema = new Schema<System>({
   xpProgression: [Number],
   proficiencyProgression: [Number],
   abilityScoreProgression: { type: [Number], default: undefined },
+  abilityScoreAlternativeGroupId: { type: String, default: undefined },
   hpInitialFormula: String,
   hpLevelUpFormula: String,
   baseAcFormula: String,

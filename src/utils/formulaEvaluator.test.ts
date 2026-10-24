@@ -319,6 +319,26 @@ describe("mergeRulesFromAncestry", () => {
     expect(config.abilityScoreProgression).toEqual([]);
   });
 
+  it("inherits abilityScoreAlternativeGroupId when the child has none", () => {
+    const parentWithGroup: System = { ...parent, abilityScoreAlternativeGroupId: "507f1f77bcf86cd799439011" };
+    const config = mergeRulesFromAncestry([child, parentWithGroup, grandparent]);
+    expect(config.abilityScoreAlternativeGroupId).toBe("507f1f77bcf86cd799439011");
+  });
+
+  it("lets the child override abilityScoreAlternativeGroupId", () => {
+    const childWithGroup: System = { ...child, abilityScoreAlternativeGroupId: "507f1f77bcf86cd799439012" };
+    const parentWithGroup: System = { ...parent, abilityScoreAlternativeGroupId: "507f1f77bcf86cd799439011" };
+    const config = mergeRulesFromAncestry([childWithGroup, parentWithGroup, grandparent]);
+    expect(config.abilityScoreAlternativeGroupId).toBe("507f1f77bcf86cd799439012");
+  });
+
+  it("treats an empty abilityScoreAlternativeGroupId as an explicit disable", () => {
+    const childWithoutGroup: System = { ...child, abilityScoreAlternativeGroupId: "" };
+    const parentWithGroup: System = { ...parent, abilityScoreAlternativeGroupId: "507f1f77bcf86cd799439011" };
+    const config = mergeRulesFromAncestry([childWithoutGroup, parentWithGroup, grandparent]);
+    expect(config.abilityScoreAlternativeGroupId).toBe("");
+  });
+
   it("inherits attackBonusFormula and meleeAttackAttributes from child", () => {
     const config = mergeRulesFromAncestry([child, parent, grandparent]);
     expect(config.attackBonusFormula).toBe("child-attack");

@@ -45,7 +45,11 @@ describe("CharacterClassService", () => {
     vi.clearAllMocks();
     service = new CharacterClassService(
       mockCharacterClassRepository as unknown as ICharacterClassRepository,
-      mockAttributeService as unknown as AttributeService
+      mockAttributeService as unknown as AttributeService,
+      {
+        getById: vi.fn(),
+        getBySystems: vi.fn()
+      } as never
     );
   });
 
@@ -79,6 +83,53 @@ describe("CharacterClassService", () => {
     expect(mockAttributeService.getBySystems).toHaveBeenCalledWith(["system-1"]);
     expect(mockCharacterClassRepository.create).toHaveBeenCalledWith(input);
     expect(result).toEqual(createdClass);
+  });
+
+  it("creates a class when the alternative option group belongs to the ruleset", async () => {
+    const groupId = "507f1f77bcf86cd799439011";
+    const optionGroupService = {
+      getById: vi.fn().mockResolvedValue({ id: groupId, ruleset: "system-1" }),
+      getBySystems: vi.fn().mockResolvedValue([{ id: groupId, ruleset: "system-1" }])
+    };
+    service = new CharacterClassService(
+      mockCharacterClassRepository as unknown as ICharacterClassRepository,
+      mockAttributeService as unknown as AttributeService,
+      optionGroupService as never
+    );
+    mockCharacterClassRepository.create.mockResolvedValue(createdClass);
+    const input: InputCreateCharacterClass = {
+      name: "Guerrero",
+      ruleset: "system-1",
+      abilityScoreAlternativeGroupId: groupId
+    };
+
+    await service.create(input);
+
+    expect(optionGroupService.getById).toHaveBeenCalledWith(groupId);
+    expect(mockCharacterClassRepository.create).toHaveBeenCalledWith(input);
+  });
+
+  it("throws 400 when the alternative option group is outside the ruleset", async () => {
+    const groupId = "507f1f77bcf86cd799439011";
+    const optionGroupService = {
+      getById: vi.fn().mockResolvedValue({ id: groupId, ruleset: "other" }),
+      getBySystems: vi.fn().mockResolvedValue([])
+    };
+    service = new CharacterClassService(
+      mockCharacterClassRepository as unknown as ICharacterClassRepository,
+      mockAttributeService as unknown as AttributeService,
+      optionGroupService as never
+    );
+    const input: InputCreateCharacterClass = {
+      name: "Guerrero",
+      ruleset: "system-1",
+      abilityScoreAlternativeGroupId: groupId
+    };
+
+    await expect(service.create(input)).rejects.toSatisfy(
+      (error: unknown) => error instanceof ValidationError && error.statusCode === 400
+    );
+    expect(mockCharacterClassRepository.create).not.toHaveBeenCalled();
   });
 
   it("throws 400 when a multiclass attribute key does not exist in the ruleset", async () => {

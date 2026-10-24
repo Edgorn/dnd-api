@@ -63,6 +63,11 @@ const weaponFormulaSchema = (fieldLabel: string) =>
     }
   });
 
+export const abilityScoreAlternativeGroupIdSchema = z.union([
+  z.literal(""),
+  z.string().regex(objectIdRegex, "abilityScoreAlternativeGroupId debe ser un ObjectId válido de MongoDB")
+]);
+
 export const abilityScoreProgressionSchema = z
   .array(z.number().int().min(1, "Cada nivel de mejora de característica debe ser al menos 1"))
   .superRefine((values, ctx) => {
@@ -177,6 +182,7 @@ export const systemRulesFields = {
   xpProgression: z.array(z.number().int().min(0)).optional(),
   proficiencyProgression: z.array(z.number().int()).optional(),
   abilityScoreProgression: abilityScoreProgressionSchema.optional(),
+  abilityScoreAlternativeGroupId: abilityScoreAlternativeGroupIdSchema.nullable().optional(),
   hpInitialFormula: systemFormulaSchema("hpInitialFormula"),
   hpLevelUpFormula: systemFormulaSchema("hpLevelUpFormula"),
   baseAcFormula: systemFormulaSchema("baseAcFormula"),

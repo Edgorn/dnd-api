@@ -1,7 +1,8 @@
 import { ChoiceApi } from "../domain/types";
-import { FeatRequirements } from "../domain/types/feat.types";
+import { AttributeRequirements } from "../domain/types/attributeRequirement.types";
 import { LevelSkillProficiencyChoice } from "../domain/types/classLevelChoices.types";
-import { CharacterAttributeValue, meetsAttributeRequirements } from "./characterLevelUpAbilityScore";
+import { CharacterAttributeValue } from "./characterLevelUpAbilityScore";
+import { meetsAttributeRequirements } from "./attributeRequirements";
 
 export function shouldEnforceMulticlassRequirements(
   ownedClassCount: number,
@@ -11,7 +12,7 @@ export function shouldEnforceMulticlassRequirements(
 }
 
 export function characterMeetsAllClassRequirements(
-  classesRequirements: Array<{ requirements?: FeatRequirements } | undefined>,
+  classesRequirements: Array<{ requirements?: AttributeRequirements } | undefined>,
   attributes: CharacterAttributeValue[]
 ): boolean {
   return classesRequirements.every(item => meetsAttributeRequirements(item?.requirements, attributes));

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   hasAbilityScoreAtLevel,
+  resolveAbilityScoreAlternativeGroupId,
   resolveAbilityScoreProgression
 } from "./abilityScoreProgression";
 
@@ -23,6 +24,25 @@ describe("resolveAbilityScoreProgression", () => {
 
   it("returns undefined when neither class nor system defines a table", () => {
     expect(resolveAbilityScoreProgression(undefined, undefined)).toBeUndefined();
+  });
+});
+
+describe("resolveAbilityScoreAlternativeGroupId", () => {
+  const GROUP = "507f1f77bcf86cd799439011";
+  const CLASS_GROUP = "507f1f77bcf86cd799439012";
+
+  it("inherits the system default when the class has no override", () => {
+    expect(resolveAbilityScoreAlternativeGroupId(undefined, GROUP)).toBe(GROUP);
+    expect(resolveAbilityScoreAlternativeGroupId(undefined, undefined)).toBeUndefined();
+  });
+
+  it("uses the class override instead of the system default", () => {
+    expect(resolveAbilityScoreAlternativeGroupId(CLASS_GROUP, GROUP)).toBe(CLASS_GROUP);
+  });
+
+  it("uses null or empty class override to disable the alternative", () => {
+    expect(resolveAbilityScoreAlternativeGroupId(null, GROUP)).toBeUndefined();
+    expect(resolveAbilityScoreAlternativeGroupId("", GROUP)).toBeUndefined();
   });
 });
 

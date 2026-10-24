@@ -162,3 +162,15 @@ describe("OpenAPI restRules hitDiceSpending", () => {
     expect(schemas.CharacterHitDice?.required).toEqual(expect.arrayContaining(["bonusPerDie"]));
   });
 });
+
+describe("OpenAPI without Feat", () => {
+  const spec = generateSwaggerSpec() as OpenApiSpec & { paths: Record<string, unknown> };
+
+  it("does not expose Feat schemas or /feats paths", () => {
+    expect(spec.components.schemas).not.toHaveProperty("Feat");
+    expect(spec.components.schemas).not.toHaveProperty("FeatRequirements");
+    expect(spec.components.schemas).toHaveProperty("AttributeRequirements");
+    expect(spec.paths).not.toHaveProperty("/feats");
+    expect(spec.paths).not.toHaveProperty("/feats/{id}");
+  });
+});

@@ -242,6 +242,12 @@ const router = Router();
  *             Niveles de clase que otorgan Mejora de característica por defecto
  *             (p. ej. 4, 8, 12, 16, 19). Array vacío desactiva la mejora en este sistema.
  *             Una clase puede sustituir esta lista.
+ *         abilityScoreAlternativeGroupId:
+ *           type: string
+ *           description: |
+ *             Grupo de opciones que el personaje puede elegir en lugar de la mejora de
+ *             característica. Cadena vacía desactiva la alternativa en este sistema.
+ *             Una clase puede sustituir o anular este valor.
  *         hpInitialFormula:
  *           type: string
  *           description: |
@@ -412,6 +418,12 @@ const router = Router();
  *             Niveles de clase que otorgan Mejora de característica por defecto.
  *             No debe coincidir en longitud con maxLevel. Cada valor debe ser único,
  *             mayor o igual que 1 y no superar maxLevel. Array vacío desactiva la mejora.
+ *         abilityScoreAlternativeGroupId:
+ *           type: string
+ *           nullable: true
+ *           description: |
+ *             Grupo de opciones alternativo a la mejora de característica. ObjectId o cadena
+ *             vacía para desactivar. Null en actualización hereda del ancestro.
  *         hpInitialFormula:
  *           type: string
  *           description: |
@@ -520,6 +532,9 @@ const router = Router();
  *           items:
  *             type: integer
  *           description: Niveles de clase con Mejora de característica por defecto. Array vacío desactiva la mejora.
+ *         abilityScoreAlternativeGroupId:
+ *           type: string
+ *           description: Grupo de opciones alternativo a la mejora de característica.
  *         hpInitialFormula:
  *           type: string
  *           description: Fórmula de PG nivel 1. Ver SystemCharacterFormulaSyntax.

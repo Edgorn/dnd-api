@@ -1,5 +1,5 @@
 import { Prerequisite, PrerequisiteContext } from "../types/prerequisite.types";
-import { meetsAttributeRequirements } from "../../utils/characterLevelUpAbilityScore";
+import { meetsAttributeRequirements } from "../../utils/attributeRequirements";
 
 function asSet(values: Iterable<string>): Set<string> {
   return values instanceof Set ? values : new Set(values);

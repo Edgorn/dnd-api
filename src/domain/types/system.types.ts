@@ -17,6 +17,7 @@ export const SYSTEM_RULE_FIELD_KEYS = [
   "xpProgression",
   "proficiencyProgression",
   "abilityScoreProgression",
+  "abilityScoreAlternativeGroupId",
   "hpInitialFormula",
   "hpLevelUpFormula",
   "baseAcFormula",
@@ -106,6 +107,7 @@ export interface System {
   xpProgression?: number[];
   proficiencyProgression?: number[];
   abilityScoreProgression?: number[];
+  abilityScoreAlternativeGroupId?: string;
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;
@@ -131,6 +133,7 @@ export interface SystemRulesConfig {
   xpProgression?: number[];
   proficiencyProgression?: number[];
   abilityScoreProgression?: number[];
+  abilityScoreAlternativeGroupId?: string;
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;
@@ -166,6 +169,7 @@ export interface SystemApi {
   xpProgression?: number[];
   proficiencyProgression?: number[];
   abilityScoreProgression?: number[];
+  abilityScoreAlternativeGroupId?: string;
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;
@@ -214,6 +218,7 @@ export interface TypeCrearSystem {
   xpProgression?: number[];
   proficiencyProgression?: number[];
   abilityScoreProgression?: number[];
+  abilityScoreAlternativeGroupId?: string;
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;
@@ -247,6 +252,7 @@ export interface TypeModificarSystem {
   xpProgression?: number[];
   proficiencyProgression?: number[];
   abilityScoreProgression?: number[];
+  abilityScoreAlternativeGroupId?: string | null;
   hpInitialFormula?: string;
   hpLevelUpFormula?: string;
   baseAcFormula?: string;

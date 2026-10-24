@@ -88,6 +88,7 @@ export default class GetSystemApi {
       xpProgression: mergedRules.xpProgression,
       proficiencyProgression: mergedRules.proficiencyProgression,
       abilityScoreProgression: mergedRules.abilityScoreProgression,
+      abilityScoreAlternativeGroupId: mergedRules.abilityScoreAlternativeGroupId,
       hpInitialFormula: mergedRules.hpInitialFormula,
       hpLevelUpFormula: mergedRules.hpLevelUpFormula,
       baseAcFormula: mergedRules.baseAcFormula,

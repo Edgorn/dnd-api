@@ -2529,6 +2529,10 @@
             },
             "description": "Niveles de clase que otorgan Mejora de característica por defecto\n(p. ej. 4, 8, 12, 16, 19). Array vacío desactiva la mejora en este sistema.\nUna clase puede sustituir esta lista.\n"
           },
+          "abilityScoreAlternativeGroupId": {
+            "type": "string",
+            "description": "Grupo de opciones que el personaje puede elegir en lugar de la mejora de\ncaracterística. Cadena vacía desactiva la alternativa en este sistema.\nUna clase puede sustituir o anular este valor.\n"
+          },
           "hpInitialFormula": {
             "type": "string",
             "description": "Fórmula de puntos de golpe iniciales (nivel 1). Ver SystemCharacterFormulaSyntax.\nEjemplo: max(@class.hitDie) + @attributes.con.modifier\n"
@@ -2723,6 +2727,11 @@
             },
             "description": "Niveles de clase que otorgan Mejora de característica por defecto.\nNo debe coincidir en longitud con maxLevel. Cada valor debe ser único,\nmayor o igual que 1 y no superar maxLevel. Array vacío desactiva la mejora.\n"
           },
+          "abilityScoreAlternativeGroupId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Grupo de opciones alternativo a la mejora de característica. ObjectId o cadena\nvacía para desactivar. Null en actualización hereda del ancestro.\n"
+          },
           "hpInitialFormula": {
             "type": "string",
             "description": "Fórmula de PG nivel 1. Ver SystemCharacterFormulaSyntax.\nEjemplo: max(@class.hitDie) + @attributes.con.modifier\n"
@@ -2848,6 +2857,10 @@
               "type": "integer"
             },
             "description": "Niveles de clase con Mejora de característica por defecto. Array vacío desactiva la mejora."
+          },
+          "abilityScoreAlternativeGroupId": {
+            "type": "string",
+            "description": "Grupo de opciones alternativo a la mejora de característica."
           },
           "hpInitialFormula": {
             "type": "string",
@@ -4253,9 +4266,6 @@
           },
           "skill_choices": {
             "$ref": "#/components/schemas/SkillChoiceApi"
-          },
-          "feats": {
-            "$ref": "#/components/schemas/FeatChoiceApi"
           }
         }
       },
@@ -6296,12 +6306,6 @@
             "type": "boolean",
             "description": "True si el personaje lleva armadura o escudo equipado sin la competencia requerida."
           },
-          "feats": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Feat"
-            }
-          },
           "money": {
             "type": "array",
             "items": {
@@ -6380,7 +6384,6 @@
           "traits",
           "traits_data",
           "money",
-          "feats",
           "hit_die",
           "prof_bonus"
         ],
@@ -6533,13 +6536,6 @@
               }
             }
           },
-          "feats": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "IDs de los dotes del personaje."
-          },
           "hit_die": {
             "type": "number"
           },
@@ -6552,6 +6548,208 @@
               "$ref": "#/components/schemas/CharacterCompanion"
             },
             "description": "Roster narrativo opcional (máximo 20). El recuento companionRoster.count de un rasgo es solo orientación de UI; el servidor no lo exige.\n"
+          }
+        }
+      },
+      "InputPatchCharacterFlavor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "img": {
+            "type": "string",
+            "description": "URL de la imagen del personaje. Cadena vacía para vaciarla."
+          },
+          "appearance": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Parche parcial del aspecto. Debe incluir al menos un campo.",
+            "properties": {
+              "age": {
+                "type": "number"
+              },
+              "height": {
+                "type": "number"
+              },
+              "weight": {
+                "type": "number"
+              },
+              "eyes": {
+                "type": "string"
+              },
+              "hair": {
+                "type": "string"
+              },
+              "skin": {
+                "type": "string"
+              }
+            }
+          },
+          "background": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Parche parcial de historia y flavor. No admite name ni type del trasfondo. Debe incluir al menos un campo.",
+            "properties": {
+              "history": {
+                "description": "Texto con saltos de línea o array de párrafos. Se guarda como array.",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "alignment": {
+                "type": "string"
+              },
+              "personality": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ideals": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "alignment": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "bonds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "flaws": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "god": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "CharacterFlavor": {
+        "type": "object",
+        "required": [
+          "img",
+          "appearance",
+          "background"
+        ],
+        "properties": {
+          "img": {
+            "type": "string"
+          },
+          "appearance": {
+            "type": "object",
+            "properties": {
+              "age": {
+                "type": "number"
+              },
+              "height": {
+                "type": "number"
+              },
+              "weight": {
+                "type": "number"
+              },
+              "eyes": {
+                "type": "string"
+              },
+              "hair": {
+                "type": "string"
+              },
+              "skin": {
+                "type": "string"
+              }
+            }
+          },
+          "background": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "history": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "alignment": {
+                "type": "string"
+              },
+              "personality": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ideals": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "alignment": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "bonds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "flaws": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "god": {
+                "type": "string"
+              }
+            }
           }
         }
       },
@@ -7148,227 +7346,6 @@
           },
           "ruleset": {
             "type": "string"
-          }
-        }
-      },
-      "Feat": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "ID de MongoDB del dote."
-          },
-          "name": {
-            "type": "string",
-            "description": "Nombre del dote."
-          },
-          "description": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Descripción detallada del dote."
-          },
-          "summary": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Resumen del dote. Puede ser un array vacío: el GET de catálogo no lo rellena desde description. En ficha o PDF, si está vacío se usa description.\n"
-          },
-          "ruleset": {
-            "type": "string",
-            "description": "ID del sistema al que pertenece el dote."
-          },
-          "deletedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "Fecha de borrado lógico. Nulo si el dote está activo."
-          },
-          "requirements": {
-            "$ref": "#/components/schemas/FeatRequirements"
-          }
-        }
-      },
-      "FeatAttributeRequirement": {
-        "type": "object",
-        "required": [
-          "key",
-          "name",
-          "min"
-        ],
-        "properties": {
-          "key": {
-            "type": "string",
-            "description": "Clave del atributo dentro del sistema (por ejemplo, str)."
-          },
-          "name": {
-            "type": "string",
-            "description": "Nombre del atributo resuelto (por ejemplo, Fuerza)."
-          },
-          "min": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Valor mínimo que debe tener el atributo."
-          },
-          "icon": {
-            "type": "string",
-            "description": "Icono del atributo, si existe."
-          }
-        }
-      },
-      "FeatRequirements": {
-        "type": "object",
-        "required": [
-          "attributeMode",
-          "attributes"
-        ],
-        "properties": {
-          "attributeMode": {
-            "type": "string",
-            "enum": [
-              "all",
-              "any"
-            ],
-            "description": "all exige todos los atributos; any exige al menos uno."
-          },
-          "attributes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FeatAttributeRequirement"
-            },
-            "description": "Requisitos de puntuación de atributo."
-          }
-        }
-      },
-      "FeatAttributeRequirementInput": {
-        "type": "object",
-        "required": [
-          "key",
-          "min"
-        ],
-        "properties": {
-          "key": {
-            "type": "string",
-            "description": "Clave del atributo dentro del sistema (por ejemplo, str)."
-          },
-          "min": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Valor mínimo que debe tener el atributo."
-          }
-        }
-      },
-      "FeatRequirementsInput": {
-        "type": "object",
-        "properties": {
-          "attributeMode": {
-            "type": "string",
-            "enum": [
-              "all",
-              "any"
-            ],
-            "description": "all exige todos los atributos; any exige al menos uno."
-          },
-          "attributes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FeatAttributeRequirementInput"
-            },
-            "description": "Requisitos de puntuación de atributo."
-          }
-        }
-      },
-      "FeatChoiceApi": {
-        "type": "object",
-        "properties": {
-          "choose": {
-            "type": "number",
-            "description": "Cantidad de dotes a seleccionar."
-          },
-          "options": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Feat"
-            },
-            "description": "Lista de dotes disponibles para elegir."
-          },
-          "query_type": {
-            "type": "string",
-            "enum": [
-              "all",
-              "options",
-              "filter"
-            ],
-            "description": "Tipo de consulta usada para obtener las opciones."
-          }
-        }
-      },
-      "InputCreateFeat": {
-        "type": "object",
-        "required": [
-          "name",
-          "ruleset"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Nombre del dote."
-          },
-          "description": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Descripción detallada."
-          },
-          "summary": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Párrafos de resumen. Opcional; si falta o es [] no se copia description. Si coincide con description, se persiste como [].\n"
-          },
-          "ruleset": {
-            "type": "string",
-            "description": "ID del sistema al que pertenece el dote."
-          },
-          "requirements": {
-            "$ref": "#/components/schemas/FeatRequirementsInput"
-          }
-        }
-      },
-      "InputUpdateFeat": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "summary": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Párrafos de resumen. Opcional; si falta o es [] no se copia description. Si coincide con description, se persiste como [].\n"
-          },
-          "ruleset": {
-            "type": "string"
-          },
-          "requirements": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/FeatRequirementsInput"
-              }
-            ],
-            "nullable": true,
-            "description": "Requisitos del dote. Enviar nulo para eliminarlos."
           }
         }
       },
@@ -9620,6 +9597,11 @@
             },
             "description": "Override de niveles de clase con Mejora de característica.\nSi se omite, se usa el default del sistema. Array vacío desactiva la mejora en esta clase.\n"
           },
+          "abilityScoreAlternativeGroupId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Override del grupo de opciones alternativo a la mejora de característica.\nSi se omite, se usa el del sistema. Null o cadena vacía desactiva la alternativa en esta clase.\n"
+          },
           "subclassChoice": {
             "$ref": "#/components/schemas/SubclassChoiceConfig",
             "description": "Tipo de elección de subclase (nombre del grupo, texto y nivel en el que se elige)."
@@ -9703,7 +9685,7 @@
             "type": "object",
             "properties": {
               "requirements": {
-                "$ref": "#/components/schemas/FeatRequirements"
+                "$ref": "#/components/schemas/AttributeRequirements"
               }
             },
             "description": "Solo se incluye con include=multiclass."
@@ -10052,11 +10034,100 @@
           }
         }
       },
+      "AttributeRequirement": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "min"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave del atributo dentro del sistema (por ejemplo, str)."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del atributo resuelto (por ejemplo, Fuerza)."
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Valor mínimo que debe tener el atributo."
+          },
+          "icon": {
+            "type": "string",
+            "description": "Icono del atributo, si existe."
+          }
+        }
+      },
+      "AttributeRequirements": {
+        "type": "object",
+        "required": [
+          "attributeMode",
+          "attributes"
+        ],
+        "properties": {
+          "attributeMode": {
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ],
+            "description": "all exige todos los atributos; any exige al menos uno."
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttributeRequirement"
+            },
+            "description": "Requisitos de puntuación de atributo."
+          }
+        }
+      },
+      "AttributeRequirementInput": {
+        "type": "object",
+        "required": [
+          "key",
+          "min"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave del atributo dentro del sistema (por ejemplo, str)."
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Valor mínimo que debe tener el atributo."
+          }
+        }
+      },
+      "AttributeRequirementsInput": {
+        "type": "object",
+        "properties": {
+          "attributeMode": {
+            "type": "string",
+            "enum": [
+              "all",
+              "any"
+            ],
+            "description": "all exige todos los atributos; any exige al menos uno."
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttributeRequirementInput"
+            },
+            "description": "Requisitos de puntuación de atributo."
+          }
+        }
+      },
       "CharacterClassMulticlass": {
         "type": "object",
         "properties": {
           "requirements": {
-            "$ref": "#/components/schemas/FeatRequirements",
+            "$ref": "#/components/schemas/AttributeRequirements",
             "description": "Requisitos de atributo para tomar o mantener esta clase en un personaje multiclase. Hidratados con nombre e icono."
           },
           "proficiencies": {
@@ -10083,8 +10154,8 @@
         "type": "object",
         "properties": {
           "requirements": {
-            "$ref": "#/components/schemas/FeatRequirementsInput",
-            "description": "Requisitos de atributo (misma forma que las dotes)."
+            "$ref": "#/components/schemas/AttributeRequirementsInput",
+            "description": "Requisitos de puntuación de atributo."
           },
           "proficiencies": {
             "type": "array",
@@ -10259,6 +10330,10 @@
             },
             "description": "Override de niveles con Mejora de característica (reemplazo completo del default del sistema).\nArray vacío desactiva la mejora en esta clase. Si se omite, se hereda el default del sistema.\n"
           },
+          "abilityScoreAlternativeGroupId": {
+            "type": "string",
+            "description": "Override del grupo de opciones alternativo a la mejora de característica.\nSi se omite, se hereda el del sistema.\n"
+          },
           "subclassChoice": {
             "allOf": [
               {
@@ -10426,6 +10501,11 @@
             },
             "nullable": true,
             "description": "Override de niveles con Mejora de característica. Enviar null para volver al default del sistema.\nArray vacío desactiva la mejora en esta clase.\n"
+          },
+          "abilityScoreAlternativeGroupId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Override del grupo de opciones alternativo a la mejora de característica.\nEnviar null para desactivar la alternativa en esta clase.\n"
           },
           "subclassChoice": {
             "allOf": [
@@ -14500,6 +14580,66 @@
             "description": "Error del servidor."
           }
         }
+      },
+      "patch": {
+        "summary": "Actualizar imagen, aspecto e historia de un personaje",
+        "description": "Parche parcial de flavor. Envíe al menos uno de `img`, `appearance` o `background`.\n`appearance` y `background` se fusionan campo a campo; no reemplace el objeto entero\nsi solo cambia un valor. `history` admite texto (se parte por saltos de línea) o array.\nNo se puede cambiar el nombre ni el tipo del trasfondo. El identificador va en la URL.\nSolo el dueño o el master de su campaña pueden modificarlo.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InputPatchCharacterFlavor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Flavor actualizado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CharacterFlavor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
       }
     },
     "/character/{id}/pdf": {
@@ -15264,7 +15404,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skill_choices`.\n`optionChoices` de la raíz son grupos de opciones de este nivel de clase o de una subclase\nya asignada. Si aún debe elegir subclase, las elecciones de cada opción van hidratadas\n(`PendingOptionChoice`: groupName, options con available/unmet, selected) en\n`subclassChoice.options[].levels[].optionChoices`.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spell_changes.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spell_choices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `feats` lista las dotes\nelegibles (sin las ya poseídas ni las que no cumplen requisitos). El jugador reparte +2\n(un +2 o dos +1) o elige 1 dote; el POST debe enviar `abilityScore` o `feat`.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traits_data` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traits_data`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traits_data` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skill_choices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skill_choices`.\n`optionChoices` de la raíz son grupos de opciones de este nivel de clase o de una subclase\nya asignada. Si aún debe elegir subclase, las elecciones de cada opción van hidratadas\n(`PendingOptionChoice`: groupName, options con available/unmet, selected) en\n`subclassChoice.options[].levels[].optionChoices`.\n`spell_choices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spell_changes.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spell_changes` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spell_choices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`ability_score: true`), `abilityScoreAlternative`\nlista las opciones del grupo configurado en el sistema o la clase (elige 1 en lugar de los +2).\nEl POST debe enviar `abilityScore` o, si hay alternativa, `abilityScoreOption`.\n",
         "tags": [
           "Personajes"
         ],
@@ -15416,15 +15556,15 @@
                     },
                     "ability_score": {
                       "type": "boolean",
-                      "description": "True si este nivel de clase otorga Mejora de característica. En ese caso el POST debe enviar `abilityScore` (repartir 2 puntos) o `feat`.\n"
+                      "description": "True si este nivel de clase otorga Mejora de característica. En ese caso el POST debe enviar `abilityScore` (repartir 2 puntos) o `abilityScoreOption` si hay `abilityScoreAlternative`.\n"
                     },
-                    "feats": {
+                    "abilityScoreAlternative": {
                       "allOf": [
                         {
-                          "$ref": "#/components/schemas/FeatChoiceApi"
+                          "$ref": "#/components/schemas/PendingOptionChoice"
                         }
                       ],
-                      "description": "Dotes disponibles si `ability_score` es true (elige 1 en lugar de los +2). Excluye dotes ya poseídas y las que no cumplen requisitos de atributo.\n"
+                      "description": "Alternativa a la mejora de característica: una opción del grupo configurado (`choose` 1). Omitido si el sistema o la clase no definen grupo.\n"
                     },
                     "newClass": {
                       "type": "boolean",
@@ -15439,7 +15579,7 @@
                       "description": "Solo si `newClass` es true. Competencias y requisitos del dip.",
                       "properties": {
                         "requirements": {
-                          "$ref": "#/components/schemas/FeatRequirements"
+                          "$ref": "#/components/schemas/AttributeRequirements"
                         },
                         "requirementsMet": {
                           "type": "boolean"
@@ -15490,7 +15630,7 @@
     "/character/{id}/level-up": {
       "post": {
         "summary": "Subir de nivel a un personaje",
-        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\n`skillPicks` cubre el dip y las `skill_choices` del nivel (clase o subclase, incluida la\nenviada en `subclass` en el mismo POST). `proficiencyPicks` solo aplica al tomar una clase nueva.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`.\nSi el GET devolvió `spell_changes`, el body puede incluir `spellReplacements` (0..`choose`\npares `{ from, to }`). Es opcional: omitir o enviar vacío no sustituye. `from` debe estar\nen `spell_changes.from`; `to` en `spell_changes.to` y no puede ser un conjuro ya conocido\nni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se\nquita `from` de `preparedSpells` de esa clase si estaba preparado.\nAplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje.\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `feat` (ObjectId de una dote de `feats`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nLa dote se guarda como ID; no aplica efectos mecánicos. Un +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\nSi el GET devolvió `optionChoices` en la raíz, o la subclase enviada tiene `optionChoices`\nen este nivel (`subclassChoice.options[].levels[]`), el body debe incluir `optionPicks`\ncon un elemento por grupo: `add` tiene longitud `choose` y `replace` como máximo `replace`\n(el `replace` del GET ya incluye `optionReplacements` de clase o subclase). Cada id debe\npertenecer al grupo, cumplir requisitos y no estar ya elegida salvo que sea repetible.\n",
+        "description": "Incrementa en 1 el nivel de la clase indicada, o toma una clase nueva (`$push` en `classes[]`\na nivel 1) si no la tenía. Recalcula el bono de competencia según el sistema y aumenta los\npuntos de golpe usando `hpLevelUpFormula` del sistema del personaje. El cliente envía solo\nel incremento base de PG (`hpIncrease`, resultado de la tirada o media del dado); el tope es\nel dado de la clase objetivo (catálogo en dip, entrada de `classes[]` si ya la tiene).\nEl servidor aplica la fórmula del sistema con los atributos del personaje (tras aplicar la\nmejora de característica, si la hay). Reinicia la XP a 0.\nEn un dip une `multiclass.proficiencies` y aplica `proficiencyPicks`; no toca\ntiradas de salvación ni equipo. Rechaza (400) si faltan requisitos de todas las clases implicadas.\n`skillPicks` cubre el dip y las `skill_choices` del nivel (clase o subclase, incluida la\nenviada en `subclass` en el mismo POST). `proficiencyPicks` solo aplica al tomar una clase nueva.\nSi `GET /character/{id}/level-up-data` devolvió `spell_choices`, el body debe incluir\n`spells` (array de arrays, mismo orden y `choose` que cada elección). Los conjuros se\nguardan en `spells[classId]`.\nSi el GET devolvió `spell_changes`, el body puede incluir `spellReplacements` (0..`choose`\npares `{ from, to }`). Es opcional: omitir o enviar vacío no sustituye. `from` debe estar\nen `spell_changes.from`; `to` en `spell_changes.to` y no puede ser un conjuro ya conocido\nni uno de `spells` de esta misma subida. El recambio se aplica sobre los conocidos y se\nquita `from` de `preparedSpells` de esa clase si estaba preparado.\nAplica los rasgos automáticos del nivel (`traits` y\n`traits_data`) al personaje.\nSi un rasgo nuevo define `damageChoices`, el body debe incluir `traitChoices` con\nesa elección. Si ya estaba guardada, se puede omitir o repetir los mismos nombres.\nSi `catalogChoices` trae elecciones pendientes, `traitChoices` debe enviar la lista\ncompleta: lo ya elegido, en el mismo orden, con los mismos textos e idioma, y exactamente\n`add` opciones nuevas. Una opción no repetible no se elige dos veces. Cada texto libre\ntiene entre 1 y 80 caracteres y no se repite en esa elección. Si la elección admite idioma,\n`languageId` es un idioma de los sistemas del personaje; null solo vale si el idioma es\noptional. Si no hay nada pendiente, se omite o se repite la misma lista. Quitar o cambiar\nuna opción ya elegida se rechaza.\nEl nivel que abre la concesión es el de esa clase, no el nivel total del personaje.\nSi el GET devolvió `ability_score: true`, el body debe incluir exactamente uno de\n`abilityScore` (repartir 2 puntos: un +2 o dos +1) o `abilityScoreOption` (ObjectId de\nuna opción de `abilityScoreAlternative`). La opción se aplica como el resto de\n`optionPicks` (trait, requisitos, `optionSelections`).\nEl tope de cada característica es el `max` de los rasgos ya poseídos o, si no hay,\n`defaultMaxAttributeValue`. Se valida la puntuación final (guardada + bono de rasgo + ASI).\nUn +CON de ASI afecta el PG de este\nnivel, no de los anteriores. Un rasgo con abilityScores de Constitución sí suma el salto de\nmodificador a los PG de los niveles previos.\nSi el GET devolvió `subclassChoice`, el body debe incluir `subclass` (ObjectId de la subclase).\nSi el GET devolvió `optionChoices` en la raíz, o la subclase enviada tiene `optionChoices`\nen este nivel (`subclassChoice.options[].levels[]`), el body debe incluir `optionPicks`\ncon un elemento por grupo: `add` tiene longitud `choose` y `replace` como máximo `replace`\n(el `replace` del GET ya incluye `optionReplacements` de clase o subclase). Cada id debe\npertenecer al grupo, cumplir requisitos y no estar ya elegida salvo que sea repetible.\n",
         "tags": [
           "Personajes"
         ],
@@ -15608,7 +15748,7 @@
                   },
                   "abilityScore": {
                     "type": "object",
-                    "description": "Incrementos de característica (suma total 2). Mutuamente excluyente con `feat`. Obligatorio si `ability_score` es true y no se envía `feat`.\n",
+                    "description": "Incrementos de característica (suma total 2). Mutuamente excluyente con `abilityScoreOption`. Obligatorio si `ability_score` es true y no se envía `abilityScoreOption`.\n",
                     "required": [
                       "increases"
                     ],
@@ -15641,9 +15781,9 @@
                       }
                     }
                   },
-                  "feat": {
+                  "abilityScoreOption": {
                     "type": "string",
-                    "description": "ObjectId de la dote elegida en lugar de los +2. Mutuamente excluyente con `abilityScore`. Debe estar en `feats.options` del GET.\n"
+                    "description": "ObjectId de la opción elegida en lugar de los +2. Mutuamente excluyente con `abilityScore`. Debe estar en `abilityScoreAlternative.options` del GET.\n"
                   },
                   "traitChoices": {
                     "type": "object",
@@ -17796,253 +17936,6 @@
           },
           "404": {
             "description": "Idioma no encontrado."
-          },
-          "500": {
-            "description": "Error del servidor."
-          }
-        }
-      }
-    },
-    "/feats": {
-      "get": {
-        "summary": "Obtener los dotes asociados a ciertos sistemas",
-        "tags": [
-          "Dotes"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "ruleset",
-            "required": false,
-            "schema": {
-              "oneOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ]
-            },
-            "description": "Sistema o sistemas para los cuales filtrar los dotes (incluye ancestros)."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Lista de dotes obtenida con éxito.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Feat"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "No autorizado."
-          },
-          "500": {
-            "description": "Error interno del servidor."
-          }
-        }
-      },
-      "post": {
-        "summary": "Crear un nuevo dote",
-        "tags": [
-          "Dotes"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InputCreateFeat"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Dote creado con éxito.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Feat"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Parámetros incorrectos."
-          },
-          "401": {
-            "description": "No autorizado."
-          },
-          "403": {
-            "description": "No tienes permisos para crear dotes en este sistema."
-          },
-          "404": {
-            "description": "Sistema asociado no encontrado."
-          },
-          "409": {
-            "description": "Conflicto, el dote ya existe."
-          },
-          "500": {
-            "description": "Error interno del servidor."
-          }
-        }
-      }
-    },
-    "/feats/{id}": {
-      "put": {
-        "summary": "Actualizar un dote existente",
-        "tags": [
-          "Dotes"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ID del dote a actualizar."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InputUpdateFeat"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Dote actualizado con éxito.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Feat"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Parámetros incorrectos."
-          },
-          "401": {
-            "description": "No autorizado."
-          },
-          "403": {
-            "description": "No tienes permisos para modificar este dote."
-          },
-          "404": {
-            "description": "Dote o sistema asociado no encontrado."
-          },
-          "500": {
-            "description": "Error interno del servidor."
-          }
-        }
-      },
-      "delete": {
-        "summary": "Realizar un borrado lógico de un dote",
-        "tags": [
-          "Dotes"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ID del dote a borrar."
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Dote borrado exitosamente."
-          },
-          "400": {
-            "description": "ID de dote requerido."
-          },
-          "403": {
-            "description": "No tienes permisos para borrar este dote."
-          },
-          "404": {
-            "description": "Dote o sistema asociado no encontrado."
-          },
-          "500": {
-            "description": "Error del servidor."
-          }
-        }
-      }
-    },
-    "/feats/{id}/restore": {
-      "patch": {
-        "summary": "Restaurar un dote borrado lógicamente",
-        "tags": [
-          "Dotes"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ID del dote a restaurar."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Dote restaurado exitosamente."
-          },
-          "400": {
-            "description": "ID de dote requerido."
-          },
-          "403": {
-            "description": "No tienes permisos para restaurar este dote."
-          },
-          "404": {
-            "description": "Dote o sistema asociado no encontrado."
           },
           "500": {
             "description": "Error del servidor."
