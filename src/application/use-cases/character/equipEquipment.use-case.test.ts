@@ -13,7 +13,7 @@ describe("EquipEquipment", () => {
     };
   });
 
-  it("should delegate to characterService.equipEquipment and return full and basic", async () => {
+  it("should delegate to characterService.equipEquipment and return equipment state", async () => {
     const useCase = new EquipEquipment(characterServiceMock as any);
     const input = {
       id: "char1",
@@ -21,8 +21,14 @@ describe("EquipEquipment", () => {
       equipped: true,
     };
     const expected = {
-      full: { id: "char1", ac: 14 },
       basic: { id: "char1", ac: 14 },
+      equipment: [{ instanceId: "inst1", equipped: true }],
+      ac: 14,
+      speed: { walk: 30 },
+      wearingArmorWithoutProficiency: false,
+      disadvantageSkillKeys: [],
+      resistances: [],
+      conditionImmunities: [],
     };
     characterServiceMock.equipEquipment.mockResolvedValue(expected);
 

@@ -1,5 +1,5 @@
 import ICharacterRepository from "../repositories/ICharacterRepository";
-import { CharacterCampaignLink, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, CharacterGetResult, LevelUpDataResult, CharacterApi, CharacterBasic, CharacterListItem, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
+import { CharacterCampaignLink, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, CharacterGetResult, LevelUpDataResult, CharacterApi, CharacterBasic, CharacterListItem, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, CharacterEquipmentStateResponse, CharacterLevelUpResponse, CharacterSpellStateResponse, CharacterStatePatch, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
 
 export default class CharacterService {
   constructor(private readonly characterRepository: ICharacterRepository) { }
@@ -36,7 +36,7 @@ export default class CharacterService {
     return this.characterRepository.deleteEquipment(data);
   }
 
-  equipEquipment(data: TypeEquipEquipment): Promise<{ full: CharacterApi; basic: CharacterBasic }> {
+  equipEquipment(data: TypeEquipEquipment): Promise<CharacterEquipmentStateResponse> {
     return this.characterRepository.equipEquipment(data);
   }
 
@@ -56,7 +56,7 @@ export default class CharacterService {
     return this.characterRepository.getLevelUpData(id, classId, userId, options);
   }
 
-  levelUp(data: TypeLevelUp): Promise<{ full: CharacterApi, basic: CharacterBasic }> {
+  levelUp(data: TypeLevelUp): Promise<CharacterLevelUpResponse> {
     return this.characterRepository.levelUp(data);
   }
 
@@ -72,59 +72,59 @@ export default class CharacterService {
     return this.characterRepository.assignToCampaign(characterId, campaignId);
   }
 
-  bindWeaponBond(data: TypeBindWeaponBond): Promise<{ full: CharacterApi; basic: CharacterBasic }> {
+  bindWeaponBond(data: TypeBindWeaponBond): Promise<CharacterEquipmentStateResponse> {
     return this.characterRepository.bindWeaponBond(data);
   }
 
-  learnSpells(data: TypeLearnSpells): Promise<CharacterApi> {
+  learnSpells(data: TypeLearnSpells): Promise<CharacterSpellStateResponse> {
     return this.characterRepository.learnSpells(data);
   }
 
-  copySpells(data: TypeCopySpells): Promise<CharacterApi> {
+  copySpells(data: TypeCopySpells): Promise<CharacterSpellStateResponse> {
     return this.characterRepository.copySpells(data);
   }
 
-  prepareSpells(data: TypePrepareSpells): Promise<CharacterApi> {
+  prepareSpells(data: TypePrepareSpells): Promise<CharacterSpellStateResponse> {
     return this.characterRepository.prepareSpells(data);
   }
 
-  bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<CharacterApi> {
+  bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<CharacterSpellStateResponse> {
     return this.characterRepository.bindSpellPrivileges(data);
   }
 
-  useTrait(data: TypeUseTrait): Promise<CharacterApi> {
+  useTrait(data: TypeUseTrait): Promise<CharacterStatePatch> {
     return this.characterRepository.useTrait(data);
   }
 
-  deactivateTrait(data: TypeUseTrait): Promise<CharacterApi> {
+  deactivateTrait(data: TypeUseTrait): Promise<CharacterStatePatch> {
     return this.characterRepository.deactivateTrait(data);
   }
 
-  restCharacter(data: TypeRestCharacter): Promise<CharacterApi> {
+  restCharacter(data: TypeRestCharacter): Promise<CharacterStatePatch> {
     return this.characterRepository.restCharacter(data);
   }
 
-  spendHitDice(data: TypeSpendHitDice): Promise<CharacterApi> {
+  spendHitDice(data: TypeSpendHitDice): Promise<CharacterStatePatch> {
     return this.characterRepository.spendHitDice(data);
   }
 
-  applyHp(data: TypeApplyCharacterHp): Promise<CharacterApi> {
+  applyHp(data: TypeApplyCharacterHp): Promise<CharacterStatePatch> {
     return this.characterRepository.applyHp(data);
   }
 
-  spendSpellSlot(data: TypeSpendSpellSlot): Promise<CharacterApi> {
+  spendSpellSlot(data: TypeSpendSpellSlot): Promise<CharacterStatePatch> {
     return this.characterRepository.spendSpellSlot(data);
   }
 
-  applyCharacterCondition(data: TypeApplyCharacterCondition): Promise<CharacterApi> {
+  applyCharacterCondition(data: TypeApplyCharacterCondition): Promise<CharacterStatePatch> {
     return this.characterRepository.applyCharacterCondition(data);
   }
 
-  updateCharacterCondition(data: TypeUpdateCharacterCondition): Promise<CharacterApi> {
+  updateCharacterCondition(data: TypeUpdateCharacterCondition): Promise<CharacterStatePatch> {
     return this.characterRepository.updateCharacterCondition(data);
   }
 
-  removeCharacterCondition(data: TypeRemoveCharacterCondition): Promise<CharacterApi> {
+  removeCharacterCondition(data: TypeRemoveCharacterCondition): Promise<CharacterStatePatch> {
     return this.characterRepository.removeCharacterCondition(data);
   }
 
@@ -132,15 +132,15 @@ export default class CharacterService {
     return this.characterRepository.getOwnedTraitIds(id, userId);
   }
 
-  addForm(data: TypeAddCharacterFormPersist): Promise<CharacterApi> {
+  addForm(data: TypeAddCharacterFormPersist): Promise<CharacterStatePatch> {
     return this.characterRepository.addForm(data);
   }
 
-  activateForm(data: TypeSetCharacterFormActive): Promise<CharacterApi> {
+  activateForm(data: TypeSetCharacterFormActive): Promise<CharacterStatePatch> {
     return this.characterRepository.activateForm(data);
   }
 
-  deactivateForm(data: TypeSetCharacterFormActive): Promise<CharacterApi> {
+  deactivateForm(data: TypeSetCharacterFormActive): Promise<CharacterStatePatch> {
     return this.characterRepository.deactivateForm(data);
   }
 

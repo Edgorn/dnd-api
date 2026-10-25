@@ -159,6 +159,7 @@ export type LevelUpDataView = (typeof LEVEL_UP_DATA_VIEWS)[number];
 export interface GetCharacterOptions {
   applyActiveTraits?: boolean;
   view?: CharacterView;
+  omitSpellHydration?: boolean;
 }
 
 export interface GetLevelUpDataOptions {
@@ -393,12 +394,38 @@ export interface ToggleFavoriteEquipmentResponse {
   id: string;
   instanceId: string;
   isFavorite: boolean;
+  splitFrom?: {
+    instanceId: string;
+    quantity: number;
+  };
 }
 
 export interface TypeBindWeaponBond {
   id: string;
   instanceId: string;
   isBond: boolean;
+}
+
+export interface CharacterEquipmentStateResponse {
+  basic: CharacterBasic;
+  equipment: CharacterEquipmentApi[];
+  ac: number;
+  speed: Speed;
+  wearingArmorWithoutProficiency: boolean;
+  disadvantageSkillKeys: string[];
+  resistances: Damage[];
+  conditionImmunities: CharacterApi["conditionImmunities"];
+}
+
+export interface CharacterSpellStateResponse {
+  spells: Record<string, CharacterSheetSpellGroup>;
+  spellsById: Record<string, SpellRef>;
+  spellPrivileges?: CharacterSpellPrivilegeApi[];
+}
+
+export interface CharacterLevelUpResponse {
+  full: CharacterSheetApi;
+  basic: CharacterBasic;
 }
 
 export type CharacterMoneyItem = { quantity: number } & CoinApi;
@@ -686,6 +713,30 @@ export interface CharacterSheetApi extends Omit<CharacterApi, "spells" | "traits
   spells: Record<string, CharacterSheetSpellGroup>;
   spellsById: Record<string, SpellRef>;
   traits: CharacterSheetTrait[];
+}
+
+export interface CharacterStatePatch {
+  basic?: CharacterBasic;
+  hpCurrent?: number;
+  hpMax?: number;
+  hitDice?: CharacterHitDiceApi[];
+  spellSlots?: CharacterSpellSlotApi[];
+  traitResources?: CharacterTraitResource[];
+  activeTraitIds?: string[];
+  ac?: number;
+  speed?: Speed;
+  size?: string;
+  attributes?: CharacterAttributeApi[];
+  initiativeBonus?: number;
+  resistances?: Damage[];
+  conditionImmunities?: CharacterApi["conditionImmunities"];
+  activeConditions?: CharacterActiveConditionApi[];
+  traits?: CharacterSheetTrait[];
+  equipment?: CharacterEquipmentApi[];
+  wearingArmorWithoutProficiency?: boolean;
+  disadvantageSkillKeys?: string[];
+  forms?: CharacterFormApi[];
+  activeFormId?: string | null;
 }
 
 export type CharacterGetResult = CharacterApi | CharacterSheetApi | CharacterCombatApi;

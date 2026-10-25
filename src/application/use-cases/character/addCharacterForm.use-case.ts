@@ -4,7 +4,7 @@ import CreatureService from "../../../domain/services/creature.service";
 import SystemService from "../../../domain/services/system.service";
 import TraitService from "../../../domain/services/trait.service";
 import { AppError, NotFoundError } from "../../../domain/errors/AppError";
-import { CharacterApi, TypeAddCharacterForm } from "../../../domain/types/character.types";
+import { CharacterStatePatch, TypeAddCharacterForm } from "../../../domain/types/character.types";
 import { creatureMatchesAnyFormPool, formPoolsForSpell } from "../../../utils/creatureFormPool";
 
 export default class AddCharacterForm {
@@ -16,7 +16,7 @@ export default class AddCharacterForm {
     private readonly traitService: TraitService
   ) { }
 
-  async execute(data: TypeAddCharacterForm): Promise<CharacterApi> {
+  async execute(data: TypeAddCharacterForm): Promise<CharacterStatePatch> {
     const spell = await this.spellService.getById(data.spellId);
     if (!spell || spell.deletedAt) {
       throw new NotFoundError("Conjuro no encontrado");

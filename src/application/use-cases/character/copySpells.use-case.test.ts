@@ -22,7 +22,7 @@ describe("CopySpells", () => {
 
   it("should delegate to characterService.copySpells", async () => {
     const useCase = new CopySpells(characterServiceMock as never);
-    const expected = { id: "char1", extraSpells: {} };
+    const expected = { spells: {}, spellsById: {} };
     characterServiceMock.copySpells.mockResolvedValue(expected);
 
     const result = await useCase.execute(input);

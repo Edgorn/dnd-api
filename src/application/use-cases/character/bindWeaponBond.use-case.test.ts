@@ -21,8 +21,14 @@ describe("BindWeaponBond", () => {
       isBond: true,
     };
     const expected = {
-      full: { id: "char1" },
-      basic: { id: "char1" },
+      basic: { id: "char1", ac: 12 },
+      equipment: [{ instanceId: "inst1", isBond: true }],
+      ac: 12,
+      speed: { walk: 30 },
+      wearingArmorWithoutProficiency: false,
+      disadvantageSkillKeys: [],
+      resistances: [],
+      conditionImmunities: [],
     };
     characterServiceMock.bindWeaponBond.mockResolvedValue(expected);
 

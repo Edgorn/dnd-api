@@ -3,7 +3,7 @@ import CharacterModel from '../schemas/Character';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { Types } from 'mongoose';
-import { CharacterCampaignLink, CharacterSubclassApi, GetCharacterOptions, GetLevelUpDataOptions, LevelUpData, LevelUpDataResult, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, CharacterApi, CharacterBasic, CharacterGetResult, CharacterListItem, GetCharactersByUserOptions, CharacterMongo, CharacterEquipmentMongo, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLearnSpells, TypeCopySpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource } from '../../../../domain/types/character.types';
+import { CharacterCampaignLink, CharacterSubclassApi, GetCharacterOptions, GetLevelUpDataOptions, LevelUpData, LevelUpDataResult, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, CharacterApi, CharacterBasic, CharacterGetResult, CharacterListItem, GetCharactersByUserOptions, CharacterMongo, CharacterEquipmentMongo, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, CharacterEquipmentStateResponse, CharacterLevelUpResponse, CharacterSpellStateResponse, CharacterStatePatch, TypeLearnSpells, TypeCopySpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource, CharacterActiveConditionApi, CharacterHitDiceApi, CharacterSpellSlotApi } from '../../../../domain/types/character.types';
 import { CharacterFormApi, CharacterFormMongo, CreatureFormSummary, formPurposeOverlaysCharacter } from '../../../../domain/types/creatureForm.types';
 import {
   CharacterOptionSelection,
@@ -211,8 +211,9 @@ import { toCharacterBasic } from '../../../../utils/characterBasicFromApi';
 import { SpellcastingLevel, SubclassChoiceMenuApi } from '../../../../domain/types/characterClass.types';
 import { aggregateConditionalConditionImmunities, aggregateConditionalResistances } from '../../../../utils/aggregateConditionalResistances';
 import { applyActiveTraitOverlays } from '../../../../utils/applyActiveTraitOverlays';
+import { toCharacterEquipmentStateDelta } from '../../../../utils/characterEquipmentState';
 import { applyActiveFormOverlay } from '../../../../utils/applyActiveFormOverlay';
-import { toCombatCharacter, toSheetCharacter } from '../../../../utils/characterViews';
+import { CHARACTER_FORM_OVERLAY_PATCH_KEYS, toCharacterStatePatch, toCombatCharacter, toSheetCharacter, toSheetSpellState } from '../../../../utils/characterViews';
 import { ArmorRulesEquipment } from '../../../../utils/armorRules';
 import { MAX_CHARACTER_FORMS, normalizeCharacterForms } from '../../../../utils/normalizeCharacterForms';
 import { normalizeActiveTraitIds, normalizeTraitResources } from '../../../../utils/traitResources';
@@ -569,7 +570,7 @@ export default class CharacterRepository implements ICharacterRepository {
     return this.saveInventory(id, removeOrDecrement(inventory, instanceId, quantity));
   }
 
-  async equipEquipment(data: TypeEquipEquipment): Promise<{ full: CharacterApi, basic: CharacterBasic }> {
+  async equipEquipment(data: TypeEquipEquipment): Promise<CharacterEquipmentStateResponse> {
     const { id, instanceId, equipped } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -603,7 +604,7 @@ export default class CharacterRepository implements ICharacterRepository {
       inventory = applyEquip(inventory, instanceId, false, () => null);
     }
 
-    return this.saveInventoryAndFormatCharacter(id, inventory);
+    return this.saveInventoryAndFormatEquipmentState(id, inventory);
   }
 
   async toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse> {
@@ -618,10 +619,17 @@ export default class CharacterRepository implements ICharacterRepository {
     this.requireInventoryInstance(inventory, instanceId);
 
     let targetInstanceId = instanceId;
+    let splitFrom: ToggleFavoriteEquipmentResponse["splitFrom"];
     if (isFavorite) {
       const split = splitOne(inventory, instanceId);
       inventory = split.inventory;
       targetInstanceId = split.instance.instanceId;
+      if (targetInstanceId !== instanceId) {
+        const source = inventory.find(item => item.instanceId === instanceId);
+        if (source) {
+          splitFrom = { instanceId, quantity: source.quantity };
+        }
+      }
     }
 
     const idx = inventory.findIndex(eq => eq.instanceId === targetInstanceId);
@@ -641,6 +649,7 @@ export default class CharacterRepository implements ICharacterRepository {
       id,
       instanceId: targetInstanceId,
       isFavorite,
+      ...(splitFrom ? { splitFrom } : {}),
     };
   }
 
@@ -916,7 +925,7 @@ export default class CharacterRepository implements ICharacterRepository {
     };
   }
 
-  async levelUp(data: TypeLevelUp): Promise<{ full: CharacterApi, basic: CharacterBasic }> {
+  async levelUp(data: TypeLevelUp): Promise<CharacterLevelUpResponse> {
     const { id, classId, hpIncrease, userId, spells, subclass, abilityScore, abilityScoreOption, traitChoices, skillPicks, skillProficiencyPicks, proficiencyPicks, spellReplacements, optionPicks } = data;
     const personaje = await CharacterModel.findById(id);
 
@@ -1271,7 +1280,7 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new NotFoundError("Personaje no encontrado");
     }
 
-    return this.formatFullAndListCard(resultado);
+    return this.formatSheetAndListCard(resultado);
   }
 
   async getByIds(indices: string[]): Promise<CharacterBasic[]> {
@@ -1322,7 +1331,7 @@ export default class CharacterRepository implements ICharacterRepository {
     return this.formatBasicCharacter(resultado);
   }
 
-  async bindWeaponBond(data: TypeBindWeaponBond): Promise<{ full: CharacterApi, basic: CharacterBasic }> {
+  async bindWeaponBond(data: TypeBindWeaponBond): Promise<CharacterEquipmentStateResponse> {
     const { id, instanceId, isBond } = data;
     const personaje = await CharacterModel.findById(id);
 
@@ -1371,10 +1380,10 @@ export default class CharacterRepository implements ICharacterRepository {
       inventory = unbound.inventory;
     }
 
-    return this.saveInventoryAndFormatCharacter(id, inventory);
+    return this.saveInventoryAndFormatEquipmentState(id, inventory);
   }
 
-  async learnSpells(data: TypeLearnSpells): Promise<CharacterApi> {
+  async learnSpells(data: TypeLearnSpells): Promise<CharacterSpellStateResponse> {
     const { id, classId, spells, userId } = data
     const personaje = await CharacterModel.findById(id)
 
@@ -1440,10 +1449,10 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new NotFoundError("Personaje no encontrado")
     }
 
-    return this.formatCharacter(resultado)
+    return this.formatSpellState(resultado)
   }
 
-  async copySpells(data: TypeCopySpells): Promise<CharacterApi> {
+  async copySpells(data: TypeCopySpells): Promise<CharacterSpellStateResponse> {
     const { id, classId, spells, traitId, userId } = data
     const personaje = await CharacterModel.findById(id)
 
@@ -1560,10 +1569,10 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new NotFoundError("Personaje no encontrado")
     }
 
-    return this.formatCharacter(resultado)
+    return this.formatSpellState(resultado)
   }
 
-  async prepareSpells(data: TypePrepareSpells): Promise<CharacterApi> {
+  async prepareSpells(data: TypePrepareSpells): Promise<CharacterSpellStateResponse> {
     const { id, classId, spells, userId } = data
     const personaje = await CharacterModel.findById(id)
 
@@ -1657,10 +1666,10 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new NotFoundError("Personaje no encontrado")
     }
 
-    return this.formatCharacter(resultado)
+    return this.formatSpellState(resultado)
   }
 
-  async bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<CharacterApi> {
+  async bindSpellPrivileges(data: TypeBindSpellPrivileges): Promise<CharacterSpellStateResponse> {
     const { id, traitId, classId, selections, userId } = data
     const personaje = await CharacterModel.findById(id)
 
@@ -1735,10 +1744,10 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new NotFoundError("Personaje no encontrado")
     }
 
-    return this.formatCharacter(resultado)
+    return this.formatSpellState(resultado, { includePrivileges: true })
   }
 
-  async useTrait(data: TypeUseTrait): Promise<CharacterApi> {
+  async useTrait(data: TypeUseTrait): Promise<CharacterStatePatch> {
     const { id, traitId, userId, equipmentId } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -1792,24 +1801,29 @@ export default class CharacterRepository implements ICharacterRepository {
     }
 
     const recover = trait.action?.recoverSpellSlots;
-    if (!recover || !grant?.classId) {
-      return this.persistTraitStance(id, result.traitResources, result.activeTraitIds, undefined, {
-        ...(inventory ? { equipment: inventory } : {})
+    let spellSlotsSpent: CharacterSpellSlotSpent[] | undefined;
+    if (recover && grant?.classId) {
+      const slotPools = await this.loadSpellSlotPools(personaje);
+      const slotSpent = normalizeSpellSlotsSpent(personaje.spellSlotsSpent, slotPools);
+      spellSlotsSpent = applyRecoverClassSpellSlots(slotSpent, {
+        classId: grant.classId,
+        pool: recover.pool
       });
     }
 
-    const slotPools = await this.loadSpellSlotPools(personaje);
-    const slotSpent = normalizeSpellSlotsSpent(personaje.spellSlotsSpent, slotPools);
-    return this.persistTraitStance(id, result.traitResources, result.activeTraitIds, undefined, {
-      spellSlotsSpent: applyRecoverClassSpellSlots(slotSpent, {
-        classId: grant.classId,
-        pool: recover.pool
-      }),
+    const updated = await this.persistTraitStance(id, result.traitResources, result.activeTraitIds, undefined, {
+      ...(spellSlotsSpent ? { spellSlotsSpent } : {}),
       ...(inventory ? { equipment: inventory } : {})
+    });
+    const isStance = (trait.action?.kind ?? "instant") === "stance";
+    return this.formatTraitStatePatch(updated, {
+      includeSpellSlots: Boolean(spellSlotsSpent),
+      includeEquipment: Boolean(inventory),
+      includeCombatDerived: Boolean(inventory) || isStance
     });
   }
 
-  async deactivateTrait(data: TypeUseTrait): Promise<CharacterApi> {
+  async deactivateTrait(data: TypeUseTrait): Promise<CharacterStatePatch> {
     const { id, traitId, userId } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -1822,13 +1836,17 @@ export default class CharacterRepository implements ICharacterRepository {
     if (trait?.weaponBond) {
       const dismissed = applyDismissWeaponBond(this.toInventoryRows(personaje.equipment));
       if (dismissed.ok) {
-        return this.persistTraitStance(
+        const updated = await this.persistTraitStance(
           id,
           normalizeTraitResources(personaje.traitResources),
           normalizeActiveTraitIds(personaje.activeTraitIds),
           undefined,
           { equipment: dismissed.inventory }
         );
+        return this.formatTraitStatePatch(updated, {
+          includeEquipment: true,
+          includeCombatDerived: true
+        });
       }
     }
 
@@ -1842,10 +1860,11 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new ValidationError(result.message);
     }
 
-    return this.persistTraitStance(id, result.traitResources, result.activeTraitIds);
+    const updated = await this.persistTraitStance(id, result.traitResources, result.activeTraitIds);
+    return this.formatTraitStatePatch(updated, { includeCombatDerived: true });
   }
 
-  async restCharacter(data: TypeRestCharacter): Promise<CharacterApi> {
+  async restCharacter(data: TypeRestCharacter): Promise<CharacterStatePatch> {
     const { id, type, userId } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -1929,7 +1948,7 @@ export default class CharacterRepository implements ICharacterRepository {
       restRules: rulesConfig.restRules
     });
 
-    return this.persistTraitStance(
+    const updated = await this.persistTraitStance(
       id,
       next.traitResources,
       next.activeTraitIds,
@@ -1941,9 +1960,10 @@ export default class CharacterRepository implements ICharacterRepository {
         activeConditions: recoveredConditions
       }
     );
+    return this.formatRestStatePatch(updated);
   }
 
-  async spendHitDice(data: TypeSpendHitDice): Promise<CharacterApi> {
+  async spendHitDice(data: TypeSpendHitDice): Promise<CharacterStatePatch> {
     const { id, classId, count, hpGained, userId } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -1980,10 +2000,13 @@ export default class CharacterRepository implements ICharacterRepository {
     if (!updated) {
       throw new NotFoundError("Personaje no encontrado");
     }
-    return this.formatCharacter(updated);
+    return {
+      hpCurrent: result.hpActual,
+      hitDice: toHitDiceApi(pools, result.spent, bonusPerDie)
+    };
   }
 
-  async applyHp(data: TypeApplyCharacterHp): Promise<CharacterApi> {
+  async applyHp(data: TypeApplyCharacterHp): Promise<CharacterStatePatch> {
     const { id, amount, kind, userId } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -2005,10 +2028,10 @@ export default class CharacterRepository implements ICharacterRepository {
     if (!updated) {
       throw new NotFoundError("Personaje no encontrado");
     }
-    return this.formatCharacter(updated);
+    return { hpCurrent: nextHp };
   }
 
-  async spendSpellSlot(data: TypeSpendSpellSlot): Promise<CharacterApi> {
+  async spendSpellSlot(data: TypeSpendSpellSlot): Promise<CharacterStatePatch> {
     const { id, classId, pool, level, userId } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -2031,10 +2054,12 @@ export default class CharacterRepository implements ICharacterRepository {
     if (!updated) {
       throw new NotFoundError("Personaje no encontrado");
     }
-    return this.formatCharacter(updated);
+    return {
+      spellSlots: toSpellSlotsApi(slotPools, result.spent)
+    };
   }
 
-  async applyCharacterCondition(data: TypeApplyCharacterCondition): Promise<CharacterApi> {
+  async applyCharacterCondition(data: TypeApplyCharacterCondition): Promise<CharacterStatePatch> {
     const { id, conditionId, level, userId } = data;
     const personaje = await this.requireAccessibleCharacter(id, userId);
     const condition = await this.requireAvailableCondition(conditionId, personaje.systems ?? []);
@@ -2051,7 +2076,7 @@ export default class CharacterRepository implements ICharacterRepository {
     return this.persistActiveConditions(id, result.next);
   }
 
-  async updateCharacterCondition(data: TypeUpdateCharacterCondition): Promise<CharacterApi> {
+  async updateCharacterCondition(data: TypeUpdateCharacterCondition): Promise<CharacterStatePatch> {
     const { id, conditionId, delta, userId } = data;
     const personaje = await this.requireAccessibleCharacter(id, userId);
     const condition = await this.requireAvailableCondition(conditionId, personaje.systems ?? []);
@@ -2066,7 +2091,7 @@ export default class CharacterRepository implements ICharacterRepository {
     return this.persistActiveConditions(id, result.next);
   }
 
-  async removeCharacterCondition(data: TypeRemoveCharacterCondition): Promise<CharacterApi> {
+  async removeCharacterCondition(data: TypeRemoveCharacterCondition): Promise<CharacterStatePatch> {
     const { id, conditionId, userId } = data;
     const personaje = await this.requireAccessibleCharacter(id, userId);
     const result = removeCondition(normalizeActiveConditions(personaje.activeConditions), conditionId);
@@ -2085,7 +2110,7 @@ export default class CharacterRepository implements ICharacterRepository {
     return Array.isArray(personaje.traits) ? [...personaje.traits] : [];
   }
 
-  async addForm(data: TypeAddCharacterFormPersist): Promise<CharacterApi> {
+  async addForm(data: TypeAddCharacterFormPersist): Promise<CharacterStatePatch> {
     const { id, userId, entry, choose, replaceOnRecast } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -2107,15 +2132,16 @@ export default class CharacterRepository implements ICharacterRepository {
       const ids = new Set(sameSpell.map(form => form.id));
       const next = forms.filter(form => !ids.has(form.id));
       next.push(newForm);
-      if (activeFormId && ids.has(activeFormId) && formPurposeOverlaysCharacter(entry.purpose)) {
+      const replacedActive = Boolean(activeFormId && ids.has(activeFormId));
+      if (replacedActive && formPurposeOverlaysCharacter(entry.purpose)) {
         activeFormId = newForm.id;
-      } else if (activeFormId && ids.has(activeFormId)) {
+      } else if (replacedActive) {
         activeFormId = null;
       }
       if (next.length > MAX_CHARACTER_FORMS) {
         throw new ValidationError(`No se pueden registrar más de ${MAX_CHARACTER_FORMS} formas`);
       }
-      return this.persistCharacterForms(id, next, activeFormId);
+      return this.persistCharacterForms(id, next, activeFormId, { includeCombatOverlay: replacedActive });
     }
 
     if (sameSpell.length >= choose) {
@@ -2129,7 +2155,7 @@ export default class CharacterRepository implements ICharacterRepository {
     return this.persistCharacterForms(id, forms, activeFormId);
   }
 
-  async activateForm(data: TypeSetCharacterFormActive): Promise<CharacterApi> {
+  async activateForm(data: TypeSetCharacterFormActive): Promise<CharacterStatePatch> {
     const { id, formId, userId } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -2149,10 +2175,10 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new ValidationError("La forma ya está activa");
     }
 
-    return this.persistCharacterForms(id, forms, formId);
+    return this.persistCharacterForms(id, forms, formId, { includeCombatOverlay: true });
   }
 
-  async deactivateForm(data: TypeSetCharacterFormActive): Promise<CharacterApi> {
+  async deactivateForm(data: TypeSetCharacterFormActive): Promise<CharacterStatePatch> {
     const { id, formId, userId } = data;
     const personaje = await CharacterModel.findById(id);
     if (!personaje) {
@@ -2168,14 +2194,15 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new ValidationError("La forma no está activa");
     }
 
-    return this.persistCharacterForms(id, forms, null);
+    return this.persistCharacterForms(id, forms, null, { includeCombatOverlay: true });
   }
 
   private async persistCharacterForms(
     id: string,
     forms: CharacterFormMongo[],
-    activeFormId: string | null
-  ): Promise<CharacterApi> {
+    activeFormId: string | null,
+    options?: { includeCombatOverlay?: boolean }
+  ): Promise<CharacterStatePatch> {
     const resultado = await CharacterModel.findByIdAndUpdate(
       id,
       { $set: { forms, activeFormId } },
@@ -2184,7 +2211,128 @@ export default class CharacterRepository implements ICharacterRepository {
     if (!resultado) {
       throw new NotFoundError("Personaje no encontrado");
     }
-    return this.formatCharacter(resultado);
+    return this.formatFormsStatePatch(resultado, options?.includeCombatOverlay === true);
+  }
+
+  private async formatFormsStatePatch(
+    personaje: CharacterMongo,
+    includeCombatOverlay: boolean
+  ): Promise<CharacterStatePatch> {
+    const stored = normalizeCharacterForms(personaje.forms);
+    const activeFormId = typeof personaje.activeFormId === "string" ? personaje.activeFormId : null;
+    const creatureIds = [...new Set(stored.map(form => form.creatureId).filter(Boolean))];
+    const spellIds = [...new Set(stored.flatMap(form => form.spellId ? [form.spellId] : []))];
+    const [summaries, spellRefs] = await Promise.all([
+      creatureIds.length ? this.creatureRepository.getSummariesByIds(creatureIds) : Promise.resolve([] as CreatureFormSummary[]),
+      spellIds.length ? this.spellRepository.getSpellRefsByIndexes(spellIds) : Promise.resolve([] as SpellRef[])
+    ]);
+    const summaryById = new Map(summaries.map(creature => [creature.id, creature]));
+    const spellById = new Map(spellRefs.map(spell => [spell.id, spell]));
+    const forms: CharacterFormApi[] = stored.map(form => {
+      const spell = form.spellId ? spellById.get(form.spellId) : undefined;
+      const hydrated: CharacterFormApi = {
+        id: form.id,
+        creature: summaryById.get(form.creatureId),
+        active: activeFormId === form.id && formPurposeOverlaysCharacter(form.purpose)
+      };
+      if (form.purpose) hydrated.purpose = form.purpose;
+      if (form.spellId) hydrated.spellId = form.spellId;
+      if (spell) hydrated.spell = { id: spell.id, name: spell.name };
+      return hydrated;
+    });
+    const patch: CharacterStatePatch = { forms, activeFormId };
+    if (!includeCombatOverlay) return patch;
+
+    const sheet = await this.formatCharacter(personaje, { view: "combat", omitSpellHydration: true });
+    return {
+      ...toCharacterStatePatch(sheet, CHARACTER_FORM_OVERLAY_PATCH_KEYS),
+      forms,
+      activeFormId: sheet.activeFormId ?? activeFormId
+    };
+  }
+
+  private async formatTraitStatePatch(
+    personaje: CharacterMongo,
+    options: {
+      includeSpellSlots?: boolean;
+      includeEquipment?: boolean;
+      includeCombatDerived?: boolean;
+    }
+  ): Promise<CharacterStatePatch> {
+    const patch: CharacterStatePatch = {
+      traitResources: normalizeTraitResources(personaje.traitResources),
+      activeTraitIds: normalizeActiveTraitIds(personaje.activeTraitIds)
+    };
+    if (options.includeSpellSlots) {
+      patch.spellSlots = await this.formatSpellSlotsApi(personaje);
+    }
+    if (options.includeCombatDerived || options.includeEquipment) {
+      const equipmentState = await this.formatEquipmentState(personaje);
+      patch.ac = equipmentState.ac;
+      patch.speed = equipmentState.speed;
+      patch.resistances = equipmentState.resistances;
+      patch.conditionImmunities = equipmentState.conditionImmunities;
+      patch.wearingArmorWithoutProficiency = equipmentState.wearingArmorWithoutProficiency;
+      patch.disadvantageSkillKeys = equipmentState.disadvantageSkillKeys;
+      if (options.includeEquipment) {
+        patch.equipment = equipmentState.equipment;
+      }
+    }
+    return patch;
+  }
+
+  private async formatRestStatePatch(personaje: CharacterMongo): Promise<CharacterStatePatch> {
+    const equipmentState = await this.formatEquipmentState(personaje);
+    const [hitDice, spellSlots, activeConditions] = await Promise.all([
+      this.formatHitDiceApi(personaje),
+      this.formatSpellSlotsApi(personaje),
+      this.formatActiveConditionsApi(personaje)
+    ]);
+    return {
+      basic: equipmentState.basic,
+      hpCurrent: Number(personaje.hpCurrent) || 0,
+      hpMax: Number(personaje.hpMax) || 0,
+      hitDice,
+      spellSlots,
+      traitResources: normalizeTraitResources(personaje.traitResources),
+      activeTraitIds: normalizeActiveTraitIds(personaje.activeTraitIds),
+      activeConditions,
+      ac: equipmentState.ac,
+      speed: equipmentState.speed,
+      resistances: equipmentState.resistances,
+      conditionImmunities: equipmentState.conditionImmunities
+    };
+  }
+
+  private async formatHitDiceApi(personaje: CharacterMongo): Promise<CharacterHitDiceApi[]> {
+    const pools = classPoolsFromCharacter(personaje.classes ?? []);
+    const rulesConfig = await this.systemRepository.getMergedRulesConfig(personaje.systems ?? []);
+    const bonusPerDie = await this.resolveHitDiceBonusPerDie(personaje, rulesConfig.restRules);
+    return toHitDiceApi(
+      pools,
+      normalizeHitDiceSpent(personaje.hitDiceSpent, pools.map(pool => pool.classId)),
+      bonusPerDie
+    );
+  }
+
+  private async formatSpellSlotsApi(personaje: CharacterMongo): Promise<CharacterSpellSlotApi[]> {
+    const slotPools = await this.loadSpellSlotPools(personaje);
+    return toSpellSlotsApi(
+      slotPools,
+      normalizeSpellSlotsSpent(personaje.spellSlotsSpent, slotPools)
+    );
+  }
+
+  private async formatActiveConditionsApi(personaje: CharacterMongo): Promise<CharacterActiveConditionApi[]> {
+    const stored = normalizeActiveConditions(personaje.activeConditions);
+    if (!stored.length) return [];
+    const docs = await this.conditionRepository.getByIds(stored.map(item => item.conditionId));
+    const byId = new Map(docs.map(condition => [condition.id, condition]));
+    return stored.map(item => ({
+      conditionId: item.conditionId,
+      name: byId.get(item.conditionId)?.name ?? "",
+      ...(item.level !== undefined ? { level: item.level } : {})
+    }));
   }
 
   private getClassSpellIds(personaje: CharacterMongo, classId: string): string[] {
@@ -3109,7 +3257,7 @@ export default class CharacterRepository implements ICharacterRepository {
     activeTraitIds: string[],
     traitChoices?: TraitChoices,
     extras?: { hpCurrent?: number; hitDiceSpent?: CharacterHitDiceSpent[]; spellSlotsSpent?: CharacterSpellSlotSpent[]; activeConditions?: CharacterActiveCondition[]; equipment?: CharacterEquipmentMongo[] }
-  ): Promise<CharacterApi> {
+  ): Promise<CharacterMongo> {
     const resultado = await CharacterModel.findByIdAndUpdate(
       id,
       {
@@ -3132,10 +3280,10 @@ export default class CharacterRepository implements ICharacterRepository {
     if (extras?.equipment !== undefined) {
       await this.refreshStoredAc(resultado);
     }
-    return this.formatCharacter(resultado);
+    return resultado;
   }
 
-  private async persistActiveConditions(id: string, activeConditions: CharacterActiveCondition[]): Promise<CharacterApi> {
+  private async persistActiveConditions(id: string, activeConditions: CharacterActiveCondition[]): Promise<CharacterStatePatch> {
     const updated = await CharacterModel.findByIdAndUpdate(
       id,
       { $set: { activeConditions } },
@@ -3144,7 +3292,7 @@ export default class CharacterRepository implements ICharacterRepository {
     if (!updated) {
       throw new NotFoundError("Personaje no encontrado");
     }
-    return this.formatCharacter(updated);
+    return { activeConditions: await this.formatActiveConditionsApi(updated) };
   }
 
   private async requireAccessibleCharacter(id: string, userId: string): Promise<CharacterMongo> {
@@ -3788,7 +3936,6 @@ export default class CharacterRepository implements ICharacterRepository {
       : [...new Set(storedForms.map(form => form.creatureId))]
     const formSpellIds = [...new Set(storedForms.flatMap(form => form.spellId ? [form.spellId] : []))]
     const storedConditions = normalizeActiveConditions(personaje.activeConditions)
-    const privilegeInstances = getCharacterSpellPrivileges(personaje.spellPrivileges)
     const equippedRows = (personaje.equipment ?? []).filter(eq => eq.equipped)
 
     const [
@@ -3957,181 +4104,24 @@ export default class CharacterRepository implements ICharacterRepository {
       })
       .filter((item): item is SpellcastingLevel => item !== null)
 
-    const spells = personaje.spells && typeof personaje.spells === "object" ? { ...personaje.spells } : {}
-    const preparedSpellsMap = personaje.preparedSpells && typeof personaje.preparedSpells === "object"
-      ? personaje.preparedSpells
-      : {}
-    const extraSpellsMap = personaje.extraSpells && typeof personaje.extraSpells === "object"
-      ? personaje.extraSpells
-      : {}
-    const grantedExtraInput = {
-      traits,
-      optionSelections: personaje.optionSelections ?? [],
-      classes: personaje.classes ?? [],
-      classCatalogs: [...classRulesById.values()],
-      subclasses: [...subclassRulesById.values()]
-    };
-    const derivedExtraByClass = grantedExtraSpellIdsByClass(grantedExtraInput);
-    const ritualOnlyExtraByClass = ritualOnlyGrantedExtraIdsByClass(grantedExtraInput);
-    const updatedSpells: Record<string, {
-      list: SpellApi[],
-      extra?: SpellApi[],
-      prepared?: SpellApi[],
-      type?: AttributeApi,
-      ritualOnlyExtraIds?: string[]
-    }> = {}
-
-    const classLevelByClassId = this.classLevelByClassId(personaje)
-    const loadedTraitIds = new Set(traits.map(trait => trait.id))
-    const missingPrivilegeTraitIds = [...new Set(
-      privilegeInstances
-        .map(item => item.traitId)
-        .filter(traitId => !loadedTraitIds.has(traitId) && !(personaje.traits ?? []).includes(traitId))
-    )]
-    const extraPrivilegeTraits = missingPrivilegeTraitIds.length
-      ? await this.traitRepository.getTraitsByIndexes(missingPrivilegeTraitIds)
-      : []
-    const privilegeTraits = [...traits, ...extraPrivilegeTraits]
-    const rulesByTraitId = this.buildPrivilegeRulesMap(privilegeTraits, privilegeInstances)
-
-    const spellGroupKeys = new Set([
-      ...Object.keys(spells),
-      ...Object.keys(extraSpellsMap),
-      ...Object.keys(derivedExtraByClass),
-      ...Object.keys(preparedSpellsMap).filter(key => key !== "race"),
-      ...privilegeInstances.map(item => item.classId)
-    ])
-
-    let raceSpellcastingAttr: AttributeApi | undefined
-    if (personaje.raceId && spellGroupKeys.has("race")) {
-      const raceAttr = await this.raceRepository.getSpellcastingAttribute(personaje.raceId)
-      raceSpellcastingAttr = raceAttr
-        ? (attributesByKey.get(raceAttr.key) ?? raceAttr)
-        : undefined
-    }
-
-    const gatedUniqueGrantTraitIds = hasUniqueGranted(this.toInventoryRows(personaje.equipment))
-      ? []
-      : privilegeTraits
-        .filter(trait => trait.uniqueEquipmentGrant && trait.id)
-        .map(trait => trait.id as string)
-
-    type SpellGroupPayload = {
-      groupSpells: string
-      knownIds: string[]
-      extraIds: string[]
-      preparedIds: string[]
-      hasPreparedKey: boolean
-      ritualOnlyExtraIds: string[]
-    }
-    const groupPayloads: SpellGroupPayload[] = []
-    const spellIdsToLoad = new Set<string>(formSpellIds)
-    for (const instance of privilegeInstances) {
-      for (const selection of instance.selections ?? []) {
-        for (const spellId of selection ?? []) {
-          if (spellId) spellIdsToLoad.add(spellId)
-        }
-      }
-    }
-
-    for (const groupSpells of spellGroupKeys) {
-      const knownIds = Array.isArray(spells[groupSpells]) ? [...spells[groupSpells]] : []
-      const persistedExtraIds = getExtraSpellIds(extraSpellsMap, groupSpells)
-      const privilegeExtraIds = extraPrivilegeSpellIds(
-        privilegeInstances,
-        rulesByTraitId,
-        groupSpells,
-        classLevelByClassId,
-        gatedUniqueGrantTraitIds
-      )
-      const extraIds = mergeExtraSpellIds(
-        persistedExtraIds,
-        [
-          ...(derivedExtraByClass[groupSpells] ?? []),
-          ...privilegeExtraIds
-        ],
-        knownIds
-      )
-      const ritualOnlyExtraIds = ritualOnlyExtraSpellIds({
-        extraIds,
-        persistedExtraIds,
-        otherDerivedExtraIds: privilegeExtraIds,
-        ritualOnlyFromTraits: ritualOnlyExtraByClass[groupSpells] ?? []
+    const omitSpells = options?.omitSpellHydration === true
+    const {
+      spells: updatedSpells,
+      spellPrivileges: hydratedPrivileges,
+      spellById
+    } = omitSpells
+      ? { spells: {} as CharacterApi["spells"], spellPrivileges: [] as CharacterSpellPrivilegeApi[], spellById: new Map<string, (SpellApi | SpellRef) & { id: string }>() }
+      : await this.hydrateCharacterSpells(personaje, {
+        traits,
+        classRulesById,
+        subclassRulesById,
+        spellcasting,
+        systemAttributes,
+        attributesByKey,
+        extraSpellIdsToLoad: formSpellIds,
+        useSpellRefs,
+        hydratePrivileges: !isCombat
       })
-      const alwaysIds = groupSpells === "race"
-        ? []
-        : alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells, classLevelByClassId)
-      const preparedIds = groupSpells === "race"
-        ? []
-        : mergePreparedWithPrivileges(
-          getPreparedSpellIds(preparedSpellsMap, groupSpells),
-          alwaysIds
-        )
-      const hasPreparedKey = groupSpells !== "race"
-        && (Array.isArray(preparedSpellsMap[groupSpells]) || alwaysIds.length > 0)
-
-      if (knownIds.length === 0 && extraIds.length === 0 && preparedIds.length === 0 && !hasPreparedKey) {
-        continue
-      }
-
-      groupPayloads.push({ groupSpells, knownIds, extraIds, preparedIds, hasPreparedKey, ritualOnlyExtraIds })
-      for (const id of [...knownIds, ...extraIds, ...preparedIds]) {
-        if (id) spellIdsToLoad.add(id)
-      }
-    }
-
-    const loadedSpells = spellIdsToLoad.size
-      ? (useSpellRefs
-        ? await this.spellRepository.getSpellRefsByIndexes([...spellIdsToLoad])
-        : await this.spellRepository.getSpellsByIndexes([...spellIdsToLoad]))
-      : []
-    const spellById = new Map(
-      loadedSpells
-        .filter((spell): spell is (SpellApi | SpellRef) & { id: string } => Boolean(spell.id))
-        .map(spell => [spell.id, spell])
-    )
-    const spellsFromIds = (ids: string[]) => ids
-      .map(id => spellById.get(id))
-      .filter((spell): spell is (SpellApi | SpellRef) & { id: string } => Boolean(spell))
-
-    for (const payload of groupPayloads) {
-      let type: AttributeApi | undefined
-      if (payload.groupSpells === "race") {
-        type = raceSpellcastingAttr
-      } else {
-        const classSpellcasting = spellcasting.find(item => item.class === payload.groupSpells)
-        if (classSpellcasting?.ability) {
-          type = classSpellcasting.ability
-        } else {
-          const classRules = classRulesById.get(payload.groupSpells)
-          const spellcastingKey = classRules?.spellcasting
-          type = spellcastingKey
-            ? (attributesByKey.get(spellcastingKey)
-              ?? systemAttributes.find(attr => attr.id === spellcastingKey))
-            : undefined
-        }
-      }
-
-      const knownSpellsForGroup = spellsFromIds(payload.knownIds)
-      const extraSpellsForGroup = spellsFromIds(payload.extraIds)
-      const preparedSpellsForGroup = spellsFromIds(payload.preparedIds)
-      const overlaidKnown = useSpellRefs
-        ? knownSpellsForGroup
-        : overlaySpellsCreatureForms(knownSpellsForGroup as SpellApi[], traits)
-      const overlaidExtra = useSpellRefs
-        ? extraSpellsForGroup
-        : overlaySpellsCreatureForms(extraSpellsForGroup as SpellApi[], traits)
-      const overlaidPrepared = useSpellRefs
-        ? preparedSpellsForGroup
-        : overlaySpellsCreatureForms(preparedSpellsForGroup as SpellApi[], traits)
-      updatedSpells[payload.groupSpells] = {
-        list: overlaidExtra.length ? [...overlaidKnown, ...overlaidExtra] : overlaidKnown,
-        ...(overlaidExtra.length ? { extra: overlaidExtra } : {}),
-        ...(payload.hasPreparedKey ? { prepared: overlaidPrepared } : {}),
-        ...(payload.ritualOnlyExtraIds.length ? { ritualOnlyExtraIds: payload.ritualOnlyExtraIds } : {}),
-        type
-      } as CharacterApi["spells"][string]
-    }
 
     const initiativeBonusFormula = rulesConfig.initiativeBonusFormula;
     let initiativeBonus = 0;
@@ -4232,29 +4222,6 @@ export default class CharacterRepository implements ICharacterRepository {
       if (spell) hydrated.spell = { id: spell.id, name: spell.name };
       return hydrated;
     });
-    const privilegeSpellById = spellById
-    const hydratedPrivileges: CharacterSpellPrivilegeApi[] = isCombat
-      ? []
-      : privilegeInstances.map(instance => {
-        const rules = rulesByTraitId.get(instance.traitId)
-          ?? privilegeTraits.find(trait => trait.id === instance.traitId)?.spellPrivileges
-          ?? []
-        const classLevel = classLevelByClassId.get(instance.classId) ?? 0
-        const activeIndexes = activeSpellPrivilegeRuleIndexes(rules, classLevel)
-        return {
-          traitId: instance.traitId,
-          classId: instance.classId,
-          rules,
-          selections: activeIndexes.map(ruleIndex => {
-            const hydrated: SpellApi[] = []
-            for (const spellId of instance.selections?.[ruleIndex] ?? []) {
-              const spell = privilegeSpellById.get(spellId)
-              if (spell) hydrated.push(spell as SpellApi)
-            }
-            return hydrated
-          })
-        }
-      })
 
     const grantingClassLevelByTraitId = await this.loadGrantingClassLevels(
       personaje,
@@ -4452,7 +4419,6 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new NotFoundError("Personaje no encontrado");
     }
 
-    await this.refreshStoredAc(resultado);
     return {
       equipment: await this.formatCharacterEquipment(resultado),
     };
@@ -4475,6 +4441,284 @@ export default class CharacterRepository implements ICharacterRepository {
     return this.formatFullAndListCard(resultado);
   }
 
+  private async formatSpellState(
+    personaje: CharacterMongo,
+    options?: { includePrivileges?: boolean }
+  ): Promise<CharacterSpellStateResponse> {
+    personaje = normalizeCharacterDocument(personaje);
+    const classIds = (personaje.classes ?? []).map(entry => entry.class);
+    const includePrivileges = options?.includePrivileges === true;
+    const [
+      loadedTraits,
+      classRulesList,
+      subclassRulesById,
+      systemAttributes
+    ] = await Promise.all([
+      this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traitsData),
+      this.characterClassRepository.getRulesByIds(classIds),
+      this.getSubclassRulesMapByIds(personaje.subclasses ?? []),
+      this.attributeService.getBySystems(personaje.systems ?? [])
+    ]);
+    const classRulesById = new Map(classRulesList.map(item => [item.id, item]));
+    const attributesByKey = new Map(systemAttributes.map(attr => [attr.key, attr]));
+    const { spells, spellPrivileges } = await this.hydrateCharacterSpells(personaje, {
+      traits: loadedTraits,
+      classRulesById,
+      subclassRulesById,
+      spellcasting: [],
+      systemAttributes,
+      attributesByKey,
+      useSpellRefs: true,
+      hydratePrivileges: includePrivileges
+    });
+    const sheet = toSheetSpellState(spells, includePrivileges ? spellPrivileges : undefined);
+    return includePrivileges ? { ...sheet, spellPrivileges } : sheet;
+  }
+
+  private async hydrateCharacterSpells(
+    personaje: CharacterMongo,
+    input: {
+      traits: TraitApi[];
+      classRulesById: Map<string, ClassRulesRef>;
+      subclassRulesById: Map<string, SubclassRulesRef>;
+      spellcasting: SpellcastingLevel[];
+      systemAttributes: AttributeApi[];
+      attributesByKey: Map<string, AttributeApi>;
+      extraSpellIdsToLoad?: string[];
+      useSpellRefs: boolean;
+      hydratePrivileges: boolean;
+    }
+  ): Promise<{
+    spells: CharacterApi["spells"];
+    spellPrivileges: CharacterSpellPrivilegeApi[];
+    spellById: Map<string, (SpellApi | SpellRef) & { id: string }>;
+  }> {
+    const {
+      traits,
+      classRulesById,
+      subclassRulesById,
+      spellcasting,
+      systemAttributes,
+      attributesByKey,
+      extraSpellIdsToLoad = [],
+      useSpellRefs,
+      hydratePrivileges
+    } = input;
+    const privilegeInstances = getCharacterSpellPrivileges(personaje.spellPrivileges);
+    const spells = personaje.spells && typeof personaje.spells === "object" ? { ...personaje.spells } : {};
+    const preparedSpellsMap = personaje.preparedSpells && typeof personaje.preparedSpells === "object"
+      ? personaje.preparedSpells
+      : {};
+    const extraSpellsMap = personaje.extraSpells && typeof personaje.extraSpells === "object"
+      ? personaje.extraSpells
+      : {};
+    const grantedExtraInput = {
+      traits,
+      optionSelections: personaje.optionSelections ?? [],
+      classes: personaje.classes ?? [],
+      classCatalogs: [...classRulesById.values()],
+      subclasses: [...subclassRulesById.values()]
+    };
+    const derivedExtraByClass = grantedExtraSpellIdsByClass(grantedExtraInput);
+    const ritualOnlyExtraByClass = ritualOnlyGrantedExtraIdsByClass(grantedExtraInput);
+    const updatedSpells: CharacterApi["spells"] = {};
+
+    const classLevelByClassId = this.classLevelByClassId(personaje);
+    const loadedTraitIds = new Set(traits.map(trait => trait.id));
+    const missingPrivilegeTraitIds = [...new Set(
+      privilegeInstances
+        .map(item => item.traitId)
+        .filter(traitId => !loadedTraitIds.has(traitId) && !(personaje.traits ?? []).includes(traitId))
+    )];
+    const extraPrivilegeTraits = missingPrivilegeTraitIds.length
+      ? await this.traitRepository.getTraitsByIndexes(missingPrivilegeTraitIds)
+      : [];
+    const privilegeTraits = [...traits, ...extraPrivilegeTraits];
+    const rulesByTraitId = this.buildPrivilegeRulesMap(privilegeTraits, privilegeInstances);
+
+    const spellGroupKeys = new Set([
+      ...Object.keys(spells),
+      ...Object.keys(extraSpellsMap),
+      ...Object.keys(derivedExtraByClass),
+      ...Object.keys(preparedSpellsMap).filter(key => key !== "race"),
+      ...privilegeInstances.map(item => item.classId)
+    ]);
+
+    let raceSpellcastingAttr: AttributeApi | undefined;
+    if (personaje.raceId && spellGroupKeys.has("race")) {
+      const raceAttr = await this.raceRepository.getSpellcastingAttribute(personaje.raceId);
+      raceSpellcastingAttr = raceAttr
+        ? (attributesByKey.get(raceAttr.key) ?? raceAttr)
+        : undefined;
+    }
+
+    const gatedUniqueGrantTraitIds = hasUniqueGranted(this.toInventoryRows(personaje.equipment))
+      ? []
+      : privilegeTraits
+        .filter(trait => trait.uniqueEquipmentGrant && trait.id)
+        .map(trait => trait.id as string);
+
+    type SpellGroupPayload = {
+      groupSpells: string;
+      knownIds: string[];
+      extraIds: string[];
+      preparedIds: string[];
+      hasPreparedKey: boolean;
+      ritualOnlyExtraIds: string[];
+    };
+    const groupPayloads: SpellGroupPayload[] = [];
+    const spellIdsToLoad = new Set<string>(extraSpellIdsToLoad);
+    for (const instance of privilegeInstances) {
+      for (const selection of instance.selections ?? []) {
+        for (const spellId of selection ?? []) {
+          if (spellId) spellIdsToLoad.add(spellId);
+        }
+      }
+    }
+
+    for (const groupSpells of spellGroupKeys) {
+      const knownIds = Array.isArray(spells[groupSpells]) ? [...spells[groupSpells]] : [];
+      const persistedExtraIds = getExtraSpellIds(extraSpellsMap, groupSpells);
+      const privilegeExtraIds = extraPrivilegeSpellIds(
+        privilegeInstances,
+        rulesByTraitId,
+        groupSpells,
+        classLevelByClassId,
+        gatedUniqueGrantTraitIds
+      );
+      const extraIds = mergeExtraSpellIds(
+        persistedExtraIds,
+        [
+          ...(derivedExtraByClass[groupSpells] ?? []),
+          ...privilegeExtraIds
+        ],
+        knownIds
+      );
+      const ritualOnlyExtraIds = ritualOnlyExtraSpellIds({
+        extraIds,
+        persistedExtraIds,
+        otherDerivedExtraIds: privilegeExtraIds,
+        ritualOnlyFromTraits: ritualOnlyExtraByClass[groupSpells] ?? []
+      });
+      const alwaysIds = groupSpells === "race"
+        ? []
+        : alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells, classLevelByClassId);
+      const preparedIds = groupSpells === "race"
+        ? []
+        : mergePreparedWithPrivileges(
+          getPreparedSpellIds(preparedSpellsMap, groupSpells),
+          alwaysIds
+        );
+      const hasPreparedKey = groupSpells !== "race"
+        && (Array.isArray(preparedSpellsMap[groupSpells]) || alwaysIds.length > 0);
+
+      if (knownIds.length === 0 && extraIds.length === 0 && preparedIds.length === 0 && !hasPreparedKey) {
+        continue;
+      }
+
+      groupPayloads.push({ groupSpells, knownIds, extraIds, preparedIds, hasPreparedKey, ritualOnlyExtraIds });
+      for (const id of [...knownIds, ...extraIds, ...preparedIds]) {
+        if (id) spellIdsToLoad.add(id);
+      }
+    }
+
+    const loadedSpells = spellIdsToLoad.size
+      ? (useSpellRefs
+        ? await this.spellRepository.getSpellRefsByIndexes([...spellIdsToLoad])
+        : await this.spellRepository.getSpellsByIndexes([...spellIdsToLoad]))
+      : [];
+    const spellById = new Map(
+      loadedSpells
+        .filter((spell): spell is (SpellApi | SpellRef) & { id: string } => Boolean(spell.id))
+        .map(spell => [spell.id, spell])
+    );
+    const spellsFromIds = (ids: string[]) => ids
+      .map(id => spellById.get(id))
+      .filter((spell): spell is (SpellApi | SpellRef) & { id: string } => Boolean(spell));
+
+    for (const payload of groupPayloads) {
+      let type: AttributeApi | undefined;
+      if (payload.groupSpells === "race") {
+        type = raceSpellcastingAttr;
+      } else {
+        const classSpellcasting = spellcasting.find(item => item.class === payload.groupSpells);
+        if (classSpellcasting?.ability) {
+          type = classSpellcasting.ability;
+        } else {
+          const classRules = classRulesById.get(payload.groupSpells);
+          const spellcastingKey = classRules?.spellcasting;
+          type = spellcastingKey
+            ? (attributesByKey.get(spellcastingKey)
+              ?? systemAttributes.find(attr => attr.id === spellcastingKey))
+            : undefined;
+        }
+      }
+
+      const knownSpellsForGroup = spellsFromIds(payload.knownIds);
+      const extraSpellsForGroup = spellsFromIds(payload.extraIds);
+      const preparedSpellsForGroup = spellsFromIds(payload.preparedIds);
+      const overlaidKnown = useSpellRefs
+        ? knownSpellsForGroup
+        : overlaySpellsCreatureForms(knownSpellsForGroup as SpellApi[], traits);
+      const overlaidExtra = useSpellRefs
+        ? extraSpellsForGroup
+        : overlaySpellsCreatureForms(extraSpellsForGroup as SpellApi[], traits);
+      const overlaidPrepared = useSpellRefs
+        ? preparedSpellsForGroup
+        : overlaySpellsCreatureForms(preparedSpellsForGroup as SpellApi[], traits);
+      updatedSpells[payload.groupSpells] = {
+        list: overlaidExtra.length ? [...overlaidKnown, ...overlaidExtra] : overlaidKnown,
+        ...(overlaidExtra.length ? { extra: overlaidExtra } : {}),
+        ...(payload.hasPreparedKey ? { prepared: overlaidPrepared } : {}),
+        ...(payload.ritualOnlyExtraIds.length ? { ritualOnlyExtraIds: payload.ritualOnlyExtraIds } : {}),
+        type
+      } as CharacterApi["spells"][string];
+    }
+
+    const spellPrivileges: CharacterSpellPrivilegeApi[] = hydratePrivileges
+      ? privilegeInstances.map(instance => {
+        const rules = rulesByTraitId.get(instance.traitId)
+          ?? privilegeTraits.find(trait => trait.id === instance.traitId)?.spellPrivileges
+          ?? [];
+        const classLevel = classLevelByClassId.get(instance.classId) ?? 0;
+        const activeIndexes = activeSpellPrivilegeRuleIndexes(rules, classLevel);
+        return {
+          traitId: instance.traitId,
+          classId: instance.classId,
+          rules,
+          selections: activeIndexes.map(ruleIndex => {
+            const hydrated: SpellApi[] = [];
+            for (const spellId of instance.selections?.[ruleIndex] ?? []) {
+              const spell = spellById.get(spellId);
+              if (spell) hydrated.push(spell as SpellApi);
+            }
+            return hydrated;
+          })
+        };
+      })
+      : [];
+
+    return { spells: updatedSpells, spellPrivileges, spellById };
+  }
+
+  private async formatSheetAndListCard(
+    personaje: CharacterMongo
+  ): Promise<CharacterLevelUpResponse> {
+    await this.refreshStoredAc(personaje);
+    const [sheet, user] = await Promise.all([
+      this.formatCharacter(personaje, { view: "sheet" }),
+      this.userRepository.getUserName(personaje.user ?? ""),
+    ]);
+    return {
+      full: toSheetCharacter(sheet),
+      basic: toCharacterBasic(sheet, {
+        user,
+        ac: this.storedAcOf(personaje),
+        speed: personaje.speed,
+      }),
+    };
+  }
+
   private async formatFullAndListCard(
     personaje: CharacterMongo
   ): Promise<{ full: CharacterApi; basic: CharacterBasic }> {
@@ -4491,6 +4735,104 @@ export default class CharacterRepository implements ICharacterRepository {
         speed: personaje.speed,
       }),
     };
+  }
+
+  private async saveInventoryAndFormatEquipmentState(
+    id: string,
+    equipment: CharacterEquipmentMongo[]
+  ): Promise<CharacterEquipmentStateResponse> {
+    const resultado = await CharacterModel.findByIdAndUpdate(
+      id,
+      { $set: { equipment } },
+      { returnDocument: "after" }
+    );
+
+    if (!resultado) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+
+    return this.formatEquipmentState(resultado);
+  }
+
+  private async formatEquipmentState(
+    personaje: CharacterMongo
+  ): Promise<CharacterEquipmentStateResponse> {
+    personaje = normalizeCharacterDocument(personaje);
+    const level =
+      personaje.classes?.map(cl => cl.level).reduce((acc, value) => acc + value, 0) ?? 0;
+
+    const [loadedTraits, baseProficiencies, equipment, rulesConfig] = await Promise.all([
+      this.traitRepository.getTraitsByIndexes(personaje.traits, personaje.traitsData),
+      this.proficiencyRepository.getProficienciesByIndices(personaje.proficiencies ?? []),
+      this.equipmentRepository.getCharacterEquipmentsByIds(this.toHydrationRows(personaje.equipment ?? [])),
+      this.systemRepository.getMergedRulesConfig(personaje.systems ?? []),
+    ]);
+
+    const expandedTraits = await this.expandTraitsForSystems(
+      loadedTraits,
+      personaje.systems,
+      this.chosenCreatureTypeIds(loadedTraits, personaje.traitChoices),
+      this.chosenDamageTypeIds(loadedTraits, personaje.traitChoices)
+    );
+    const raceRefs = await this.raceRefsForLabels(personaje.traitChoices);
+    const resolvedSheet = resolveCharacterTraitChoices(expandedTraits, personaje.traitChoices, raceRefs);
+    const traits = resolvedSheet.traits;
+    const apiAttributes = await this.formatSheetAttributes(
+      personaje,
+      traits,
+      rulesConfig.defaultMaxAttributeValue,
+      rulesConfig
+    );
+
+    const proficiencies = [
+      ...new Map(
+        [
+          ...baseProficiencies,
+          ...traits.flatMap(trait => trait.proficiencies ?? []),
+        ].map(item => [item.id, item])
+      ).values(),
+    ];
+    const descendantProficiencies = await this.proficiencyRepository.getDescendantProficiencies(
+      proficiencies.map(item => item.id)
+    );
+    const proficienciesForEquipmentCheck = [
+      ...new Map(
+        [...proficiencies, ...descendantProficiencies].map(item => [item.id, item])
+      ).values(),
+    ];
+
+    const equipmentWithCombatBonuses = enrichEquipmentWithCombatBonuses({
+      equipment: equipment ?? [],
+      attributes: apiAttributes,
+      proficiencies: proficienciesForEquipmentCheck,
+      proficiencyBonus: personaje.proficiencyBonus ?? 0,
+      level,
+      rules: rulesConfig,
+      pactProficiency: ownedWeaponBond(traits)?.grantsProficiency === true,
+    });
+
+    const { ac } = await this.calculateAc(personaje, traits, {
+      equipment: equipmentWithCombatBonuses,
+      attributes: apiAttributes,
+      rulesConfig
+    });
+    await this.refreshStoredAc(personaje);
+
+    const delta = toCharacterEquipmentStateDelta({
+      equipment: equipmentWithCombatBonuses,
+      traits,
+      attributes: apiAttributes,
+      baseSpeed: personaje.speed,
+      ac,
+      grantedResistances: resolvedSheet.grantedResistances,
+      activeTraitIds: personaje.activeTraitIds,
+      overlayRules: {
+        meleeAttackAttributes: rulesConfig.meleeAttackAttributes,
+        rangedAttackAttributes: rulesConfig.rangedAttackAttributes
+      }
+    });
+    const basic = await this.formatBasicCharacter(personaje, { skipAttributeOverlay: true });
+    return { basic, ...delta };
   }
 
   private async formatCharacterEquipment(

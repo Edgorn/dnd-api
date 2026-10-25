@@ -22,7 +22,7 @@ describe("PrepareSpells", () => {
 
   it("should delegate to characterService.prepareSpells", async () => {
     const useCase = new PrepareSpells(characterServiceMock as never);
-    const expected = { id: "char1", spells: {} };
+    const expected = { spells: {}, spellsById: {} };
     characterServiceMock.prepareSpells.mockResolvedValue(expected);
 
     const result = await useCase.execute(input);

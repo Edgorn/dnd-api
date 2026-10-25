@@ -174,3 +174,74 @@ describe("OpenAPI without Feat", () => {
     expect(spec.paths).not.toHaveProperty("/feats/{id}");
   });
 });
+
+describe("OpenAPI character spell mutation slices", () => {
+  const spec = generateSwaggerSpec() as OpenApiSpec & { paths: Record<string, unknown> };
+
+  const jsonSchema = (path: string, method: "put" | "post") => {
+    const item = spec.paths[path] as {
+      put?: { responses?: { "200"?: { content?: { "application/json"?: { schema?: Record<string, unknown> } } } } };
+      post?: { responses?: { "200"?: { content?: { "application/json"?: { schema?: Record<string, unknown> } } } } };
+    };
+    return item[method]?.responses?.["200"]?.content?.["application/json"]?.schema;
+  };
+
+  it("documents CharacterSpellStateResponse for spell mutations", () => {
+    expect(spec.components.schemas.CharacterSpellStateResponse?.required).toEqual(["spells", "spellsById"]);
+    expect(jsonSchema("/character/{id}/prepared-spells", "put")?.$ref)
+      .toBe("#/components/schemas/CharacterSpellStateResponse");
+    expect(jsonSchema("/character/{id}/known-spells", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterSpellStateResponse");
+    expect(jsonSchema("/character/{id}/copied-spells", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterSpellStateResponse");
+    expect(jsonSchema("/character/{id}/spell-privileges/{traitId}", "put")?.$ref)
+      .toBe("#/components/schemas/CharacterSpellStateResponse");
+  });
+
+  it("documents level-up full as CharacterSheet", () => {
+    const schema = jsonSchema("/character/{id}/level-up", "post");
+    expect((schema?.properties as { full?: { $ref?: string } } | undefined)?.full?.$ref)
+      .toBe("#/components/schemas/CharacterSheet");
+  });
+});
+
+describe("OpenAPI character combat mutation patches", () => {
+  const spec = generateSwaggerSpec() as OpenApiSpec & { paths: Record<string, unknown> };
+
+  const jsonSchema = (path: string, method: "put" | "post" | "patch" | "delete") => {
+    const item = spec.paths[path] as Record<string, {
+      responses?: { "200"?: { content?: { "application/json"?: { schema?: Record<string, unknown> } } } };
+    }>;
+    return item[method]?.responses?.["200"]?.content?.["application/json"]?.schema;
+  };
+
+  it("documents CharacterStatePatch for combat mutations", () => {
+    expect(spec.components.schemas.CharacterStatePatch?.description).toMatch(/clave ausente/i);
+    expect(jsonSchema("/character/{id}/hp/damage", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/hp/heal", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/hit-dice/spend", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/spell-slots/spend", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/conditions", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/conditions/{conditionId}", "patch")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/conditions/{conditionId}", "delete")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/rest", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/traits/{traitId}/use", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/traits/{traitId}/deactivate", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/addForm", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/forms/{formId}/activate", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+    expect(jsonSchema("/character/{id}/forms/{formId}/deactivate", "post")?.$ref)
+      .toBe("#/components/schemas/CharacterStatePatch");
+  });
+});

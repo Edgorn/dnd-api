@@ -1,10 +1,10 @@
 import CharacterService from "../../../domain/services/character.service";
-import { CharacterApi, TypeSpendSpellSlot } from "../../../domain/types/character.types";
+import { CharacterStatePatch, TypeSpendSpellSlot } from "../../../domain/types/character.types";
 
 export default class SpendSpellSlot {
   constructor(private readonly characterService: CharacterService) {}
 
-  execute(data: TypeSpendSpellSlot): Promise<CharacterApi> {
+  execute(data: TypeSpendSpellSlot): Promise<CharacterStatePatch> {
     return this.characterService.spendSpellSlot(data);
   }
 }

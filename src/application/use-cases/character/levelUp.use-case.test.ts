@@ -15,7 +15,7 @@ describe("LevelUp", () => {
 
   it("should delegate to characterService.levelUp", async () => {
     const useCase = new LevelUp(characterServiceMock as any);
-    const expected = { full: { id: "char1" }, basic: { id: "char1" } };
+    const expected = { full: { id: "char1", spells: {}, spellsById: {} }, basic: { id: "char1" } };
     characterServiceMock.levelUp.mockResolvedValue(expected);
 
     const input = {

@@ -23,7 +23,7 @@ describe("BindSpellPrivileges", () => {
 
   it("should delegate to characterService.bindSpellPrivileges", async () => {
     const useCase = new BindSpellPrivileges(characterServiceMock as never);
-    const expected = { id: "char1", spellPrivileges: [] };
+    const expected = { spells: {}, spellsById: {}, spellPrivileges: [] };
     characterServiceMock.bindSpellPrivileges.mockResolvedValue(expected);
 
     const result = await useCase.execute(input);

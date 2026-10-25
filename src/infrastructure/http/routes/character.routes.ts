@@ -503,6 +503,191 @@ const router = Router();
  *       allOf:
  *         - $ref: '#/components/schemas/CharacterBasic'
  *
+ *     CharacterEquipmentStateResponse:
+ *       type: object
+ *       required:
+ *         - basic
+ *         - equipment
+ *         - ac
+ *         - speed
+ *         - wearingArmorWithoutProficiency
+ *         - disadvantageSkillKeys
+ *         - resistances
+ *         - conditionImmunities
+ *       properties:
+ *         basic:
+ *           $ref: '#/components/schemas/CharacterBasic'
+ *         equipment:
+ *           type: array
+ *           description: Inventario hidratado (incluye attackBonus y overlay de stances en damageBonus).
+ *           items:
+ *             $ref: '#/components/schemas/CharacterEquipmentApi'
+ *         ac:
+ *           type: number
+ *           description: Clase de armadura de ficha tras el cambio.
+ *         speed:
+ *           type: object
+ *           description: Velocidad derivada de ficha (rasgos y penalización de armadura).
+ *           properties:
+ *             walk:
+ *               type: number
+ *             fly:
+ *               type: number
+ *             climb:
+ *               type: number
+ *             swim:
+ *               type: number
+ *             burrow:
+ *               type: number
+ *         wearingArmorWithoutProficiency:
+ *           type: boolean
+ *           description: True si lleva armadura o escudo equipado sin la competencia requerida.
+ *         disadvantageSkillKeys:
+ *           type: array
+ *           description: Claves de habilidad con desventaja por armadura (p. ej. stealth). El cliente las fusiona en skills.
+ *           items:
+ *             type: string
+ *         resistances:
+ *           type: array
+ *           description: Resistencias efectivas de ficha (incluye overlay de stances no suprimidas).
+ *           items:
+ *             $ref: '#/components/schemas/Damage'
+ *         conditionImmunities:
+ *           type: array
+ *           description: Inmunidades a estados efectivas de ficha (incluye overlay de stances no suprimidas).
+ *           items:
+ *             $ref: '#/components/schemas/ConditionImmunity'
+ *
+ *     CharacterSpellStateResponse:
+ *       type: object
+ *       required:
+ *         - spells
+ *         - spellsById
+ *       description: >
+ *         Slice de conjuros para merge en el cliente (misma forma que GET view=sheet).
+ *         No incluye CA, inventario ni PG. `spellPrivileges` solo aparece al vincular privilegios.
+ *         Clave ausente = conservar el valor local.
+ *       properties:
+ *         spells:
+ *           type: object
+ *           additionalProperties:
+ *             type: object
+ *             required:
+ *               - list
+ *             properties:
+ *               list:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               extra:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               prepared:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               ritualOnlyExtraIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *         spellsById:
+ *           type: object
+ *           additionalProperties:
+ *             $ref: '#/components/schemas/SpellRef'
+ *         spellPrivileges:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterSpellPrivilegeApi'
+ *
+ *     CharacterStatePatch:
+ *       type: object
+ *       description: >
+ *         Parche sparse de ficha para merge en el cliente. Clave ausente = conservar
+ *         el valor local. No rehidrata la ficha completa ni el catálogo de conjuros.
+ *         `forms[].creature` llega como resumen. Tras activar o desactivar una forma,
+ *         el parche incluye CA, PG, atributos, velocidad y resistencias efectivos
+ *         (el overlay de forma no persiste PG; al desactivar vuelven los de ficha).
+ *       properties:
+ *         basic:
+ *           $ref: '#/components/schemas/CharacterBasic'
+ *         hpCurrent:
+ *           type: number
+ *         hpMax:
+ *           type: number
+ *         hitDice:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterHitDice'
+ *         spellSlots:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterSpellSlot'
+ *         traitResources:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterTraitResource'
+ *         activeTraitIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *         ac:
+ *           type: number
+ *         speed:
+ *           type: object
+ *           properties:
+ *             walk:
+ *               type: number
+ *             fly:
+ *               type: number
+ *             climb:
+ *               type: number
+ *             swim:
+ *               type: number
+ *             burrow:
+ *               type: number
+ *         size:
+ *           type: string
+ *         attributes:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterAttribute'
+ *         initiativeBonus:
+ *           type: number
+ *         resistances:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Damage'
+ *         conditionImmunities:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ConditionImmunity'
+ *         activeConditions:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterActiveCondition'
+ *         traits:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Trait'
+ *         equipment:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterEquipmentApi'
+ *         wearingArmorWithoutProficiency:
+ *           type: boolean
+ *         disadvantageSkillKeys:
+ *           type: array
+ *           items:
+ *             type: string
+ *         forms:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/CharacterForm'
+ *         activeFormId:
+ *           type: string
+ *           nullable: true
+ *
  *     CharacterCompanion:
  *       type: object
  *       required:
@@ -1580,7 +1765,9 @@ router.delete('/character/:id/equipment/:instanceId', authMiddleware, validatePa
  *       Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.
  *       La ranura ring admite 2 objetos; el resto admite 1. Un arma two_handed ocupa main_hand y off_hand.
  *       Si no hay hueco, desequipa las filas ocupadas en orden del array hasta hacer sitio.
- *       El ítem debe tener equipSlot definido. Devuelve el personaje completo y básico (incluye CA recalculada).
+ *       El ítem debe tener equipSlot definido. Devuelve la tarjeta básica y un delta de ficha
+ *       (inventario hidratado, CA, velocidad derivada, desventaja de sigilo, resistencias e inmunidades).
+ *       No reenvía conjuros, formas ni sabor.
  *     tags:
  *       - Personajes
  *     security:
@@ -1616,15 +1803,7 @@ router.delete('/character/:id/equipment/:instanceId', authMiddleware, validatePa
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               required:
- *                 - full
- *                 - basic
- *               properties:
- *                 full:
- *                   $ref: '#/components/schemas/CharacterApi'
- *                 basic:
- *                   $ref: '#/components/schemas/CharacterBasic'
+ *               $ref: '#/components/schemas/CharacterEquipmentStateResponse'
  *       400:
  *         description: Datos inválidos o el equipamiento no tiene ranura (equipSlot).
  *       401:
@@ -1641,7 +1820,12 @@ router.patch('/character/:id/equipment/:instanceId/equipped', authMiddleware, va
  * /character/{id}/equipment/{instanceId}/favorite:
  *   patch:
  *     summary: Marcar o desmarcar una instancia como favorita
- *     description: Actualiza el estado de favorito de una instancia del inventario. Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.
+ *     description: |
+ *       Actualiza el estado de favorito de una instancia del inventario. Si la pila tiene
+ *       quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa:
+ *       `instanceId` de la respuesta es la fila mutada (puede ser distinta a la de la URL).
+ *       `splitFrom` aparece solo si hubo corte e indica la pila original y su quantity restante.
+ *       No recalcula la ficha; el cliente debe fusionar el inventario localmente.
  *     tags:
  *       - Personajes
  *     security:
@@ -1688,10 +1872,20 @@ router.patch('/character/:id/equipment/:instanceId/equipped', authMiddleware, va
  *                   description: ID de MongoDB del personaje.
  *                 instanceId:
  *                   type: string
- *                   description: ID de MongoDB de la instancia mutada.
+ *                   description: ID de MongoDB de la instancia mutada. Si se partió una pila, es el de la unidad nueva.
  *                 isFavorite:
  *                   type: boolean
  *                   description: Nuevo estado de favorito del equipamiento.
+ *                 splitFrom:
+ *                   type: object
+ *                   description: Presente solo si se partió una pila con quantity mayor que 1.
+ *                   properties:
+ *                     instanceId:
+ *                       type: string
+ *                       description: ID de la pila original (el de la URL).
+ *                     quantity:
+ *                       type: integer
+ *                       description: Cantidad que queda en la pila original.
  *       400:
  *         description: Datos de entrada inválidos.
  *       401:
@@ -1713,7 +1907,8 @@ router.patch('/character/:id/equipment/:instanceId/favorite', authMiddleware, va
  *       sea un arma mágica (cuerpo a cuerpo si weaponBond.melee) y deja un solo vínculo.
  *       Destruye un arma invocada previa. No equipa el arma. Desvincular solo aplica a origin
  *       bound; las invocadas se descartan con deactivate. Si la pila tiene quantity mayor que 1,
- *       se parte una unidad.
+ *       se parte una unidad. Devuelve el mismo delta que al equipar (tarjeta + inventario y
+ *       derivados), no el personaje completo.
  *     tags:
  *       - Personajes
  *     security:
@@ -1749,15 +1944,7 @@ router.patch('/character/:id/equipment/:instanceId/favorite', authMiddleware, va
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               required:
- *                 - full
- *                 - basic
- *               properties:
- *                 full:
- *                   $ref: '#/components/schemas/CharacterApi'
- *                 basic:
- *                   $ref: '#/components/schemas/CharacterBasic'
+ *               $ref: '#/components/schemas/CharacterEquipmentStateResponse'
  *       400:
  *         description: Datos inválidos o el equipamiento no es mágico.
  *       401:
@@ -2432,7 +2619,7 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                   `dip.proficiencyChoices[i]` (misma longitud que `choose`).
  *     responses:
  *       200:
- *         description: Personaje actualizado tras la subida de nivel.
+ *         description: Personaje actualizado tras la subida de nivel (`full` es la vista sheet, no el catálogo recursivo).
  *         content:
  *           application/json:
  *             schema:
@@ -2442,7 +2629,7 @@ router.get('/character/:id/level-up-data', authMiddleware, validateParams(Charac
  *                 - basic
  *               properties:
  *                 full:
- *                   $ref: '#/components/schemas/CharacterApi'
+ *                   $ref: '#/components/schemas/CharacterSheet'
  *                 basic:
  *                   $ref: '#/components/schemas/CharacterBasic'
  *       400:
@@ -2503,11 +2690,11 @@ router.post('/character/:id/level-up', authMiddleware, validateParams(CharacterI
  *                   type: string
  *     responses:
  *       200:
- *         description: Personaje actualizado con los conjuros preparados.
+ *         description: Slice de conjuros (`spells` y `spellsById`) para fusionar en la ficha.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterSpellStateResponse'
  *       400:
  *         description: Datos inválidos, la clase no prepara conjuros o la selección supera el tope.
  *       401:
@@ -2576,11 +2763,11 @@ router.put('/character/:id/prepared-spells', authMiddleware, validateParams(Char
  *                     type: string
  *     responses:
  *       200:
- *         description: Personaje actualizado con los privilegios de conjuro.
+ *         description: Slice de conjuros y privilegios para fusionar en la ficha.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterSpellStateResponse'
  *       400:
  *         description: Datos inválidos, el rasgo no otorga privilegios o no se pueden sustituir.
  *       401:
@@ -2643,11 +2830,11 @@ router.put('/character/:id/spell-privileges/:traitId', authMiddleware, validateP
  *                 description: ID de MongoDB del arma de catálogo que adopta el arma vinculada invocada.
  *     responses:
  *       200:
- *         description: Personaje actualizado con el uso gastado, la stance, el arma vinculada o el objeto concedido, si aplica.
+ *         description: Parche con traitResources, activeTraitIds y, si aplica, ranuras, inventario y overlays de combate.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: Sin usos, stance ya activa, rasgo sin acción, suprimido por armadura o arma vinculada inválida.
  *       401:
@@ -2695,7 +2882,7 @@ router.post('/character/:id/traits/:traitId/use', authMiddleware, validateParams
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: El rasgo no estaba activo.
  *       401:
@@ -2787,11 +2974,11 @@ router.post('/character/:id/traits/:traitId/deactivate', authMiddleware, validat
  *                       minimum: 0
  *     responses:
  *       200:
- *         description: Personaje actualizado tras el descanso.
+ *         description: Parche de recursos (PG, dados, ranuras, rasgos, estados) y overlays de combate. No incluye el catálogo de conjuros.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: El sistema no define descansos o el tipo no está en restRules.kinds.
  *       401:
@@ -2856,7 +3043,7 @@ router.post('/character/:id/rest', authMiddleware, validateParams(CharacterIdPar
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: Sin dados, PG por encima del máximo o clase inexistente.
  *       401:
@@ -2910,7 +3097,7 @@ router.post('/character/:id/hit-dice/spend', authMiddleware, validateParams(Char
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: Cantidad inválida.
  *       401:
@@ -2962,7 +3149,7 @@ router.post('/character/:id/hp/damage', authMiddleware, validateParams(Character
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: Cantidad inválida.
  *       401:
@@ -3026,7 +3213,7 @@ router.post('/character/:id/hp/heal', authMiddleware, validateParams(CharacterId
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: Sin ranuras, bolsa inexistente o datos inválidos.
  *       401:
@@ -3081,7 +3268,7 @@ router.post('/character/:id/spell-slots/spend', authMiddleware, validateParams(C
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: Inmune, duplicado o estado fuera de los sistemas del personaje.
  *       401:
@@ -3136,7 +3323,7 @@ router.post('/character/:id/conditions', authMiddleware, validateParams(Characte
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: El personaje no tiene el estado o el delta no es válido.
  *       401:
@@ -3170,7 +3357,7 @@ router.post('/character/:id/conditions', authMiddleware, validateParams(Characte
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: El personaje no tiene este estado.
  *       401:
@@ -3228,11 +3415,11 @@ router.delete('/character/:id/conditions/:conditionId', authMiddleware, validate
  *                   type: string
  *     responses:
  *       200:
- *         description: Personaje actualizado con los conjuros conocidos añadidos.
+ *         description: Slice de conjuros (`spells` y `spellsById`) para fusionar en la ficha.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterSpellStateResponse'
  *       400:
  *         description: Datos inválidos, duplicados, tope de trucos o el conjuro no pertenece a la clase.
  *       401:
@@ -3293,11 +3480,11 @@ router.post('/character/:id/known-spells', authMiddleware, validateParams(Charac
  *                 description: ID del rasgo cuyo spellRepository se usa. Si falta, se usa el de la clase.
  *     responses:
  *       200:
- *         description: Personaje actualizado con los conjuros copiados.
+ *         description: Slice de conjuros (`spells` y `spellsById`) para fusionar en la ficha.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterSpellStateResponse'
  *       400:
  *         description: Datos inválidos, sin repositorio, ritual, tope de nivel o objeto ausente.
  *       401:
@@ -3352,11 +3539,11 @@ router.post('/character/:id/copied-spells', authMiddleware, validateParams(Chara
  *                 description: ID del conjuro que define el pool de formas.
  *     responses:
  *       200:
- *         description: Personaje actualizado con la forma.
+ *         description: Parche con forms (criatura resumida) y activeFormId. Solo incluye CA/PG/atributos si el recast cambia la forma overlay activa.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: El conjuro no define formas o la criatura no está en el pool.
  *       401:
@@ -3398,11 +3585,11 @@ router.post('/character/:id/addForm', authMiddleware, validateParams(CharacterId
  *         description: ID de la instancia de forma.
  *     responses:
  *       200:
- *         description: Personaje con la forma activa.
+ *         description: Parche con activeFormId, forms resumidas y overlays de combate de la criatura.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: La forma no es propia o ya está activa.
  *       401:
@@ -3440,11 +3627,11 @@ router.post('/character/:id/forms/:formId/activate', authMiddleware, validatePar
  *         description: ID de la instancia de forma.
  *     responses:
  *       200:
- *         description: Personaje sin forma activa.
+ *         description: Parche con activeFormId nulo, forms resumidas y estadísticas de ficha (sin overlay).
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               $ref: '#/components/schemas/CharacterStatePatch'
  *       400:
  *         description: La forma no está activa.
  *       401:

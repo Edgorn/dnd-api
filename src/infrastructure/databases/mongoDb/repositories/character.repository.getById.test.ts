@@ -239,7 +239,7 @@ describe("CharacterRepository.getById query budget", () => {
       lean: vi.fn().mockResolvedValue({
         ...sheetDoc(),
         forms: [
-          { id: ACTIVE_FORM, creatureId: ACTIVE_CREATURE, purpose: "self" },
+          { id: ACTIVE_FORM, creatureId: ACTIVE_CREATURE, purpose: "self", spellId: SPELL_ID },
           { id: INACTIVE_FORM, creatureId: INACTIVE_CREATURE, purpose: "self" }
         ],
         activeFormId: ACTIVE_FORM
@@ -258,7 +258,7 @@ describe("CharacterRepository.getById query budget", () => {
     const result = await repository.getById(CHAR_ID, USER_ID, { view: "sheet" }) as {
       spells: Record<string, { list: string[] }>;
       spellsById: Record<string, { id: string }>;
-      forms: Array<{ id: string; creature?: { id: string; cr?: number; CA?: number } }>;
+      forms: Array<{ id: string; creature?: { id: string; cr?: number; CA?: number }; spell?: { id: string; name: string } }>;
     };
 
     expect(result.spells[CLASS_ID].list).toEqual([SPELL_ID]);
@@ -272,6 +272,10 @@ describe("CharacterRepository.getById query budget", () => {
       cr: 0.25
     });
     expect(result.forms.find(form => form.id === ACTIVE_FORM)?.creature).toMatchObject({ CA: 11 });
+    expect(result.forms.find(form => form.id === ACTIVE_FORM)?.spell).toEqual({
+      id: SPELL_ID,
+      name: "Escudo"
+    });
     expect(spellRepository.getSpellsByIndexes).not.toHaveBeenCalled();
   });
 

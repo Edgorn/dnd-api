@@ -9595,6 +9595,261 @@
           }
         ]
       },
+      "CharacterEquipmentStateResponse": {
+        "type": "object",
+        "required": [
+          "basic",
+          "equipment",
+          "ac",
+          "speed",
+          "wearingArmorWithoutProficiency",
+          "disadvantageSkillKeys",
+          "resistances",
+          "conditionImmunities"
+        ],
+        "properties": {
+          "basic": {
+            "$ref": "#/components/schemas/CharacterBasic"
+          },
+          "equipment": {
+            "type": "array",
+            "description": "Inventario hidratado (incluye attackBonus y overlay de stances en damageBonus).",
+            "items": {
+              "$ref": "#/components/schemas/CharacterEquipmentApi"
+            }
+          },
+          "ac": {
+            "type": "number",
+            "description": "Clase de armadura de ficha tras el cambio."
+          },
+          "speed": {
+            "type": "object",
+            "description": "Velocidad derivada de ficha (rasgos y penalización de armadura).",
+            "properties": {
+              "walk": {
+                "type": "number"
+              },
+              "fly": {
+                "type": "number"
+              },
+              "climb": {
+                "type": "number"
+              },
+              "swim": {
+                "type": "number"
+              },
+              "burrow": {
+                "type": "number"
+              }
+            }
+          },
+          "wearingArmorWithoutProficiency": {
+            "type": "boolean",
+            "description": "True si lleva armadura o escudo equipado sin la competencia requerida."
+          },
+          "disadvantageSkillKeys": {
+            "type": "array",
+            "description": "Claves de habilidad con desventaja por armadura (p. ej. stealth). El cliente las fusiona en skills.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resistances": {
+            "type": "array",
+            "description": "Resistencias efectivas de ficha (incluye overlay de stances no suprimidas).",
+            "items": {
+              "$ref": "#/components/schemas/Damage"
+            }
+          },
+          "conditionImmunities": {
+            "type": "array",
+            "description": "Inmunidades a estados efectivas de ficha (incluye overlay de stances no suprimidas).",
+            "items": {
+              "$ref": "#/components/schemas/ConditionImmunity"
+            }
+          }
+        }
+      },
+      "CharacterSpellStateResponse": {
+        "type": "object",
+        "required": [
+          "spells",
+          "spellsById"
+        ],
+        "description": "Slice de conjuros para merge en el cliente (misma forma que GET view=sheet). No incluye CA, inventario ni PG. `spellPrivileges` solo aparece al vincular privilegios. Clave ausente = conservar el valor local.\n",
+        "properties": {
+          "spells": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": [
+                "list"
+              ],
+              "properties": {
+                "list": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "extra": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "prepared": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "ritualOnlyExtraIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "spellsById": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SpellRef"
+            }
+          },
+          "spellPrivileges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterSpellPrivilegeApi"
+            }
+          }
+        }
+      },
+      "CharacterStatePatch": {
+        "type": "object",
+        "description": "Parche sparse de ficha para merge en el cliente. Clave ausente = conservar el valor local. No rehidrata la ficha completa ni el catálogo de conjuros. `forms[].creature` llega como resumen. Tras activar o desactivar una forma, el parche incluye CA, PG, atributos, velocidad y resistencias efectivos (el overlay de forma no persiste PG; al desactivar vuelven los de ficha).\n",
+        "properties": {
+          "basic": {
+            "$ref": "#/components/schemas/CharacterBasic"
+          },
+          "hpCurrent": {
+            "type": "number"
+          },
+          "hpMax": {
+            "type": "number"
+          },
+          "hitDice": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterHitDice"
+            }
+          },
+          "spellSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterSpellSlot"
+            }
+          },
+          "traitResources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterTraitResource"
+            }
+          },
+          "activeTraitIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ac": {
+            "type": "number"
+          },
+          "speed": {
+            "type": "object",
+            "properties": {
+              "walk": {
+                "type": "number"
+              },
+              "fly": {
+                "type": "number"
+              },
+              "climb": {
+                "type": "number"
+              },
+              "swim": {
+                "type": "number"
+              },
+              "burrow": {
+                "type": "number"
+              }
+            }
+          },
+          "size": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterAttribute"
+            }
+          },
+          "initiativeBonus": {
+            "type": "number"
+          },
+          "resistances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Damage"
+            }
+          },
+          "conditionImmunities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConditionImmunity"
+            }
+          },
+          "activeConditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterActiveCondition"
+            }
+          },
+          "traits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Trait"
+            }
+          },
+          "equipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterEquipmentApi"
+            }
+          },
+          "wearingArmorWithoutProficiency": {
+            "type": "boolean"
+          },
+          "disadvantageSkillKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "forms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterForm"
+            }
+          },
+          "activeFormId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "CharacterCompanion": {
         "type": "object",
         "required": [
@@ -17807,7 +18062,7 @@
     "/character/{id}/equipment/{instanceId}/equipped": {
       "patch": {
         "summary": "Equipar o desequipar una instancia del inventario",
-        "description": "Cambia el estado equipped de una instancia.\nSi la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.\nLa ranura ring admite 2 objetos; el resto admite 1. Un arma two_handed ocupa main_hand y off_hand.\nSi no hay hueco, desequipa las filas ocupadas en orden del array hasta hacer sitio.\nEl ítem debe tener equipSlot definido. Devuelve el personaje completo y básico (incluye CA recalculada).\n",
+        "description": "Cambia el estado equipped de una instancia.\nSi la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.\nLa ranura ring admite 2 objetos; el resto admite 1. Un arma two_handed ocupa main_hand y off_hand.\nSi no hay hueco, desequipa las filas ocupadas en orden del array hasta hacer sitio.\nEl ítem debe tener equipSlot definido. Devuelve la tarjeta básica y un delta de ficha\n(inventario hidratado, CA, velocidad derivada, desventaja de sigilo, resistencias e inmunidades).\nNo reenvía conjuros, formas ni sabor.\n",
         "tags": [
           "Personajes"
         ],
@@ -17861,19 +18116,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "full",
-                    "basic"
-                  ],
-                  "properties": {
-                    "full": {
-                      "$ref": "#/components/schemas/CharacterApi"
-                    },
-                    "basic": {
-                      "$ref": "#/components/schemas/CharacterBasic"
-                    }
-                  }
+                  "$ref": "#/components/schemas/CharacterEquipmentStateResponse"
                 }
               }
             }
@@ -17896,7 +18139,7 @@
     "/character/{id}/equipment/{instanceId}/favorite": {
       "patch": {
         "summary": "Marcar o desmarcar una instancia como favorita",
-        "description": "Actualiza el estado de favorito de una instancia del inventario. Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.",
+        "description": "Actualiza el estado de favorito de una instancia del inventario. Si la pila tiene\nquantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa:\n`instanceId` de la respuesta es la fila mutada (puede ser distinta a la de la URL).\n`splitFrom` aparece solo si hubo corte e indica la pila original y su quantity restante.\nNo recalcula la ficha; el cliente debe fusionar el inventario localmente.\n",
         "tags": [
           "Personajes"
         ],
@@ -17963,11 +18206,25 @@
                     },
                     "instanceId": {
                       "type": "string",
-                      "description": "ID de MongoDB de la instancia mutada."
+                      "description": "ID de MongoDB de la instancia mutada. Si se partió una pila, es el de la unidad nueva."
                     },
                     "isFavorite": {
                       "type": "boolean",
                       "description": "Nuevo estado de favorito del equipamiento."
+                    },
+                    "splitFrom": {
+                      "type": "object",
+                      "description": "Presente solo si se partió una pila con quantity mayor que 1.",
+                      "properties": {
+                        "instanceId": {
+                          "type": "string",
+                          "description": "ID de la pila original (el de la URL)."
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "description": "Cantidad que queda en la pila original."
+                        }
+                      }
                     }
                   }
                 }
@@ -17992,7 +18249,7 @@
     "/character/{id}/equipment/{instanceId}/bond": {
       "patch": {
         "summary": "Vincular o desvincular un arma de una instancia",
-        "description": "Actualiza isBond de una instancia. Vincular exige un rasgo con weaponBond, que el objeto\nsea un arma mágica (cuerpo a cuerpo si weaponBond.melee) y deja un solo vínculo.\nDestruye un arma invocada previa. No equipa el arma. Desvincular solo aplica a origin\nbound; las invocadas se descartan con deactivate. Si la pila tiene quantity mayor que 1,\nse parte una unidad.\n",
+        "description": "Actualiza isBond de una instancia. Vincular exige un rasgo con weaponBond, que el objeto\nsea un arma mágica (cuerpo a cuerpo si weaponBond.melee) y deja un solo vínculo.\nDestruye un arma invocada previa. No equipa el arma. Desvincular solo aplica a origin\nbound; las invocadas se descartan con deactivate. Si la pila tiene quantity mayor que 1,\nse parte una unidad. Devuelve el mismo delta que al equipar (tarjeta + inventario y\nderivados), no el personaje completo.\n",
         "tags": [
           "Personajes"
         ],
@@ -18046,19 +18303,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "full",
-                    "basic"
-                  ],
-                  "properties": {
-                    "full": {
-                      "$ref": "#/components/schemas/CharacterApi"
-                    },
-                    "basic": {
-                      "$ref": "#/components/schemas/CharacterBasic"
-                    }
-                  }
+                  "$ref": "#/components/schemas/CharacterEquipmentStateResponse"
                 }
               }
             }
@@ -18793,7 +19038,7 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado tras la subida de nivel.",
+            "description": "Personaje actualizado tras la subida de nivel (`full` es la vista sheet, no el catálogo recursivo).",
             "content": {
               "application/json": {
                 "schema": {
@@ -18804,7 +19049,7 @@
                   ],
                   "properties": {
                     "full": {
-                      "$ref": "#/components/schemas/CharacterApi"
+                      "$ref": "#/components/schemas/CharacterSheet"
                     },
                     "basic": {
                       "$ref": "#/components/schemas/CharacterBasic"
@@ -18884,11 +19129,11 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado con los conjuros preparados.",
+            "description": "Slice de conjuros (`spells` y `spellsById`) para fusionar en la ficha.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterSpellStateResponse"
                 }
               }
             }
@@ -18975,11 +19220,11 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado con los privilegios de conjuro.",
+            "description": "Slice de conjuros y privilegios para fusionar en la ficha.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterSpellStateResponse"
                 }
               }
             }
@@ -19052,11 +19297,11 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado con el uso gastado, la stance, el arma vinculada o el objeto concedido, si aplica.",
+            "description": "Parche con traitResources, activeTraitIds y, si aplica, ranuras, inventario y overlays de combate.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19117,7 +19362,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19213,11 +19458,11 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado tras el descanso.",
+            "description": "Parche de recursos (PG, dados, ranuras, rasgos, estados) y overlays de combate. No incluye el catálogo de conjuros.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19300,7 +19545,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19372,7 +19617,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19444,7 +19689,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19530,7 +19775,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19605,7 +19850,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19683,7 +19928,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19739,7 +19984,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -19815,11 +20060,11 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado con los conjuros conocidos añadidos.",
+            "description": "Slice de conjuros (`spells` y `spellsById`) para fusionar en la ficha.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterSpellStateResponse"
                 }
               }
             }
@@ -19899,11 +20144,11 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado con los conjuros copiados.",
+            "description": "Slice de conjuros (`spells` y `spellsById`) para fusionar en la ficha.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterSpellStateResponse"
                 }
               }
             }
@@ -19975,11 +20220,11 @@
         },
         "responses": {
           "200": {
-            "description": "Personaje actualizado con la forma.",
+            "description": "Parche con forms (criatura resumida) y activeFormId. Solo incluye CA/PG/atributos si el recast cambia la forma overlay activa.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -20036,11 +20281,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Personaje con la forma activa.",
+            "description": "Parche con activeFormId, forms resumidas y overlays de combate de la criatura.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }
@@ -20096,11 +20341,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Personaje sin forma activa.",
+            "description": "Parche con activeFormId nulo, forms resumidas y estadísticas de ficha (sin overlay).",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "$ref": "#/components/schemas/CharacterStatePatch"
                 }
               }
             }

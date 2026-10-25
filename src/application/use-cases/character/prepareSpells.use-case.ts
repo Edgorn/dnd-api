@@ -1,10 +1,10 @@
 import CharacterService from "../../../domain/services/character.service";
-import { CharacterApi, TypePrepareSpells } from "../../../domain/types/character.types";
+import { CharacterSpellStateResponse, TypePrepareSpells } from "../../../domain/types/character.types";
 
 export default class PrepareSpells {
   constructor(private readonly characterService: CharacterService) {}
 
-  execute(data: TypePrepareSpells): Promise<CharacterApi> {
+  execute(data: TypePrepareSpells): Promise<CharacterSpellStateResponse> {
     return this.characterService.prepareSpells(data);
   }
 }

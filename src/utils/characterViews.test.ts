@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CharacterApi } from "../domain/types/character.types";
-import { toCombatCharacter, toSheetCharacter, toSpellRef } from "./characterViews";
+import { toCharacterStatePatch, toCombatCharacter, toSheetCharacter, toSheetSpellState, toSpellRef } from "./characterViews";
 
 const SPELL = {
   id: "s1",
@@ -100,5 +100,20 @@ describe("characterViews", () => {
 
   it("toSpellRef requires an id", () => {
     expect(toSpellRef({ name: "x", level: 0 })).toBeNull();
+  });
+
+  it("toSheetSpellState maps list extra and prepared to ids and dedupes refs", () => {
+    const projected = toSheetSpellState(sheet().spells);
+    expect(projected.spells.cls.list).toEqual(["s1"]);
+    expect(projected.spells.cls.prepared).toEqual(["s1"]);
+    expect(projected.spellsById.s1).toMatchObject({ id: "s1", name: "Bola de fuego", level: 3 });
+    expect(projected.spellsById.s1).not.toHaveProperty("description");
+  });
+
+  it("toCharacterStatePatch keeps only requested keys", () => {
+    const patch = toCharacterStatePatch(sheet(), ["hpCurrent", "ac", "activeTraitIds"]);
+    expect(patch).toEqual({ hpCurrent: 6, ac: 12, activeTraitIds: ["t1"] });
+    expect(patch).not.toHaveProperty("spells");
+    expect(patch).not.toHaveProperty("traits");
   });
 });

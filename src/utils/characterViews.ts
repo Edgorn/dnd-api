@@ -3,7 +3,10 @@ import {
   CharacterCombatApi,
   CharacterCombatSpell,
   CharacterSheetApi,
-  CharacterSheetSpellGroup
+  CharacterSheetSpellGroup,
+  CharacterSpellPrivilegeApi,
+  CharacterSpellStateResponse,
+  CharacterStatePatch
 } from "../domain/types/character.types";
 import { TraitApi } from "../domain/types/traits.types";
 import { SpellApi, SpellRef } from "../domain/types/spell.types";
@@ -114,21 +117,24 @@ function spellIds(spells: Array<{ id?: string }> | undefined): string[] {
   return (spells ?? []).map(spell => spell.id).filter((id): id is string => Boolean(id));
 }
 
-export function toSheetCharacter(sheet: CharacterApi): CharacterSheetApi {
+export function toSheetSpellState(
+  spells: CharacterApi["spells"],
+  spellPrivileges?: CharacterSpellPrivilegeApi[]
+): Pick<CharacterSpellStateResponse, "spells" | "spellsById"> {
   const spellsById: Record<string, SpellRef> = {};
-  const collect = (spells: Array<Pick<SpellApi, "id" | "name" | "level" | "school" | "ritual" | "components">> | undefined) => {
-    for (const spell of spells ?? []) {
+  const collect = (items: Array<Pick<SpellApi, "id" | "name" | "level" | "school" | "ritual" | "components">> | undefined) => {
+    for (const spell of items ?? []) {
       const ref = toSpellRef(spell);
       if (ref && !spellsById[ref.id]) spellsById[ref.id] = ref;
     }
   };
 
-  const spells: Record<string, CharacterSheetSpellGroup> = {};
-  for (const [group, payload] of Object.entries(sheet.spells ?? {})) {
+  const sheetSpells: Record<string, CharacterSheetSpellGroup> = {};
+  for (const [group, payload] of Object.entries(spells ?? {})) {
     collect(payload.list);
     collect(payload.extra);
     collect(payload.prepared);
-    spells[group] = {
+    sheetSpells[group] = {
       list: spellIds(payload.list),
       ...(payload.extra?.length ? { extra: spellIds(payload.extra) } : {}),
       ...(payload.prepared ? { prepared: spellIds(payload.prepared) } : {}),
@@ -137,12 +143,17 @@ export function toSheetCharacter(sheet: CharacterApi): CharacterSheetApi {
     };
   }
 
-  for (const privilege of sheet.spellPrivileges ?? []) {
+  for (const privilege of spellPrivileges ?? []) {
     for (const selection of privilege.selections ?? []) {
       collect(selection);
     }
   }
 
+  return { spells: sheetSpells, spellsById };
+}
+
+export function toSheetCharacter(sheet: CharacterApi): CharacterSheetApi {
+  const { spells, spellsById } = toSheetSpellState(sheet.spells, sheet.spellPrivileges);
   const { spells: _fullSpells, traits, ...rest } = sheet;
   return {
     ...rest,
@@ -150,4 +161,49 @@ export function toSheetCharacter(sheet: CharacterApi): CharacterSheetApi {
     spells,
     spellsById
   };
+}
+
+export type CharacterStatePatchKey = Exclude<keyof CharacterStatePatch, "basic" | "disadvantageSkillKeys">;
+
+export const CHARACTER_FORM_OVERLAY_PATCH_KEYS: CharacterStatePatchKey[] = [
+  "activeFormId",
+  "ac",
+  "hpMax",
+  "hpCurrent",
+  "attributes",
+  "speed",
+  "size",
+  "initiativeBonus",
+  "resistances",
+  "conditionImmunities"
+];
+
+export function toCharacterStatePatch(
+  sheet: CharacterApi,
+  keys: readonly CharacterStatePatchKey[]
+): CharacterStatePatch {
+  const wanted = new Set(keys);
+  const patch: CharacterStatePatch = {};
+  if (wanted.has("hpCurrent")) patch.hpCurrent = sheet.hpCurrent;
+  if (wanted.has("hpMax")) patch.hpMax = sheet.hpMax;
+  if (wanted.has("hitDice")) patch.hitDice = sheet.hitDice;
+  if (wanted.has("spellSlots")) patch.spellSlots = sheet.spellSlots;
+  if (wanted.has("traitResources")) patch.traitResources = sheet.traitResources;
+  if (wanted.has("activeTraitIds")) patch.activeTraitIds = sheet.activeTraitIds;
+  if (wanted.has("ac")) patch.ac = sheet.ac;
+  if (wanted.has("speed")) patch.speed = sheet.speed;
+  if (wanted.has("size")) patch.size = sheet.size;
+  if (wanted.has("attributes")) patch.attributes = sheet.attributes;
+  if (wanted.has("initiativeBonus")) patch.initiativeBonus = sheet.initiativeBonus;
+  if (wanted.has("resistances")) patch.resistances = sheet.resistances;
+  if (wanted.has("conditionImmunities")) patch.conditionImmunities = sheet.conditionImmunities;
+  if (wanted.has("activeConditions")) patch.activeConditions = sheet.activeConditions;
+  if (wanted.has("traits")) patch.traits = sheet.traits.map(toSheetTrait);
+  if (wanted.has("equipment")) patch.equipment = sheet.equipment;
+  if (wanted.has("wearingArmorWithoutProficiency")) {
+    patch.wearingArmorWithoutProficiency = sheet.wearingArmorWithoutProficiency;
+  }
+  if (wanted.has("forms")) patch.forms = sheet.forms;
+  if (wanted.has("activeFormId")) patch.activeFormId = sheet.activeFormId ?? null;
+  return patch;
 }
