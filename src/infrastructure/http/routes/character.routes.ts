@@ -1931,17 +1931,21 @@ router.put('/character/:id/companions', authMiddleware, validateParams(Character
  *                 description: Nueva cantidad de experiencia del personaje.
  *     responses:
  *       200:
- *         description: Experiencia actualizada con éxito.
+ *         description: Experiencia actualizada con éxito. xpMax no cambia (no hay subida de nivel automática).
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               required:
- *                 - success
+ *                 - xp
+ *                 - xpMax
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
+ *                 xp:
+ *                   type: integer
+ *                   description: Experiencia persistida.
+ *                 xpMax:
+ *                   type: integer
+ *                   description: Experiencia necesaria para el siguiente nivel según las reglas del sistema.
  *       400:
  *         description: Datos de entrada inválidos.
  *       401:

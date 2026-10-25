@@ -13,12 +13,14 @@ describe("UpdateCharacterXp", () => {
     };
   });
 
-  it("should delegate to characterService.updateXp", async () => {
+  it("should delegate to characterService.updateXp and return xp and xpMax", async () => {
     const useCase = new UpdateCharacterXp(characterServiceMock as any);
-    characterServiceMock.updateXp.mockResolvedValue(undefined);
+    characterServiceMock.updateXp.mockResolvedValue({ xp: 1500, xpMax: 2700 });
 
-    await useCase.execute("char1", 1500, "user1");
-
+    await expect(useCase.execute("char1", 1500, "user1")).resolves.toEqual({
+      xp: 1500,
+      xpMax: 2700,
+    });
     expect(characterServiceMock.updateXp).toHaveBeenCalledWith("char1", 1500, "user1");
   });
 

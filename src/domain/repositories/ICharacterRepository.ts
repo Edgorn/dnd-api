@@ -1,4 +1,4 @@
-import { CharacterCampaignLink, TypeCreateCharacter, CharacterBasic, CharacterListItem, CharacterApi, CharacterGetResult, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, LevelUpDataResult, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
+import { CharacterCampaignLink, TypeCreateCharacter, CharacterBasic, CharacterListItem, CharacterApi, CharacterGetResult, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, LevelUpDataResult, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
 
 export default interface ICharacterRepository {
   getByUser(id: string, options?: GetCharactersByUserOptions): Promise<CharacterListItem[]>
@@ -10,7 +10,7 @@ export default interface ICharacterRepository {
   equipEquipment(data: TypeEquipEquipment): Promise<{ full: CharacterApi, basic: CharacterBasic }>
   toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse>
   updateMoney(id: string, money: { quantity: number; unit: string }[]): Promise<UpdateCharacterMoneyResponse>
-  updateXp(id: string, xp: number, userId: string): Promise<void>
+  updateXp(id: string, xp: number, userId: string): Promise<UpdateCharacterXpResponse>
   getLevelUpData(id: string, classId: string, userId: string, options?: GetLevelUpDataOptions): Promise<LevelUpDataResult>
   levelUp(data: TypeLevelUp): Promise<{ full: CharacterApi, basic: CharacterBasic }>
   getByIds(idCharacters: string[]): Promise<CharacterBasic[]>

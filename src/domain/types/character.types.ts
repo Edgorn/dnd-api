@@ -407,6 +407,11 @@ export interface UpdateCharacterMoneyResponse {
   money: CharacterMoneyItem[];
 }
 
+export interface UpdateCharacterXpResponse {
+  xp: number;
+  xpMax: number;
+}
+
 export interface CharacterCampaignLink {
   id: string
   userId: string

@@ -65,6 +65,13 @@ export const DEFAULT_XP_PROGRESSION = [
   85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000,
 ];
 
+export function xpMaxForLevel(level: number, xpProgression?: number[]): number {
+  return xpProgression?.[level]
+    ?? DEFAULT_XP_PROGRESSION[level]
+    ?? DEFAULT_XP_PROGRESSION[level - 1]
+    ?? 0;
+}
+
 export const DEFAULT_PROFICIENCY_PROGRESSION = [
   2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6,
 ];

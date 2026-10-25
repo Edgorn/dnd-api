@@ -250,8 +250,8 @@ export class CharacterController {
       }
 
       const { xp } = req.body;
-      await this.updateCharacterXp.execute(id, xp, req.user!);
-      res.status(200).json({ success: true });
+      const data = await this.updateCharacterXp.execute(id, xp, req.user!);
+      res.status(200).json(data);
     } catch (e) {
       console.error("[CharacterController.updateXp] Error:", e);
       next(e);

@@ -1,5 +1,5 @@
 import ICharacterRepository from "../repositories/ICharacterRepository";
-import { CharacterCampaignLink, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, CharacterGetResult, LevelUpDataResult, CharacterApi, CharacterBasic, CharacterListItem, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
+import { CharacterCampaignLink, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, CharacterGetResult, LevelUpDataResult, CharacterApi, CharacterBasic, CharacterListItem, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
 
 export default class CharacterService {
   constructor(private readonly characterRepository: ICharacterRepository) { }
@@ -48,7 +48,7 @@ export default class CharacterService {
     return this.characterRepository.updateMoney(id, money);
   }
 
-  updateXp(id: string, xp: number, userId: string): Promise<void> {
+  updateXp(id: string, xp: number, userId: string): Promise<UpdateCharacterXpResponse> {
     return this.characterRepository.updateXp(id, xp, userId);
   }
 

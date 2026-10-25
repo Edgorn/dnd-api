@@ -3,7 +3,7 @@ import CharacterModel from '../schemas/Character';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { Types } from 'mongoose';
-import { CharacterCampaignLink, CharacterSubclassApi, GetCharacterOptions, GetLevelUpDataOptions, LevelUpData, LevelUpDataResult, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, CharacterApi, CharacterBasic, CharacterGetResult, CharacterListItem, GetCharactersByUserOptions, CharacterMongo, CharacterEquipmentMongo, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLearnSpells, TypeCopySpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource } from '../../../../domain/types/character.types';
+import { CharacterCampaignLink, CharacterSubclassApi, GetCharacterOptions, GetLevelUpDataOptions, LevelUpData, LevelUpDataResult, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, CharacterApi, CharacterBasic, CharacterGetResult, CharacterListItem, GetCharactersByUserOptions, CharacterMongo, CharacterEquipmentMongo, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLearnSpells, TypeCopySpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource } from '../../../../domain/types/character.types';
 import { CharacterFormApi, CharacterFormMongo, CreatureFormSummary, formPurposeOverlaysCharacter } from '../../../../domain/types/creatureForm.types';
 import {
   CharacterOptionSelection,
@@ -205,8 +205,9 @@ import {
 } from '../../../../utils/characterMoney';
 import {
   DEFAULT_PROFICIENCY_PROGRESSION,
-  DEFAULT_XP_PROGRESSION,
+  xpMaxForLevel,
 } from '../../../../utils/systemRulesMerge';
+import { toCharacterBasic } from '../../../../utils/characterBasicFromApi';
 import { SpellcastingLevel, SubclassChoiceMenuApi } from '../../../../domain/types/characterClass.types';
 import { aggregateConditionalConditionImmunities, aggregateConditionalResistances } from '../../../../utils/aggregateConditionalResistances';
 import { applyActiveTraitOverlays } from '../../../../utils/applyActiveTraitOverlays';
@@ -498,7 +499,7 @@ export default class CharacterRepository implements ICharacterRepository {
 
     if (resultado) {
       await this.refreshStoredAc(resultado)
-      return await this.formatBasicCharacter(resultado)
+      return await this.formatBasicCharacter(resultado, { skipAttributeOverlay: true })
     } else {
       return null
     }
@@ -667,7 +668,7 @@ export default class CharacterRepository implements ICharacterRepository {
     return { money: formattedMoney };
   }
 
-  async updateXp(id: string, xp: number, userId: string): Promise<void> {
+  async updateXp(id: string, xp: number, userId: string): Promise<UpdateCharacterXpResponse> {
     const personaje = await CharacterModel.findById(id);
 
     if (!personaje) {
@@ -676,7 +677,16 @@ export default class CharacterRepository implements ICharacterRepository {
 
     await this.assertCanAccessCharacter(personaje, userId);
 
-    await CharacterModel.findByIdAndUpdate(id, { $set: { xp } });
+    const level = personaje.classes?.map(clas => clas.level).reduce((sum, value) => sum + value, 0) ?? 0;
+    const [, rulesConfig] = await Promise.all([
+      CharacterModel.findByIdAndUpdate(id, { $set: { xp } }),
+      this.systemRepository.getMergedRulesConfig(personaje.systems ?? []),
+    ]);
+
+    return {
+      xp,
+      xpMax: xpMaxForLevel(level, rulesConfig.xpProgression),
+    };
   }
 
   async updateCompanions(
@@ -1261,14 +1271,7 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new NotFoundError("Personaje no encontrado");
     }
 
-    await this.refreshStoredAc(resultado);
-    const full = await this.formatCharacter(resultado);
-    const basic = await this.formatBasicCharacter(resultado);
-
-    return {
-      full,
-      basic,
-    };
+    return this.formatFullAndListCard(resultado);
   }
 
   async getByIds(indices: string[]): Promise<CharacterBasic[]> {
@@ -3625,30 +3628,38 @@ export default class CharacterRepository implements ICharacterRepository {
         ? campaignMap.get(personaje.campaign.toString())
         : undefined;
       const light = lightByIndex.get(index);
-      return this.formatBasicCharacter(
-        personaje,
+      return this.formatBasicCharacter(personaje, {
         userName,
         campaignName,
         subclassById,
         getRulesConfig,
-        light?.traits,
-        light?.equipment,
-        skipOverlay
-      );
+        traitsForAc: light?.traits,
+        equipmentForAc: light?.equipment,
+        skipAttributeOverlay: skipOverlay,
+      });
     }));
   }
 
   private async formatBasicCharacter(
     personaje: CharacterMongo,
-    userName?: string,
-    campaignName?: string,
-    subclassById?: Map<string, SubclassNameRef>,
-    getRulesConfig: (systemIds: string[]) => Promise<SystemRulesConfig> = (systemIds) =>
-      this.systemRepository.getMergedRulesConfig(systemIds),
-    traitsForAc?: TraitArmorClassInput[],
-    equipmentForAc?: ArmorClassEquipmentInput[],
-    skipAttributeOverlay = false
+    options?: {
+      userName?: string;
+      campaignName?: string;
+      subclassById?: Map<string, SubclassNameRef>;
+      getRulesConfig?: (systemIds: string[]) => Promise<SystemRulesConfig>;
+      traitsForAc?: TraitArmorClassInput[];
+      equipmentForAc?: ArmorClassEquipmentInput[];
+      skipAttributeOverlay?: boolean;
+    }
   ): Promise<CharacterBasic> {
+    const userName = options?.userName;
+    const campaignName = options?.campaignName;
+    const subclassById = options?.subclassById;
+    const getRulesConfig = options?.getRulesConfig
+      ?? ((systemIds: string[]) => this.systemRepository.getMergedRulesConfig(systemIds));
+    const traitsForAc = options?.traitsForAc;
+    const equipmentForAc = options?.equipmentForAc;
+    const skipAttributeOverlay = options?.skipAttributeOverlay === true;
     personaje = normalizeCharacterDocument(personaje);
     const level = personaje?.classes?.map((cl: any) => cl.level).reduce((acumulador: number, valorActual: number) => acumulador + valorActual, 0) ?? 0
     const user = userName ?? await this.userRepository.getUserName(personaje?.user ?? null)
@@ -3706,10 +3717,7 @@ export default class CharacterRepository implements ICharacterRepository {
       hpMax: personaje.hpMax,
       hpCurrent: personaje.hpCurrent,
       xp: personaje.xp,
-      xpMax: rulesConfig.xpProgression?.[level]
-        ?? DEFAULT_XP_PROGRESSION[level]
-        ?? DEFAULT_XP_PROGRESSION[level - 1]
-        ?? 0,
+      xpMax: xpMaxForLevel(level, rulesConfig.xpProgression),
     }
   }
 
@@ -4296,10 +4304,7 @@ export default class CharacterRepository implements ICharacterRepository {
       background: personaje?.background,
       level,
       xp: personaje.xp,
-      xpMax: rulesConfig.xpProgression?.[level]
-        ?? DEFAULT_XP_PROGRESSION[level]
-        ?? DEFAULT_XP_PROGRESSION[level - 1]
-        ?? 0,
+      xpMax: xpMaxForLevel(level, rulesConfig.xpProgression),
       attributes: apiAttributes,
       systems: personaje.systems ?? [],
       initiativeBonus,
@@ -4467,10 +4472,25 @@ export default class CharacterRepository implements ICharacterRepository {
       throw new NotFoundError("Personaje no encontrado");
     }
 
-    await this.refreshStoredAc(resultado);
-    const full = await this.formatCharacter(resultado);
-    const basic = await this.formatBasicCharacter(resultado);
-    return { full, basic };
+    return this.formatFullAndListCard(resultado);
+  }
+
+  private async formatFullAndListCard(
+    personaje: CharacterMongo
+  ): Promise<{ full: CharacterApi; basic: CharacterBasic }> {
+    await this.refreshStoredAc(personaje);
+    const [full, user] = await Promise.all([
+      this.formatCharacter(personaje),
+      this.userRepository.getUserName(personaje.user ?? ""),
+    ]);
+    return {
+      full,
+      basic: toCharacterBasic(full, {
+        user,
+        ac: this.storedAcOf(personaje),
+        speed: personaje.speed,
+      }),
+    };
   }
 
   private async formatCharacterEquipment(
