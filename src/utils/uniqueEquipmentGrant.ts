@@ -1,4 +1,4 @@
-import { PersonajeEquipmentMongo } from "../domain/types/personajes.types";
+import { CharacterEquipmentMongo } from "../domain/types/character.types";
 import {
   TraitUniqueEquipmentGrant,
   TraitUniqueEquipmentGrantApi
@@ -22,22 +22,22 @@ export function ownedUniqueEquipmentGrant(
   return traits.find(trait => trait.uniqueEquipmentGrant)?.uniqueEquipmentGrant?.id;
 }
 
-export function hasUniqueGranted(inventory: PersonajeEquipmentMongo[]): boolean {
+export function hasUniqueGranted(inventory: CharacterEquipmentMongo[]): boolean {
   return inventory.some(item => item.uniqueGranted === true);
 }
 
 export function applyGrantUniqueEquipment(
-  inventory: PersonajeEquipmentMongo[],
-  instance: PersonajeEquipmentMongo
-): PersonajeEquipmentMongo[] {
+  inventory: CharacterEquipmentMongo[],
+  instance: CharacterEquipmentMongo
+): CharacterEquipmentMongo[] {
   if (hasUniqueGranted(inventory)) return cloneInventory(inventory);
   return [...cloneInventory(inventory), { ...instance, uniqueGranted: true, quantity: 1 }];
 }
 
 export function applyReplaceUniqueEquipment(
-  inventory: PersonajeEquipmentMongo[],
-  instance: PersonajeEquipmentMongo
-): PersonajeEquipmentMongo[] {
+  inventory: CharacterEquipmentMongo[],
+  instance: CharacterEquipmentMongo
+): CharacterEquipmentMongo[] {
   return [
     ...cloneInventory(inventory).filter(item => item.uniqueGranted !== true),
     { ...instance, uniqueGranted: true, quantity: 1 }
@@ -45,7 +45,7 @@ export function applyReplaceUniqueEquipment(
 }
 
 export function clearUniqueGrantedOnTraitLost(
-  inventory: PersonajeEquipmentMongo[]
-): PersonajeEquipmentMongo[] {
+  inventory: CharacterEquipmentMongo[]
+): CharacterEquipmentMongo[] {
   return cloneInventory(inventory).filter(item => item.uniqueGranted !== true);
 }

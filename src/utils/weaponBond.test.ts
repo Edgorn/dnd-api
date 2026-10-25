@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PersonajeEquipmentMongo } from "../domain/types/personajes.types";
+import { CharacterEquipmentMongo } from "../domain/types/character.types";
 import {
   applyBindWeaponBond,
   applyDismissWeaponBond,
@@ -13,7 +13,7 @@ import {
   resolveWeaponBondUse
 } from "./weaponBond";
 
-function row(overrides: Partial<PersonajeEquipmentMongo> & Pick<PersonajeEquipmentMongo, "instanceId">): PersonajeEquipmentMongo {
+function row(overrides: Partial<CharacterEquipmentMongo> & Pick<CharacterEquipmentMongo, "instanceId">): CharacterEquipmentMongo {
   return {
     equipmentId: "eq1",
     quantity: 1,

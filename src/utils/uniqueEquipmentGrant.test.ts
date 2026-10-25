@@ -7,11 +7,11 @@ import {
   hydrateUniqueEquipmentGrant,
   ownedUniqueEquipmentGrant
 } from "./uniqueEquipmentGrant";
-import { PersonajeEquipmentMongo } from "../domain/types/personajes.types";
+import { CharacterEquipmentMongo } from "../domain/types/character.types";
 
 function row(
-  overrides: Partial<PersonajeEquipmentMongo> & Pick<PersonajeEquipmentMongo, "instanceId" | "equipmentId">
-): PersonajeEquipmentMongo {
+  overrides: Partial<CharacterEquipmentMongo> & Pick<CharacterEquipmentMongo, "instanceId" | "equipmentId">
+): CharacterEquipmentMongo {
   return {
     quantity: 1,
     equipped: false,

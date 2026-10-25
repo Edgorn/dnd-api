@@ -1,7 +1,7 @@
 import { CharacterAttributeApi } from "../domain/types/attribute.types";
 import { AttributeApi } from "../domain/types/attribute.types";
 import { CreatureSkillBonus } from "../domain/types/creature.types";
-import { SkillApi, SkillPersonajeApi } from "../domain/types/skill.types";
+import { SkillApi, SkillSheetApi } from "../domain/types/skill.types";
 import { evaluateAttributeModifier } from "./formulaEvaluator";
 
 export const DEFAULT_ATTRIBUTE_MODIFIER_FORMULA = "Math.floor((value - 10) / 2)";
@@ -35,8 +35,8 @@ export function buildCreatureAttributes(
 export function buildCreatureSkills(input: {
   catalog: SkillApi[];
   skillBonuses?: CreatureSkillBonus[] | null;
-}): SkillPersonajeApi[] {
-  const skills: SkillPersonajeApi[] = [];
+}): SkillSheetApi[] {
+  const skills: SkillSheetApi[] = [];
   const seen = new Set<string>();
 
   for (const bonus of input.skillBonuses ?? []) {
@@ -59,7 +59,7 @@ export function buildCreatureSkills(input: {
 }
 
 export function resolvePassivePerception(
-  skills: SkillPersonajeApi[],
+  skills: SkillSheetApi[],
   attributes: CharacterAttributeApi[],
   override?: number
 ): number {

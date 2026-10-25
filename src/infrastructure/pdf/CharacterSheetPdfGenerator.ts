@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
 import { ICharacterSheetPdfGenerator } from "../../domain/ports/ICharacterSheetPdfGenerator";
-import { PersonajeApi } from "../../domain/types/personajes.types";
+import { CharacterApi } from "../../domain/types/character.types";
 import { CharacterEquipmentApi } from "../../domain/types/equipment.types";
 import {
   escribirCompetencias,
@@ -41,7 +41,7 @@ const SKILL_FIELD_MAP: Record<string, [string, string]> = {
 };
 
 export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGenerator {
-  async generate(character: PersonajeApi, playerName: string): Promise<Uint8Array> {
+  async generate(character: CharacterApi, playerName: string): Promise<Uint8Array> {
     const pdfPath = path.join(process.cwd(), "src/utils/hoja-nueva.pdf");
     const existingPdfBytes = fs.readFileSync(pdfPath);
     const originalPdf = await PDFDocument.load(existingPdfBytes);
@@ -70,7 +70,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
     form.getDropdown("Race").select(character?.race ?? "");
     form.getDropdown("Alignment").addOptions([character?.background?.alignment ?? ""]);
     form.getDropdown("Alignment").select(character?.background?.alignment ?? "");
-    form.getTextField("ExperiencePoints").setText(character?.XP + "/" + character?.XPMax);
+    form.getTextField("ExperiencePoints").setText(character?.xp + "/" + character?.xpMax);
 
     form.getTextField("CharacterName 2").setText(character?.name);
     form.getTextField("Age").setText((character?.appearance?.age ?? 0) + " años");
@@ -100,11 +100,11 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
       form.getTextField(ability.toUpperCase() + "score").setText(getAttrVal(ability) + "");
       form.getTextField(ability.toUpperCase() + "bonus").setText(this.formatNumber(bonus[ability]) + "");
 
-      if (character?.saving_throws?.includes(ability)) {
+      if (character?.savingThrows?.includes(ability)) {
         form.getCheckBox(ability.toUpperCase() + "savePROF").check();
         form
           .getTextField(ability.toUpperCase() + "save")
-          .setText(this.formatNumber(bonus[ability] + character?.prof_bonus) + "");
+          .setText(this.formatNumber(bonus[ability] + character?.proficiencyBonus) + "");
       } else {
         form
           .getTextField(ability.toUpperCase() + "save")
@@ -137,7 +137,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
       const daño = Math.floor(max / 2 - 5);
 
       form.getTextField("Attack1").setText("Cuerpo a cuerpo");
-      form.getTextField("AtkBonus1").setText("+" + ((character?.prof_bonus ?? 0) + daño));
+      form.getTextField("AtkBonus1").setText("+" + ((character?.proficiencyBonus ?? 0) + daño));
       form.getTextField("Damage1").setText("1d" + dado + " +" + daño);
       unarmedSlot = 1;
     }
@@ -179,16 +179,16 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
     form.getTextField("Gold").setText(getCoinQty(["po", "gp"], ["oro", "gold"]) + "");
     form.getTextField("Platinum").setText(getCoinQty(["ppt", "pp"], ["platino", "platinum"]) + "");
 
-    form.getTextField("HPMax").setText(character?.HPMax + "");
-    form.getTextField("ProfBonus").setText("+" + character?.prof_bonus);
-    form.getTextField("AC").setText(character?.CA + "");
+    form.getTextField("HPMax").setText(character?.hpMax + "");
+    form.getTextField("ProfBonus").setText("+" + character?.proficiencyBonus);
+    form.getTextField("AC").setText(character?.ac + "");
     form.getTextField("Init").setText(this.formatNumber(character.initiativeBonus) + "");
     form.getTextField("Speed").setText(character?.speed?.walk + "");
 
     form
       .getTextField("HitDiceTotal")
       .setText(
-        character.classes?.map((clase) => clase.level + "d" + (clase.hit_die ?? "?")).join(" / ") + ""
+        character.classes?.map((clase) => clase.level + "d" + (clase.hitDie ?? "?")).join(" / ") + ""
       );
 
     const skillPerception = character?.skills?.find((skill) => skill?.key === "perception");
@@ -281,7 +281,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
     return nuevoPdf.save();
   }
 
-  private sumDamageBonus(character: PersonajeApi, equip: CharacterEquipmentApi): number {
+  private sumDamageBonus(character: CharacterApi, equip: CharacterEquipmentApi): number {
     if (equip.damageBonus !== undefined) {
       let suma = equip.damageBonus;
 
@@ -318,7 +318,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
     return suma;
   }
 
-  private sumAttackBonus(character: PersonajeApi, equip: CharacterEquipmentApi): number {
+  private sumAttackBonus(character: CharacterApi, equip: CharacterEquipmentApi): number {
     if (equip.attackBonus !== undefined) {
       return equip.attackBonus;
     }
@@ -334,7 +334,7 @@ export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGen
           );
 
     if (isProficient) {
-      suma += character?.prof_bonus ?? 0;
+      suma += character?.proficiencyBonus ?? 0;
     }
 
     return suma;

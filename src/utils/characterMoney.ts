@@ -1,7 +1,7 @@
 import { CoinApi } from "../domain/types/coin.types";
-import { PersonajeMoneyItem } from "../domain/types/personajes.types";
+import { CharacterMoneyItem } from "../domain/types/character.types";
 
-export type { PersonajeMoneyItem };
+export type { CharacterMoneyItem };
 
 const LEGACY_COIN_KEYS: { key: string; abbrs: string[]; names: string[] }[] = [
   { key: "pc", abbrs: ["pc", "cp"], names: ["cobre", "copper"] },
@@ -70,13 +70,13 @@ export function getOrphanUnitIds(
   return [...quantitiesByUnit.keys()].filter(id => !systemIds.has(id));
 }
 
-export function buildPersonajeMoneyItems(
+export function buildCharacterMoneyItems(
   systemCoins: CoinApi[],
   quantitiesByUnit: Map<string, number>,
   orphanCoins: CoinApi[] = []
-): PersonajeMoneyItem[] {
+): CharacterMoneyItem[] {
   const systemCoinIds = new Set(systemCoins.map(c => c.id));
-  const result: PersonajeMoneyItem[] = systemCoins.map(coin => ({
+  const result: CharacterMoneyItem[] = systemCoins.map(coin => ({
     quantity: quantitiesByUnit.get(coin.id) ?? 0,
     ...coin,
   }));

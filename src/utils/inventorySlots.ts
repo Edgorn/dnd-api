@@ -1,9 +1,9 @@
 import { EquipSlot } from "../domain/types/equipment.types";
-import { PersonajeEquipmentMongo } from "../domain/types/personajes.types";
+import { CharacterEquipmentMongo } from "../domain/types/character.types";
 import { cloneInventory } from "./inventoryStacks";
 
 export type InventorySlotLookup = (
-  item: PersonajeEquipmentMongo
+  item: CharacterEquipmentMongo
 ) => EquipSlot | null | undefined;
 
 export function occupiedSlotsFor(equipSlot: EquipSlot): EquipSlot[] {
@@ -16,11 +16,11 @@ export function slotCapacity(slot: EquipSlot): number {
 }
 
 export function applyEquip(
-  inventory: PersonajeEquipmentMongo[],
+  inventory: CharacterEquipmentMongo[],
   instanceId: string,
   equipped: boolean,
   slotOf: InventorySlotLookup
-): PersonajeEquipmentMongo[] {
+): CharacterEquipmentMongo[] {
   const result = cloneInventory(inventory);
   const targetIdx = result.findIndex(item => item.instanceId === instanceId);
   if (targetIdx === -1) {
@@ -37,7 +37,7 @@ export function applyEquip(
     throw new Error("NO_EQUIP_SLOT");
   }
 
-  const occupies = (item: PersonajeEquipmentMongo, slot: EquipSlot): boolean => {
+  const occupies = (item: CharacterEquipmentMongo, slot: EquipSlot): boolean => {
     if (!item.equipped) return false;
     const itemSlot = slotOf(item);
     if (!itemSlot) return false;

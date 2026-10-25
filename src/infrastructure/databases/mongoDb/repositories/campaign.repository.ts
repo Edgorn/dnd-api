@@ -2,14 +2,14 @@ import ICampaignRepository from '../../../../domain/repositories/ICampaignReposi
 import Campaign from '../schemas/Campaign';
 import { CampaignApi, CampaignBasic, CampaignMongo, CreateCampaignInput, CampaignJoinInput } from '../../../../domain/types/campaign.types';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
-import IPersonajeRepository from '../../../../domain/repositories/IPersonajeRepository';
+import ICharacterRepository from '../../../../domain/repositories/ICharacterRepository';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import { System, SystemBasic } from '../../../../domain/types/system.types';
 
 export default class CampaignRepository implements ICampaignRepository {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly personajeRepository: IPersonajeRepository,
+    private readonly characterRepository: ICharacterRepository,
     private readonly systemRepository: ISystemRepository
   ) { }
 
@@ -231,7 +231,7 @@ export default class CampaignRepository implements ICampaignRepository {
       this.userRepository.getUserById(campaign.master),
       isMaster ? this.userRepository.getUsers(campaign?.players_requesting ?? []) : Promise.resolve([]),
       this.userRepository.getUsers(campaign?.players ?? []),
-      this.personajeRepository.getByIds(campaign?.characters ?? []),
+      this.characterRepository.getByIds(campaign?.characters ?? []),
       this.getSystemBasic(campaign.system)
     ]);
 

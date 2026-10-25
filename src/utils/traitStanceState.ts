@@ -1,5 +1,5 @@
 import { restEndsStances, restKindCovers } from "../domain/services/restRules";
-import { CharacterTraitResource, CharacterRestType } from "../domain/types/personajes.types";
+import { CharacterTraitResource, CharacterRestType } from "../domain/types/character.types";
 import { SystemRestRules } from "../domain/types/system.types";
 import { RestKey, TraitAction } from "../domain/types/traits.types";
 import { resolveActionUses } from "./traitProgression";

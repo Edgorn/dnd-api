@@ -1,5 +1,5 @@
 import ISkillRepository from "../repositories/ISkillRepository";
-import { SkillApi, SkillPersonajeApi, InputCreateSkill, InputUpdateSkill } from "../types/skill.types";
+import { SkillApi, SkillSheetApi, InputCreateSkill, InputUpdateSkill } from "../types/skill.types";
 import { ChoiceMongo, ChoiceApi } from "../types";
 import { CharacterAttributeApi } from "../types/attribute.types";
 import { evaluateFormula } from "../../utils/formulaEvaluator";
@@ -50,7 +50,7 @@ export default class SkillService {
     attributes: CharacterAttributeApi[],
     profBonus: number,
     skillProficiencies: Array<{ value: number; skillIds?: string[]; attributeKeys?: string[] }> = []
-  ): Promise<SkillPersonajeApi[]> {
+  ): Promise<SkillSheetApi[]> {
     const allSkills = await this.skillRepository.getAll();
 
     return allSkills.map(skill => {

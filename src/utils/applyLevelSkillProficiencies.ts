@@ -1,5 +1,5 @@
 import { LevelSkillProficiencyChoice } from "../domain/types/classLevelChoices.types";
-import { CharacterSkillProficiencyOverlay } from "../domain/types/personajes.types";
+import { CharacterSkillProficiencyOverlay } from "../domain/types/character.types";
 
 export type { CharacterSkillProficiencyOverlay };
 

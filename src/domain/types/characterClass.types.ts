@@ -256,7 +256,7 @@ export interface SpellcastingLevelSource {
   spellRepository?: SpellRepositoryConfig;
 }
 
-/** Spellcasting entry on PersonajeApi after hydration and formula evaluation. */
+/** Spellcasting entry on CharacterApi after hydration and formula evaluation. */
 export interface SpellcastingLevel {
   class: string;
   ability: AttributeApi;

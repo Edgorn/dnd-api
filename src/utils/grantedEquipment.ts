@@ -1,5 +1,5 @@
 import { CharacterEquipmentMongo } from "../domain/types/equipment.types";
-import { PersonajeEquipmentCustomization } from "../domain/types/personajes.types";
+import { CharacterEquipmentCustomization } from "../domain/types/character.types";
 
 const ROW_ONLY_FIELDS = new Set([
   "instanceId",
@@ -27,8 +27,8 @@ export function normalizeGrantedEquipmentRows(
 
 export function extractEquipmentCustomization(
   entry: CharacterEquipmentMongo
-): PersonajeEquipmentCustomization | undefined {
-  const customization: PersonajeEquipmentCustomization = {};
+): CharacterEquipmentCustomization | undefined {
+  const customization: CharacterEquipmentCustomization = {};
 
   for (const [key, value] of Object.entries(entry)) {
     if (ROW_ONLY_FIELDS.has(key) || value === undefined) continue;
@@ -39,7 +39,7 @@ export function extractEquipmentCustomization(
 }
 
 export function customizationStackKey(
-  customization?: PersonajeEquipmentCustomization | null
+  customization?: CharacterEquipmentCustomization | null
 ): string {
   return customization ? JSON.stringify(customization) : "";
 }

@@ -1,11 +1,11 @@
 import { CharacterAttributeApi } from "../domain/types/attribute.types";
-import { SkillPersonajeApi } from "../domain/types/skill.types";
+import { SkillSheetApi } from "../domain/types/skill.types";
 
 export interface FormulaEvaluationContext {
   attributes: CharacterAttributeApi[];
   variables?: Record<string, number | string>;
   classVariables?: Record<string, number>;
-  skills?: SkillPersonajeApi[];
+  skills?: SkillSheetApi[];
   /** Attribute used as the character/class spellcasting ability. */
   spellcastingAttribute?: Pick<CharacterAttributeApi, "modifier" | "value">;
 }
@@ -40,7 +40,7 @@ function replaceSpellcastingTokens(
   });
 }
 
-function replaceSkillTokens(formula: string, skills?: SkillPersonajeApi[]): string {
+function replaceSkillTokens(formula: string, skills?: SkillSheetApi[]): string {
   return formula.replace(/@skills\.([\w-]+)\.totalModifier/g, (_match, key: string) => {
     const skill = skills?.find(s => s.key === key);
     return skill?.modifier !== undefined ? String(skill.modifier) : "0";
@@ -115,7 +115,7 @@ export function evaluateFormula(
   variables?: Record<string, number | string>,
   options?: {
     classVariables?: Record<string, number>;
-    skills?: SkillPersonajeApi[];
+    skills?: SkillSheetApi[];
     weapon?: WeaponFormulaContext;
     spellcastingAttribute?: Pick<CharacterAttributeApi, "modifier" | "value">;
   }
@@ -158,9 +158,9 @@ export function evaluatePassiveSkillFormula(
 
 export function enrichSkillsWithPassive(
   formula: string | undefined,
-  skills: SkillPersonajeApi[],
+  skills: SkillSheetApi[],
   context: Omit<FormulaEvaluationContext, "skills">
-): SkillPersonajeApi[] {
+): SkillSheetApi[] {
   if (!formula) return skills;
 
   return skills.map(skill => ({

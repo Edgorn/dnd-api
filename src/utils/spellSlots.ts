@@ -3,7 +3,7 @@ import { SpellSlotPool } from "../domain/types/system.types";
 import {
   CharacterSpellSlotApi,
   CharacterSpellSlotSpent,
-} from "../domain/types/personajes.types";
+} from "../domain/types/character.types";
 
 export interface SpellSlotPoolEntry {
   classId: string;

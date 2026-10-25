@@ -33,10 +33,10 @@ describe("toHitDiceApi", () => {
 });
 
 describe("classPoolsFromCharacter", () => {
-  it("reads class and hit_die from stored rows", () => {
+  it("reads class and hitDie from stored rows", () => {
     expect(classPoolsFromCharacter([
-      { class: "fighter", level: 5, hit_die: "10" },
-      { class: "empty", level: 0, hit_die: 8 },
+      { class: "fighter", level: 5, hitDie: "10" },
+      { class: "empty", level: 0, hitDie: 8 },
     ])).toEqual([fighter]);
   });
 });

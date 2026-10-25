@@ -39,7 +39,7 @@ export function aggregateConditionalResistances(
 
 export type ConditionalConditionImmunityGroup = {
   name: string;
-  estados: ConditionApi[];
+  conditions: ConditionApi[];
 };
 
 type TraitConditionalConditionImmunitySource = Pick<
@@ -59,13 +59,13 @@ export function aggregateConditionalConditionImmunities(
     const name = trait.conditionalResistanceGroup || trait.name;
     let group = groups.find(item => item.name === name);
     if (!group) {
-      group = { name, estados: [] };
+      group = { name, conditions: [] };
       groups.push(group);
     }
 
     for (const condition of list) {
-      if (condition.id && group.estados.some(item => item.id === condition.id)) continue;
-      group.estados.push(condition);
+      if (condition.id && group.conditions.some(item => item.id === condition.id)) continue;
+      group.conditions.push(condition);
     }
   }
 

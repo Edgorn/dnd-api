@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import {
   CharacterCompanion,
   CharacterCompanionInput,
-} from "../domain/types/personajes.types";
+} from "../domain/types/character.types";
 
 export const MAX_CHARACTER_COMPANIONS = 20;
 

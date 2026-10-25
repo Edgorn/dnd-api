@@ -1,6 +1,6 @@
 import { restKindCovers } from "../domain/services/restRules";
 import { ConditionApi, ConditionLevel, ConditionRecovery } from "../domain/types/condition.types";
-import { CharacterActiveCondition } from "../domain/types/personajes.types";
+import { CharacterActiveCondition } from "../domain/types/character.types";
 import { SystemRestRules } from "../domain/types/system.types";
 
 export function maxConditionLevel(levels?: ConditionLevel[]): number {

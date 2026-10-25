@@ -1,14 +1,14 @@
 import { formPurposeOverlaysCharacter } from "../domain/types/creatureForm.types";
-import { PersonajeApi } from "../domain/types/personajes.types";
+import { CharacterApi } from "../domain/types/character.types";
 import { CharacterAttributeApi } from "../domain/types/attribute.types";
 import { Damage } from "../domain/types";
 import { CreatureApi } from "../domain/types/creature.types";
 import { evaluateFormula } from "./formulaEvaluator";
 
 export function applyActiveFormOverlay(
-  character: PersonajeApi,
+  character: CharacterApi,
   options?: { initiativeBonusFormula?: string }
-): PersonajeApi {
+): CharacterApi {
   const activeId = character.activeFormId;
   if (!activeId) return character;
 
@@ -25,14 +25,14 @@ export function applyActiveFormOverlay(
     ...character,
     size: creature.size,
     speed: creature.speed,
-    CA: creature.CA,
-    HPMax: creature.HPMax,
-    HPActual: creature.HPMax,
+    ac: creature.CA,
+    hpMax: creature.HPMax,
+    hpCurrent: creature.HPMax,
     attributes,
     initiativeBonus,
     resistances: flattenDamageTypes(creature.damage_resistances),
-    condition_inmunities: creature.condition_immunities?.length
-      ? [{ name: creature.name, estados: creature.condition_immunities }]
+    conditionImmunities: creature.condition_immunities?.length
+      ? [{ name: creature.name, conditions: creature.condition_immunities }]
       : []
   };
 }

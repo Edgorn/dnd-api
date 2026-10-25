@@ -1,4 +1,4 @@
-import { CharacterTraitResource } from "../domain/types/personajes.types";
+import { CharacterTraitResource } from "../domain/types/character.types";
 
 export function normalizeTraitResources(raw: unknown): CharacterTraitResource[] {
   if (!Array.isArray(raw)) return [];

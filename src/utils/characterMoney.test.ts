@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildPersonajeMoneyItems,
+  buildCharacterMoneyItems,
   getOrphanUnitIds,
   parseCharacterMoneyQuantities,
 } from "./characterMoney";
@@ -48,10 +48,10 @@ describe("parseCharacterMoneyQuantities", () => {
   });
 });
 
-describe("buildPersonajeMoneyItems", () => {
+describe("buildCharacterMoneyItems", () => {
   it("includes all system coins with zero fill", () => {
     const quantities = new Map([["coin-gold", 10]]);
-    const result = buildPersonajeMoneyItems(systemCoins, quantities);
+    const result = buildCharacterMoneyItems(systemCoins, quantities);
 
     expect(result).toHaveLength(3);
     expect(result.find(c => c.id === "coin-gold")?.quantity).toBe(10);
@@ -60,7 +60,7 @@ describe("buildPersonajeMoneyItems", () => {
   });
 
   it("returns all system coins with quantity 0 when money is empty", () => {
-    const result = buildPersonajeMoneyItems(systemCoins, new Map());
+    const result = buildCharacterMoneyItems(systemCoins, new Map());
 
     expect(result).toHaveLength(3);
     expect(result.every(c => c.quantity === 0)).toBe(true);
@@ -72,7 +72,7 @@ describe("buildPersonajeMoneyItems", () => {
       ["coin-gold", 5],
       ["coin-orphan", 99],
     ]);
-    const result = buildPersonajeMoneyItems(systemCoins, quantities, [orphan]);
+    const result = buildCharacterMoneyItems(systemCoins, quantities, [orphan]);
 
     expect(result).toHaveLength(4);
     expect(result.at(-1)).toMatchObject({ id: "coin-orphan", quantity: 99 });

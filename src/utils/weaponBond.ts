@@ -1,5 +1,5 @@
 import { WeaponBondOrigin, WeaponApi } from "../domain/types/equipment.types";
-import { PersonajeEquipmentMongo } from "../domain/types/personajes.types";
+import { CharacterEquipmentMongo } from "../domain/types/character.types";
 import { TraitWeaponBond } from "../domain/types/traits.types";
 import { cloneInventory, tryMerge } from "./inventoryStacks";
 import { isRangedWeapon } from "./weaponAttackAttributes";
@@ -7,7 +7,7 @@ import { isRangedWeapon } from "./weaponAttackAttributes";
 export type WeaponBondUseKind = "manifest" | "already-manifest" | "need-form";
 
 export type WeaponBondResult =
-  | { ok: true; inventory: PersonajeEquipmentMongo[] }
+  | { ok: true; inventory: CharacterEquipmentMongo[] }
   | { ok: false; message: string };
 
 export function weaponBondFormRejection(
@@ -34,7 +34,7 @@ export function grantsWeaponBondProficiency(
   return grantsProficiency && !!item.isBond && !item.bondStored;
 }
 
-export function resolveWeaponBondUse(inventory: PersonajeEquipmentMongo[]): {
+export function resolveWeaponBondUse(inventory: CharacterEquipmentMongo[]): {
   kind: WeaponBondUseKind;
   instanceId?: string;
 } {
@@ -49,12 +49,12 @@ export function resolveWeaponBondUse(inventory: PersonajeEquipmentMongo[]): {
   return { kind: "need-form" };
 }
 
-export function stripBondFlags(item: PersonajeEquipmentMongo): PersonajeEquipmentMongo {
+export function stripBondFlags(item: CharacterEquipmentMongo): CharacterEquipmentMongo {
   const { bondOrigin: _origin, bondStored: _stored, ...rest } = item;
   return { ...rest, isBond: false };
 }
 
-export function applyManifestWeaponBond(inventory: PersonajeEquipmentMongo[]): WeaponBondResult & { instanceId?: string } {
+export function applyManifestWeaponBond(inventory: CharacterEquipmentMongo[]): WeaponBondResult & { instanceId?: string } {
   const idx = inventory.findIndex(item => item.isBond && item.bondOrigin === "bound" && item.bondStored);
   if (idx === -1) {
     return { ok: false, message: "No hay un arma vinculada guardada" };
@@ -66,9 +66,9 @@ export function applyManifestWeaponBond(inventory: PersonajeEquipmentMongo[]): W
 }
 
 export function applySummonWeaponBond(
-  inventory: PersonajeEquipmentMongo[],
-  instance: PersonajeEquipmentMongo
-): { inventory: PersonajeEquipmentMongo[]; instanceId: string } {
+  inventory: CharacterEquipmentMongo[],
+  instance: CharacterEquipmentMongo
+): { inventory: CharacterEquipmentMongo[]; instanceId: string } {
   const withoutSummoned = cloneInventory(inventory).filter(
     item => !(item.isBond && item.bondOrigin === "summoned")
   );
@@ -78,7 +78,7 @@ export function applySummonWeaponBond(
   };
 }
 
-export function applyDismissWeaponBond(inventory: PersonajeEquipmentMongo[]): WeaponBondResult {
+export function applyDismissWeaponBond(inventory: CharacterEquipmentMongo[]): WeaponBondResult {
   const idx = inventory.findIndex(item => item.isBond && !item.bondStored);
   if (idx === -1) {
     return { ok: false, message: "No hay arma vinculada manifiesta" };
@@ -93,7 +93,7 @@ export function applyDismissWeaponBond(inventory: PersonajeEquipmentMongo[]): We
 }
 
 export function applyBindWeaponBond(
-  inventory: PersonajeEquipmentMongo[],
+  inventory: CharacterEquipmentMongo[],
   instanceId: string
 ): WeaponBondResult {
   const target = inventory.find(item => item.instanceId === instanceId);
@@ -124,7 +124,7 @@ export function applyBindWeaponBond(
 }
 
 export function applyUnbindWeaponBond(
-  inventory: PersonajeEquipmentMongo[],
+  inventory: CharacterEquipmentMongo[],
   instanceId: string
 ): WeaponBondResult {
   const item = inventory.find(row => row.instanceId === instanceId);
@@ -142,8 +142,8 @@ export function applyUnbindWeaponBond(
 }
 
 export function clearWeaponBondOnTraitLost(
-  inventory: PersonajeEquipmentMongo[]
-): PersonajeEquipmentMongo[] {
+  inventory: CharacterEquipmentMongo[]
+): CharacterEquipmentMongo[] {
   return cloneInventory(inventory).flatMap(item => {
     if (!item.isBond) return [item];
     if (item.bondOrigin === "summoned") return [];

@@ -2,7 +2,7 @@ import { Damage } from "../domain/types";
 import { LanguageApi } from "../domain/types/language.types";
 import { RaceRef } from "../domain/types/race.types";
 import { CreatureTypeApi } from "../domain/types/creatureType.types";
-import { CharacterRestType } from "../domain/types/personajes.types";
+import { CharacterRestType } from "../domain/types/character.types";
 import { SystemRestRules } from "../domain/types/system.types";
 import {
   CatalogChoiceEntry,

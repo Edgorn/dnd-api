@@ -100,7 +100,7 @@ describe("aggregateConditionalConditionImmunities", () => {
       }
     ])).toEqual([{
       name: "Furia",
-      estados: [frightened, charmed]
+      conditions: [frightened, charmed]
     }]);
   });
 
@@ -110,7 +110,7 @@ describe("aggregateConditionalConditionImmunities", () => {
       { name: "Furia Irracional", conditionalConditionImmunities: [charmed] }
     ])).toEqual([{
       name: "Furia Irracional",
-      estados: [charmed]
+      conditions: [charmed]
     }]);
   });
 });

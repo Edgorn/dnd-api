@@ -3,7 +3,7 @@ import {
   CharacterHitDiceApi,
   CharacterHitDiceSpent,
   TypeHitDiceSpend,
-} from "../domain/types/personajes.types";
+} from "../domain/types/character.types";
 
 export interface HitDiceClassPool {
   classId: string;
@@ -34,13 +34,13 @@ export function normalizeHitDiceSpent(
 }
 
 export function classPoolsFromCharacter(
-  classes: Array<{ class?: string; classId?: string; level?: number; hit_die?: number | string }>
+  classes: Array<{ class?: string; classId?: string; level?: number; hitDie?: number | string; hit_die?: number | string }>
 ): HitDiceClassPool[] {
   return classes
     .map((entry) => {
       const classId = entry.classId ?? entry.class ?? "";
       const level = Number(entry.level);
-      const hitDie = Number(entry.hit_die);
+      const hitDie = Number(entry.hitDie ?? entry.hit_die);
       return {
         classId,
         level: Number.isInteger(level) && level > 0 ? level : 0,

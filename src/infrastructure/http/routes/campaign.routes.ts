@@ -94,7 +94,7 @@ const router = Router();
  *           type: array
  *           description: Personajes vinculados a la campaña.
  *           items:
- *             $ref: '#/components/schemas/PersonajeBasico'
+ *             $ref: '#/components/schemas/CharacterBasic'
  *         master:
  *           type: string
  *           description: Nombre del master.

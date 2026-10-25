@@ -1,5 +1,5 @@
 import { rgb, StandardFonts } from "pdf-lib";
-import { CharacterCompanion, PersonajeApi } from "../domain/types/personajes.types";
+import { CharacterCompanion, CharacterApi } from "../domain/types/character.types";
 import { SpellApi } from "../domain/types/spell.types";
 import { CharacterEquipmentApi, BODY_EQUIP_SLOTS } from "../domain/types/equipment.types";
 import { TraitApi } from "../domain/types/traits.types";
@@ -453,7 +453,7 @@ const armaduras: any = {
   'Armadura de cuero tachonado': 'Cuero tachonado'
 }
 
-export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { pdfDoc: any, equipment: CharacterEquipmentApi[], personaje: PersonajeApi, form: any }) {
+export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { pdfDoc: any, equipment: CharacterEquipmentApi[], personaje: CharacterApi, form: any }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
   const page2 = pages[1]
@@ -564,7 +564,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
 
 const calcularAtaque = (character: any, spellcasting: string) => {
   const attrVal = character.attributes?.find((a: any) => a.key === spellcasting)?.value ?? 10
-  return (character.prof_bonus ?? 0) + (Math.floor((attrVal / 2) - 5) ?? 0)
+  return (character.proficiencyBonus ?? 0) + (Math.floor((attrVal / 2) - 5) ?? 0)
 }
 
 function formatNumber(num: any) {
@@ -588,7 +588,7 @@ export function formatCompanionSheetRow(companion: Pick<CharacterCompanion, "nam
   return `${companion.name}${role}${notes}`;
 }
 
-export async function escribirConjuros({ form, personaje }: { form: any, personaje: PersonajeApi }) {
+export async function escribirConjuros({ form, personaje }: { form: any, personaje: CharacterApi }) {
   const checkSpells: any = []
 
   personaje?.spells?.race?.list?.forEach(spell => {

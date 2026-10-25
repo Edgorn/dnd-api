@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PersonajeApi } from "../domain/types/personajes.types";
+import { CharacterApi } from "../domain/types/character.types";
 import { CharacterEquipmentApi } from "../domain/types/equipment.types";
 import { TraitApi } from "../domain/types/traits.types";
 import { Damage } from "../domain/types";
@@ -122,18 +122,18 @@ const longbow = (damageBonus = 2): CharacterEquipmentApi => ({
   }
 } as CharacterEquipmentApi);
 
-function sheet(overrides: Partial<PersonajeApi> = {}): PersonajeApi {
+function sheet(overrides: Partial<CharacterApi> = {}): CharacterApi {
   return {
     id: "char1",
     name: "Grok",
     attributes,
-    CA: 13,
+    ac: 13,
     traits: [rage, bear, mindlessRage],
     resistances: [],
     equipment: [greataxe(), rapier(), longbow()],
     activeTraitIds: ["rage"],
     ...overrides
-  } as PersonajeApi;
+  } as CharacterApi;
 }
 
 const rules = { meleeAttackAttributes: ["str"], rangedAttackAttributes: ["dex"] };
@@ -142,14 +142,14 @@ describe("applyActiveTraitOverlays", () => {
   it("adds group conditional resistances when a stance is on", () => {
     const overlay = applyActiveTraitOverlays(sheet(), rules);
     expect(overlay.resistances.map(item => item.id)).toEqual(["bludgeoning", "fire"]);
-    expect(overlay.CA).toBe(13);
+    expect(overlay.ac).toBe(13);
   });
 
   it("adds group conditional condition immunities when a stance is on", () => {
     const overlay = applyActiveTraitOverlays(sheet(), rules);
-    expect(overlay.condition_inmunities).toEqual([{
+    expect(overlay.conditionImmunities).toEqual([{
       name: "Furia",
-      estados: [frightened, charmed]
+      conditions: [frightened, charmed]
     }]);
   });
 
@@ -181,7 +181,7 @@ describe("applyActiveTraitOverlays", () => {
     }), rules);
 
     expect(overlay.resistances).toEqual([]);
-    expect(overlay.condition_inmunities ?? []).toEqual([]);
+    expect(overlay.conditionImmunities ?? []).toEqual([]);
     expect(overlay.equipment.find(item => item.id === "axe")?.damageBonus).toBe(3);
   });
 
@@ -200,7 +200,7 @@ describe("applyActiveTraitOverlays", () => {
     }), rules);
 
     expect(overlay.resistances).toEqual([]);
-    expect(overlay.condition_inmunities ?? []).toEqual([]);
+    expect(overlay.conditionImmunities ?? []).toEqual([]);
     expect(overlay.equipment[0].damageBonus).toBe(3);
   });
 });

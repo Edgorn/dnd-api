@@ -99,7 +99,7 @@ const router = Router();
  *         hp:
  *           type: string
  *           enum: [none, full]
- *           description: '`full` pone HPActual igual a HPMax.'
+ *           description: '`full` pone hpCurrent igual a hpMax.'
  *         hitDice:
  *           type: string
  *           enum: [none, all, half]
@@ -209,7 +209,7 @@ const router = Router();
  *           description: |
  *             Bono numérico de iniciativa (modificador), no la tirada completa.
  *             Ejemplo válido: `@attributes.dex.modifier`. No incluir `1d20`: la tirada la hace el frontend
- *             sumando PersonajeApi.initiativeBonus. Ver SystemCharacterFormulaSyntax.
+ *             sumando CharacterApi.initiativeBonus. Ver SystemCharacterFormulaSyntax.
  *         defaultMinAttributeValue:
  *           type: number
  *         defaultMaxAttributeValue:

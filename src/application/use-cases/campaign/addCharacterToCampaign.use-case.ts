@@ -1,12 +1,12 @@
 import CampaignService from "../../../domain/services/campaign.service";
-import PersonajeService from "../../../domain/services/personaje.service";
+import CharacterService from "../../../domain/services/character.service";
 import { AppError, ConflictError, NotFoundError } from "../../../domain/errors/AppError";
 import { AddCharacterToCampaignInput } from "../../../domain/types/campaign.types";
 
 export default class AddCharacterToCampaign {
   constructor(
     private readonly campaignService: CampaignService,
-    private readonly personajeService: PersonajeService
+    private readonly characterService: CharacterService
   ) { }
 
   async execute(data: AddCharacterToCampaignInput): Promise<{ characterId: string }> {
@@ -25,7 +25,7 @@ export default class AddCharacterToCampaign {
       throw new AppError("No perteneces a la campaña", 403);
     }
 
-    const character = await this.personajeService.getCampaignLink(characterId);
+    const character = await this.characterService.getCampaignLink(characterId);
 
     if (!character) {
       throw new NotFoundError("Personaje no encontrado");
@@ -45,7 +45,7 @@ export default class AddCharacterToCampaign {
       throw new ConflictError("El personaje ya pertenece a otra campaña");
     }
 
-    const assigned = await this.personajeService.assignToCampaign(characterId, campaignId);
+    const assigned = await this.characterService.assignToCampaign(characterId, campaignId);
 
     if (!assigned) {
       throw new NotFoundError("Personaje no encontrado");

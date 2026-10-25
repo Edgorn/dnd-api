@@ -9,7 +9,7 @@ import userRoutes from "./routes/user.routes";
 import backgroundRoutes from "./routes/background.routes";
 import raceRoutes from "./routes/race.routes";
 import characterClassRoutes from "./routes/characterClass.routes";
-import personajeRoutes from "./routes/personaje.routes";
+import characterRoutes from "./routes/character.routes";
 import equipmentRoutes from "./routes/equipment.routes";
 import campaignRoutes from "./routes/campaign.routes";
 import creatureRoutes from "./routes/creature.routes";
@@ -63,7 +63,7 @@ app.use(userRoutes);
 app.use(backgroundRoutes);
 app.use(raceRoutes)
 app.use(characterClassRoutes);
-app.use(personajeRoutes)
+app.use(characterRoutes)
 app.use(equipmentRoutes);
 app.use(campaignRoutes);
 app.use(creatureRoutes);

@@ -6,7 +6,7 @@ import { DamageAffinityGrant, DamageAffinityGrantApi } from "./damageAffinity.ty
 import { EquipmentInstanceApi, CharacterEquipmentMongo } from "./equipment.types";
 import { ConditionApi } from "./condition.types";
 import { CreatureLanguages, CreatureLanguagesCreate, LanguageApi } from "./language.types";
-import { SkillPersonajeApi } from "./skill.types";
+import { SkillSheetApi } from "./skill.types";
 import { RaceRef } from "./race.types";
 import { SpellApi } from "./spell.types";
 
@@ -170,7 +170,7 @@ export interface CreatureApi {
   speed: Speed;
   attributes: CharacterAttributeApi[];
   saving_throws: string[];
-  skills: SkillPersonajeApi[];
+  skills: SkillSheetApi[];
   senses: CreatureSenses;
   languages: CreatureLanguages;
   language_choices?: ChoiceApi<LanguageApi>;

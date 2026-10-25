@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import ISkillRepository from "../../../../domain/repositories/ISkillRepository";
-import { SkillApi, SkillMongo, SkillPersonajeApi, InputCreateSkill, InputUpdateSkill } from "../../../../domain/types/skill.types";
+import { SkillApi, SkillMongo, SkillSheetApi, InputCreateSkill, InputUpdateSkill } from "../../../../domain/types/skill.types";
 import { ChoiceMongo, ChoiceApi } from "../../../../domain/types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import SkillSchema from "../schemas/Skill";

@@ -12,7 +12,7 @@ import {
   SpellRepositorySource,
 } from "../domain/types/characterClass.types";
 import { SpellPrivilegeRule } from "../domain/types/traits.types";
-import { CharacterSpellPrivilegeMongo } from "../domain/types/personajes.types";
+import { CharacterSpellPrivilegeMongo } from "../domain/types/character.types";
 import { evaluateFormula } from "./formulaEvaluator";
 
 export const DEFAULT_SPELL_SAVE_DC_FORMULA =

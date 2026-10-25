@@ -57,37 +57,37 @@ import GetEquipmentsArmor from "../application/use-cases/equipment/getEquipments
 import EquipmentService from "../domain/services/equipment.service";
 import EquipmentRepository from "./databases/mongoDb/repositories/equipment.repository";
 import { EquipmentController } from "./http/controllers/equipment.controller";
-import GetCharactersByUser from "../application/use-cases/personaje/getCharactersByUser.use-case";
-import CrearPersonaje from "../application/use-cases/personaje/crearPersonaje.use-case";
-import ObtenerPersonajePorId from "../application/use-cases/personaje/obtenerPersonajePorId.use-case";
-import UpdateCharacterXp from "../application/use-cases/personaje/updateCharacterXp.use-case";
-import GetLevelUpData from "../application/use-cases/personaje/getLevelUpData.use-case";
-import LevelUp from "../application/use-cases/personaje/levelUp.use-case";
-import AddEquipment from "../application/use-cases/personaje/addEquipment.use-case";
-import DeleteEquipment from "../application/use-cases/personaje/deleteEquipment.use-case";
-import EquipEquipment from "../application/use-cases/personaje/equipEquipment.use-case";
-import UpdateMoney from "../application/use-cases/personaje/updateMoney.use-case";
-import GenerateCharacterPdf from "../application/use-cases/personaje/generateCharacterPdf.use-case";
-import BindWeaponBond from "../application/use-cases/personaje/bindWeaponBond.use-case";
-import ToggleFavoriteEquipment from "../application/use-cases/personaje/toggleFavoriteEquipment.use-case";
-import LearnSpells from "../application/use-cases/personaje/learnSpells.use-case";
-import CopySpells from "../application/use-cases/personaje/copySpells.use-case";
-import PrepareSpells from "../application/use-cases/personaje/prepareSpells.use-case";
-import BindSpellPrivileges from "../application/use-cases/personaje/bindSpellPrivileges.use-case";
-import UpdateCompanions from "../application/use-cases/personaje/updateCompanions.use-case";
-import UpdateCharacterFlavor from "../application/use-cases/personaje/updateCharacterFlavor.use-case";
-import UseTrait from "../application/use-cases/personaje/useTrait.use-case";
-import DeactivateTrait from "../application/use-cases/personaje/deactivateTrait.use-case";
-import RestCharacter from "../application/use-cases/personaje/restCharacter.use-case";
-import SpendHitDice from "../application/use-cases/personaje/spendHitDice.use-case";
-import ApplyCharacterHp from "../application/use-cases/personaje/applyCharacterHp.use-case";
-import SpendSpellSlot from "../application/use-cases/personaje/spendSpellSlot.use-case";
-import ApplyCharacterCondition from "../application/use-cases/personaje/applyCharacterCondition.use-case";
-import UpdateCharacterCondition from "../application/use-cases/personaje/updateCharacterCondition.use-case";
-import RemoveCharacterCondition from "../application/use-cases/personaje/removeCharacterCondition.use-case";
-import AñadirForma from "../application/use-cases/personaje/añadirForma.use-case";
-import ActivateCharacterForm from "../application/use-cases/personaje/activateCharacterForm.use-case";
-import DeactivateCharacterForm from "../application/use-cases/personaje/deactivateCharacterForm.use-case";
+import GetCharactersByUser from "../application/use-cases/character/getCharactersByUser.use-case";
+import CreateCharacter from "../application/use-cases/character/createCharacter.use-case";
+import GetCharacterById from "../application/use-cases/character/getCharacterById.use-case";
+import UpdateCharacterXp from "../application/use-cases/character/updateCharacterXp.use-case";
+import GetLevelUpData from "../application/use-cases/character/getLevelUpData.use-case";
+import LevelUp from "../application/use-cases/character/levelUp.use-case";
+import AddEquipment from "../application/use-cases/character/addEquipment.use-case";
+import DeleteEquipment from "../application/use-cases/character/deleteEquipment.use-case";
+import EquipEquipment from "../application/use-cases/character/equipEquipment.use-case";
+import UpdateMoney from "../application/use-cases/character/updateMoney.use-case";
+import GenerateCharacterPdf from "../application/use-cases/character/generateCharacterPdf.use-case";
+import BindWeaponBond from "../application/use-cases/character/bindWeaponBond.use-case";
+import ToggleFavoriteEquipment from "../application/use-cases/character/toggleFavoriteEquipment.use-case";
+import LearnSpells from "../application/use-cases/character/learnSpells.use-case";
+import CopySpells from "../application/use-cases/character/copySpells.use-case";
+import PrepareSpells from "../application/use-cases/character/prepareSpells.use-case";
+import BindSpellPrivileges from "../application/use-cases/character/bindSpellPrivileges.use-case";
+import UpdateCompanions from "../application/use-cases/character/updateCompanions.use-case";
+import UpdateCharacterFlavor from "../application/use-cases/character/updateCharacterFlavor.use-case";
+import UseTrait from "../application/use-cases/character/useTrait.use-case";
+import DeactivateTrait from "../application/use-cases/character/deactivateTrait.use-case";
+import RestCharacter from "../application/use-cases/character/restCharacter.use-case";
+import SpendHitDice from "../application/use-cases/character/spendHitDice.use-case";
+import ApplyCharacterHp from "../application/use-cases/character/applyCharacterHp.use-case";
+import SpendSpellSlot from "../application/use-cases/character/spendSpellSlot.use-case";
+import ApplyCharacterCondition from "../application/use-cases/character/applyCharacterCondition.use-case";
+import UpdateCharacterCondition from "../application/use-cases/character/updateCharacterCondition.use-case";
+import RemoveCharacterCondition from "../application/use-cases/character/removeCharacterCondition.use-case";
+import AddCharacterForm from "../application/use-cases/character/addCharacterForm.use-case";
+import ActivateCharacterForm from "../application/use-cases/character/activateCharacterForm.use-case";
+import DeactivateCharacterForm from "../application/use-cases/character/deactivateCharacterForm.use-case";
 import CreateSystem from "../application/use-cases/system/createSystem.use-case";
 import GetSystemsByUser from "../application/use-cases/system/getSystemsByUser.use-case";
 import GetSystemById from "../application/use-cases/system/getSystemById.use-case";
@@ -111,7 +111,7 @@ import AuthService from "../domain/services/auth.service";
 import RaceService from "../domain/services/race.service";
 import BackgroundService from "../domain/services/background.service";
 import CharacterClassService from "../domain/services/characterClass.service";
-import PersonajeService from "../domain/services/personaje.service";
+import CharacterService from "../domain/services/character.service";
 import SpellService from "../domain/services/spell.service";
 import SystemService from "../domain/services/system.service";
 
@@ -121,7 +121,7 @@ import ProficiencyRepository from "./databases/mongoDb/repositories/proficiency.
 import SpellRepository from "./databases/mongoDb/repositories/spell.repository";
 import SkillRepository from "./databases/mongoDb/repositories/skill.repository";
 import LanguageRepository from "./databases/mongoDb/repositories/language.repository";
-import PersonajeRepository from "./databases/mongoDb/repositories/personaje.repository";
+import CharacterRepository from "./databases/mongoDb/repositories/character.repository";
 import CampaignReaderRepository from "./databases/mongoDb/repositories/campaignReader.repository";
 import CharacterSheetPdfGenerator from "./pdf/CharacterSheetPdfGenerator";
 import TraitRepository from "./databases/mongoDb/repositories/trait.repository";
@@ -185,7 +185,7 @@ import { AuthController } from "./http/controllers/auth.controller";
 import { RaceController } from "./http/controllers/race.controller";
 import { BackgroundController } from "./http/controllers/background.controller";
 import { CharacterClassController } from "./http/controllers/characterClass.controller";
-import { PersonajeController } from "./http/controllers/personaje.controller";
+import { CharacterController } from "./http/controllers/character.controller";
 import { SpellController } from "./http/controllers/spell.controller";
 import { SystemController } from "./http/controllers/system.controller";
 import CreatureRepository from "./databases/mongoDb/repositories/creature.repository";
@@ -354,7 +354,7 @@ const creatureService = new CreatureService(creatureRepository)
 
 const campaignReaderRepository = new CampaignReaderRepository();
 
-const personajeRepository = new PersonajeRepository(
+const characterRepository = new CharacterRepository(
   userRepository,
   equipmentRepository,
   traitRepository,
@@ -379,7 +379,7 @@ const personajeRepository = new PersonajeRepository(
 
 const campaignRepository = new CampaignRepository(
   userRepository,
-  personajeRepository,
+  characterRepository,
   systemRepository
 )
 
@@ -410,7 +410,7 @@ const raceService = new RaceService(raceRepository)
 const backgroundService = new BackgroundService(backgroundRepository)
 const characterClassService = new CharacterClassService(characterClassRepository, attributeService, optionGroupService)
 const equipmentService = new EquipmentService(equipmentRepository)
-const personajeService = new PersonajeService(personajeRepository)
+const characterService = new CharacterService(characterRepository)
 const spellService = new SpellService(spellRepository)
 const traitService = new TraitService(traitRepository)
 const subclassService = new SubclassService(subclassRepository)
@@ -452,7 +452,7 @@ const getCampaignById = new GetCampaignById(campaignService)
 const requestJoinCampaign = new RequestJoinCampaign(campaignService)
 const acceptJoinCampaign = new AcceptJoinCampaign(campaignService)
 const denyJoinCampaign = new DenyJoinCampaign(campaignService)
-const addCharacterToCampaign = new AddCharacterToCampaign(campaignService, personajeService)
+const addCharacterToCampaign = new AddCharacterToCampaign(campaignService, characterService)
 
 const getRaceSummaries = new GetRaceSummariesUseCase(raceService, systemService, entityOverrideService);
 const getRaceById = new GetRaceByIdUseCase(raceService, systemService, entityOverrideService);
@@ -488,42 +488,42 @@ const getEquipmentsByTypes = new GetEquipmentsByTypes(equipmentService);
 const getEquipmentsWeapons = new GetEquipmentsWeapons(equipmentService);
 const getEquipmentsArmor = new GetEquipmentsArmor(equipmentService);
 
-const getCharactersByUser = new GetCharactersByUser(personajeService);
-const crearPersonaje = new CrearPersonaje(personajeService, systemService, equipmentRepository);
-const obtenerPersonajePorId = new ObtenerPersonajePorId(personajeService);
-const updateCharacterXp = new UpdateCharacterXp(personajeService)
-const getLevelUpData = new GetLevelUpData(personajeService)
-const levelUp = new LevelUp(personajeService)
-const addEquipment = new AddEquipment(personajeService, equipmentRepository);
-const deleteEquipment = new DeleteEquipment(personajeService);
-const equipEquipment = new EquipEquipment(personajeService);
-const updateMoney = new UpdateMoney(personajeService);
+const getCharactersByUser = new GetCharactersByUser(characterService);
+const createCharacter = new CreateCharacter(characterService, systemService, equipmentRepository);
+const getCharacterById = new GetCharacterById(characterService);
+const updateCharacterXp = new UpdateCharacterXp(characterService)
+const getLevelUpData = new GetLevelUpData(characterService)
+const levelUp = new LevelUp(characterService)
+const addEquipment = new AddEquipment(characterService, equipmentRepository);
+const deleteEquipment = new DeleteEquipment(characterService);
+const equipEquipment = new EquipEquipment(characterService);
+const updateMoney = new UpdateMoney(characterService);
 const characterSheetPdfGenerator = new CharacterSheetPdfGenerator();
 const generateCharacterPdf = new GenerateCharacterPdf(
-  personajeService,
+  characterService,
   userRepository,
   characterSheetPdfGenerator
 );
-const bindWeaponBond = new BindWeaponBond(personajeService);
-const toggleFavoriteEquipment = new ToggleFavoriteEquipment(personajeService);
-const learnSpells = new LearnSpells(personajeService);
-const copySpells = new CopySpells(personajeService);
-const prepareSpells = new PrepareSpells(personajeService);
-const bindSpellPrivileges = new BindSpellPrivileges(personajeService);
-const updateCompanions = new UpdateCompanions(personajeService);
-const updateCharacterFlavor = new UpdateCharacterFlavor(personajeService);
-const useTrait = new UseTrait(personajeService);
-const deactivateTrait = new DeactivateTrait(personajeService);
-const restCharacter = new RestCharacter(personajeService);
-const spendHitDice = new SpendHitDice(personajeService);
-const applyCharacterHp = new ApplyCharacterHp(personajeService);
-const spendSpellSlot = new SpendSpellSlot(personajeService);
-const applyCharacterCondition = new ApplyCharacterCondition(personajeService);
-const updateCharacterCondition = new UpdateCharacterCondition(personajeService);
-const removeCharacterCondition = new RemoveCharacterCondition(personajeService);
-const añadirForma = new AñadirForma(personajeService, spellService, creatureService, systemService, traitService);
-const activateCharacterForm = new ActivateCharacterForm(personajeService);
-const deactivateCharacterForm = new DeactivateCharacterForm(personajeService);
+const bindWeaponBond = new BindWeaponBond(characterService);
+const toggleFavoriteEquipment = new ToggleFavoriteEquipment(characterService);
+const learnSpells = new LearnSpells(characterService);
+const copySpells = new CopySpells(characterService);
+const prepareSpells = new PrepareSpells(characterService);
+const bindSpellPrivileges = new BindSpellPrivileges(characterService);
+const updateCompanions = new UpdateCompanions(characterService);
+const updateCharacterFlavor = new UpdateCharacterFlavor(characterService);
+const useTrait = new UseTrait(characterService);
+const deactivateTrait = new DeactivateTrait(characterService);
+const restCharacter = new RestCharacter(characterService);
+const spendHitDice = new SpendHitDice(characterService);
+const applyCharacterHp = new ApplyCharacterHp(characterService);
+const spendSpellSlot = new SpendSpellSlot(characterService);
+const applyCharacterCondition = new ApplyCharacterCondition(characterService);
+const updateCharacterCondition = new UpdateCharacterCondition(characterService);
+const removeCharacterCondition = new RemoveCharacterCondition(characterService);
+const addCharacterForm = new AddCharacterForm(characterService, spellService, creatureService, systemService, traitService);
+const activateCharacterForm = new ActivateCharacterForm(characterService);
+const deactivateCharacterForm = new DeactivateCharacterForm(characterService);
 const createSystem = new CreateSystem(systemService, buildSystemSummary);
 const getSystemsByUser = new GetSystemsByUser(systemService, userRepository, raceRepository);
 const getSystemById = new GetSystemById(systemService, userRepository, getSystemApi);
@@ -661,10 +661,10 @@ export const equipmentController = new EquipmentController(
   getEquipmentsArmor
 );
 
-export const personajeController = new PersonajeController(
+export const characterController = new CharacterController(
   getCharactersByUser,
-  crearPersonaje,
-  obtenerPersonajePorId,
+  createCharacter,
+  getCharacterById,
   updateCharacterXp,
   getLevelUpData,
   levelUp,
@@ -676,7 +676,7 @@ export const personajeController = new PersonajeController(
   bindWeaponBond,
   learnSpells,
   copySpells,
-  añadirForma,
+  addCharacterForm,
   activateCharacterForm,
   deactivateCharacterForm,
   toggleFavoriteEquipment,

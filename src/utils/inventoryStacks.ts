@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { PersonajeEquipmentMongo } from "../domain/types/personajes.types";
+import { CharacterEquipmentMongo } from "../domain/types/character.types";
 import { customizationStackKey } from "./grantedEquipment";
 
 export function createInstanceId(): string {
@@ -13,11 +13,11 @@ export function createInventoryInstance(input: {
   equipped?: boolean;
   isBond?: boolean;
   isFavorite?: boolean;
-  bondOrigin?: PersonajeEquipmentMongo["bondOrigin"];
+  bondOrigin?: CharacterEquipmentMongo["bondOrigin"];
   bondStored?: boolean;
   uniqueGranted?: boolean;
-  customization?: PersonajeEquipmentMongo["customization"];
-}): PersonajeEquipmentMongo {
+  customization?: CharacterEquipmentMongo["customization"];
+}): CharacterEquipmentMongo {
   return {
     instanceId: createInstanceId(),
     equipmentId: input.equipmentId,
@@ -34,8 +34,8 @@ export function createInventoryInstance(input: {
 }
 
 export function cloneInventory(
-  inventory: PersonajeEquipmentMongo[]
-): PersonajeEquipmentMongo[] {
+  inventory: CharacterEquipmentMongo[]
+): CharacterEquipmentMongo[] {
   return inventory.map(item => ({
     instanceId: item.instanceId,
     equipmentId: item.equipmentId,
@@ -52,8 +52,8 @@ export function cloneInventory(
 }
 
 export function canStackWith(
-  a: PersonajeEquipmentMongo,
-  b: Pick<PersonajeEquipmentMongo, "equipmentId" | "isMagic" | "isBond" | "equipped" | "isFavorite" | "uniqueGranted" | "customization">
+  a: CharacterEquipmentMongo,
+  b: Pick<CharacterEquipmentMongo, "equipmentId" | "isMagic" | "isBond" | "equipped" | "isFavorite" | "uniqueGranted" | "customization">
 ): boolean {
   if (a.uniqueGranted || b.uniqueGranted) return false;
   if (a.isBond || b.isBond) return false;
@@ -65,9 +65,9 @@ export function canStackWith(
 }
 
 export function addToInventory(
-  inventory: PersonajeEquipmentMongo[],
-  incoming: PersonajeEquipmentMongo
-): PersonajeEquipmentMongo[] {
+  inventory: CharacterEquipmentMongo[],
+  incoming: CharacterEquipmentMongo
+): CharacterEquipmentMongo[] {
   const result = cloneInventory(inventory);
   const idx = result.findIndex(item => canStackWith(item, incoming));
 
@@ -83,9 +83,9 @@ export function addToInventory(
 }
 
 export function splitOne(
-  inventory: PersonajeEquipmentMongo[],
+  inventory: CharacterEquipmentMongo[],
   instanceId: string
-): { inventory: PersonajeEquipmentMongo[]; instance: PersonajeEquipmentMongo } {
+): { inventory: CharacterEquipmentMongo[]; instance: CharacterEquipmentMongo } {
   const result = cloneInventory(inventory);
   const idx = result.findIndex(item => item.instanceId === instanceId);
   if (idx === -1) {
@@ -109,9 +109,9 @@ export function splitOne(
 }
 
 export function tryMerge(
-  inventory: PersonajeEquipmentMongo[],
+  inventory: CharacterEquipmentMongo[],
   instanceId: string
-): PersonajeEquipmentMongo[] {
+): CharacterEquipmentMongo[] {
   const result = cloneInventory(inventory);
   const idx = result.findIndex(item => item.instanceId === instanceId);
   if (idx === -1) return result;
@@ -131,10 +131,10 @@ export function tryMerge(
 }
 
 export function removeOrDecrement(
-  inventory: PersonajeEquipmentMongo[],
+  inventory: CharacterEquipmentMongo[],
   instanceId: string,
   quantity?: number
-): PersonajeEquipmentMongo[] {
+): CharacterEquipmentMongo[] {
   const result = cloneInventory(inventory);
   const idx = result.findIndex(item => item.instanceId === instanceId);
   if (idx === -1) {

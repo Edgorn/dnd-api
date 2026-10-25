@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { EquipSlot } from "../domain/types/equipment.types";
-import { PersonajeEquipmentMongo } from "../domain/types/personajes.types";
+import { CharacterEquipmentMongo } from "../domain/types/character.types";
 import { applyEquip, occupiedSlotsFor, slotCapacity } from "./inventorySlots";
 
 function row(
-  overrides: Partial<PersonajeEquipmentMongo> & Pick<PersonajeEquipmentMongo, "instanceId" | "equipmentId">
-): PersonajeEquipmentMongo {
+  overrides: Partial<CharacterEquipmentMongo> & Pick<CharacterEquipmentMongo, "instanceId" | "equipmentId">
+): CharacterEquipmentMongo {
   return {
     quantity: 1,
     equipped: false,
@@ -16,7 +16,7 @@ function row(
   };
 }
 
-function slots(map: Record<string, EquipSlot | null>): (item: PersonajeEquipmentMongo) => EquipSlot | null {
+function slots(map: Record<string, EquipSlot | null>): (item: CharacterEquipmentMongo) => EquipSlot | null {
   return item => map[item.instanceId] ?? null;
 }
 
