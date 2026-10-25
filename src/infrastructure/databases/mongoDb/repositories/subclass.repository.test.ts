@@ -78,6 +78,62 @@ describe("SubclassRepository light queries", () => {
     });
   });
 
+  it("getSummariesByIds selects only id, name and classId", async () => {
+    const lean = vi.fn().mockResolvedValue([
+      { _id: SUBCLASS_ID, name: "Campeón", classId: CLASS_ID, levels: [{ traits: ["trait-1"] }] }
+    ]);
+    const select = vi.fn().mockReturnValue({ lean });
+    vi.mocked(SubclassModel.find).mockReturnValue({ select } as never);
+
+    const [summary] = await repository.getSummariesByIds([SUBCLASS_ID, "not-an-id"]);
+
+    expect(select).toHaveBeenCalledWith("_id name classId");
+    expect(traitRepository.getTraitsByIndexes).not.toHaveBeenCalled();
+    expect(spellRepository.getSpellsByIndexes).not.toHaveBeenCalled();
+    expect(summary).toEqual({
+      id: SUBCLASS_ID,
+      name: "Campeón",
+      classId: CLASS_ID
+    });
+  });
+
+  it("getRulesByIds returns trait ids per level without hydrating catalog", async () => {
+    const lean = vi.fn().mockResolvedValue([
+      {
+        _id: SUBCLASS_ID,
+        name: "Evocación",
+        ruleset: SYSTEM_ID,
+        classId: CLASS_ID,
+        levels: [{ level: 2, traits: ["trait-1"], traits_data: { "trait-1": { X: "1" } } }],
+        expandedSpells: [SPELL_ID]
+      }
+    ]);
+    const select = vi.fn().mockReturnValue({ lean });
+    vi.mocked(SubclassModel.find).mockReturnValue({ select } as never);
+
+    const [rules] = await repository.getRulesByIds([SUBCLASS_ID]);
+
+    expect(select).toHaveBeenCalledWith("_id ruleset classId name levels expandedSpells optionReplacements");
+    expect(traitRepository.getTraitsByIndexes).not.toHaveBeenCalled();
+    expect(skillService.formatSkillChoices).not.toHaveBeenCalled();
+    expect(spellRepository.getSpellsByIndexes).not.toHaveBeenCalled();
+    expect(rules).toEqual({
+      id: SUBCLASS_ID,
+      ruleset: SYSTEM_ID,
+      classId: CLASS_ID,
+      name: "Evocación",
+      levels: [{ level: 2, traits: ["trait-1"], traits_data: { "trait-1": { X: "1" } } }],
+      expandedSpells: [SPELL_ID]
+    });
+  });
+
+  it("getSummariesByIds returns empty without querying when there are no valid ids", async () => {
+    const result = await repository.getSummariesByIds(["", "not-an-id"]);
+
+    expect(SubclassModel.find).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
+  });
+
   it("countByClassIds aggregates without formatting subclass levels", async () => {
     vi.mocked(SubclassModel.aggregate).mockResolvedValue([
       { _id: CLASS_ID, count: 4 }

@@ -40,10 +40,19 @@ const SKILL_FIELD_MAP: Record<string, [string, string]> = {
   "animal-handling": ["anhanPROF", "AnHan"],
 };
 
+let templateBytesPromise: Promise<Buffer> | undefined;
+
+function loadTemplateBytes(): Promise<Buffer> {
+  if (!templateBytesPromise) {
+    const pdfPath = path.join(process.cwd(), "src/utils/hoja-nueva.pdf");
+    templateBytesPromise = fs.promises.readFile(pdfPath);
+  }
+  return templateBytesPromise;
+}
+
 export default class CharacterSheetPdfGenerator implements ICharacterSheetPdfGenerator {
   async generate(character: CharacterApi, playerName: string): Promise<Uint8Array> {
-    const pdfPath = path.join(process.cwd(), "src/utils/hoja-nueva.pdf");
-    const existingPdfBytes = fs.readFileSync(pdfPath);
+    const existingPdfBytes = await loadTemplateBytes();
     const originalPdf = await PDFDocument.load(existingPdfBytes);
     const form = originalPdf.getForm();
 

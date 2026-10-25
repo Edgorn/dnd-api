@@ -70,7 +70,10 @@ export class CharacterController {
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const data = await this.getCharactersByUser.execute(req.user!)
+      const include = Array.isArray(req.query.include) ? req.query.include[0] : req.query.include;
+      const data = await this.getCharactersByUser.execute(req.user!, {
+        includeCombatSeed: include === "combatSeed"
+      });
       res.status(200).json(data);
     } catch (e) {
       next(e);
@@ -94,7 +97,12 @@ export class CharacterController {
         throw new ValidationError('Se requiere el ID del personaje');
       }
 
-      const data = await this.getCharacterByIdUseCase.execute(id, req.user!)
+      const view = Array.isArray(req.query.view) ? req.query.view[0] : req.query.view;
+      const data = await this.getCharacterByIdUseCase.execute(
+        id,
+        req.user!,
+        view === "sheet" || view === "combat" ? { view } : undefined
+      )
       res.status(200).json(data);
     } catch (e) {
       next(e);
@@ -259,7 +267,13 @@ export class CharacterController {
         throw new ValidationError("Se requiere el ID del personaje");
       }
 
-      const data = await this.getLevelUpDataUseCase.execute(id, classId, req.user!);
+      const view = Array.isArray(req.query.view) ? req.query.view[0] : req.query.view;
+      const data = await this.getLevelUpDataUseCase.execute(
+        id,
+        classId,
+        req.user!,
+        view === "compact" ? { view: "compact" } : undefined
+      );
       res.status(200).json(data);
     } catch (e) {
       console.error("[CharacterController.getLevelUpData] Error:", e);

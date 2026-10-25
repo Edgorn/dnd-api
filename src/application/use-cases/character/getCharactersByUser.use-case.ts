@@ -1,10 +1,10 @@
 import CharacterService from "../../../domain/services/character.service";
-import { CharacterBasic } from "../../../domain/types/character.types";
+import { CharacterListItem, GetCharactersByUserOptions } from "../../../domain/types/character.types";
 
 export default class GetCharactersByUser {
   constructor(private readonly characterService: CharacterService) { }
 
-  execute(id: string): Promise<CharacterBasic[]> {
-    return this.characterService.getByUser(id)
+  execute(id: string, options?: GetCharactersByUserOptions): Promise<CharacterListItem[]> {
+    return this.characterService.getByUser(id, options)
   }
 }

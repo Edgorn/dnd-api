@@ -13,7 +13,7 @@ import IEquipmentRepository from '../../../../domain/repositories/IEquipmentRepo
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { LanguageApi } from '../../../../domain/types/language.types';
 import { ChoiceApi, ChoiceMongo } from "../../../../domain/types";
-import { CreateTrait, SpellPrivilegeRule, TraitAction, TraitApi, TraitArea, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitGrantedSpell, TraitGrantedSpellApi, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitUniqueEquipmentGrant, TraitUniqueEquipmentGrantApi, TraitWeaponBond, TraitRecoverSpellSlots, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_SPELL_SLOT_RECOVER_SCOPES, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
+import { CreateTrait, SpellPrivilegeRule, TraitAction, TraitApi, TraitArea, TraitArmorClassInput, TraitCatalogChoiceApi, TraitCatalogCreatureTypeRaces, TraitCatalogCreatureTypeRacesApi, TraitCatalogOption, TraitCatalogOptionApi, TraitCreatureFormExtension, TraitCreatureFormExtensionApi, TraitDamageChoiceApi, TraitDataMongo, TraitGrantedSpell, TraitGrantedSpellApi, TraitInnateSpellGrant, TraitInnateSpells, TraitInnateSpellsApi, TraitLanguages, TraitMongo, TraitNameRef, TraitUniqueEquipmentGrant, TraitUniqueEquipmentGrantApi, TraitWeaponBond, TraitRecoverSpellSlots, TraitUses, TraitWeaponDamageBonus, UpdateTrait, TRAIT_ACTION_KINDS, TRAIT_ACTIVATIONS, TRAIT_AREA_SHAPES, TRAIT_DURATION_UNITS, TRAIT_SPELL_SLOT_RECOVER_SCOPES, TRAIT_WEAPON_DAMAGE_BONUS_WHENS } from "../../../../domain/types/traits.types";
 import { SPELL_SLOT_POOLS } from "../../../../domain/types/system.types";
 import { AttributeApi } from "../../../../domain/types/attribute.types";
 import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
@@ -68,6 +68,47 @@ export default class TraitRepository implements ITraitRepository {
 
     const traitsFormateados = await this.formatearTraits(traits, data);
     return ordenarPorNombre(traitsFormateados);
+  }
+
+  async getArmorClassInputsByIds(ids: string[]): Promise<TraitArmorClassInput[]> {
+    const validMongoIds = [...new Set(ids.filter(item => Types.ObjectId.isValid(item)))];
+    if (!validMongoIds.length) return [];
+
+    const traits = await TraitSchema.find({
+      deletedAt: null,
+      _id: { $in: validMongoIds } as any
+    })
+      .select("_id abilityScores acFormula bonuses suppressedByArmorTypeIds")
+      .lean<Pick<TraitMongo, "_id" | "abilityScores" | "acFormula" | "bonuses" | "suppressedByArmorTypeIds">[]>();
+
+    return traits.map(trait => ({
+      id: trait._id.toString(),
+      ...(trait.acFormula ? { acFormula: trait.acFormula } : {}),
+      ...(trait.suppressedByArmorTypeIds?.length
+        ? { suppressedByArmorTypeIds: trait.suppressedByArmorTypeIds }
+        : {}),
+      ...(trait.bonuses ? { bonuses: trait.bonuses } : {}),
+      ...(Array.isArray(trait.abilityScores) && trait.abilityScores.length
+        ? { abilityScores: trait.abilityScores }
+        : {})
+    }));
+  }
+
+  async getNameRefsByIds(ids: string[]): Promise<TraitNameRef[]> {
+    const validMongoIds = [...new Set(ids.filter(item => Types.ObjectId.isValid(item)))];
+    if (!validMongoIds.length) return [];
+
+    const traits = await TraitSchema.find({
+      deletedAt: null,
+      _id: { $in: validMongoIds } as any
+    })
+      .select("_id name")
+      .lean<Pick<TraitMongo, "_id" | "name">[]>();
+
+    return traits.map(trait => ({
+      id: trait._id.toString(),
+      name: trait.name
+    }));
   }
 
   async formatTraitChoices(choices?: ChoiceMongo[]): Promise<ChoiceApi<TraitApi>[]> {
@@ -181,7 +222,7 @@ export default class TraitRepository implements ITraitRepository {
       allSkills.size ? this.skillRepository.getSkillsByIndices(Array.from(allSkills)) : [],
       allSpells.size ? this.spellRepository.getSpellsByIndexes(Array.from(allSpells)) : [],
       allConditionInmunities.size ? this.conditionRepository.getByIds(Array.from(allConditionInmunities)) : [],
-      allIncompatibleTraits.size ? this.getTraitsByIndexes(Array.from(allIncompatibleTraits)) : [],
+      allIncompatibleTraits.size ? this.getNameRefsByIds(Array.from(allIncompatibleTraits)) : [],
       allLanguages.size ? this.languageRepository.getByIds(Array.from(allLanguages)) : [],
       allChoiceDamages.size ? this.damageRepository.getByIds(Array.from(allChoiceDamages)) : [],
       allSaveAttributes.size ? this.attributeRepository.getByIds(Array.from(allSaveAttributes)) : [],
@@ -209,7 +250,7 @@ export default class TraitRepository implements ITraitRepository {
       if (index) spellMap.set(index, item);
     });
     const conditionInmunityMap = new Map<string, ConditionApi>(fetchedConditionInmunities.map(item => [item.id, item]));
-    const incompatibleTraitMap = new Map<string, TraitApi>(fetchedIncompatibleTraits.map(item => [item.id, item]));
+    const incompatibleTraitMap = new Map<string, TraitNameRef>(fetchedIncompatibleTraits.map(item => [item.id, item]));
     const languageMap = new Map<string, LanguageApi>(fetchedLanguages.map(item => [item.id, item]));
     const choiceDamageMap = new Map<string, Damage>(fetchedChoiceDamages.map(item => [item.id!, item]));
     const saveAttributeMap = new Map<string, AttributeApi>(fetchedSaveAttributes.map(item => [item.id, item]));
@@ -247,7 +288,7 @@ export default class TraitRepository implements ITraitRepository {
 
       const incompatible_traits = (trait.incompatible_traits ?? [])
         .map(idx => incompatibleTraitMap.get(idx))
-        .filter((item): item is TraitApi => !!item);
+        .filter((item): item is TraitNameRef => !!item);
 
       let description_aux = [...(trait.description ?? [])];
       let summary_aux = [...(trait.summary ?? [])];

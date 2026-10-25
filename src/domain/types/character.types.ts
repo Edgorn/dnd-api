@@ -1,6 +1,6 @@
 import { ObjectId } from "mongoose"
 import { PendingCatalogChoice, PendingDamageChoice, SpellPrivilegeRule, TraitApi, TraitChoices, TraitDataMongo } from "./traits.types"
-import { LevelSkillProficiencyValue, SpellChoiceApi } from "./classLevelChoices.types"
+import { LevelSkillProficiencyValue, SpellChoiceApi, SpellChoiceRefApi } from "./classLevelChoices.types"
 
 export interface CharacterSkillProficiencyOverlay {
   skillId: string;
@@ -12,7 +12,7 @@ import { ProficiencyApi } from "./proficiencies.types"
 import { ChoiceApi, Damage, Speed } from "."
 import { CharacterEquipmentApi, CharacterEquipmentMongo as CatalogEquipmentMongo, WeaponBondOrigin } from "./equipment.types"
 import { AttributeRequirements } from "./attributeRequirement.types"
-import { SpellApi } from "./spell.types"
+import { SpellApi, SpellRef } from "./spell.types"
 import { ConditionApi } from "./condition.types"
 import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
 import {
@@ -150,8 +150,23 @@ export interface TypeRemoveCharacterCondition {
   userId: string;
 }
 
+export const CHARACTER_VIEWS = ["full", "sheet", "combat"] as const;
+export type CharacterView = (typeof CHARACTER_VIEWS)[number];
+
+export const LEVEL_UP_DATA_VIEWS = ["full", "compact"] as const;
+export type LevelUpDataView = (typeof LEVEL_UP_DATA_VIEWS)[number];
+
 export interface GetCharacterOptions {
   applyActiveTraits?: boolean;
+  view?: CharacterView;
+}
+
+export interface GetLevelUpDataOptions {
+  view?: LevelUpDataView;
+}
+
+export interface GetCharactersByUserOptions {
+  includeCombatSeed?: boolean;
 }
 
 export interface CharacterCompanion {
@@ -429,6 +444,9 @@ export interface CharacterBasic {
   speed: Speed,
 }
 
+export type CharacterListItem = Omit<CharacterBasic, "attributes" | "systems" | "speed"> &
+  Partial<Pick<CharacterBasic, "attributes" | "systems" | "speed">>;
+
 export interface CharacterMongo {
   _id: ObjectId,
   name: string,
@@ -486,6 +504,7 @@ export interface CharacterMongo {
   armorProficiencies: string[],
   proficiencies: string[],
   equipment: CharacterEquipmentMongo[];
+  ac?: number,
   hpMax: number,
   hpCurrent: number,
   xp: number,
@@ -588,6 +607,84 @@ export interface CharacterApi {
   activeConditions: CharacterActiveConditionApi[]
 }
 
+export interface CharacterCombatSpell {
+  id: string;
+  name: string;
+  level: number;
+}
+
+export interface CharacterCombatTrait {
+  id?: string;
+  name: string;
+  hidden?: boolean;
+  description: string[];
+  summary?: string;
+}
+
+export interface CharacterCombatAttribute {
+  key: string;
+  value: number;
+  modifier?: number;
+}
+
+export interface CharacterCombatSkill {
+  name: string;
+  key: string;
+  value: number;
+  modifier: number;
+  passive?: number;
+  disadvantage?: boolean;
+}
+
+export interface CharacterCombatApi {
+  id: string;
+  name: string;
+  race: string;
+  size: string;
+  classes: CharacterApi["classes"];
+  alignment?: string;
+  ac: number;
+  hpMax: number;
+  hpCurrent: number;
+  speed: Speed;
+  initiativeBonus: number;
+  attributes: CharacterCombatAttribute[];
+  savingThrows: string[];
+  skills: CharacterCombatSkill[];
+  languages: CreatureLanguages;
+  resistances: Damage[];
+  conditionalResistances: CharacterApi["conditionalResistances"];
+  conditionImmunities: CharacterApi["conditionImmunities"];
+  conditionalConditionImmunities: CharacterApi["conditionalConditionImmunities"];
+  traits: CharacterCombatTrait[];
+  traitsData: TraitDataMongo;
+  spellcasting?: SpellcastingLevel[];
+  spells: Record<string, {
+    list: CharacterCombatSpell[];
+    extra?: CharacterCombatSpell[];
+    prepared?: CharacterCombatSpell[];
+  }>;
+  activeTraitIds: string[];
+}
+
+export interface CharacterSheetSpellGroup {
+  list: string[];
+  extra?: string[];
+  prepared?: string[];
+  type?: AttributeApi;
+  ritualOnlyExtraIds?: string[];
+}
+
+export type CharacterSheetTrait = Omit<TraitApi, "incompatible_traits">;
+
+export interface CharacterSheetApi extends Omit<CharacterApi, "spells" | "traits"> {
+  spells: Record<string, CharacterSheetSpellGroup>;
+  spellsById: Record<string, SpellRef>;
+  traits: CharacterSheetTrait[];
+}
+
+export type CharacterGetResult = CharacterApi | CharacterSheetApi | CharacterCombatApi;
+
 export interface TypeAddCharacterForm {
   id: string;
   userId: string;
@@ -624,10 +721,24 @@ export interface LevelUpDipData {
   proficiencyChoices?: ChoiceApi<ProficiencyApi>[];
 }
 
+export interface LevelUpDipDataCompact {
+  requirements?: AttributeRequirements;
+  requirementsMet: boolean;
+  proficiencies: Array<{ id: string; name: string }>;
+  skillChoices?: ChoiceApi<SkillApi>;
+  proficiencyChoices?: ChoiceApi<ProficiencyApi>[];
+}
+
 export interface LevelUpSpellChanges {
   choose: number;
   from: SpellApi[];
   to: ChoiceApi<SpellApi>;
+}
+
+export interface LevelUpSpellChangesCompact {
+  choose: number;
+  from: SpellRef[];
+  to: ChoiceApi<SpellRef>;
 }
 
 export interface PendingSkillProficiencyChoice {
@@ -642,8 +753,8 @@ export interface LevelUpData {
   proficiencyBonus: number;
   traits?: TraitApi[];
   traitsData?: TraitDataMongo;
-  spellChoices?: SpellChoiceApi[];
-  spellChanges?: LevelUpSpellChanges;
+  spellChoices?: SpellChoiceApi[] | SpellChoiceRefApi[];
+  spellChanges?: LevelUpSpellChanges | LevelUpSpellChangesCompact;
   subclassChoice?: SubclassChoiceMenuApi | null;
   abilityScore: boolean;
   abilityScoreAlternative?: PendingOptionChoice;
@@ -656,3 +767,11 @@ export interface LevelUpData {
   dip?: LevelUpDipData;
   optionChoices?: PendingOptionChoice[];
 }
+
+export interface LevelUpDataCompact extends Omit<LevelUpData, "spellChoices" | "spellChanges" | "dip"> {
+  spellChoices?: SpellChoiceRefApi[];
+  spellChanges?: LevelUpSpellChangesCompact;
+  dip?: LevelUpDipDataCompact;
+}
+
+export type LevelUpDataResult = LevelUpData | LevelUpDataCompact;

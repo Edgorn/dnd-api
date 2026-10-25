@@ -137,6 +137,57 @@ describe("AttributeService.formatAbilityBonusChoices", () => {
   });
 });
 
+describe("AttributeService.formatAttributes", () => {
+  const mockRepository: IAttributeRepository = {
+    create: vi.fn(),
+    update: vi.fn(),
+    getBySystems: vi.fn(),
+    getById: vi.fn(),
+    getByIds: vi.fn(),
+    softDelete: vi.fn(),
+    restore: vi.fn(),
+    softDeleteByRuleset: vi.fn(),
+    restoreByRuleset: vi.fn()
+  };
+
+  it("uses the provided modifier formula without querying systems", async () => {
+    vi.mocked(mockRepository.getBySystems).mockResolvedValue([chaAttribute]);
+    const systemRepository = {
+      getGlobalModifierFormula: vi.fn()
+    };
+    const service = new AttributeService(mockRepository, systemRepository as never);
+
+    const [formatted] = await service.formatAttributes(
+      [{ key: "cha", value: 16 }],
+      ["5e"],
+      { globalModifierFormula: "Math.floor((value - 10) / 2)" }
+    );
+
+    expect(systemRepository.getGlobalModifierFormula).not.toHaveBeenCalled();
+    expect(formatted.modifier).toBe(3);
+  });
+
+  it("uses a provided catalog without querying attributes by system", async () => {
+    vi.clearAllMocks();
+    const systemRepository = {
+      getGlobalModifierFormula: vi.fn()
+    };
+    const service = new AttributeService(mockRepository, systemRepository as never);
+
+    const [formatted] = await service.formatAttributes(
+      [{ key: "cha", value: 16 }],
+      ["5e"],
+      {
+        globalModifierFormula: "Math.floor((value - 10) / 2)",
+        catalog: [chaAttribute]
+      }
+    );
+
+    expect(mockRepository.getBySystems).not.toHaveBeenCalled();
+    expect(formatted.modifier).toBe(3);
+  });
+});
+
 describe("AttributeService.getBySystems", () => {
   const mockRepository: IAttributeRepository = {
     create: vi.fn(),

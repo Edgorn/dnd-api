@@ -296,16 +296,31 @@ export default class RaceRepository implements IRaceRepository {
   }
 
   async getLevelUpData(raceId: string, level: number): Promise<RaceLevelMongo | undefined> {
-    const chain = await this.ancestryIncludingSelf(raceId);
-    if (!chain.length) return undefined;
+    const rows = await this.getLevelUpDataByLevels(raceId, [level]);
+    return rows.get(level);
+  }
 
-    let merged: RaceLevelMongo | undefined;
-    for (const race of chain) {
-      const row = this.normalizeLevels(race.levels).find(item => item.level === level);
-      if (!row) continue;
-      merged = mergeRaceLevelRows(merged, row);
+  async getLevelUpDataByLevels(
+    raceId: string,
+    levels: number[]
+  ): Promise<Map<number, RaceLevelMongo | undefined>> {
+    const result = new Map<number, RaceLevelMongo | undefined>();
+    const uniqueLevels = [...new Set(levels.filter(level => Number.isFinite(level)))];
+    if (!uniqueLevels.length) return result;
+
+    const chain = await this.ancestryIncludingSelf(raceId);
+    if (!chain.length) return result;
+
+    for (const level of uniqueLevels) {
+      let merged: RaceLevelMongo | undefined;
+      for (const race of chain) {
+        const row = this.normalizeLevels(race.levels).find(item => item.level === level);
+        if (!row) continue;
+        merged = mergeRaceLevelRows(merged, row);
+      }
+      result.set(level, merged);
     }
-    return merged;
+    return result;
   }
 
   private async ancestryIncludingSelf(id: string): Promise<RaceMongo[]> {

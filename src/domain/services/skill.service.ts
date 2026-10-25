@@ -49,7 +49,8 @@ export default class SkillService {
     skillsKeys: string[],
     attributes: CharacterAttributeApi[],
     profBonus: number,
-    skillProficiencies: Array<{ value: number; skillIds?: string[]; attributeKeys?: string[] }> = []
+    skillProficiencies: Array<{ value: number; skillIds?: string[]; attributeKeys?: string[] }> = [],
+    options?: { omitDescription?: boolean }
   ): Promise<SkillSheetApi[]> {
     const allSkills = await this.skillRepository.getAll();
 
@@ -77,7 +78,7 @@ export default class SkillService {
       return {
         id: skill.id,
         name: skill.name,
-        description: skill.description,
+        ...(options?.omitDescription ? {} : { description: skill.description }),
         key: skill.key,
         attributeScore: skill.attributeScore || [],
         value,

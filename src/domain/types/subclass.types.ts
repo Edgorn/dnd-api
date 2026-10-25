@@ -71,6 +71,27 @@ export interface SubclassMongo {
   deletedAt?: Date | null;
 }
 
+export interface SubclassRulesLevel {
+  level: number;
+  traits: string[];
+  traits_data: TraitDataMongo;
+  skill_choices?: ChoiceMongo;
+  skillProficiencyChoices?: LevelSkillProficiencyChoice;
+  spell_choices?: SpellChoiceMongo[];
+  optionChoices?: OptionChoiceMongo[];
+}
+
+/** Lean subclass document: trait ids per level, no hydrated catalog. */
+export interface SubclassRulesRef {
+  id: string;
+  ruleset: string;
+  classId: string;
+  name: string;
+  levels: SubclassRulesLevel[];
+  expandedSpells: string[];
+  optionReplacements?: OptionReplacementConfig[];
+}
+
 export interface SubclassApi {
   id: string;
   ruleset: string;
@@ -82,6 +103,12 @@ export interface SubclassApi {
   expandedSpells?: SpellApi[];
   optionReplacements?: OptionReplacementConfig[];
   deletedAt?: Date | null;
+}
+
+export interface SubclassNameRef {
+  id: string;
+  name: string;
+  classId: string;
 }
 
 export interface SubclassSummaryDraft {

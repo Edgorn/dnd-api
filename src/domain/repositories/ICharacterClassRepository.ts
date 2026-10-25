@@ -2,7 +2,9 @@ import {
   CharacterClassApi,
   CharacterClassCatalogItem,
   CharacterClassSummaryDraft,
+  ClassRulesRef,
   ClaseLevelUp,
+  DataLevelUpOptions,
   InputCreateCharacterClass,
   InputUpdateCharacterClass,
   SpellcastingLevelSource
@@ -13,10 +15,17 @@ export default interface ICharacterClassRepository {
   getSummaries(rulesets: string[]): Promise<CharacterClassSummaryDraft[]>;
   getCatalog(rulesets: string[], includeMulticlass?: boolean): Promise<CharacterClassCatalogItem[]>;
   getById(id: string): Promise<CharacterClassApi | null>;
+  getRulesByIds(ids: string[]): Promise<ClassRulesRef[]>;
   create(data: InputCreateCharacterClass): Promise<CharacterClassApi>;
   update(data: InputUpdateCharacterClass): Promise<CharacterClassApi>;
   softDelete(id: string): Promise<void>;
   restore(id: string): Promise<void>;
-  dataLevelUp(classId: string, level: number, subclasses: string[], rulesets: string[]): Promise<ClaseLevelUp | null>;
+  dataLevelUp(
+    classId: string,
+    level: number,
+    subclasses: string[],
+    rulesets: string[],
+    options?: DataLevelUpOptions
+  ): Promise<ClaseLevelUp | null>;
   getSpellcastingSources(classes: { id: string; level: number }[]): Promise<(SpellcastingLevelSource | null)[]>;
 }

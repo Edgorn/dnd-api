@@ -136,11 +136,17 @@ export default class AttributeService {
     return true;
   }
 
-  async formatAttributes(attributes: { key: string, value: number }[], systems: string[]): Promise<CharacterAttributeApi[]> {
-    const charAttributes = await this.getBySystems(systems);
-    const globalModifierFormula = this.systemRepository
-      ? await this.systemRepository.getGlobalModifierFormula(systems)
-      : undefined;
+  async formatAttributes(
+    attributes: { key: string, value: number }[],
+    systems: string[],
+    options?: { globalModifierFormula?: string; catalog?: AttributeApi[]; omitDescription?: boolean }
+  ): Promise<CharacterAttributeApi[]> {
+    const charAttributes = options?.catalog ?? await this.getBySystems(systems);
+    const globalModifierFormula = options
+      ? options.globalModifierFormula
+      : this.systemRepository
+        ? await this.systemRepository.getGlobalModifierFormula(systems)
+        : undefined;
 
     return charAttributes.map(c => {
       const dbAttr = attributes.find(a => a.key === c.key);
@@ -154,7 +160,7 @@ export default class AttributeService {
         id: c.id,
         ruleset: c.ruleset,
         name: c.name,
-        description: c.description,
+        ...(options?.omitDescription ? {} : { description: c.description }),
         key: c.key,
         abbreviation: c.abbreviation,
         value: value,

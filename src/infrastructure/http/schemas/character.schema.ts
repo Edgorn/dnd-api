@@ -17,9 +17,28 @@ export const CharacterEquipmentInstanceParamsSchema = CharacterIdParamsSchema.ex
     .regex(objectIdRegex, "El instanceId debe ser un ObjectId válido de MongoDB"),
 });
 
+export const GetCharacterQuerySchema = z.object({
+  view: z.enum(["full", "sheet", "combat"], {
+    error: "view debe ser full, sheet o combat"
+  }).optional()
+});
+
+export type GetCharacterQuery = z.infer<typeof GetCharacterQuerySchema>;
+
 export const LevelUpDataQuerySchema = z.object({
   class: z.string().min(1, "ID de clase requerido"),
+  view: z.enum(["full", "compact"], {
+    error: "view debe ser full o compact"
+  }).optional()
 });
+
+export const GetCharactersQuerySchema = z.object({
+  include: z.enum(["combatSeed"], {
+    error: "include debe ser combatSeed"
+  }).optional()
+});
+
+export type GetCharactersQuery = z.infer<typeof GetCharactersQuerySchema>;
 
 export const ToggleFavoriteEquipmentSchema = z.object({
   isFavorite: z.boolean(),

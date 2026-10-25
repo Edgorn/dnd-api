@@ -4,16 +4,17 @@ import { ChoiceSpell, SpellApi } from "./spell.types"
 import {
   LevelSkillProficiencyChoice,
   SpellChoiceApi,
-  SpellChoiceMongo
+  SpellChoiceMongo,
+  SpellChoiceRefApi
 } from "./classLevelChoices.types"
 import { AttributeRequirements, AttributeRequirementsCreate } from "./attributeRequirement.types"
 import { EquipmentInstanceApi, CharacterEquipmentMongo, EquipmentChoiceMongo, EquipmentCost, ResolvedEquipmentChoiceApi } from "./equipment.types"
 import { SkillApi } from "./skill.types"
 import { LanguageApi } from "./language.types"
-import { OptionChoiceMongo, OptionReplacementConfig } from "./optionGroup.types"
+import { OptionChoiceMongo, OptionReplacementConfig, PendingOptionChoice } from "./optionGroup.types"
 import { TraitApi, TraitDataMongo } from "./traits.types"
 import { AttributeApi } from "./attribute.types"
-import { SubclassApi, SubclassSummary } from "./subclass.types"
+import { SubclassApi, SubclassSummary, SubclassSummaryDraft } from "./subclass.types"
 import { ObjectId } from "mongoose"
 
 export interface SubclassChoiceConfig {
@@ -22,8 +23,15 @@ export interface SubclassChoiceConfig {
   level: number;
 }
 
+export interface SubclassChoiceMenuCompactOption extends SubclassSummaryDraft {
+  levels: Array<{
+    level: number;
+    optionChoices?: OptionChoiceMongo[] | PendingOptionChoice[];
+  }>;
+}
+
 export interface SubclassChoiceMenuApi extends SubclassChoiceConfig {
-  options: SubclassApi[];
+  options: SubclassApi[] | SubclassChoiceMenuCompactOption[];
 }
 
 export type SpellPreparedFrom = "known" | "classList";
@@ -295,6 +303,30 @@ export interface SubclassMongo {
   language_choices?: ChoiceMongo;
 }
 
+/** Lean class document for sheet/level-up rules without hydrating catalog relations. */
+export interface ClassRulesRef {
+  id: string;
+  ruleset: string;
+  name: string;
+  hit_die: number;
+  spellcasting?: string | null;
+  levels: CharacterClassLevelInput[];
+  subclassChoice?: SubclassChoiceConfig;
+  multiclass?: CharacterClassMulticlassCreate | null;
+  optionReplacements?: OptionReplacementConfig[];
+  spellRepository?: SpellRepositoryConfig;
+  spellReplacement?: SpellReplacementConfig;
+  abilityScoreProgression?: number[];
+  abilityScoreAlternativeGroupId?: string | null;
+  deletedAt?: Date | null;
+}
+
+export interface DataLevelUpOptions {
+  includeSpellList?: boolean;
+  spellChoiceMode?: "full" | "refs";
+  subclassMenuMode?: "full" | "summaries";
+}
+
 export interface CharacterClassApi {
   id: string;
   ruleset: string;
@@ -402,7 +434,7 @@ export interface ClaseLevelUp {
   abilityScoreAlternativeGroupId?: string;
   subclassChoice?: SubclassChoiceMenuApi | null;
   spells?: SpellApi[];
-  spell_choices?: SpellChoiceApi[];
+  spell_choices?: SpellChoiceApi[] | SpellChoiceRefApi[];
   spell_changes?: ChoiceApi<SpellApi>[][];
   skill_choices?: ChoiceApi<SkillApi>;
   skillProficiencyChoices?: LevelSkillProficiencyChoice[];

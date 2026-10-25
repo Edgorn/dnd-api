@@ -120,6 +120,19 @@ export const BODY_EQUIP_SLOTS: readonly EquipSlot[] = [
   'ring'
 ] as const;
 
+export interface ArmorClassEquipmentInput {
+  equipped?: boolean;
+  equipSlot?: EquipSlot | null;
+  isMagic?: boolean;
+  bonuses?: { armor_class?: number };
+  armor?: {
+    class?: ArmorClass;
+    type?: { id?: string } | null;
+    attributeMinimum?: ArmorAttributeMinimum;
+    disadvantageSkillKeys?: string[];
+  };
+}
+
 export interface LiquidVolumeDef {
   value: number;
   unit: LiquidUnit;

@@ -111,6 +111,48 @@ describe("CharacterClassRepository.getSummaries", () => {
   });
 });
 
+describe("CharacterClassRepository.getRulesByIds", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("loads slim levels without hydrating traits, spells or equipment", async () => {
+    const traitRepository = { getTraitsByIndexes: vi.fn() } as unknown as ITraitRepository;
+    const spellRepository = {
+      formatSpellChoices: vi.fn(),
+      getSpellsByLevelAndClass: vi.fn()
+    } as unknown as ISpellRepository;
+    const { repository } = buildRepository({ traitRepository, spellRepository });
+    const lean = vi.fn().mockResolvedValue([
+      {
+        _id: CLASS_ID,
+        name: "Mago",
+        ruleset: SYSTEM_ID,
+        hit_die: 6,
+        spellcasting: "int",
+        levels: [{ level: 1, traits: ["trait-1"], traits_data: {}, spellcasting: { cantrips: 3 } }]
+      }
+    ]);
+    const select = vi.fn().mockReturnValue({ lean });
+    vi.mocked(CharacterClassModel.find).mockReturnValue({ select } as never);
+
+    const [rules] = await repository.getRulesByIds([CLASS_ID]);
+
+    expect(select).toHaveBeenCalledWith(
+      "_id name ruleset hit_die spellcasting levels subclassChoice multiclass optionReplacements spellRepository spellReplacement abilityScoreProgression abilityScoreAlternativeGroupId deletedAt"
+    );
+    expect(traitRepository.getTraitsByIndexes).not.toHaveBeenCalled();
+    expect(spellRepository.formatSpellChoices).not.toHaveBeenCalled();
+    expect(spellRepository.getSpellsByLevelAndClass).not.toHaveBeenCalled();
+    expect(rules).toMatchObject({
+      id: CLASS_ID,
+      name: "Mago",
+      spellcasting: "int",
+      levels: [{ level: 1, traits: ["trait-1"], spellcasting: { cantrips: 3 } }]
+    });
+  });
+});
+
 describe("CharacterClassRepository.getCatalog", () => {
   beforeEach(() => {
     vi.clearAllMocks();

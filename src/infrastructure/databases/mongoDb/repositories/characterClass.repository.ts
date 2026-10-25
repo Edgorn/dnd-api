@@ -21,7 +21,9 @@ import {
   CharacterClassMongo,
   CharacterClassSummaryChoice,
   CharacterClassSummaryDraft,
+  ClassRulesRef,
   ClaseLevelUp,
+  DataLevelUpOptions,
   InputCreateCharacterClass,
   InputUpdateCharacterClass,
   CharacterClassMulticlassApi,
@@ -34,7 +36,7 @@ import { ChoiceSpell } from '../../../../domain/types/spell.types';
 import { EquipmentApi, EquipmentOptionsMongo, EquipmentChoiceMongo, ResolvedEquipmentChoiceApi } from '../../../../domain/types/equipment.types';
 import { AttributeApi } from '../../../../domain/types/attribute.types';
 import { TraitApi, TraitDataMongo } from '../../../../domain/types/traits.types';
-import { SubclassApi } from '../../../../domain/types/subclass.types';
+import { SubclassRulesRef } from '../../../../domain/types/subclass.types';
 import mongoose from 'mongoose';
 import CharacterClassModel from '../schemas/CharacterClass';
 import { NotFoundError } from '../../../../domain/errors/AppError';
@@ -154,6 +156,17 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     const doc = await CharacterClassModel.findById(id).lean<CharacterClassMongo>();
     if (!doc) return null;
     return this.formatClass(doc, doc.ruleset ? [doc.ruleset] : []);
+  }
+
+  async getRulesByIds(ids: string[]): Promise<ClassRulesRef[]> {
+    const validIds = [...new Set(ids.filter(id => mongoose.Types.ObjectId.isValid(id)))];
+    if (!validIds.length) return [];
+
+    const docs = await CharacterClassModel.find({ _id: { $in: validIds } })
+      .select("_id name ruleset hit_die spellcasting levels subclassChoice multiclass optionReplacements spellRepository spellReplacement abilityScoreProgression abilityScoreAlternativeGroupId deletedAt")
+      .lean<CharacterClassMongo[]>();
+
+    return docs.map(doc => this.toClassRulesRef(doc));
   }
 
   async create(data: InputCreateCharacterClass): Promise<CharacterClassApi> {
@@ -280,7 +293,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     await CharacterClassModel.findByIdAndUpdate(id, { $set: { deletedAt: null } });
   }
 
-  async dataLevelUp(classId: string, level: number, subclasses: string[], rulesets: string[]): Promise<ClaseLevelUp | null> {
+  async dataLevelUp(
+    classId: string,
+    level: number,
+    subclasses: string[],
+    rulesets: string[],
+    options?: DataLevelUpOptions
+  ): Promise<ClaseLevelUp | null> {
     if (!mongoose.Types.ObjectId.isValid(classId)) {
       return null;
     }
@@ -312,7 +331,8 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       level,
       subclasses,
       rulesets,
-      characterClass.subclassChoice
+      characterClass.subclassChoice,
+      options?.subclassMenuMode
     );
 
     const abilityScore = await this.resolveLevelUpAbilityScore(
@@ -323,7 +343,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     if (!dataLevel) {
       const spell_choices = this.spellRepository && subclassSpellChoices.length
-        ? await this.spellRepository.formatSpellChoices(subclassSpellChoices, spellChoiceContext)
+        ? await this.hydrateSpellChoices(subclassSpellChoices, spellChoiceContext, options?.spellChoiceMode)
         : undefined;
       const skillProficiencyChoices = mergeSkillProficiencyChoices(
         ...subclassSkillProficiencyChoices
@@ -365,7 +385,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       ...subclassSpellChoices
     ];
     const spell_choices = this.spellRepository && persistedSpellChoices.length
-      ? await this.spellRepository.formatSpellChoices(persistedSpellChoices, spellChoiceContext)
+      ? await this.hydrateSpellChoices(persistedSpellChoices, spellChoiceContext, options?.spellChoiceMode)
       : undefined;
     const spell_changes_aux = this.spellRepository ? await this.spellRepository.formatSpellChoices(dataLevel?.spell_changes?.options) : undefined;
 
@@ -381,13 +401,13 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     );
     const optionChoices = mergeOptionChoices(dataLevel.optionChoices, subclassOptionChoices);
 
-    const spells = dataLevel?.spell_group?.class && this.spellRepository
-      ? await this.spellRepository.getSpellsByLevelAndClass(
+    const spells = options?.includeSpellList === false || !dataLevel?.spell_group?.class || !this.spellRepository
+      ? []
+      : await this.spellRepository.getSpellsByLevelAndClass(
           dataLevel.spell_group.level ?? 0,
           [],
           dataLevel.spell_group.class
-        )
-      : [];
+        );
 
     return {
       hit_die: hitDie,
@@ -396,7 +416,7 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       subclassChoice: subclassChoiceMenu,
       ...abilityScore,
       spell_choices,
-      spells,
+      ...(spells.length ? { spells } : {}),
       spell_changes,
       skill_choices,
       ...(skillProficiencyChoices.length ? { skillProficiencyChoices } : {}),
@@ -654,14 +674,44 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     return false;
   }
 
+  private async hydrateSpellChoices(
+    choices: SpellChoiceMongo[] | ChoiceSpell[] | ChoiceMongo[] | undefined,
+    context?: { classId: string; levels: CharacterClassLevelMongo[]; targetLevel: number },
+    mode?: "full" | "refs"
+  ) {
+    if (!this.spellRepository || !choices?.length) return undefined;
+    if (mode === "refs") {
+      return this.spellRepository.formatSpellChoiceRefs(choices, context);
+    }
+    return this.spellRepository.formatSpellChoices(choices, context);
+  }
+
+  private async compactSubclassMenuOptions(classId: string, rulesets: string[]) {
+    if (!this.subclassRepository) return [];
+    const summaries = await this.subclassRepository.getSummariesByClassAndSystems(
+      classId,
+      rulesets.length ? rulesets : []
+    );
+    const rules = await this.subclassRepository.getRulesByIds(summaries.map(item => item.id));
+    const rulesById = new Map(rules.map(item => [item.id, item]));
+    return summaries.map(summary => ({
+      ...summary,
+      levels: (rulesById.get(summary.id)?.levels ?? []).map(level => ({
+        level: level.level,
+        ...(level.optionChoices?.length ? { optionChoices: level.optionChoices } : {})
+      }))
+    }));
+  }
+
   private async resolveSubclassLevelData(
     classId: string,
     level: number,
     subclassIds: string[],
     rulesets: string[],
-    subclassChoice: CharacterClassMongo["subclassChoice"]
+    subclassChoice: CharacterClassMongo["subclassChoice"],
+    subclassMenuMode?: "full" | "summaries"
   ): Promise<{
-    assigned: SubclassApi[];
+    assigned: SubclassRulesRef[];
     subclassTraits: TraitApi[];
     subclassTraitsData: TraitDataMongo;
     subclassChoiceMenu: SubclassChoiceMenuApi | null;
@@ -671,22 +721,25 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     subclassOptionChoices: OptionChoiceMongo[];
   }> {
     const assigned = this.subclassRepository
-      ? (await this.subclassRepository.getByIds(subclassIds)).filter(item => item.classId === classId)
+      ? (await this.subclassRepository.getRulesByIds(subclassIds)).filter(item => item.classId === classId)
       : [];
 
-    const subclassTraits: TraitApi[] = [];
     const subclassTraitsData: TraitDataMongo = {};
     let subclassSkillChoices: ChoiceApi<SkillApi> | undefined;
     const subclassSkillProficiencyChoices: LevelSkillProficiencyChoice[] = [];
     const subclassSpellChoices: SpellChoiceMongo[] = [];
     const subclassOptionChoices: OptionChoiceMongo[] = [];
+    const subclassTraitIds: string[] = [];
 
     for (const subclass of assigned) {
       const row = subclass.levels.find(item => item.level === level);
       if (!row) continue;
-      subclassTraits.push(...row.traits);
+      subclassTraitIds.push(...(row.traits ?? []));
       Object.assign(subclassTraitsData, row.traits_data ?? {});
-      subclassSkillChoices = mergeSkillChoices(subclassSkillChoices, row.skill_choices);
+      const skillChoices = this.skillService
+        ? await this.skillService.formatSkillChoices(row.skill_choices, subclass.ruleset)
+        : undefined;
+      subclassSkillChoices = mergeSkillChoices(subclassSkillChoices, skillChoices);
       if (row.skillProficiencyChoices) {
         subclassSkillProficiencyChoices.push(row.skillProficiencyChoices);
       }
@@ -698,6 +751,11 @@ export default class CharacterClassRepository implements ICharacterClassReposito
       }
     }
 
+    const uniqueSubclassTraitIds = [...new Set(subclassTraitIds)];
+    const subclassTraits = uniqueSubclassTraitIds.length && this.traitRepository
+      ? await this.traitRepository.getTraitsByIndexes(uniqueSubclassTraitIds, subclassTraitsData)
+      : [];
+
     const showMenu = Boolean(
       subclassChoice
       && level >= subclassChoice.level
@@ -706,10 +764,12 @@ export default class CharacterClassRepository implements ICharacterClassReposito
 
     let subclassChoiceMenu: SubclassChoiceMenuApi | null = null;
     if (showMenu && subclassChoice && this.subclassRepository) {
-      const options = await this.subclassRepository.getByClassAndSystems(
-        classId,
-        rulesets.length ? rulesets : []
-      );
+      const options = subclassMenuMode === "summaries"
+        ? await this.compactSubclassMenuOptions(classId, rulesets)
+        : await this.subclassRepository.getByClassAndSystems(
+          classId,
+          rulesets.length ? rulesets : []
+        );
       subclassChoiceMenu = {
         name: subclassChoice.name,
         description: subclassChoice.description ?? [],
@@ -822,6 +882,29 @@ export default class CharacterClassRepository implements ICharacterClassReposito
     }
 
     return Array.from(byLevel.values()).sort((a, b) => a.level - b.level);
+  }
+
+  private toClassRulesRef(doc: CharacterClassMongo): ClassRulesRef {
+    return {
+      id: doc._id ? doc._id.toString() : "",
+      ruleset: doc.ruleset || "",
+      name: doc.name,
+      hit_die: doc.hit_die ?? 8,
+      spellcasting: doc.spellcasting ? doc.spellcasting.toString() : null,
+      levels: this.toSlimLevels(doc.levels ?? []),
+      ...(doc.subclassChoice ? { subclassChoice: doc.subclassChoice } : {}),
+      ...(doc.multiclass ? { multiclass: doc.multiclass } : {}),
+      ...(doc.optionReplacements?.length ? { optionReplacements: doc.optionReplacements } : {}),
+      ...(doc.spellRepository ? { spellRepository: doc.spellRepository } : {}),
+      ...(doc.spellReplacement ? { spellReplacement: doc.spellReplacement } : {}),
+      ...(Array.isArray(doc.abilityScoreProgression)
+        ? { abilityScoreProgression: doc.abilityScoreProgression }
+        : {}),
+      ...(doc.abilityScoreAlternativeGroupId !== undefined
+        ? { abilityScoreAlternativeGroupId: doc.abilityScoreAlternativeGroupId || null }
+        : {}),
+      deletedAt: doc.deletedAt
+    };
   }
 
   private toSlimLevels(levels: CharacterClassLevelMongo[]): CharacterClassLevelInput[] {

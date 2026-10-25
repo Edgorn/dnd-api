@@ -1,11 +1,11 @@
 import ICharacterRepository from "../repositories/ICharacterRepository";
-import { CharacterCampaignLink, GetCharacterOptions, LevelUpData, CharacterApi, CharacterBasic, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
+import { CharacterCampaignLink, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, CharacterGetResult, LevelUpDataResult, CharacterApi, CharacterBasic, CharacterListItem, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
 
 export default class CharacterService {
   constructor(private readonly characterRepository: ICharacterRepository) { }
 
-  getByUser(id: string): Promise<CharacterBasic[]> {
-    return this.characterRepository.getByUser(id);
+  getByUser(id: string, options?: GetCharactersByUserOptions): Promise<CharacterListItem[]> {
+    return this.characterRepository.getByUser(id, options);
   }
 
   create(data: TypeCreateCharacter): Promise<CharacterBasic | null> {
@@ -16,8 +16,16 @@ export default class CharacterService {
     idCharacter: string,
     user: string,
     options?: GetCharacterOptions
-  ): Promise<CharacterApi> {
+  ): Promise<CharacterGetResult> {
     return this.characterRepository.getById(idCharacter, user, options);
+  }
+
+  getByIdForExport(
+    idCharacter: string,
+    user: string,
+    options?: GetCharacterOptions
+  ): Promise<{ character: CharacterApi; ownerId: string }> {
+    return this.characterRepository.getByIdForExport(idCharacter, user, options);
   }
 
   addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse> {
@@ -44,8 +52,8 @@ export default class CharacterService {
     return this.characterRepository.updateXp(id, xp, userId);
   }
 
-  getLevelUpData(id: string, classId: string, userId: string): Promise<LevelUpData> {
-    return this.characterRepository.getLevelUpData(id, classId, userId);
+  getLevelUpData(id: string, classId: string, userId: string, options?: GetLevelUpDataOptions): Promise<LevelUpDataResult> {
+    return this.characterRepository.getLevelUpData(id, classId, userId, options);
   }
 
   levelUp(data: TypeLevelUp): Promise<{ full: CharacterApi, basic: CharacterBasic }> {

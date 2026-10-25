@@ -14,6 +14,7 @@ export default interface IRaceRepository {
   create(race: CreateRace): Promise<RaceApi>
   update(race: UpdateRace): Promise<RaceApi | undefined>
   getLevelUpData(raceId: string, level: number): Promise<RaceLevelMongo | undefined>
+  getLevelUpDataByLevels(raceId: string, levels: number[]): Promise<Map<number, RaceLevelMongo | undefined>>
   getSpellcastingAttribute(raceId: string): Promise<AttributeApi | undefined>
   softDelete(id: string): Promise<boolean>
   restore(id: string): Promise<boolean>

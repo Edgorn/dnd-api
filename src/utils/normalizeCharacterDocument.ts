@@ -58,6 +58,7 @@ export function normalizeCharacterDocument(raw: unknown): CharacterMongo {
     armorProficiencies: (source.armorProficiencies as string[] | undefined)
       ?? (source.proficiency_armor as string[] | undefined)
       ?? [],
+    ac: pickNumber(source.ac, source.CA),
     hpMax: pickNumber(source.hpMax, source.HPMax) ?? 0,
     hpCurrent: pickNumber(source.hpCurrent, source.HPActual) ?? 0,
     xp: pickNumber(source.xp, source.XP) ?? 0,

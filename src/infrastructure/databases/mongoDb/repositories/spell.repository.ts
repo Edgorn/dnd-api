@@ -10,9 +10,10 @@ import { CreatureTypeApi } from "../../../../domain/types/creatureType.types";
 import {
   FormatSpellChoicesContext,
   SpellChoiceApi,
-  SpellChoiceMongo
+  SpellChoiceMongo,
+  SpellChoiceRefApi
 } from "../../../../domain/types/classLevelChoices.types";
-import { ChoiceSpell, SpellApi, SpellMongo, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi, SpellDamageChoiceApi, SpellDamageTypeApi, DamageComponentApi, SpellClassApi } from "../../../../domain/types/spell.types";
+import { ChoiceSpell, SpellApi, SpellMongo, SpellRef, InputCreateSpell, InputUpdateSpell, SpellSchoolApi, SpellDamageApi, SpellDamageChoiceApi, SpellDamageTypeApi, DamageComponentApi, SpellClassApi, SpellComponents } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import { castableSpellLevels, resolveSlotProgressionForLevel } from "../../../../utils/characterSpellcasting";
 import { normalizeSpellCastingTimes } from "../../../../utils/normalizeSpellCastingTimes";
@@ -20,6 +21,8 @@ import SpellSchema from "../schemas/Spell";
 import { ConflictError, NotFoundError } from "../../../../domain/errors/AppError";
 
 const SPELL_POPULATE_PATHS = ['school', 'classes', 'damage.choices.options', 'damage.base.type', 'damage.scaling.steps.components.type'] as const;
+const SPELL_REF_SELECT = "name level school ritual components";
+const SPELL_REF_POPULATE = { path: "school", select: "name description color" } as const;
 
 export default class SpellRepository implements ISpellRepository {
   private creatureRepository?: ICreatureRepository;
@@ -128,6 +131,14 @@ export default class SpellRepository implements ISpellRepository {
   ): Promise<SpellChoiceApi[] | undefined> {
     if (!choices) return undefined;
     return Promise.all(choices.map(choice => this.formatSpellChoice(choice, context)));
+  }
+
+  async formatSpellChoiceRefs(
+    choices: (ChoiceMongo | ChoiceSpell | SpellChoiceMongo)[] | undefined,
+    context?: FormatSpellChoicesContext
+  ): Promise<SpellChoiceRefApi[] | undefined> {
+    if (!choices) return undefined;
+    return Promise.all(choices.map(choice => this.formatSpellChoiceRef(choice, context)));
   }
 
   private hasClassFilterValue(value: unknown): boolean {
@@ -262,6 +273,145 @@ export default class SpellRepository implements ISpellRepository {
     };
   }
 
+  private async formatSpellChoiceRef(
+    choice: ChoiceMongo | ChoiceSpell | SpellChoiceMongo | any,
+    context?: FormatSpellChoicesContext
+  ): Promise<SpellChoiceRefApi> {
+    const flags = this.spellChoiceFlags(choice);
+    const mongoChoice = choice as SpellChoiceMongo;
+    const anyClass = mongoChoice.source === "anyClassList";
+    const castableLevels = this.resolvedCastableLevels(mongoChoice, context);
+
+    if (choice.options && Array.isArray(choice.options) && choice.options.length > 0) {
+      const spells = await this.getSpellRefsByIndexes(choice.options);
+      return {
+        choose: choice.choose,
+        options: spells,
+        query_type: "options",
+        ...flags
+      };
+    }
+
+    const filter: Record<string, string | number | boolean | (string | number)[]> = {
+      ...(choice.filter ?? {})
+    };
+    if (castableLevels) {
+      filter.level = castableLevels;
+    }
+
+    if (anyClass || choice.filter || castableLevels) {
+      if (anyClass && mongoChoice.levels === "castable" && !castableLevels?.length) {
+        return {
+          choose: choice.choose,
+          options: [],
+          query_type: "filter",
+          query_filter: filter,
+          ...flags
+        };
+      }
+
+      const query: Record<string, unknown> = { deletedAt: null };
+      if (anyClass) {
+        query.classes = { $exists: true, $not: { $size: 0 } };
+      }
+
+      for (const [key, value] of Object.entries(filter)) {
+        const mongoKey = key === "class" ? "classes" : key;
+        if (mongoKey === "classes") {
+          if (anyClass) continue;
+          if (!this.hasClassFilterValue(value)) {
+            return {
+              choose: choice.choose,
+              options: [],
+              query_type: "filter",
+              query_filter: filter,
+              ...flags
+            };
+          }
+        }
+        query[mongoKey] = Array.isArray(value) ? { $in: value } : value;
+      }
+
+      if (Object.keys(query).length <= 1 && !anyClass) {
+        return {
+          choose: choice.choose,
+          options: [],
+          ...flags
+        };
+      }
+
+      const spells = await SpellSchema.find(query)
+        .select(SPELL_REF_SELECT)
+        .populate(SPELL_REF_POPULATE)
+        .collation({ locale: "es", strength: 1 })
+        .sort({ name: 1 })
+        .lean();
+
+      return {
+        choose: choice.choose,
+        options: spells.map(spell => this.toSpellRef(spell)),
+        query_type: "filter",
+        query_filter: filter,
+        ...flags
+      };
+    }
+
+    if ("level" in choice || "class" in choice) {
+      const query: Record<string, unknown> = { deletedAt: null, level: choice.level };
+      if (choice.class) query.classes = choice.class;
+      const spells = await SpellSchema.find(query)
+        .select(SPELL_REF_SELECT)
+        .populate(SPELL_REF_POPULATE)
+        .collation({ locale: "es", strength: 1 })
+        .sort({ name: 1 })
+        .lean();
+      return {
+        choose: choice.choose,
+        options: spells.map(spell => this.toSpellRef(spell)),
+        query_type: "filter",
+        query_filter: {
+          level: choice.level,
+          classes: choice.class
+        },
+        ...flags
+      };
+    }
+
+    return {
+      choose: choice.choose,
+      options: [],
+      ...flags
+    };
+  }
+
+  private toSpellRef(spell: {
+    _id?: { toString(): string };
+    id?: string;
+    name: string;
+    level: number;
+    school?: { _id?: { toString(): string }; id?: string; name?: string; description?: string; color?: string } | string;
+    ritual?: boolean;
+    components?: SpellComponents;
+  }): SpellRef {
+    const id = spell._id ? spell._id.toString() : spell.id ?? "";
+    const school = spell.school && typeof spell.school === "object"
+      ? {
+          id: (spell.school._id ? spell.school._id.toString() : spell.school.id) ?? "",
+          name: spell.school.name ?? "",
+          description: spell.school.description ?? "",
+          color: spell.school.color ?? ""
+        }
+      : undefined;
+    return {
+      id,
+      name: spell.name,
+      level: spell.level,
+      ...(school?.id ? { school } : {}),
+      ...(spell.ritual !== undefined ? { ritual: spell.ritual } : {}),
+      ...(spell.components ? { components: spell.components } : {})
+    };
+  }
+
   async getSpellsByIndexes(indexes: string[]): Promise<SpellApi[]> {
     if (!indexes.length) return [];
 
@@ -276,6 +426,20 @@ export default class SpellRepository implements ISpellRepository {
 
     const spells = await SpellSchema.find({ _id: { $in: validMongoIds as any }, deletedAt: null }).populate([...SPELL_POPULATE_PATHS]);
     return ordenarPorNombre(await this.formatSpells(spells));
+  }
+
+  async getSpellRefsByIndexes(indexes: string[]): Promise<SpellRef[]> {
+    if (!indexes.length) return [];
+
+    const validMongoIds = indexes.filter(id => Types.ObjectId.isValid(id));
+    if (!validMongoIds.length) return [];
+
+    const spells = await SpellSchema.find({ _id: { $in: validMongoIds as any }, deletedAt: null })
+      .select(SPELL_REF_SELECT)
+      .populate(SPELL_REF_POPULATE)
+      .lean();
+
+    return ordenarPorNombre(spells.map(spell => this.toSpellRef(spell)));
   }
 
   async getSpellsByLevelAndClass(

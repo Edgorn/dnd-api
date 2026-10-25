@@ -186,6 +186,13 @@ function mockFindLean(docs: unknown[]) {
   } as never);
 }
 
+function mockFindSelectLean(docs: unknown[]) {
+  const lean = vi.fn().mockResolvedValue(docs);
+  const select = vi.fn().mockReturnValue({ lean });
+  vi.mocked(EquipmentModel.find).mockReturnValueOnce({ select } as never);
+  return { select, lean };
+}
+
 function mockFindOneLean(doc: unknown) {
   vi.mocked(EquipmentModel.findOne).mockReturnValueOnce({
     lean: vi.fn().mockResolvedValue(doc)
@@ -539,6 +546,71 @@ describe("EquipmentRepository lookup batching", () => {
           }
         ],
         ruleset: { $in: [RULESET] }
+      });
+    });
+  });
+
+  describe("getArmorClassInputsByIds", () => {
+    it("loads catalog armor fields without hydrating coins, damages or armor types", async () => {
+      const { select } = mockFindSelectLean([leather]);
+
+      const [item] = await repository.getArmorClassInputsByIds([
+        { equipmentId: LEATHER_ID, equipped: true, quantity: 1 }
+      ]);
+
+      expect(select).toHaveBeenCalledWith("_id equipSlot armor bonuses isMagic");
+      expect(coinRepository.getCoinsByIds).not.toHaveBeenCalled();
+      expect(damageRepository.getByIds).not.toHaveBeenCalled();
+      expect(armorTypeRepository.getByIds).not.toHaveBeenCalled();
+      expect(item).toEqual({
+        equipped: true,
+        equipSlot: "armor",
+        isMagic: false,
+        bonuses: undefined,
+        armor: {
+          class: { base: 11, attributeBonus: { key: "dex", max: 2 } },
+          type: { id: ARMOR_TYPE_ID }
+        }
+      });
+    });
+
+    it("applies instance armor and slot overrides over the catalog", async () => {
+      mockFindSelectLean([leather]);
+
+      const [item] = await repository.getArmorClassInputsByIds([
+        {
+          equipmentId: LEATHER_ID,
+          equipped: true,
+          quantity: 1,
+          isMagic: true,
+          bonuses: { armor_class: 1 },
+          armor: { class: { base: 12, attributeBonus: { key: "dex" } } }
+        }
+      ]);
+
+      expect(item.equipSlot).toBe("armor");
+      expect(item.isMagic).toBe(true);
+      expect(item.bonuses).toEqual({ armor_class: 1 });
+      expect(item.armor?.class?.base).toBe(12);
+      expect(item.armor?.type).toEqual({ id: ARMOR_TYPE_ID });
+    });
+
+    it("returns empty without querying when there are no rows", async () => {
+      await expect(repository.getArmorClassInputsByIds([])).resolves.toEqual([]);
+      expect(EquipmentModel.find).not.toHaveBeenCalled();
+    });
+
+    it("skips catalog lookup when a row has no valid equipment id", async () => {
+      const [item] = await repository.getArmorClassInputsByIds([
+        { equipped: true, quantity: 1, bonuses: { armor_class: 2 } }
+      ]);
+
+      expect(EquipmentModel.find).not.toHaveBeenCalled();
+      expect(item).toEqual({
+        equipped: true,
+        equipSlot: null,
+        isMagic: false,
+        bonuses: { armor_class: 2 }
       });
     });
   });

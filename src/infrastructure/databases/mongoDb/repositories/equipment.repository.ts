@@ -14,6 +14,7 @@ import {
   InputCreateEquipment,
   InputUpdateEquipment,
   CharacterEquipmentMongo,
+  ArmorClassEquipmentInput,
   EquipmentInstanceApi,
   EquipmentOptionsMongo,
   EquipmentChoiceApi,
@@ -197,6 +198,36 @@ export default class EquipmentRepository implements IEquipmentRepository {
     return ordenarPorFavoritoYNombre(
       normalized.map(item => this.formatCharacterEquipmentSync(item, lookups, new Set()))
     );
+  }
+
+  async getArmorClassInputsByIds(
+    equipments: CharacterEquipmentMongo[] | Array<string | CharacterEquipmentMongo> | undefined
+  ): Promise<ArmorClassEquipmentInput[]> {
+    if (!equipments?.length) return [];
+
+    const normalized = equipments.map(item =>
+      typeof item === "string" ? { id: item, quantity: 1, equipped: true } : item
+    );
+    const catalogIds = [...new Set(
+      normalized
+        .map(item => item.equipmentId ?? item.id)
+        .filter((id): id is string => typeof id === "string" && Types.ObjectId.isValid(id))
+    )];
+
+    const docs = catalogIds.length
+      ? await EquipmentModel.find({
+          _id: { $in: catalogIds } as any,
+          deletedAt: null
+        })
+          .select("_id equipSlot armor bonuses isMagic")
+          .lean<Pick<EquipmentMongo, "_id" | "equipSlot" | "armor" | "bonuses" | "isMagic">[]>()
+      : [];
+    const catalogById = new Map(docs.map(doc => [doc._id.toString(), doc]));
+
+    return normalized.map(item => this.toArmorClassEquipmentInput(
+      item,
+      catalogById.get(item.equipmentId ?? item.id ?? "")
+    ));
   }
 
   async formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined> {
@@ -556,6 +587,30 @@ export default class EquipmentRepository implements IEquipmentRepository {
       class: override.class ?? base.class,
       attributeMinimum: override.attributeMinimum ?? base.attributeMinimum,
       disadvantageSkillKeys: override.disadvantageSkillKeys ?? base.disadvantageSkillKeys
+    };
+  }
+
+  private toArmorClassEquipmentInput(
+    instance: CharacterEquipmentMongo,
+    catalog?: Pick<EquipmentMongo, "equipSlot" | "armor" | "bonuses" | "isMagic">
+  ): ArmorClassEquipmentInput {
+    const armor = instance.armor
+      ? this.mergeArmor(catalog?.armor, instance.armor)
+      : catalog?.armor;
+
+    return {
+      equipped: instance.equipped ?? false,
+      equipSlot: instance.equipSlot !== undefined ? instance.equipSlot : (catalog?.equipSlot ?? null),
+      isMagic: instance.isMagic ?? catalog?.isMagic ?? false,
+      bonuses: instance.bonuses ?? catalog?.bonuses,
+      ...(armor ? {
+        armor: {
+          ...(armor.class ? { class: armor.class } : {}),
+          type: armor.typeId ? { id: armor.typeId } : null,
+          ...(armor.attributeMinimum ? { attributeMinimum: armor.attributeMinimum } : {}),
+          ...(armor.disadvantageSkillKeys ? { disadvantageSkillKeys: armor.disadvantageSkillKeys } : {})
+        }
+      } : {})
     };
   }
 

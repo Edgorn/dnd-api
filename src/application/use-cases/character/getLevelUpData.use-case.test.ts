@@ -28,7 +28,10 @@ describe("GetLevelUpData", () => {
 
     const result = await useCase.execute("char1", "class1", "user1");
 
-    expect(characterServiceMock.getLevelUpData).toHaveBeenCalledWith("char1", "class1", "user1");
+    expect(characterServiceMock.getLevelUpData).toHaveBeenCalledWith("char1", "class1", "user1", undefined);
+
+    await useCase.execute("char1", "class1", "user1", { view: "compact" });
+    expect(characterServiceMock.getLevelUpData).toHaveBeenCalledWith("char1", "class1", "user1", { view: "compact" });
     expect(result).toEqual(expected);
   });
 

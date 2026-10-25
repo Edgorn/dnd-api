@@ -9587,6 +9587,14 @@
           }
         }
       },
+      "CharacterListItem": {
+        "description": "Tarjeta de listado. Los campos attributes, systems y speed solo se incluyen si la petición lleva include=combatSeed. La campaña sigue devolviendo CharacterBasic completo.\n",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CharacterBasic"
+          }
+        ]
+      },
       "CharacterCompanion": {
         "type": "object",
         "required": [
@@ -10131,6 +10139,69 @@
             "description": "Roster narrativo de compañeros. Vacío en fichas antiguas. No se valida contra companionRoster.count del rasgo."
           }
         }
+      },
+      "SpellRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "level"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer"
+          },
+          "school": {
+            "type": "object"
+          },
+          "ritual": {
+            "type": "boolean"
+          },
+          "components": {
+            "type": "object"
+          }
+        }
+      },
+      "CreatureFormSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "size",
+          "cr"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "cr": {
+            "type": "number"
+          }
+        }
+      },
+      "CharacterCombat": {
+        "type": "object",
+        "description": "Vista de combate. Omite inventario, dinero, formas inactivas y textos de catálogo."
+      },
+      "CharacterSheet": {
+        "type": "object",
+        "description": "Ficha con conjuros por id (`spellsById`) y formas inactivas resumidas."
+      },
+      "LevelUpDataCompact": {
+        "type": "object",
+        "description": "Menús de subida de nivel con SpellRef y subclases resumidas."
       },
       "InputCreateCharacter": {
         "type": "object",
@@ -17289,12 +17360,26 @@
     "/character": {
       "get": {
         "summary": "Obtener el listado de personajes del usuario autenticado",
+        "description": "Por defecto devuelve la tarjeta (id, img, name, race, user, campaign, clases, subclases, CA, HP, XP) sin attributes, systems ni speed. Con include=combatSeed se añaden esos tres campos (valores de combate).\n",
         "tags": [
           "Personajes"
         ],
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "combatSeed"
+              ]
+            },
+            "description": "Si es combatSeed, incluye attributes, systems y speed."
           }
         ],
         "responses": {
@@ -17305,11 +17390,14 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CharacterBasic"
+                    "$ref": "#/components/schemas/CharacterListItem"
                   }
                 }
               }
             }
+          },
+          "400": {
+            "description": "Petición inválida."
           },
           "401": {
             "description": "No autorizado."
@@ -17364,8 +17452,8 @@
     },
     "/character/{id}": {
       "get": {
-        "summary": "Obtener el detalle completo de un personaje por su ID",
-        "description": "Devuelve la ficha de juego. Las stances activas (p. ej. Furia) aplican overlays:\nresistencias e inmunidades a estados del grupo `conditionalResistanceGroup` y\nbono de daño melee si el ataque se resuelve con las `abilityKeys` del rasgo.\nLa Defensa sin Armadura (`acFormula`) es permanente y no depende de una stance.\nEl PDF usa datos base, sin estos overlays.\n",
+        "summary": "Obtener el detalle de un personaje por su ID",
+        "description": "Por defecto (`view=full` o sin `view`) devuelve la ficha completa (`CharacterApi`).\n`view=sheet` compacta conjuros en `spellsById` y resume formas inactivas.\n`view=combat` recorta inventario, dinero y consultas que no usa el combate.\nLas stances activas (p. ej. Furia) aplican overlays en las tres vistas.\nEl PDF usa datos base, sin estos overlays.\n",
         "tags": [
           "Personajes"
         ],
@@ -17383,6 +17471,19 @@
               "type": "string"
             },
             "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "query",
+            "name": "view",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "full",
+                "sheet",
+                "combat"
+              ]
+            },
+            "description": "Vista de la ficha. full es el valor por defecto y mantiene el JSON histórico."
           }
         ],
         "responses": {
@@ -17391,7 +17492,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CharacterApi"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CharacterApi"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CharacterSheet"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CharacterCombat"
+                    }
+                  ]
                 }
               }
             }
@@ -18233,7 +18344,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traitsData` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traitsData`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traitsData` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skillChoices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skillChoices`.\n`optionChoices` de la raíz son grupos de opciones de este nivel de clase o de una subclase\nya asignada. Si aún debe elegir subclase, las elecciones de cada opción van hidratadas\n(`PendingOptionChoice`: groupName, options con available/unmet, selected) en\n`subclassChoice.options[].levels[].optionChoices`.\n`spellChoices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spellChanges.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spellChanges` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spellChoices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`abilityScore: true`), `abilityScoreAlternative`\nlista las opciones del grupo configurado en el sistema o la clase (elige 1 en lugar de los +2).\nEl POST debe enviar `abilityScore` o, si hay alternativa, `abilityScoreOption`.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSin `view` o con `view=full` el JSON es el histórico. `view=compact` usa SpellRef en los menús\nde conjuros, resúmenes de subclase (detalle en GET /subclasses/:id) y `dip.proficiencies` como `{id,name}`.\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traitsData` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traitsData`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traitsData` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skillChoices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skillChoices`.\n`optionChoices` de la raíz son grupos de opciones de este nivel de clase o de una subclase\nya asignada. Si aún debe elegir subclase, las elecciones de cada opción van hidratadas\n(`PendingOptionChoice`: groupName, options con available/unmet, selected) en\n`subclassChoice.options[].levels[].optionChoices`.\n`spellChoices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spellChanges.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spellChanges` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spellChoices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`abilityScore: true`), `abilityScoreAlternative`\nlista las opciones del grupo configurado en el sistema o la clase (elige 1 en lugar de los +2).\nEl POST debe enviar `abilityScore` o, si hay alternativa, `abilityScoreOption`.\n",
         "tags": [
           "Personajes"
         ],
@@ -18260,6 +18371,18 @@
               "type": "string"
             },
             "description": "ID de MongoDB de la clase en la que se quiere subir de nivel. Puede ser una clase nueva (dip) de los sistemas del personaje."
+          },
+          {
+            "in": "query",
+            "name": "view",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "full",
+                "compact"
+              ]
+            },
+            "description": "compact reduce el payload de menús. full es el valor por defecto."
           }
         ],
         "responses": {

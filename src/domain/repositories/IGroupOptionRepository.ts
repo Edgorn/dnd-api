@@ -5,6 +5,7 @@ export default interface IGroupOptionRepository {
   update(data: InputUpdateGroupOption): Promise<GroupOptionApi>;
   getByGroup(groupId: string, rulesets: string[], expandAncestry?: boolean): Promise<GroupOptionApi[]>;
   getBySystems(rulesets: string[], expandAncestry?: boolean): Promise<GroupOptionApi[]>;
+  getByGroupIds(groupIds: string[], rulesets: string[], expandAncestry?: boolean): Promise<GroupOptionApi[]>;
   getById(id: string): Promise<GroupOptionApi | null>;
   getByIds(ids: string[]): Promise<GroupOptionApi[]>;
   softDelete(id: string): Promise<void>;

@@ -19,6 +19,7 @@ describe("normalizeCharacterDocument", () => {
       claseId: "rogue-id",
     });
 
+    expect(normalized.ac).toBe(14);
     expect(normalized.hpMax).toBe(18);
     expect(normalized.hpCurrent).toBe(11);
     expect(normalized.xp).toBe(300);

@@ -28,6 +28,7 @@ import {
   CreatureSpellcastingApi,
   UpdateCreature
 } from "../../../../domain/types/creature.types";
+import { CreatureFormSummary } from "../../../../domain/types/creatureForm.types";
 import { RaceRef } from "../../../../domain/types/race.types";
 import { SpellApi } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
@@ -112,6 +113,27 @@ export default class CreatureRepository implements ICreatureRepository {
 
     const formatted = await Promise.all(creatures.map(creature => this.formatCreature(creature)));
     return ordenarPorNombre(formatted);
+  }
+
+  async getSummariesByIds(ids: string[]): Promise<CreatureFormSummary[]> {
+    const validIds = creatureObjectIds(ids);
+    if (!validIds.length) return [];
+
+    const creatures = await CreatureModel.find({
+      _id: { $in: validIds as never[] },
+      deletedAt: null
+    })
+      .select("_id name size challenge_rating")
+      .lean<Pick<CreatureMongo, "_id" | "name" | "size" | "challenge_rating">[]>();
+
+    return ordenarPorNombre(
+      creatures.map(creature => ({
+        id: creature._id.toString(),
+        name: creature.name,
+        size: creature.size,
+        cr: creature.challenge_rating
+      }))
+    );
   }
 
   async create(data: CreateCreature): Promise<CreatureApi> {

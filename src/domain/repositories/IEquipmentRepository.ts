@@ -3,6 +3,7 @@ import {
   InputCreateEquipment,
   InputUpdateEquipment,
   CharacterEquipmentMongo,
+  ArmorClassEquipmentInput,
   EquipmentInstanceApi,
   EquipmentOptionsMongo,
   EquipmentChoiceApi,
@@ -23,6 +24,7 @@ export default interface IEquipmentRepository {
   softDeleteByRuleset?(ruleset: string, deletedAt: Date): Promise<void>;
   restoreByRuleset?(ruleset: string, deletedAt: Date): Promise<void>;
   getCharacterEquipmentsByIds(equipments: CharacterEquipmentMongo[]): Promise<EquipmentInstanceApi[] | undefined>;
+  getArmorClassInputsByIds(equipments: CharacterEquipmentMongo[]): Promise<ArmorClassEquipmentInput[]>;
   formatEquipmentChoices(choices: EquipmentOptionsMongo[][] | undefined): Promise<EquipmentChoiceApi[][] | undefined>;
   formatEquipmentItemChoices(choices: EquipmentChoiceMongo[] | undefined, ruleset?: string): Promise<ResolvedEquipmentChoiceApi[] | undefined>;
   getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]>;

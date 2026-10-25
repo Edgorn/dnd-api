@@ -66,6 +66,7 @@ const characterSchema: Schema = new Schema<CharacterMongo>({
     }],
     default: []
   },
+  ac: Number,
   hpMax: Number,
   hpCurrent: Number,
   xp: Number,
@@ -129,6 +130,8 @@ const characterSchema: Schema = new Schema<CharacterMongo>({
     default: []
   }
 }, { collection: 'characters' });
+
+characterSchema.index({ user: 1 });
 
 const CharacterModel = mongoose.model<CharacterMongo>("characters", characterSchema);
 export default CharacterModel;

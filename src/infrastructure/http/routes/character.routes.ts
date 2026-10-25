@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { characterController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindWeaponBondSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, CopySpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, PatchCharacterFlavorSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/character.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindWeaponBondSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, GetCharacterQuerySchema, GetCharactersQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, CopySpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, PatchCharacterFlavorSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/character.schema";
 
 const router = Router();
 
@@ -495,6 +495,14 @@ const router = Router();
  *             burrow:
  *               type: number
  *
+ *     CharacterListItem:
+ *       description: >
+ *         Tarjeta de listado. Los campos attributes, systems y speed solo se
+ *         incluyen si la petición lleva include=combatSeed. La campaña sigue
+ *         devolviendo CharacterBasic completo.
+ *       allOf:
+ *         - $ref: '#/components/schemas/CharacterBasic'
+ *
  *     CharacterCompanion:
  *       type: object
  *       required:
@@ -916,6 +924,50 @@ const router = Router();
  *           items:
  *             $ref: '#/components/schemas/CharacterCompanion'
  *           description: Roster narrativo de compañeros. Vacío en fichas antiguas. No se valida contra companionRoster.count del rasgo.
+ *     SpellRef:
+ *       type: object
+ *       required:
+ *         - id
+ *         - name
+ *         - level
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         level:
+ *           type: integer
+ *         school:
+ *           type: object
+ *         ritual:
+ *           type: boolean
+ *         components:
+ *           type: object
+ *     CreatureFormSummary:
+ *       type: object
+ *       required:
+ *         - id
+ *         - name
+ *         - size
+ *         - cr
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         size:
+ *           type: string
+ *         cr:
+ *           type: number
+ *     CharacterCombat:
+ *       type: object
+ *       description: Vista de combate. Omite inventario, dinero, formas inactivas y textos de catálogo.
+ *     CharacterSheet:
+ *       type: object
+ *       description: Ficha con conjuros por id (`spellsById`) y formas inactivas resumidas.
+ *     LevelUpDataCompact:
+ *       type: object
+ *       description: Menús de subida de nivel con SpellRef y subclases resumidas.
  *     InputCreateCharacter:
  *       type: object
  *       required:
@@ -1198,10 +1250,21 @@ const router = Router();
  * /character:
  *   get:
  *     summary: Obtener el listado de personajes del usuario autenticado
+ *     description: >
+ *       Por defecto devuelve la tarjeta (id, img, name, race, user, campaign,
+ *       clases, subclases, CA, HP, XP) sin attributes, systems ni speed.
+ *       Con include=combatSeed se añaden esos tres campos (valores de combate).
  *     tags:
  *       - Personajes
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *           enum: [combatSeed]
+ *         description: Si es combatSeed, incluye attributes, systems y speed.
  *     responses:
  *       200:
  *         description: Listado de personajes obtenido exitosamente.
@@ -1210,13 +1273,15 @@ const router = Router();
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/CharacterBasic'
+ *                 $ref: '#/components/schemas/CharacterListItem'
+ *       400:
+ *         description: Petición inválida.
  *       401:
  *         description: No autorizado.
  *       500:
  *         description: Error del servidor.
  */
-router.get('/character', authMiddleware, characterController.getCharacters);
+router.get('/character', authMiddleware, validateQuery(GetCharactersQuerySchema), characterController.getCharacters);
 
 /**
  * @openapi
@@ -1253,12 +1318,12 @@ router.post('/character', authMiddleware, characterController.createCharacter);
  * @openapi
  * /character/{id}:
  *   get:
- *     summary: Obtener el detalle completo de un personaje por su ID
+ *     summary: Obtener el detalle de un personaje por su ID
  *     description: |
- *       Devuelve la ficha de juego. Las stances activas (p. ej. Furia) aplican overlays:
- *       resistencias e inmunidades a estados del grupo `conditionalResistanceGroup` y
- *       bono de daño melee si el ataque se resuelve con las `abilityKeys` del rasgo.
- *       La Defensa sin Armadura (`acFormula`) es permanente y no depende de una stance.
+ *       Por defecto (`view=full` o sin `view`) devuelve la ficha completa (`CharacterApi`).
+ *       `view=sheet` compacta conjuros en `spellsById` y resume formas inactivas.
+ *       `view=combat` recorta inventario, dinero y consultas que no usa el combate.
+ *       Las stances activas (p. ej. Furia) aplican overlays en las tres vistas.
  *       El PDF usa datos base, sin estos overlays.
  *     tags:
  *       - Personajes
@@ -1271,13 +1336,22 @@ router.post('/character', authMiddleware, characterController.createCharacter);
  *         schema:
  *           type: string
  *         description: ID de MongoDB del personaje.
+ *       - in: query
+ *         name: view
+ *         schema:
+ *           type: string
+ *           enum: [full, sheet, combat]
+ *         description: Vista de la ficha. full es el valor por defecto y mantiene el JSON histórico.
  *     responses:
  *       200:
  *         description: Detalle del personaje obtenido exitosamente.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CharacterApi'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/CharacterApi'
+ *                 - $ref: '#/components/schemas/CharacterSheet'
+ *                 - $ref: '#/components/schemas/CharacterCombat'
  *       400:
  *         description: ID de personaje no proporcionado.
  *       401:
@@ -1287,7 +1361,7 @@ router.post('/character', authMiddleware, characterController.createCharacter);
  *       500:
  *         description: Error del servidor.
  */
-router.get('/character/:id', authMiddleware, characterController.getCharacter);
+router.get('/character/:id', authMiddleware, validateQuery(GetCharacterQuerySchema), characterController.getCharacter);
 
 /**
  * @openapi
@@ -1890,6 +1964,8 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       Devuelve la información necesaria para subir de nivel en una clase concreta del personaje
  *       (dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros
  *       y, si toca, mejora de característica).
+ *       Sin `view` o con `view=full` el JSON es el histórico. `view=compact` usa SpellRef en los menús
+ *       de conjuros, resúmenes de subclase (detalle en GET /subclasses/:id) y `dip.proficiencies` como `{id,name}`.
  *       Si `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`
  *       incluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).
  *       `GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de
@@ -1946,6 +2022,12 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *         schema:
  *           type: string
  *         description: ID de MongoDB de la clase en la que se quiere subir de nivel. Puede ser una clase nueva (dip) de los sistemas del personaje.
+ *       - in: query
+ *         name: view
+ *         schema:
+ *           type: string
+ *           enum: [full, compact]
+ *         description: compact reduce el payload de menús. full es el valor por defecto.
  *     responses:
  *       200:
  *         description: Datos de subida de nivel obtenidos exitosamente.

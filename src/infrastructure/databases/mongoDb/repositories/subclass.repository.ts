@@ -16,6 +16,9 @@ import {
   SubclassLevelInput,
   SubclassLevelMongo,
   SubclassMongo,
+  SubclassNameRef,
+  SubclassRulesLevel,
+  SubclassRulesRef,
   SubclassSummaryDraft
 } from "../../../../domain/types/subclass.types";
 import SubclassModel from "../schemas/Subclass";
@@ -77,6 +80,24 @@ export default class SubclassRepository implements ISubclassRepository {
     }));
   }
 
+  async getSummariesByIds(ids: string[]): Promise<SubclassNameRef[]> {
+    const validIds = [...new Set(ids.filter(id => mongoose.Types.ObjectId.isValid(id)))];
+    if (!validIds.length) return [];
+
+    const docs = await SubclassModel.find({
+      _id: { $in: validIds },
+      deletedAt: null
+    })
+      .select("_id name classId")
+      .lean<Pick<SubclassMongo, "_id" | "name" | "classId">[]>();
+
+    return docs.map(doc => ({
+      id: doc._id ? doc._id.toString() : "",
+      name: doc.name,
+      classId: doc.classId
+    }));
+  }
+
   async countByClassIds(classIds: string[], rulesets: string[]): Promise<Map<string, number>> {
     const counts = new Map<string, number>();
     if (!classIds.length || !rulesets.length) return counts;
@@ -109,6 +130,28 @@ export default class SubclassRepository implements ISubclassRepository {
     }).lean<SubclassMongo[]>();
 
     return this.formatSubclasses(docs);
+  }
+
+  async getRulesByIds(ids: string[]): Promise<SubclassRulesRef[]> {
+    const validIds = [...new Set(ids.filter(id => mongoose.Types.ObjectId.isValid(id)))];
+    if (!validIds.length) return [];
+
+    const docs = await SubclassModel.find({
+      _id: { $in: validIds },
+      deletedAt: null
+    })
+      .select("_id ruleset classId name levels expandedSpells optionReplacements")
+      .lean<SubclassMongo[]>();
+
+    return docs.map(doc => ({
+      id: doc._id ? doc._id.toString() : "",
+      ruleset: doc.ruleset,
+      classId: doc.classId,
+      name: doc.name,
+      levels: this.toRulesLevels(doc.levels ?? []),
+      expandedSpells: [...(doc.expandedSpells ?? [])],
+      ...(doc.optionReplacements?.length ? { optionReplacements: doc.optionReplacements } : {})
+    }));
   }
 
   async getById(id: string): Promise<SubclassApi | null> {
@@ -305,6 +348,20 @@ export default class SubclassRepository implements ISubclassRepository {
     }
     next.optionChoices = optionChoices;
     return next;
+  }
+
+  private toRulesLevels(levels: SubclassLevelMongo[]): SubclassRulesLevel[] {
+    return [...levels]
+      .map(level => ({
+        level: level.level,
+        traits: [...(level.traits ?? [])],
+        traits_data: level.traits_data ?? {},
+        ...(level.skill_choices ? { skill_choices: level.skill_choices } : {}),
+        ...(level.skillProficiencyChoices ? { skillProficiencyChoices: level.skillProficiencyChoices } : {}),
+        ...(level.spell_choices?.length ? { spell_choices: level.spell_choices } : {}),
+        ...(level.optionChoices?.length ? { optionChoices: level.optionChoices } : {})
+      }))
+      .sort((a, b) => a.level - b.level);
   }
 
   private formatSubclasses(docs: SubclassMongo[]): Promise<SubclassApi[]> {

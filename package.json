@@ -10,6 +10,7 @@
     "test": "vitest run",
     "docs:openapi": "tsx src/infrastructure/http/config/swagger.ts",
     "migrate:character-fields": "tsx src/infrastructure/databases/mongoDb/migrateCharacterFieldNames.ts",
+    "migrate:character-ac": "tsx src/infrastructure/databases/mongoDb/migrateCharacterAc.ts",
     "commit:ai": "git commit -F COMMIT_MESSAGE.md && del COMMIT_MESSAGE.md"
   },
   "keywords": [],

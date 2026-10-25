@@ -354,7 +354,7 @@ const creatureService = new CreatureService(creatureRepository)
 
 const campaignReaderRepository = new CampaignReaderRepository();
 
-const characterRepository = new CharacterRepository(
+export const characterRepository = new CharacterRepository(
   userRepository,
   equipmentRepository,
   traitRepository,

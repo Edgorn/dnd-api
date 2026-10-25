@@ -73,6 +73,25 @@ export default class GroupOptionRepository implements IGroupOptionRepository {
     return this.formatMany(docs);
   }
 
+  async getByGroupIds(
+    groupIds: string[],
+    rulesets: string[],
+    expandAncestry: boolean = true
+  ): Promise<GroupOptionApi[]> {
+    const uniqueGroupIds = [...new Set(groupIds.filter(Boolean))];
+    if (!uniqueGroupIds.length) return [];
+
+    const expandedRulesets = expandAncestry
+      ? await this.systemRepository.getSystemsAndAncestors(rulesets)
+      : rulesets;
+    const docs = await GroupOptionSchema.find({
+      groupId: { $in: uniqueGroupIds },
+      ruleset: { $in: expandedRulesets },
+      deletedAt: null
+    }).lean<GroupOptionMongo[]>();
+    return this.formatMany(docs);
+  }
+
   async getByIds(ids: string[]): Promise<GroupOptionApi[]> {
     const validIds = [...new Set(ids.filter(id => Types.ObjectId.isValid(id)))];
     if (!validIds.length) return [];

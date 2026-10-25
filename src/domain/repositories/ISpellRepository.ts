@@ -1,6 +1,6 @@
 import { ChoiceMongo } from "../types";
-import { FormatSpellChoicesContext, SpellChoiceApi, SpellChoiceMongo } from "../types/classLevelChoices.types";
-import { ChoiceSpell, SpellApi, InputCreateSpell, InputUpdateSpell } from "../types/spell.types";
+import { FormatSpellChoicesContext, SpellChoiceApi, SpellChoiceMongo, SpellChoiceRefApi } from "../types/classLevelChoices.types";
+import { ChoiceSpell, SpellApi, SpellRef, InputCreateSpell, InputUpdateSpell } from "../types/spell.types";
 
 export default interface ISpellRepository {
   create(data: InputCreateSpell): Promise<SpellApi>;
@@ -13,7 +13,12 @@ export default interface ISpellRepository {
     choices: (ChoiceMongo | ChoiceSpell | SpellChoiceMongo)[] | undefined,
     context?: FormatSpellChoicesContext
   ): Promise<SpellChoiceApi[] | undefined>;
+  formatSpellChoiceRefs(
+    choices: (ChoiceMongo | ChoiceSpell | SpellChoiceMongo)[] | undefined,
+    context?: FormatSpellChoicesContext
+  ): Promise<SpellChoiceRefApi[] | undefined>;
   getSpellsByIndexes(indexes: string[]): Promise<SpellApi[]>;
+  getSpellRefsByIndexes(indexes: string[]): Promise<SpellRef[]>;
   getSpellsByLevelAndClass(level: number, rulesets: string[], className?: string, ritual?: boolean): Promise<SpellApi[]>;
   getRitualSpells(rulesets: string[]): Promise<SpellApi[]>;
   getNonRitualSpells(rulesets: string[]): Promise<SpellApi[]>;

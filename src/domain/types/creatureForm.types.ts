@@ -74,11 +74,18 @@ export interface CharacterFormMongo {
   purpose?: CreatureFormPurpose;
 }
 
+export interface CreatureFormSummary {
+  id: string;
+  name: string;
+  size: string;
+  cr: number;
+}
+
 export interface CharacterFormApi {
   id: string;
   purpose?: CreatureFormPurpose;
   spellId?: string;
   spell?: { id: string; name: string };
-  creature?: CreatureApi;
+  creature?: CreatureApi | CreatureFormSummary;
   active?: boolean;
 }

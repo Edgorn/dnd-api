@@ -1,4 +1,5 @@
 import { formPurposeOverlaysCharacter } from "../domain/types/creatureForm.types";
+import { isCreatureApi } from "./characterViews";
 import { CharacterApi } from "../domain/types/character.types";
 import { CharacterAttributeApi } from "../domain/types/attribute.types";
 import { Damage } from "../domain/types";
@@ -13,7 +14,9 @@ export function applyActiveFormOverlay(
   if (!activeId) return character;
 
   const form = (character.forms ?? []).find(item => item.id === activeId);
-  if (!form || !formPurposeOverlaysCharacter(form.purpose) || !form.creature) return character;
+  if (!form || !formPurposeOverlaysCharacter(form.purpose) || !isCreatureApi(form.creature)) {
+    return character;
+  }
 
   const creature = form.creature;
   const attributes = overlayAttributes(character.attributes ?? [], creature);

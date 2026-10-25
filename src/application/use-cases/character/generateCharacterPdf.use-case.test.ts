@@ -5,8 +5,7 @@ import { CharacterApi } from "../../../domain/types/character.types";
 
 describe("GenerateCharacterPdf", () => {
   let characterServiceMock: {
-    getById: ReturnType<typeof vi.fn>;
-    getCampaignLink: ReturnType<typeof vi.fn>;
+    getByIdForExport: ReturnType<typeof vi.fn>;
   };
   let userRepositoryMock: {
     getUserName: ReturnType<typeof vi.fn>;
@@ -22,8 +21,7 @@ describe("GenerateCharacterPdf", () => {
 
   beforeEach(() => {
     characterServiceMock = {
-      getById: vi.fn(),
-      getCampaignLink: vi.fn(),
+      getByIdForExport: vi.fn(),
     };
     userRepositoryMock = {
       getUserName: vi.fn(),
@@ -33,32 +31,27 @@ describe("GenerateCharacterPdf", () => {
     };
   });
 
-  it("should load character, resolve player name and generate PDF bytes", async () => {
+  it("should load character with owner id and generate PDF bytes", async () => {
     const useCase = new GenerateCharacterPdf(
-      characterServiceMock as any,
-      userRepositoryMock as any,
-      pdfGeneratorMock as any
+      characterServiceMock as never,
+      userRepositoryMock as never,
+      pdfGeneratorMock as never
     );
     const pdfBytes = new Uint8Array([37, 80, 68, 70]);
 
-    characterServiceMock.getById.mockResolvedValue(characterStub);
-    characterServiceMock.getCampaignLink.mockResolvedValue({
-      id: "507f1f77bcf86cd799439011",
-      userId: "owner-user",
-      campaign: null,
+    characterServiceMock.getByIdForExport.mockResolvedValue({
+      character: characterStub,
+      ownerId: "owner-user",
     });
     userRepositoryMock.getUserName.mockResolvedValue("Edgar");
     pdfGeneratorMock.generate.mockResolvedValue(pdfBytes);
 
     const result = await useCase.execute("507f1f77bcf86cd799439011", "user1");
 
-    expect(characterServiceMock.getById).toHaveBeenCalledWith(
+    expect(characterServiceMock.getByIdForExport).toHaveBeenCalledWith(
       "507f1f77bcf86cd799439011",
       "user1",
       { applyActiveTraits: false }
-    );
-    expect(characterServiceMock.getCampaignLink).toHaveBeenCalledWith(
-      "507f1f77bcf86cd799439011"
     );
     expect(userRepositoryMock.getUserName).toHaveBeenCalledWith("owner-user");
     expect(pdfGeneratorMock.generate).toHaveBeenCalledWith(characterStub, "Edgar");
@@ -67,17 +60,15 @@ describe("GenerateCharacterPdf", () => {
 
   it("should use owner display name when requester is not the character owner", async () => {
     const useCase = new GenerateCharacterPdf(
-      characterServiceMock as any,
-      userRepositoryMock as any,
-      pdfGeneratorMock as any
+      characterServiceMock as never,
+      userRepositoryMock as never,
+      pdfGeneratorMock as never
     );
     const pdfBytes = new Uint8Array([37, 80, 68, 70]);
 
-    characterServiceMock.getById.mockResolvedValue(characterStub);
-    characterServiceMock.getCampaignLink.mockResolvedValue({
-      id: "507f1f77bcf86cd799439011",
-      userId: "player-owner",
-      campaign: "campaign-1",
+    characterServiceMock.getByIdForExport.mockResolvedValue({
+      character: characterStub,
+      ownerId: "player-owner",
     });
     userRepositoryMock.getUserName.mockResolvedValue("Alice");
     pdfGeneratorMock.generate.mockResolvedValue(pdfBytes);
@@ -88,29 +79,13 @@ describe("GenerateCharacterPdf", () => {
     expect(pdfGeneratorMock.generate).toHaveBeenCalledWith(characterStub, "Alice");
   });
 
-  it("should throw NotFoundError when campaign link is missing after character load", async () => {
-    const useCase = new GenerateCharacterPdf(
-      characterServiceMock as any,
-      userRepositoryMock as any,
-      pdfGeneratorMock as any
-    );
-    characterServiceMock.getById.mockResolvedValue(characterStub);
-    characterServiceMock.getCampaignLink.mockResolvedValue(null);
-
-    await expect(useCase.execute("507f1f77bcf86cd799439011", "user1")).rejects.toThrow(
-      NotFoundError
-    );
-    expect(userRepositoryMock.getUserName).not.toHaveBeenCalled();
-    expect(pdfGeneratorMock.generate).not.toHaveBeenCalled();
-  });
-
   it("should propagate NotFoundError when character cannot be loaded", async () => {
     const useCase = new GenerateCharacterPdf(
-      characterServiceMock as any,
-      userRepositoryMock as any,
-      pdfGeneratorMock as any
+      characterServiceMock as never,
+      userRepositoryMock as never,
+      pdfGeneratorMock as never
     );
-    characterServiceMock.getById.mockRejectedValue(
+    characterServiceMock.getByIdForExport.mockRejectedValue(
       new NotFoundError("Personaje no encontrado")
     );
 
@@ -122,15 +97,13 @@ describe("GenerateCharacterPdf", () => {
 
   it("should propagate errors from the PDF generator", async () => {
     const useCase = new GenerateCharacterPdf(
-      characterServiceMock as any,
-      userRepositoryMock as any,
-      pdfGeneratorMock as any
+      characterServiceMock as never,
+      userRepositoryMock as never,
+      pdfGeneratorMock as never
     );
-    characterServiceMock.getById.mockResolvedValue(characterStub);
-    characterServiceMock.getCampaignLink.mockResolvedValue({
-      id: "507f1f77bcf86cd799439011",
-      userId: "owner-user",
-      campaign: null,
+    characterServiceMock.getByIdForExport.mockResolvedValue({
+      character: characterStub,
+      ownerId: "owner-user",
     });
     userRepositoryMock.getUserName.mockResolvedValue("Edgar");
     pdfGeneratorMock.generate.mockRejectedValue(new Error("PDF template missing"));

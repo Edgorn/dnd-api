@@ -1,5 +1,5 @@
 import { ChoiceApi } from ".";
-import { SpellApi } from "./spell.types";
+import { SpellApi, SpellRef } from "./spell.types";
 
 export const SPELL_CHOICE_SOURCES = ["classList", "anyClassList"] as const;
 export type SpellChoiceSource = typeof SPELL_CHOICE_SOURCES[number];
@@ -15,6 +15,11 @@ export interface SpellChoiceMongo {
 }
 
 export interface SpellChoiceApi extends ChoiceApi<SpellApi> {
+  source?: SpellChoiceSource;
+  countsTowardKnown?: boolean;
+}
+
+export interface SpellChoiceRefApi extends ChoiceApi<SpellRef> {
   source?: SpellChoiceSource;
   countsTowardKnown?: boolean;
 }

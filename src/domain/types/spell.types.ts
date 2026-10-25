@@ -167,6 +167,16 @@ export interface SpellMongo {
   deletedAt?: Date | null;
 }
 
+/** Compact spell used in sheet/combat/level-up menus. Long text lives on GET /spells/:id. */
+export interface SpellRef {
+  id: string;
+  name: string;
+  level: number;
+  school?: SpellSchoolApi;
+  ritual?: boolean;
+  components?: SpellComponents;
+}
+
 export interface SpellApi {
   id?: string;
   ruleset: string;

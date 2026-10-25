@@ -1,16 +1,17 @@
-import { CharacterCampaignLink, TypeCreateCharacter, CharacterBasic, CharacterApi, GetCharacterOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, LevelUpData, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
+import { CharacterCampaignLink, TypeCreateCharacter, CharacterBasic, CharacterListItem, CharacterApi, CharacterGetResult, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, TypeAddEquipment, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, LevelUpDataResult, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
 
 export default interface ICharacterRepository {
-  getByUser(id: string): Promise<CharacterBasic[]>
+  getByUser(id: string, options?: GetCharactersByUserOptions): Promise<CharacterListItem[]>
   create(data: TypeCreateCharacter): Promise<CharacterBasic | null>
-  getById(idCharacter: string, user: string, options?: GetCharacterOptions): Promise<CharacterApi>
+  getById(idCharacter: string, user: string, options?: GetCharacterOptions): Promise<CharacterGetResult>
+  getByIdForExport(idCharacter: string, user: string, options?: GetCharacterOptions): Promise<{ character: CharacterApi; ownerId: string }>
   addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse>
   deleteEquipment(data: TypeDeleteEquipment): Promise<UpdateCharacterEquipmentResponse>
   equipEquipment(data: TypeEquipEquipment): Promise<{ full: CharacterApi, basic: CharacterBasic }>
   toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse>
   updateMoney(id: string, money: { quantity: number; unit: string }[]): Promise<UpdateCharacterMoneyResponse>
   updateXp(id: string, xp: number, userId: string): Promise<void>
-  getLevelUpData(id: string, classId: string, userId: string): Promise<LevelUpData>
+  getLevelUpData(id: string, classId: string, userId: string, options?: GetLevelUpDataOptions): Promise<LevelUpDataResult>
   levelUp(data: TypeLevelUp): Promise<{ full: CharacterApi, basic: CharacterBasic }>
   getByIds(idCharacters: string[]): Promise<CharacterBasic[]>
   getCampaignLink(characterId: string): Promise<CharacterCampaignLink | null>

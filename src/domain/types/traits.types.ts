@@ -366,6 +366,14 @@ export interface TraitAbilityScore {
   max?: number;
 }
 
+export interface TraitArmorClassInput {
+  id: string;
+  acFormula?: string;
+  suppressedByArmorTypeIds?: string[];
+  bonuses?: { armor_class?: number };
+  abilityScores?: TraitAbilityScore[];
+}
+
 export const TRAIT_SKILL_PROFICIENCY_VALUES = [0.5, 1, 2] as const;
 export type TraitSkillProficiencyValue = typeof TRAIT_SKILL_PROFICIENCY_VALUES[number];
 
@@ -429,13 +437,18 @@ export interface TraitDataMongo {
   }
 }
 
+export interface TraitNameRef {
+  id: string
+  name: string
+}
+
 export interface TraitApi {
   id: string,
   name: string,
   description: string[],
   summary: string[],
   ruleset: string,
-  incompatible_traits: TraitApi[],
+  incompatible_traits: TraitNameRef[],
   hidden?: boolean,
   resistances: Damage[],
   conditional_resistances: Damage[],
