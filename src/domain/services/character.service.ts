@@ -1,5 +1,5 @@
 import ICharacterRepository from "../repositories/ICharacterRepository";
-import { CharacterCampaignLink, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, CharacterGetResult, LevelUpDataResult, CharacterApi, CharacterBasic, CharacterListItem, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, CharacterEquipmentStateResponse, CharacterLevelUpResponse, CharacterSpellStateResponse, CharacterStatePatch, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
+import { CharacterCampaignLink, GetCharacterOptions, GetCharactersByUserOptions, GetLevelUpDataOptions, CharacterGetResult, LevelUpDataResult, CharacterApi, CharacterBasic, CharacterListItem, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeUpdateEquipmentCustomization, UpdateCharacterEquipmentCustomizationResponse, TypeBindWeaponBond, CharacterEquipmentStateResponse, CharacterLevelUpResponse, CharacterSpellStateResponse, CharacterStatePatch, TypeLevelUp, TypeLearnSpells, TypeCopySpells, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse } from "../types/character.types";
 
 export default class CharacterService {
   constructor(private readonly characterRepository: ICharacterRepository) { }
@@ -42,6 +42,10 @@ export default class CharacterService {
 
   toggleFavoriteEquipment(data: TypeToggleFavoriteEquipment): Promise<ToggleFavoriteEquipmentResponse> {
     return this.characterRepository.toggleFavoriteEquipment(data);
+  }
+
+  updateEquipmentCustomization(data: TypeUpdateEquipmentCustomization): Promise<UpdateCharacterEquipmentCustomizationResponse> {
+    return this.characterRepository.updateEquipmentCustomization(data);
   }
 
   updateMoney(id: string, money: { quantity: number; unit: string }[]): Promise<UpdateCharacterMoneyResponse> {

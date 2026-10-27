@@ -10,6 +10,17 @@ const baseRace = {
   size: "Medium"
 };
 
+describe("CreateRaceSchema size", () => {
+  it("acepta texto legado y lo normaliza", () => {
+    expect(CreateRaceSchema.parse({ ...baseRace, size: "Mediano" }).size).toBe("medium");
+    expect(CreateRaceSchema.parse({ ...baseRace, size: "Medium" }).size).toBe("medium");
+  });
+
+  it("rechaza un tamaño desconocido", () => {
+    expect(CreateRaceSchema.safeParse({ ...baseRace, size: "colossal" }).success).toBe(false);
+  });
+});
+
 describe("CreateRaceSchema proficiencies_choices", () => {
   it("accepts proficiencies_choices with options ids", () => {
     const result = CreateRaceSchema.safeParse({

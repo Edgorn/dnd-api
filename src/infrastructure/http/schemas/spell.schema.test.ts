@@ -298,6 +298,28 @@ describe("CreateSpellSchema creatureForm", () => {
     expect(result.success).toBe(false);
   });
 
+  it("acepta tamaños legado en el filtro y rechaza desconocidos", () => {
+    const accepted = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      creatureForm: {
+        purpose: "self",
+        pool: { mode: "filter", sizes: ["Tiny", "Mediano"] }
+      }
+    });
+    expect(accepted.success).toBe(true);
+    if (accepted.success && accepted.data.creatureForm?.pool.mode === "filter") {
+      expect(accepted.data.creatureForm.pool.sizes).toEqual(["tiny", "medium"]);
+    }
+
+    expect(CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      creatureForm: {
+        purpose: "self",
+        pool: { mode: "filter", sizes: ["colossal"] }
+      }
+    }).success).toBe(false);
+  });
+
   it("acepta un filtro vacío como todas las criaturas", () => {
     const result = CreateSpellSchema.safeParse({
       ...plantGrowthBase,

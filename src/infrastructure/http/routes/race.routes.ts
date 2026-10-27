@@ -61,8 +61,8 @@ const router = Router();
  *             walk:
  *               type: number
  *         size:
- *           type: string
- *           description: Tamaño típico (e.g. Mediano).
+ *           $ref: '#/components/schemas/CreatureSize'
+ *           description: Tamaño típico. También se aceptan nombres legado (p. ej. Mediano).
  *         size_range:
  *           type: object
  *           properties:
@@ -198,7 +198,7 @@ const router = Router();
  *         parentId:
  *           type: string
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
  *         speed:
  *           type: object
  *           properties:
@@ -380,7 +380,7 @@ const router = Router();
  *             walk:
  *               type: number
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
  *         size_range:
  *           type: object
  *         weight_range:
@@ -480,7 +480,7 @@ const router = Router();
  *         speed:
  *           type: object
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
  *         size_range:
  *           type: object
  *         weight_range:

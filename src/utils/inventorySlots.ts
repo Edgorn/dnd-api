@@ -1,6 +1,6 @@
-import { EquipSlot } from "../domain/types/equipment.types";
+import { EquipSlot, MountGearSlot } from "../domain/types/equipment.types";
 import { CharacterEquipmentMongo } from "../domain/types/character.types";
-import { cloneInventory } from "./inventoryStacks";
+import { cloneInventory, sameHolder } from "./inventoryStacks";
 
 export type InventorySlotLookup = (
   item: CharacterEquipmentMongo
@@ -37,8 +37,10 @@ export function applyEquip(
     throw new Error("NO_EQUIP_SLOT");
   }
 
+  const targetHolder = result[targetIdx].holderId;
   const occupies = (item: CharacterEquipmentMongo, slot: EquipSlot): boolean => {
     if (!item.equipped) return false;
+    if (!sameHolder(item.holderId, targetHolder)) return false;
     const itemSlot = slotOf(item);
     if (!itemSlot) return false;
     return occupiedSlotsFor(itemSlot).includes(slot);
@@ -53,6 +55,46 @@ export function applyEquip(
       const idx = result.findIndex(item => item.instanceId === first.instanceId);
       result[idx] = { ...result[idx], equipped: false };
     }
+  }
+
+  result[targetIdx] = { ...result[targetIdx], equipped: true };
+  return result;
+}
+
+export type MountGearSlotLookup = (
+  item: CharacterEquipmentMongo
+) => MountGearSlot | null | undefined;
+
+export function applyMountGear(
+  inventory: CharacterEquipmentMongo[],
+  instanceId: string,
+  equipped: boolean,
+  slotOf: MountGearSlotLookup
+): CharacterEquipmentMongo[] {
+  const result = cloneInventory(inventory);
+  const targetIdx = result.findIndex(item => item.instanceId === instanceId);
+  if (targetIdx === -1) {
+    throw new Error("INVENTORY_INSTANCE_NOT_FOUND");
+  }
+
+  if (!equipped) {
+    result[targetIdx] = { ...result[targetIdx], equipped: false };
+    return result;
+  }
+
+  const targetSlot = slotOf(result[targetIdx]);
+  if (!targetSlot) {
+    throw new Error("NO_MOUNT_GEAR_SLOT");
+  }
+
+  const targetHolder = result[targetIdx].holderId;
+  for (let i = 0; i < result.length; i++) {
+    if (i === targetIdx) continue;
+    const item = result[i];
+    if (!item.equipped) continue;
+    if (!sameHolder(item.holderId, targetHolder)) continue;
+    if (slotOf(item) !== targetSlot) continue;
+    result[i] = { ...item, equipped: false };
   }
 
   result[targetIdx] = { ...result[targetIdx], equipped: true };

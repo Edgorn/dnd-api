@@ -69,6 +69,24 @@ describe("canStackWith", () => {
       row({ instanceId: "b", equipmentId: "eq1", customization: { materials: ["wood"] } })
     )).toBe(true);
   });
+
+  it("does not stack rows on different holders", () => {
+    expect(canStackWith(
+      row({ instanceId: "a", equipmentId: "eq1", holderId: "mount1" }),
+      row({ instanceId: "b", equipmentId: "eq1" })
+    )).toBe(false);
+  });
+
+  it("does not stack rows with vehicle instance state", () => {
+    expect(canStackWith(
+      row({ instanceId: "a", equipmentId: "eq1", hpCurrent: 50 }),
+      row({ instanceId: "b", equipmentId: "eq1" })
+    )).toBe(false);
+    expect(canStackWith(
+      row({ instanceId: "a", equipmentId: "eq1", drawnBy: ["horse1"] }),
+      row({ instanceId: "b", equipmentId: "eq1" })
+    )).toBe(false);
+  });
 });
 
 describe("cloneInventory", () => {
@@ -85,6 +103,15 @@ describe("cloneInventory", () => {
       materials: ["wood"],
       description: "Escudo de madera",
     });
+  });
+
+  it("preserves holderId, drawnBy and hpCurrent", () => {
+    const cloned = cloneInventory([
+      row({ instanceId: "a", equipmentId: "eq1", holderId: "mount1", drawnBy: ["horse1"], hpCurrent: 50 }),
+    ])[0];
+    expect(cloned.holderId).toBe("mount1");
+    expect(cloned.drawnBy).toEqual(["horse1"]);
+    expect(cloned.hpCurrent).toBe(50);
   });
 });
 
@@ -168,6 +195,23 @@ describe("splitOne", () => {
     expect(result.instance.instanceId).not.toBe("a");
     expect(result.instance.equipmentId).toBe("eq1");
     expect(result.instance.isMagic).toBe(true);
+  });
+
+  it("copies holderId onto the split unit", () => {
+    const item = row({ instanceId: "a", equipmentId: "eq1", quantity: 2, holderId: "mount1" });
+    const result = splitOne([item], "a");
+    expect(result.instance.holderId).toBe("mount1");
+    expect(result.inventory[0].holderId).toBe("mount1");
+  });
+
+  it("copies customization onto the split unit", () => {
+    const customization = { name: "Filo de Invierno", description: "Runas heladas" };
+    const item = row({ instanceId: "a", equipmentId: "eq1", quantity: 3, customization });
+    const result = splitOne([item], "a");
+
+    expect(result.instance.customization).toEqual(customization);
+    expect(result.inventory[0].customization).toEqual(customization);
+    expect(result.inventory[0].quantity).toBe(2);
   });
 });
 

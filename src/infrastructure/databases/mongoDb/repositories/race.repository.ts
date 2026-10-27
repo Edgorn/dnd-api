@@ -29,6 +29,7 @@ import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { Types } from 'mongoose';
 import { mergeRaceLevelRows } from '../../../../utils/characterLevelUpTraits';
 import { collectCatalogLanguageIds, hydrateLanguageGrants, languageApiById } from '../../../../utils/hydrateLanguageGrants';
+import { formatSize } from '../../../../domain/types/size.types';
 
 type RaceAncestryDoc = Pick<RaceMongo, "_id" | "creatureTypeId" | "parentId">;
 type RaceRefDoc = Pick<RaceMongo, "_id" | "name" | "ruleset" | "creatureTypeId" | "parentId">;
@@ -248,7 +249,7 @@ export default class RaceRepository implements IRaceRepository {
       img: race.img,
       ruleset: race.ruleset,
       speed: typeof race.speed === 'number' ? { walk: race.speed } : (race.speed ?? { walk: 30 }),
-      size: race.size,
+      size: formatSize(race.size),
       size_range: race.size_range,
       weight_range: race.weight_range,
       age: race.age,
@@ -563,7 +564,7 @@ export default class RaceRepository implements IRaceRepository {
         ruleset: doc.ruleset,
         playable: doc.playable !== false,
         parentId: parentId ?? null,
-        size: doc.size,
+        size: formatSize(doc.size),
         speed: this.walkSpeed(doc.speed),
         creatureType: creatureType && !creatureType.deletedAt
           ? { id: creatureType.id, name: creatureType.name }

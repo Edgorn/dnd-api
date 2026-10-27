@@ -26,6 +26,7 @@ import { ConditionApi } from "../../../../domain/types/condition.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
 import { normalizeTraitSpeed } from "../../../../utils/applyTraitSpeed";
 import { storedSummary, summaryToPersist } from "../../../../utils/traitSummary";
+import { applyTraitDataTokens } from "../../../../utils/applyTraitDataTokens";
 import { Types } from 'mongoose';
 import { AppError } from '../../../../domain/errors/AppError';
 import { hydrateUniqueEquipmentGrant } from '../../../../utils/uniqueEquipmentGrant';
@@ -297,14 +298,8 @@ export default class TraitRepository implements ITraitRepository {
         const traitData = data[trait._id.toString()];
 
         if (traitData) {
-          Object.keys(traitData).forEach(d => {
-            description_aux.forEach((_, index) => {
-              description_aux[index] = description_aux[index].replaceAll(d, traitData[d]);
-            });
-            summary_aux.forEach((_, index) => {
-              summary_aux[index] = summary_aux[index].replaceAll(d, traitData[d]);
-            });
-          });
+          description_aux = applyTraitDataTokens(description_aux, traitData);
+          summary_aux = applyTraitDataTokens(summary_aux, traitData);
         }
       }
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { characterController, authMiddleware } from "../../dependencies";
 import { validateSchema, validateParams, validateQuery } from "../middlewares/validateSchema";
-import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, BindWeaponBondSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, GetCharacterQuerySchema, GetCharactersQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, CopySpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, PatchCharacterFlavorSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/character.schema";
+import { ToggleFavoriteEquipmentSchema, UpdateCharacterMoneySchema, UpdateCharacterXpSchema, AddCharacterEquipmentSchema, DeleteCharacterEquipmentQuerySchema, UpdateCharacterEquipmentEquippedSchema, MoveCharacterEquipmentSchema, SetVehicleDraftSchema, BindWeaponBondSchema, CharacterIdParamsSchema, CharacterEquipmentInstanceParamsSchema, CharacterFormParamsSchema, CharacterConditionParamsSchema, LevelUpDataQuerySchema, GetCharacterQuerySchema, GetCharactersQuerySchema, LevelUpSchema, PrepareSpellsSchema, LearnSpellsSchema, CopySpellsSchema, BindSpellPrivilegesParamsSchema, BindSpellPrivilegesSchema, UpdateCharacterCompanionsSchema, AddCompanionSchema, UpdateCompanionSchema, CharacterCompanionParamsSchema, PatchCharacterFlavorSchema, PatchCharacterEquipmentCustomizationSchema, CharacterRestSchema, SpendHitDiceSchema, ApplyCharacterHpSchema, SpendSpellSlotSchema, ApplyCharacterConditionSchema, UpdateCharacterConditionSchema, AddCharacterFormSchema, UseTraitSchema } from "../schemas/character.schema";
 
 const router = Router();
 
@@ -647,7 +647,7 @@ const router = Router();
  *             burrow:
  *               type: number
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
  *         attributes:
  *           type: array
  *           items:
@@ -709,6 +709,61 @@ const router = Router();
  *         sourceTraitId:
  *           type: string
  *           description: ID del rasgo que sugirió el roster (orientación de UI; el servidor no lo exige).
+ *         kind:
+ *           type: string
+ *           enum: [narrative, mount, animal, hireling]
+ *           description: Tipo de compañero. Si falta, se trata como narrative. `mount` exige una criatura con `canBeMount`.
+ *         creatureId:
+ *           type: string
+ *           description: ID de la criatura del catálogo (monturas y animales).
+ *         source:
+ *           type: string
+ *           enum: [purchase, trait, spell]
+ *           description: Origen del compañero.
+ *         hpCurrent:
+ *           type: integer
+ *           description: Puntos de golpe actuales. En GET, hpMax sale de la criatura hidratada.
+ *         conditions:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de estados activos sobre el compañero.
+ *         creature:
+ *           type: object
+ *           description: Criatura hidratada en GET /character/{id} cuando hay creatureId. Incluye attributes, CA, HPMax y speed.
+ *         attributes:
+ *           type: array
+ *           description: Características de la criatura (valor y modificador). Solo en lectura, si hay criatura hidratada.
+ *           items:
+ *             type: object
+ *         hpMax:
+ *           type: integer
+ *           description: PG máximos de la criatura. Solo en lectura.
+ *         speed:
+ *           type: object
+ *           description: Desplazamientos de la criatura. Solo en lectura.
+ *         size:
+ *           type: string
+ *           description: Tamaño de la criatura. Solo en lectura.
+ *         carryingCapacity:
+ *           type: number
+ *           nullable: true
+ *           description: Capacidad de carga de la criatura del catálogo, en libras. Null si la criatura no define el campo.
+ *         load:
+ *           type: number
+ *           description: Peso total del equipo que porta el compañero, incluyendo contenido anidado.
+ *         capacity:
+ *           type: number
+ *           nullable: true
+ *           description: Igual que carryingCapacity. Null si la criatura no define el campo; en ese caso no hay aviso de sobrecarga.
+ *         ac:
+ *           type: number
+ *           description: CA de la criatura. Si la montura lleva barda equipada, es la CA de esa armadura.
+ *         warnings:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Avisos de carga. `overloaded` solo si capacity no es null y load la supera.
  *
  *     CharacterSpellSlot:
  *       type: object
@@ -831,7 +886,7 @@ const router = Router();
  *         race:
  *           type: string
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
  *         classes:
  *           type: array
  *           items:
@@ -1082,6 +1137,11 @@ const router = Router();
  *           description: Conjuros del personaje agrupados por nivel o clase.
  *         maxCarryingCapacity:
  *           type: number
+ *           nullable: true
+ *           description: Capacidad de carga del personaje según `carryingCapacityFormula` del sistema. Null si el sistema no define la fórmula.
+ *         load:
+ *           type: number
+ *           description: Peso que carga el personaje. Solo filas con holderId nulo; excluye vehículos.
  *         spellcasting:
  *           type: array
  *           items:
@@ -1108,7 +1168,7 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CharacterCompanion'
- *           description: Roster narrativo de compañeros. Vacío en fichas antiguas. No se valida contra companionRoster.count del rasgo.
+ *           description: Compañeros del personaje. Con creatureId se hidratan criatura, attributes, hpMax, CA, speed, size, carryingCapacity, load y capacity. Vacío en vista de combate.
  *     SpellRef:
  *       type: object
  *       required:
@@ -1141,7 +1201,7 @@ const router = Router();
  *         name:
  *           type: string
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
  *         cr:
  *           type: number
  *     CharacterCombat:
@@ -1189,7 +1249,7 @@ const router = Router();
  *             walk:
  *               type: number
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
  *         appearance:
  *           type: object
  *         attributes:
@@ -1702,7 +1762,7 @@ router.post('/character/:id/equipment', authMiddleware, validateParams(Character
  * /character/{id}/equipment/{instanceId}:
  *   delete:
  *     summary: Eliminar equipamiento del inventario de un personaje
- *     description: Reduce o elimina una instancia del inventario por instanceId. Si se indica quantity y es menor que la pila, decrementa; si no, elimina la fila. No permite eliminar ítems favoritos, equipados o vinculados por pacto.
+ *     description: Reduce o elimina una instancia del inventario por instanceId. Si se indica quantity y es menor que la pila, decrementa; si no, elimina la fila. No permite eliminar ítems favoritos, equipados, vinculados por pacto, ni portadores (contenedor o vehículo) que aún contienen equipo.
  *     tags:
  *       - Personajes
  *     security:
@@ -1749,7 +1809,7 @@ router.post('/character/:id/equipment', authMiddleware, validateParams(Character
  *       404:
  *         description: Personaje o instancia de equipamiento no encontrada.
  *       409:
- *         description: El equipamiento está marcado como favorito, está equipado o es un arma vinculada.
+ *         description: El equipamiento está marcado como favorito, está equipado, es un arma vinculada o es un portador que aún contiene equipo.
  *       500:
  *         description: Error del servidor.
  */
@@ -1765,7 +1825,9 @@ router.delete('/character/:id/equipment/:instanceId', authMiddleware, validatePa
  *       Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.
  *       La ranura ring admite 2 objetos; el resto admite 1. Un arma two_handed ocupa main_hand y off_hand.
  *       Si no hay hueco, desequipa las filas ocupadas en orden del array hasta hacer sitio.
- *       El ítem debe tener equipSlot definido. Devuelve la tarjeta básica y un delta de ficha
+ *       El ítem debe tener equipSlot definido, salvo arreos y barda en una montura (`holderId` de compañero `mount` y `mountGear`):
+ *       ahí se usa una ranura de montura (una por slot) que no se mezcla con EquipSlot.
+ *       Devuelve la tarjeta básica y un delta de ficha
  *       (inventario hidratado, CA, velocidad derivada, desventaja de sigilo, resistencias e inmunidades).
  *       No reenvía conjuros, formas ni sabor.
  *     tags:
@@ -1814,6 +1876,233 @@ router.delete('/character/:id/equipment/:instanceId', authMiddleware, validatePa
  *         description: Error del servidor.
  */
 router.patch('/character/:id/equipment/:instanceId/equipped', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(UpdateCharacterEquipmentEquippedSchema), characterController.updateEquipmentEquipped);
+
+/**
+ * @openapi
+ * /character/{id}/equipment/{instanceId}/customization:
+ *   patch:
+ *     summary: Personalizar nombre o descripción de una instancia del inventario
+ *     description: |
+ *       Fusiona name y/o description en el overlay de la instancia (no modifica el catálogo).
+ *       `null` en un campo lo quita y vuelve al valor del catálogo. Un PATCH de un solo campo
+ *       no borra el otro. Si tras el merge no queda overlay, se elimina customization.
+ *       Si la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se
+ *       muta esa: `instanceId` de la respuesta es la fila mutada (puede ser distinta a la de la URL).
+ *       `splitFrom` aparece solo si hubo corte. Devuelve el inventario hidratado.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: instanceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la instancia de inventario.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             additionalProperties: false
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 nullable: true
+ *                 minLength: 1
+ *                 description: Nombre visible de esta instancia. Null vuelve al nombre del catálogo.
+ *               description:
+ *                 nullable: true
+ *                 description: Descripción de esta instancia. Texto, array de párrafos, o null para el catálogo.
+ *                 oneOf:
+ *                   - type: string
+ *                   - type: array
+ *                     items:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Personalización actualizada con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - equipment
+ *                 - instanceId
+ *               properties:
+ *                 equipment:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterEquipmentApi'
+ *                 instanceId:
+ *                   type: string
+ *                   description: ID de MongoDB de la instancia mutada. Si se partió una pila, es el de la unidad nueva.
+ *                 splitFrom:
+ *                   type: object
+ *                   description: Presente solo si se partió una pila con quantity mayor que 1.
+ *                   properties:
+ *                     instanceId:
+ *                       type: string
+ *                       description: ID de la pila original (el de la URL).
+ *                     quantity:
+ *                       type: integer
+ *                       description: Cantidad que queda en la pila original.
+ *       400:
+ *         description: Datos de entrada inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje o instancia de equipamiento no encontrada.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id/equipment/:instanceId/customization', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(PatchCharacterEquipmentCustomizationSchema), characterController.updateEquipmentCustomization);
+
+/**
+ * @openapi
+ * /character/{id}/equipment/{instanceId}/location:
+ *   patch:
+ *     summary: Mover una instancia de inventario a un portador
+ *     description: |
+ *       Cambia el holderId de una fila. `null` la devuelve al personaje.
+ *       El portador debe ser un compañero existente o una fila de inventario con vehicle o containerStats.
+ *       Si quantity es menor que la pila, se parte esa cantidad a una instancia nueva.
+ *       No se puede mover un objeto equipado por el personaje (409). No se permiten ciclos de contenedores.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: instanceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la instancia de inventario.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - holderId
+ *             properties:
+ *               holderId:
+ *                 type: string
+ *                 nullable: true
+ *                 description: ID del compañero o instanceId del contenedor/vehículo. Null para el personaje.
+ *               quantity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Cantidad a mover. Si se omite, se mueve toda la pila.
+ *     responses:
+ *       200:
+ *         description: Ubicación actualizada con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - equipment
+ *               properties:
+ *                 equipment:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterEquipmentApi'
+ *       400:
+ *         description: Portador inválido, cantidad excesiva o ciclo de contenedores.
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje o instancia no encontrada.
+ *       409:
+ *         description: El objeto está equipado por el personaje.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id/equipment/:instanceId/location', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(MoveCharacterEquipmentSchema), characterController.moveEquipment);
+
+/**
+ * @openapi
+ * /character/{id}/equipment/{instanceId}/draft:
+ *   patch:
+ *     summary: Enganchar o desenganchar el tiro de un vehículo
+ *     description: |
+ *       Sustituye `drawnBy` de una fila de inventario con bloque `vehicle`.
+ *       Solo se aceptan compañeros `mount` o `animal` con `creatureId`, que no estén
+ *       enganchados a otro vehículo. Una lista vacía desengancha el tiro.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: instanceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la instancia de inventario (vehículo).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - companionIds
+ *             properties:
+ *               companionIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: IDs de compañeros de tiro. Vacío para desenganchar.
+ *     responses:
+ *       200:
+ *         description: Tiro actualizado con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - equipment
+ *               properties:
+ *                 equipment:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterEquipmentApi'
+ *       400:
+ *         description: La instancia no es un vehículo o el compañero no es apto para el tiro.
+ *       401:
+ *         description: No autorizado.
+ *       404:
+ *         description: Personaje, instancia o compañero no encontrados.
+ *       409:
+ *         description: El compañero ya tira de otro vehículo.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id/equipment/:instanceId/draft', authMiddleware, validateParams(CharacterEquipmentInstanceParamsSchema), validateSchema(SetVehicleDraftSchema), characterController.setVehicleDraft);
 
 /**
  * @openapi
@@ -2027,13 +2316,14 @@ router.put('/character/:id/money', authMiddleware, validateSchema(UpdateCharacte
  * @openapi
  * /character/{id}/companions:
  *   put:
- *     summary: Sustituir el roster narrativo de compañeros
+ *     summary: Sustituir el roster de compañeros
  *     description: |
- *       Reemplaza por completo la lista de compañeros del personaje (hasta 20 entradas).
+ *       Reemplaza la lista de compañeros del personaje (hasta 20 entradas).
  *       Envíe un array vacío para vaciar el roster.
- *       Es un registro narrativo (nombres, roles y notas). El servidor no simula combate
- *       ni comprueba que la longitud coincida con `companionRoster.count` de ningún rasgo.
- *       El identificador del personaje va en la URL, no en el cuerpo.
+ *       Si una entrada reutiliza el `id` de un compañero existente, el servidor conserva
+ *       `creatureId`, `hpCurrent` y `conditions` de esa entrada.
+ *       Monturas (`kind: mount`) y animales requieren `creatureId`. `kind: mount` exige
+ *       una criatura con `canBeMount`. El identificador del personaje va en la URL, no en el cuerpo.
  *     tags:
  *       - Personajes
  *     security:
@@ -2085,6 +2375,198 @@ router.put('/character/:id/money', authMiddleware, validateSchema(UpdateCharacte
  *         description: Error del servidor.
  */
 router.put('/character/:id/companions', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(UpdateCharacterCompanionsSchema), characterController.updateCompanions);
+
+/**
+ * @openapi
+ * /character/{id}/companions:
+ *   post:
+ *     summary: Añadir un compañero
+ *     description: |
+ *       Añade un compañero al roster (máximo 20). Si hay `creatureId`, debe existir y
+ *       pertenecer al sistema del personaje o a un ancestro; `hpCurrent` se inicializa a `HPMax`.
+ *       Monturas (`kind: mount`) y animales requieren `creatureId`. `kind: mount` exige
+ *       una criatura con `canBeMount`. No descuenta dinero.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *               kind:
+ *                 type: string
+ *                 enum: [narrative, mount, animal, hireling]
+ *               creatureId:
+ *                 type: string
+ *               source:
+ *                 type: string
+ *                 enum: [purchase, trait, spell]
+ *               sourceTraitId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Roster actualizado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - companions
+ *               properties:
+ *                 companions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterCompanion'
+ *       400:
+ *         description: Datos inválidos o criatura de otro sistema.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o criatura no encontrados.
+ *       409:
+ *         description: Ya hay 20 compañeros.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.post('/character/:id/companions', authMiddleware, validateParams(CharacterIdParamsSchema), validateSchema(AddCompanionSchema), characterController.addCompanion);
+
+/**
+ * @openapi
+ * /character/{id}/companions/{companionId}:
+ *   patch:
+ *     summary: Actualizar un compañero
+ *     description: Modifica nombre, rol, notas, PG actuales (recortados a HPMax de la criatura) o condiciones.
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: companionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del compañero.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *               hpCurrent:
+ *                 type: integer
+ *                 minimum: 0
+ *               conditions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Roster actualizado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - companions
+ *               properties:
+ *                 companions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterCompanion'
+ *       400:
+ *         description: Datos inválidos.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o compañero no encontrados.
+ *       500:
+ *         description: Error del servidor.
+ *   delete:
+ *     summary: Eliminar un compañero
+ *     description: |
+ *       Quita el compañero del roster. Responde 409 si transporta equipo o tira de un vehículo
+ *       (comprobado a partir de la fase de inventario).
+ *     tags:
+ *       - Personajes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje.
+ *       - in: path
+ *         name: companionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del compañero.
+ *     responses:
+ *       200:
+ *         description: Roster actualizado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - companions
+ *               properties:
+ *                 companions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CharacterCompanion'
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: Sin permiso para modificar este personaje.
+ *       404:
+ *         description: Personaje o compañero no encontrados.
+ *       409:
+ *         description: El compañero transporta equipo o tira de un vehículo.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.patch('/character/:id/companions/:companionId', authMiddleware, validateParams(CharacterCompanionParamsSchema), validateSchema(UpdateCompanionSchema), characterController.updateCompanion);
+router.delete('/character/:id/companions/:companionId', authMiddleware, validateParams(CharacterCompanionParamsSchema), characterController.removeCompanion);
 
 /**
  * @openapi

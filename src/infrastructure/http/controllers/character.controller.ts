@@ -7,6 +7,8 @@ import LevelUp from "../../../application/use-cases/character/levelUp.use-case";
 import AddEquipment from "../../../application/use-cases/character/addEquipment.use-case";
 import DeleteEquipment from "../../../application/use-cases/character/deleteEquipment.use-case";
 import EquipEquipment from "../../../application/use-cases/character/equipEquipment.use-case";
+import MoveEquipment from "../../../application/use-cases/character/moveEquipment.use-case";
+import SetVehicleDraft from "../../../application/use-cases/character/setVehicleDraft.use-case";
 import GenerateCharacterPdf from "../../../application/use-cases/character/generateCharacterPdf.use-case";
 import UpdateMoney from "../../../application/use-cases/character/updateMoney.use-case";
 import { Response, NextFunction } from "express";
@@ -18,9 +20,13 @@ import AddCharacterForm from "../../../application/use-cases/character/addCharac
 import ActivateCharacterForm from "../../../application/use-cases/character/activateCharacterForm.use-case";
 import DeactivateCharacterForm from "../../../application/use-cases/character/deactivateCharacterForm.use-case";
 import ToggleFavoriteEquipment from "../../../application/use-cases/character/toggleFavoriteEquipment.use-case";
+import UpdateEquipmentCustomization from "../../../application/use-cases/character/updateEquipmentCustomization.use-case";
 import PrepareSpells from "../../../application/use-cases/character/prepareSpells.use-case";
 import BindSpellPrivileges from "../../../application/use-cases/character/bindSpellPrivileges.use-case";
 import UpdateCompanions from "../../../application/use-cases/character/updateCompanions.use-case";
+import AddCompanion from "../../../application/use-cases/character/addCompanion.use-case";
+import UpdateCompanion from "../../../application/use-cases/character/updateCompanion.use-case";
+import RemoveCompanion from "../../../application/use-cases/character/removeCompanion.use-case";
 import UpdateCharacterFlavor from "../../../application/use-cases/character/updateCharacterFlavor.use-case";
 import UseTrait from "../../../application/use-cases/character/useTrait.use-case";
 import DeactivateTrait from "../../../application/use-cases/character/deactivateTrait.use-case";
@@ -44,6 +50,8 @@ export class CharacterController {
     private readonly addEquipmentUseCase: AddEquipment,
     private readonly deleteEquipmentUseCase: DeleteEquipment,
     private readonly equipEquipment: EquipEquipment,
+    private readonly moveEquipmentUseCase: MoveEquipment,
+    private readonly setVehicleDraftUseCase: SetVehicleDraft,
     private readonly updateMoneyUseCase: UpdateMoney,
     private readonly generateCharacterPdf: GenerateCharacterPdf,
     private readonly bindWeaponBond: BindWeaponBond,
@@ -53,6 +61,7 @@ export class CharacterController {
     private readonly activateCharacterFormUseCase: ActivateCharacterForm,
     private readonly deactivateCharacterFormUseCase: DeactivateCharacterForm,
     private readonly toggleFavoriteEquipment: ToggleFavoriteEquipment,
+    private readonly updateEquipmentCustomizationUseCase: UpdateEquipmentCustomization,
     private readonly prepareSpellsUseCase: PrepareSpells,
     private readonly bindSpellPrivilegesUseCase: BindSpellPrivileges,
     private readonly updateCompanionsUseCase: UpdateCompanions,
@@ -65,7 +74,10 @@ export class CharacterController {
     private readonly spendSpellSlotUseCase: SpendSpellSlot,
     private readonly applyCharacterConditionUseCase: ApplyCharacterCondition,
     private readonly updateCharacterConditionUseCase: UpdateCharacterCondition,
-    private readonly removeCharacterConditionUseCase: RemoveCharacterCondition
+    private readonly removeCharacterConditionUseCase: RemoveCharacterCondition,
+    private readonly addCompanionUseCase: AddCompanion,
+    private readonly updateCompanionUseCase: UpdateCompanion,
+    private readonly removeCompanionUseCase: RemoveCompanion
   ) { }
 
   getCharacters = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -185,6 +197,51 @@ export class CharacterController {
     }
   };
 
+  moveEquipment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, instanceId } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      if (!instanceId) {
+        throw new ValidationError("Se requiere el ID de la instancia de equipamiento");
+      }
+      const data = await this.moveEquipmentUseCase.execute({
+        id,
+        instanceId,
+        userId: req.user!,
+        holderId: req.body.holderId,
+        quantity: req.body.quantity,
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[CharacterController.moveEquipment] Error:", e);
+      next(e);
+    }
+  };
+
+  setVehicleDraft = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, instanceId } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      if (!instanceId) {
+        throw new ValidationError("Se requiere el ID de la instancia de equipamiento");
+      }
+      const data = await this.setVehicleDraftUseCase.execute({
+        id,
+        instanceId,
+        userId: req.user!,
+        companionIds: req.body.companionIds,
+      });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[CharacterController.setVehicleDraft] Error:", e);
+      next(e);
+    }
+  };
+
   bindWeaponBondHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { id, instanceId } = req.params;
@@ -221,6 +278,26 @@ export class CharacterController {
       res.status(200).json(data);
     } catch (e) {
       console.error("[CharacterController.toggleFavoriteEquipmentHandler] Error:", e);
+      next(e);
+    }
+  };
+
+  updateEquipmentCustomization = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, instanceId } = req.params;
+
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+
+      if (!instanceId) {
+        throw new ValidationError("Se requiere el ID de la instancia de equipamiento");
+      }
+
+      const data = await this.updateEquipmentCustomizationUseCase.execute({ id, instanceId, ...req.body });
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[CharacterController.updateEquipmentCustomization] Error:", e);
       next(e);
     }
   };
@@ -685,6 +762,48 @@ export class CharacterController {
       res.status(200).json(data);
     } catch (e) {
       console.error("[CharacterController.updateCompanions] Error:", e);
+      next(e);
+    }
+  };
+
+  addCompanion = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        throw new ValidationError("Se requiere el ID del personaje");
+      }
+      const data = await this.addCompanionUseCase.execute(id, req.user!, req.body);
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[CharacterController.addCompanion] Error:", e);
+      next(e);
+    }
+  };
+
+  updateCompanion = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, companionId } = req.params;
+      if (!id || !companionId) {
+        throw new ValidationError("Se requiere el ID del personaje y del compañero");
+      }
+      const data = await this.updateCompanionUseCase.execute(id, req.user!, companionId, req.body);
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[CharacterController.updateCompanion] Error:", e);
+      next(e);
+    }
+  };
+
+  removeCompanion = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { id, companionId } = req.params;
+      if (!id || !companionId) {
+        throw new ValidationError("Se requiere el ID del personaje y del compañero");
+      }
+      const data = await this.removeCompanionUseCase.execute(id, req.user!, companionId);
+      res.status(200).json(data);
+    } catch (e) {
+      console.error("[CharacterController.removeCompanion] Error:", e);
       next(e);
     }
   };

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GrantedEquipmentListSchema } from "./equipment.schema";
+import { SizeSchema } from "./size.schema";
 
 const RaceLevelSchema = z.object({
   level: z.number().int("El nivel debe ser un entero").min(1, "El nivel debe estar entre 1 y 20").max(20, "El nivel debe estar entre 1 y 20"),
@@ -39,7 +40,7 @@ export const CreateRaceSchema = z.object({
   speed: z.object({
     walk: z.number()
   }),
-  size: z.string().min(1, "El tamaño no puede estar vacío"),
+  size: SizeSchema,
   size_range: z.object({
     min: z.number(),
     max: z.number()

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SPELL_SLOT_POOLS } from "../../../domain/types/system.types";
+import { COMPANION_KINDS, COMPANION_SOURCES } from "../../../domain/types/character.types";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -278,12 +279,43 @@ export const AddCharacterEquipmentSchema = z.object({
   quantity: z.number().int().min(1, "La cantidad debe ser un entero mayor o igual a 1"),
 });
 
+export const PatchCharacterEquipmentCustomizationSchema = z.object({
+  name: z.union([
+    z.string().min(1, "El nombre no puede estar vacío"),
+    z.null(),
+  ]).optional(),
+  description: z.union([
+    z.string(),
+    z.array(z.string()),
+    z.null(),
+  ]).optional(),
+}).strict().refine(data => data.name !== undefined || data.description !== undefined, {
+  message: "Debe proporcionar al menos un campo para modificar",
+});
+
 export const DeleteCharacterEquipmentQuerySchema = z.object({
   quantity: z.coerce.number().int().min(1, "La cantidad debe ser un entero mayor o igual a 1").optional(),
 });
 
 export const UpdateCharacterEquipmentEquippedSchema = z.object({
   equipped: z.boolean(),
+});
+
+export const MoveCharacterEquipmentSchema = z.object({
+  holderId: z.union([
+    z.string().regex(objectIdRegex, "El holderId debe ser un ObjectId válido de MongoDB"),
+    z.null(),
+  ]),
+  quantity: z.number().int().min(1, "La cantidad debe ser un entero mayor o igual a 1").optional(),
+});
+
+export const SetVehicleDraftSchema = z.object({
+  companionIds: z.array(
+    z.string().regex(objectIdRegex, "Cada compañero debe ser un ObjectId válido de MongoDB")
+  ).max(20, "No se pueden enganchar más de 20 animales")
+    .refine(ids => new Set(ids).size === ids.length, {
+      message: "Los compañeros de tiro no pueden repetirse",
+    }),
 });
 
 export const BindWeaponBondSchema = z.object({
@@ -307,6 +339,11 @@ export const CompanionInputSchema = z.object({
   role: z.string().optional(),
   notes: z.string().optional(),
   sourceTraitId: z.string().optional(),
+  kind: z.enum(COMPANION_KINDS).optional(),
+  creatureId: z.string().regex(objectIdRegex, "El ID de criatura debe ser un ObjectId válido de MongoDB").optional(),
+  source: z.enum(COMPANION_SOURCES).optional(),
+  hpCurrent: z.number().int().min(0).optional(),
+  conditions: z.array(z.string().regex(objectIdRegex, "Cada estado debe ser un ObjectId válido de MongoDB")).optional(),
 });
 
 export const CompanionInputListSchema = z
@@ -315,6 +352,33 @@ export const CompanionInputListSchema = z
 
 export const UpdateCharacterCompanionsSchema = z.object({
   companions: CompanionInputListSchema,
+});
+
+export const AddCompanionSchema = z.object({
+  name: z.string().min(1, "El nombre del compañero no puede estar vacío"),
+  role: z.string().optional(),
+  notes: z.string().optional(),
+  sourceTraitId: z.string().optional(),
+  kind: z.enum(COMPANION_KINDS).optional(),
+  creatureId: z.string().regex(objectIdRegex, "El ID de criatura debe ser un ObjectId válido de MongoDB").optional(),
+  source: z.enum(COMPANION_SOURCES).optional(),
+});
+
+export const UpdateCompanionSchema = z.object({
+  name: z.string().min(1, "El nombre del compañero no puede estar vacío").optional(),
+  role: z.string().optional(),
+  notes: z.string().optional(),
+  hpCurrent: z.number().int().min(0).optional(),
+  conditions: z.array(z.string().regex(objectIdRegex, "Cada estado debe ser un ObjectId válido de MongoDB")).optional(),
+}).refine(data => Object.keys(data).length > 0, {
+  message: "Debe proporcionar al menos un campo para modificar",
+});
+
+export const CharacterCompanionParamsSchema = CharacterIdParamsSchema.extend({
+  companionId: z
+    .string()
+    .min(1, "ID de compañero requerido")
+    .regex(objectIdRegex, "El companionId debe ser un ObjectId válido de MongoDB"),
 });
 
 const atLeastOneFieldMessage = "Debe proporcionar al menos un campo para modificar";

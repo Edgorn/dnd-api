@@ -43,3 +43,33 @@ export function customizationStackKey(
 ): string {
   return customization ? JSON.stringify(customization) : "";
 }
+
+export interface EquipmentFlavorPatch {
+  name?: string | null;
+  description?: string | string[] | null;
+}
+
+export function mergeEquipmentFlavor(
+  current: CharacterEquipmentCustomization | undefined,
+  patch: EquipmentFlavorPatch
+): CharacterEquipmentCustomization | undefined {
+  const next: CharacterEquipmentCustomization = { ...(current ?? {}) };
+
+  if (patch.name !== undefined) {
+    if (patch.name === null) {
+      delete next.name;
+    } else {
+      next.name = patch.name;
+    }
+  }
+
+  if (patch.description !== undefined) {
+    if (patch.description === null) {
+      delete next.description;
+    } else {
+      next.description = patch.description;
+    }
+  }
+
+  return Object.keys(next).length > 0 ? next : undefined;
+}

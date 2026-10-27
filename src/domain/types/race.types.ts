@@ -9,6 +9,7 @@ import { CharacterEquipmentMongo, EquipmentInstanceApi } from "./equipment.types
 import { AttributeApi, AttributeBonus, AttributeBonusCreate } from "./attribute.types"
 import { CreatureTypeApi } from "./creatureType.types"
 import { RaceFlavorField } from "./entityOverride.types"
+import { CreatureSize } from "./size.types"
 
 export interface RaceMongo {
   _id: ObjectId,
@@ -73,7 +74,7 @@ export interface RaceApi {
   img: string,
   ruleset: string,
   speed: Speed,
-  size: string,
+  size: CreatureSize | string,
   size_range?: {
     min: number;
     max: number;
@@ -161,7 +162,7 @@ export interface RaceSummary {
   overriddenFields?: RaceFlavorField[];
   overrideRuleset?: string;
   parentId?: string | null;
-  size?: string;
+  size?: CreatureSize | string;
   speed?: { walk: number };
   creatureType?: RaceSummaryCreatureType;
   ability_bonuses?: AttributeBonus[];
@@ -185,7 +186,7 @@ export interface RaceSummaryDraft {
   overriddenFields?: RaceFlavorField[];
   overrideRuleset?: string;
   parentId?: string | null;
-  size?: string;
+  size?: CreatureSize | string;
   speed?: { walk: number };
   creatureType?: RaceSummaryCreatureType;
   ability_bonuses?: AttributeBonus[];
@@ -210,7 +211,7 @@ export interface CreateRace {
   speed: {
     walk: number;
   };
-  size: string;
+  size: CreatureSize | string;
   size_range?: {
     min: number;
     max: number;

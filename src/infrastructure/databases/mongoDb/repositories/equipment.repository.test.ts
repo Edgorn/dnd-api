@@ -169,6 +169,27 @@ const ration = baseDoc({
   subcategory: "Food"
 });
 
+const saddle = baseDoc({
+  _id: "507f1f77bcf86cd799439076",
+  name: "Riding Saddle",
+  category: "Mount Gear",
+  subcategory: "Saddle",
+  mountGear: { slot: "saddle", saddleType: "riding" }
+});
+
+const wagon = baseDoc({
+  _id: "507f1f77bcf86cd799439077",
+  name: "Wagon",
+  category: "Vehicle",
+  subcategory: "Land",
+  vehicle: {
+    kind: "land",
+    travelSpeed: { value: 2, unit: "mph" },
+    cargoCapacity: 400,
+    draft: { minAnimals: 2, minSize: "Grande" }
+  }
+});
+
 const pack = baseDoc({
   _id: PACK_ID,
   name: "Explorer Pack",
@@ -330,6 +351,39 @@ describe("EquipmentRepository lookup batching", () => {
         equipped: false,
         isBond: false
       });
+    });
+
+    it("formats mountGear and vehicle, normalizing draft minSize", async () => {
+      mockFindLean([saddle, wagon]);
+
+      const result = await repository.getBySystems([RULESET]);
+      const byId = Object.fromEntries(result.map(item => [item.id, item]));
+
+      expect(byId[saddle._id as string]?.mountGear).toEqual({
+        slot: "saddle"
+      });
+      expect(byId[wagon._id as string]?.vehicle).toEqual({
+        kind: "land",
+        travelSpeed: { value: 2, unit: "mph" },
+        cargoCapacity: 400,
+        draft: { minAnimals: 2, minSize: "large" }
+      });
+    });
+  });
+
+  describe("list filters", () => {
+    it("filters vehicles and mount gear slots in the mongo query", async () => {
+      mockFindLean([]);
+      await repository.getBySystems([RULESET], { hasVehicle: true });
+      expect(EquipmentModel.find).toHaveBeenCalledWith(expect.objectContaining({
+        vehicle: { $exists: true, $ne: null }
+      }));
+
+      mockFindLean([]);
+      await repository.getBySystems([RULESET], { mountGearSlot: "barding" });
+      expect(EquipmentModel.find).toHaveBeenCalledWith(expect.objectContaining({
+        "mountGear.slot": "barding"
+      }));
     });
   });
 
@@ -544,6 +598,40 @@ describe("EquipmentRepository lookup batching", () => {
             equipSlot: "off_hand",
             "armor.class": { $exists: true, $ne: null }
           }
+        ],
+        ruleset: { $in: [RULESET] }
+      });
+    });
+  });
+
+  describe("getGear", () => {
+    it("queries equipment that is neither weapon nor armor", async () => {
+      mockFindLean([]);
+
+      await repository.getGear();
+
+      expect(EquipmentModel.find).toHaveBeenCalledWith({
+        deletedAt: null,
+        $and: [
+          { $or: [{ weapon: { $exists: false } }, { weapon: null }] },
+          { equipSlot: { $nin: [...BODY_EQUIP_SLOTS] } },
+          { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] }
+        ]
+      });
+    });
+
+    it("applies expanded ruleset filter when rulesets are provided", async () => {
+      mockFindLean([]);
+
+      await repository.getGear([RULESET]);
+
+      expect(systemRepository.getSystemsAndAncestors).toHaveBeenCalledWith([RULESET]);
+      expect(EquipmentModel.find).toHaveBeenCalledWith({
+        deletedAt: null,
+        $and: [
+          { $or: [{ weapon: { $exists: false } }, { weapon: null }] },
+          { equipSlot: { $nin: [...BODY_EQUIP_SLOTS] } },
+          { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] }
         ],
         ruleset: { $in: [RULESET] }
       });

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import { ValidationError } from "../../../domain/errors/AppError";
+import { MountGearSlot } from "../../../domain/types/equipment.types";
 import CreateEquipment from "../../../application/use-cases/equipment/createEquipment.use-case";
 import UpdateEquipment from "../../../application/use-cases/equipment/updateEquipment.use-case";
 import GetEquipmentById from "../../../application/use-cases/equipment/getEquipmentById.use-case";
@@ -10,6 +11,7 @@ import RestoreEquipment from "../../../application/use-cases/equipment/restoreEq
 import GetEquipmentsByTypes from "../../../application/use-cases/equipment/getEquipmentsByTypes.use-case";
 import GetEquipmentsWeapons from "../../../application/use-cases/equipment/getEquipmentsWeapons.use-case";
 import GetEquipmentsArmor from "../../../application/use-cases/equipment/getEquipmentsArmor.use-case";
+import GetEquipmentsGear from "../../../application/use-cases/equipment/getEquipmentsGear.use-case";
 
 export class EquipmentController {
   constructor(
@@ -21,12 +23,13 @@ export class EquipmentController {
     private readonly restoreEquipmentUseCase: RestoreEquipment,
     private readonly getEquipmentsByTypesUseCase: GetEquipmentsByTypes,
     private readonly getEquipmentsWeaponsUseCase: GetEquipmentsWeapons,
-    private readonly getEquipmentsArmorUseCase: GetEquipmentsArmor
+    private readonly getEquipmentsArmorUseCase: GetEquipmentsArmor,
+    private readonly getEquipmentsGearUseCase: GetEquipmentsGear
   ) { }
 
   getBySystems = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { ruleset } = req.query;
+      const { ruleset, hasVehicle, mountGearSlot } = req.query;
       let rulesets: string[] | undefined;
 
       if (typeof ruleset === "string") {
@@ -35,7 +38,10 @@ export class EquipmentController {
         rulesets = ruleset as string[];
       }
 
-      const data = await this.getEquipmentsBySystemsUseCase.execute(rulesets);
+      const data = await this.getEquipmentsBySystemsUseCase.execute(rulesets, {
+        hasVehicle: hasVehicle === "true" ? true : undefined,
+        mountGearSlot: typeof mountGearSlot === "string" ? mountGearSlot as MountGearSlot : undefined
+      });
       return res.status(200).json(data);
     } catch (e) {
       console.error("[EquipmentController.getBySystems] Error:", e);
@@ -169,6 +175,25 @@ export class EquipmentController {
       return res.status(200).json(data);
     } catch (e) {
       console.error("[EquipmentController.getArmor] Error:", e);
+      next(e);
+    }
+  };
+
+  getGear = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { ruleset } = req.query;
+      let rulesets: string[] | undefined;
+
+      if (typeof ruleset === "string") {
+        rulesets = [ruleset];
+      } else if (Array.isArray(ruleset)) {
+        rulesets = ruleset as string[];
+      }
+
+      const data = await this.getEquipmentsGearUseCase.execute(rulesets);
+      return res.status(200).json(data);
+    } catch (e) {
+      console.error("[EquipmentController.getGear] Error:", e);
       next(e);
     }
   };

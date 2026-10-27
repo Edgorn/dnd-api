@@ -80,7 +80,7 @@ const router = Router();
  *             sizes:
  *               type: array
  *               items:
- *                 type: string
+ *                 $ref: '#/components/schemas/CreatureSize'
  *             tags:
  *               type: array
  *               items:

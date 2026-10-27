@@ -6,6 +6,7 @@ import {
 } from "../domain/types/creatureForm.types";
 import type { CreatureApi } from "../domain/types/creature.types";
 import type { CreatureTypeApi } from "../domain/types/creatureType.types";
+import { formatSize } from "../domain/types/size.types";
 
 export interface CreatureFormPoolMatchTarget {
   id: string;
@@ -38,7 +39,7 @@ export function storedPoolFromCreatureForm(
     mode: "filter",
     ...(creatureTypeIds?.length ? { creatureTypeIds } : {}),
     ...(pool.maxCR !== undefined ? { maxCR: pool.maxCR } : {}),
-    ...(pool.sizes?.length ? { sizes: pool.sizes } : {}),
+    ...(pool.sizes?.length ? { sizes: pool.sizes.map(formatSize) } : {}),
     ...(pool.tags?.length ? { tags: pool.tags } : {})
   };
 }
@@ -63,7 +64,7 @@ export function creatureMatchesFormPool(
     return false;
   }
 
-  if (stored.sizes?.length && !stored.sizes.includes(creature.size)) {
+  if (stored.sizes?.length && !stored.sizes.includes(formatSize(creature.size))) {
     return false;
   }
 
@@ -141,7 +142,7 @@ export function formatCreatureFormPool(
         }
       : {}),
     ...(stored.maxCR !== undefined ? { maxCR: stored.maxCR } : {}),
-    ...(stored.sizes?.length ? { sizes: stored.sizes } : {}),
+    ...(stored.sizes?.length ? { sizes: stored.sizes.map(formatSize) } : {}),
     ...(stored.tags?.length ? { tags: stored.tags } : {})
   };
 }

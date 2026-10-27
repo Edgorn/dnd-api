@@ -3,8 +3,10 @@ import CharacterModel from '../schemas/Character';
 import IUserRepository from '../../../../domain/repositories/IUserRepository';
 import ISpellRepository from '../../../../domain/repositories/ISpellRepository';
 import { Types } from 'mongoose';
-import { CharacterCampaignLink, CharacterSubclassApi, GetCharacterOptions, GetLevelUpDataOptions, LevelUpData, LevelUpDataResult, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, CharacterApi, CharacterBasic, CharacterGetResult, CharacterListItem, GetCharactersByUserOptions, CharacterMongo, CharacterEquipmentMongo, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeBindWeaponBond, CharacterEquipmentStateResponse, CharacterLevelUpResponse, CharacterSpellStateResponse, CharacterStatePatch, TypeLearnSpells, TypeCopySpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource, CharacterActiveConditionApi, CharacterHitDiceApi, CharacterSpellSlotApi } from '../../../../domain/types/character.types';
+import { CharacterCampaignLink, CharacterSubclassApi, GetCharacterOptions, GetLevelUpDataOptions, LevelUpData, LevelUpDataResult, LevelUpDipData, LevelUpSpellChanges, PendingSkillProficiencyChoice, CharacterApi, CharacterBasic, CharacterGetResult, CharacterListItem, GetCharactersByUserOptions, CharacterMongo, CharacterEquipmentMongo, TypeAddEquipment, TypeCreateCharacter, TypeDeleteEquipment, TypeEquipEquipment, TypeToggleFavoriteEquipment, ToggleFavoriteEquipmentResponse, TypeUpdateEquipmentCustomization, UpdateCharacterEquipmentCustomizationResponse, TypeBindWeaponBond, CharacterEquipmentStateResponse, CharacterLevelUpResponse, CharacterSpellStateResponse, CharacterStatePatch, TypeLearnSpells, TypeCopySpells, TypeLevelUp, TypePrepareSpells, TypeBindSpellPrivileges, TypeUseTrait, TypeRestCharacter, TypeSpendHitDice, TypeApplyCharacterHp, TypeSpendSpellSlot, TypeApplyCharacterCondition, TypeUpdateCharacterCondition, TypeRemoveCharacterCondition, TypeAddCharacterFormPersist, TypeSetCharacterFormActive, UpdateCharacterMoneyResponse, UpdateCharacterXpResponse, UpdateCharacterEquipmentResponse, CharacterSpellPrivilegeMongo, CharacterSpellPrivilegeApi, CharacterCompanionInput, UpdateCharacterCompanionsResponse, InputUpdateCharacterFlavor, UpdateCharacterFlavorResponse, CharacterHitDiceSpent, CharacterSpellSlotSpent, CharacterActiveCondition, CharacterTraitResource, CharacterActiveConditionApi, CharacterHitDiceApi, CharacterSpellSlotApi } from '../../../../domain/types/character.types';
+import { CharacterCompanion, CharacterCompanionRoster } from '../../../../domain/types/character.types';
 import { CharacterFormApi, CharacterFormMongo, CreatureFormSummary, formPurposeOverlaysCharacter } from '../../../../domain/types/creatureForm.types';
+import { formatSize } from '../../../../domain/types/size.types';
 import {
   CharacterOptionSelection,
   CharacterOptionSelectionApi,
@@ -31,7 +33,7 @@ import ILanguageRepository from "../../../../domain/repositories/ILanguageReposi
 import { SpellApi, SpellRef } from '../../../../domain/types/spell.types';
 import { SkillApi } from '../../../../domain/types/skill.types';
 import { ConditionApi } from '../../../../domain/types/condition.types';
-import { CharacterEquipmentApi, EquipmentInstanceApi, EquipSlot } from '../../../../domain/types/equipment.types';
+import { CharacterEquipmentApi, EquipmentInstanceApi, EquipSlot, MountGearSlot } from '../../../../domain/types/equipment.types';
 import { findBlockedEquipmentRestriction } from '../../../../utils/equipmentRestriction';
 import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
@@ -124,6 +126,7 @@ import {
 import ICreatureRepository from '../../../../domain/repositories/ICreatureRepository';
 import { CharacterAttributeApi, AttributeApi } from '../../../../domain/types/attribute.types';
 import { evaluateFormula, enrichSkillsWithPassive } from '../../../../utils/formulaEvaluator';
+import { characterCarryingCapacity } from '../../../../utils/carryingCapacity';
 import {
   applySpellReplacements,
   buildCantripSpellChoice,
@@ -186,9 +189,12 @@ import {
   splitOne,
   tryMerge,
 } from '../../../../utils/inventoryStacks';
-import { normalizeCompanions } from '../../../../utils/normalizeCompanions';
+import { mergeEquipmentFlavor } from '../../../../utils/grantedEquipment';
+import { MAX_CHARACTER_COMPANIONS, mergeCompanionsOnReplace, normalizeCompanions } from '../../../../utils/normalizeCompanions';
+import { hydrateCompanions } from '../../../../utils/hydrateCompanions';
 import { normalizeCharacterDocument } from '../../../../utils/normalizeCharacterDocument';
-import { applyEquip } from '../../../../utils/inventorySlots';
+import { applyEquip, applyMountGear } from '../../../../utils/inventorySlots';
+import { applyInventoryHolderState, holderHasContents } from '../../../../utils/inventoryHolders';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
 import { SubclassApi, SubclassNameRef, SubclassRulesRef } from '../../../../domain/types/subclass.types';
 import { SystemRulesConfig } from '../../../../domain/types/system.types';
@@ -531,7 +537,7 @@ export default class CharacterRepository implements ICharacterRepository {
   }
 
   async addEquipment(data: TypeAddEquipment): Promise<UpdateCharacterEquipmentResponse> {
-    const { id, equipmentId, quantity, isMagic } = data;
+    const { id, equipmentId, quantity, isMagic, hpCurrent } = data;
     const personaje = await CharacterModel.findById(id);
 
     if (!personaje) {
@@ -540,7 +546,12 @@ export default class CharacterRepository implements ICharacterRepository {
 
     const equipment = addToInventory(
       this.toInventoryRows(personaje.equipment),
-      createInventoryInstance({ equipmentId, quantity, isMagic })
+      createInventoryInstance({
+        equipmentId,
+        quantity,
+        isMagic,
+        ...(hpCurrent !== undefined ? { hpCurrent } : {}),
+      })
     );
 
     return this.saveInventory(id, equipment);
@@ -567,7 +578,22 @@ export default class CharacterRepository implements ICharacterRepository {
       );
     }
 
+    if (holderHasContents(inventory, instanceId)) {
+      throw new ConflictError(
+        "El contenedor o vehículo contiene equipo; muévalo antes de eliminarlo"
+      );
+    }
+
     return this.saveInventory(id, removeOrDecrement(inventory, instanceId, quantity));
+  }
+
+  async replaceInventory(
+    id: string,
+    userId: string,
+    inventory: CharacterEquipmentMongo[]
+  ): Promise<UpdateCharacterEquipmentResponse> {
+    await this.requireAccessibleCharacter(id, userId);
+    return this.saveInventory(id, inventory);
   }
 
   async equipEquipment(data: TypeEquipEquipment): Promise<CharacterEquipmentStateResponse> {
@@ -578,15 +604,17 @@ export default class CharacterRepository implements ICharacterRepository {
     }
 
     let inventory = this.toInventoryRows(personaje.equipment);
-    this.requireInventoryInstance(inventory, instanceId);
+    const target = this.requireInventoryInstance(inventory, instanceId);
 
     if (equipped) {
       const formatted = await this.equipmentRepository.getCharacterEquipmentsByIds(
         this.toHydrationRows(inventory)
       ) ?? [];
       const slotOf = this.slotLookupFrom(formatted);
+      const mountSlotOf = this.mountGearLookupFrom(formatted);
       const { inventory: next, instance } = splitOne(inventory, instanceId);
-      const catalogItem = formatted.find(item => item.instanceId === instanceId);
+      const catalogItem = formatted.find(item => item.instanceId === instanceId)
+        ?? formatted.find(item => item.id === target.equipmentId);
       const traits = await this.traitRepository.getTraitsByIndexes(
         personaje.traits ?? [],
         personaje.traitsData
@@ -599,7 +627,24 @@ export default class CharacterRepository implements ICharacterRepository {
           "Un rasgo del personaje impide equipar armadura o escudo de este material"
         );
       }
-      inventory = this.applyEquipOrThrow(next, instance.instanceId, true, slotOf);
+
+      const companions = normalizeCompanions(personaje.companions);
+      const holderCompanion = target.holderId
+        ? companions.find(companion => companion.id === target.holderId)
+        : undefined;
+
+      if (target.holderId && !holderCompanion) {
+        throw new ConflictError("No se puede equipar un objeto que está en un contenedor o vehículo");
+      }
+
+      if (holderCompanion) {
+        if (holderCompanion.kind !== "mount" || !catalogItem?.mountGear) {
+          throw new ValidationError("El arreo o la barda solo se equipan en una montura");
+        }
+        inventory = this.applyMountGearOrThrow(next, instance.instanceId, true, mountSlotOf);
+      } else {
+        inventory = this.applyEquipOrThrow(next, instance.instanceId, true, slotOf);
+      }
     } else {
       inventory = applyEquip(inventory, instanceId, false, () => null);
     }
@@ -649,6 +694,48 @@ export default class CharacterRepository implements ICharacterRepository {
       id,
       instanceId: targetInstanceId,
       isFavorite,
+      ...(splitFrom ? { splitFrom } : {}),
+    };
+  }
+
+  async updateEquipmentCustomization(
+    data: TypeUpdateEquipmentCustomization
+  ): Promise<UpdateCharacterEquipmentCustomizationResponse> {
+    const { id, instanceId, name, description } = data;
+    const personaje = await CharacterModel.findById(id);
+
+    if (!personaje) {
+      throw new NotFoundError("Personaje no encontrado");
+    }
+
+    let inventory = this.toInventoryRows(personaje.equipment);
+    this.requireInventoryInstance(inventory, instanceId);
+
+    const split = splitOne(inventory, instanceId);
+    inventory = split.inventory;
+    const targetInstanceId = split.instance.instanceId;
+    let splitFrom: UpdateCharacterEquipmentCustomizationResponse["splitFrom"];
+    if (targetInstanceId !== instanceId) {
+      const source = inventory.find(item => item.instanceId === instanceId);
+      if (source) {
+        splitFrom = { instanceId, quantity: source.quantity };
+      }
+    }
+
+    const idx = inventory.findIndex(eq => eq.instanceId === targetInstanceId);
+    const customization = mergeEquipmentFlavor(inventory[idx].customization, { name, description });
+    const nextRow = { ...inventory[idx] };
+    if (customization) {
+      nextRow.customization = customization;
+    } else {
+      delete nextRow.customization;
+    }
+    inventory[idx] = nextRow;
+
+    const saved = await this.saveInventory(id, inventory);
+    return {
+      ...saved,
+      instanceId: targetInstanceId,
       ...(splitFrom ? { splitFrom } : {}),
     };
   }
@@ -711,9 +798,75 @@ export default class CharacterRepository implements ICharacterRepository {
 
     await this.assertCanAccessCharacter(personaje, userId);
 
-    const normalized = normalizeCompanions(companions);
+    const normalized = mergeCompanionsOnReplace(companions, normalizeCompanions(personaje.companions));
     await CharacterModel.findByIdAndUpdate(id, { $set: { companions: normalized } });
 
+    return { companions: normalized };
+  }
+
+  async getCompanionRoster(id: string, userId: string): Promise<CharacterCompanionRoster> {
+    const personaje = await this.requireAccessibleCharacter(id, userId);
+    return {
+      companions: normalizeCompanions(personaje.companions),
+      systems: personaje.systems ?? [],
+      inventory: this.toInventoryRows(personaje.equipment),
+    };
+  }
+
+  async addCompanion(
+    id: string,
+    userId: string,
+    companion: CharacterCompanionInput
+  ): Promise<UpdateCharacterCompanionsResponse> {
+    const roster = await this.getCompanionRoster(id, userId);
+    if (roster.companions.length >= MAX_CHARACTER_COMPANIONS) {
+      throw new ConflictError("No se pueden registrar más de 20 compañeros");
+    }
+    return this.persistCompanions(id, [...roster.companions, companion]);
+  }
+
+  async updateCompanion(
+    id: string,
+    userId: string,
+    companionId: string,
+    patch: Partial<CharacterCompanion>
+  ): Promise<UpdateCharacterCompanionsResponse> {
+    const roster = await this.getCompanionRoster(id, userId);
+    const index = roster.companions.findIndex(item => item.id === companionId);
+    if (index < 0) {
+      throw new NotFoundError("Compañero no encontrado");
+    }
+    const next = roster.companions.map((item, i) => i === index ? { ...item, ...patch, id: item.id } : item);
+    return this.persistCompanions(id, next);
+  }
+
+  async removeCompanion(
+    id: string,
+    userId: string,
+    companionId: string
+  ): Promise<UpdateCharacterCompanionsResponse> {
+    const roster = await this.getCompanionRoster(id, userId);
+    if (!roster.companions.some(item => item.id === companionId)) {
+      throw new NotFoundError("Compañero no encontrado");
+    }
+    return this.persistCompanions(id, roster.companions.filter(item => item.id !== companionId));
+  }
+
+  async saveCompanions(
+    id: string,
+    userId: string,
+    companions: CharacterCompanion[]
+  ): Promise<UpdateCharacterCompanionsResponse> {
+    await this.requireAccessibleCharacter(id, userId);
+    return this.persistCompanions(id, companions);
+  }
+
+  private async persistCompanions(
+    id: string,
+    companions: CharacterCompanionInput[]
+  ): Promise<UpdateCharacterCompanionsResponse> {
+    const normalized = normalizeCompanions(companions);
+    await CharacterModel.findByIdAndUpdate(id, { $set: { companions: normalized } });
     return { companions: normalized };
   }
 
@@ -3634,7 +3787,7 @@ export default class CharacterRepository implements ICharacterRepository {
     const [traits, equipment, rulesConfig] = await Promise.all([
       this.traitRepository.getArmorClassInputsByIds(normalized.traits ?? []),
       this.equipmentRepository.getArmorClassInputsByIds(
-        this.toHydrationRows((normalized.equipment ?? []).filter(item => item.equipped))
+        this.toHydrationRows((normalized.equipment ?? []).filter(item => item.equipped && !item.holderId))
       ),
       this.systemRepository.getMergedRulesConfig(normalized.systems ?? [])
     ]);
@@ -3738,7 +3891,7 @@ export default class CharacterRepository implements ICharacterRepository {
     );
     const needLight = needLightIndexes.map(index => personajes[index]);
     const equippedRowsByNeed = needLight.map(personaje =>
-      this.toHydrationRows((personaje.equipment ?? []).filter(item => item.equipped))
+      this.toHydrationRows((personaje.equipment ?? []).filter(item => item.equipped && !item.holderId))
     );
     const allEquipped = equippedRowsByNeed.flat();
     const traitIds = [...new Set(needLight.flatMap(personaje => personaje.traits ?? []).filter(Boolean))];
@@ -3824,7 +3977,7 @@ export default class CharacterRepository implements ICharacterRepository {
         ?? await this.traitRepository.getArmorClassInputsByIds(personaje.traits ?? []);
       const equipment = equipmentForAc
         ?? await this.equipmentRepository.getArmorClassInputsByIds(
-          this.toHydrationRows((personaje.equipment ?? []).filter(item => item.equipped))
+          this.toHydrationRows((personaje.equipment ?? []).filter(item => item.equipped && !item.holderId))
         );
       const computed = listArmorClassFromRules({
         attributes: personaje.attributes ?? [],
@@ -3880,7 +4033,7 @@ export default class CharacterRepository implements ICharacterRepository {
   ) {
     const equipment = options?.equipment
       ?? (await this.equipmentRepository.getCharacterEquipmentsByIds(
-        this.toHydrationRows((personaje.equipment ?? []).filter(eq => eq.equipped))
+        this.toHydrationRows((personaje.equipment ?? []).filter(eq => eq.equipped && !eq.holderId))
       ))
       ?? [];
 
@@ -3931,12 +4084,17 @@ export default class CharacterRepository implements ICharacterRepository {
         .map(form => form.creatureId)
         .filter(id => Boolean(id) && !overlayCreatureIdSet.has(id))
     )]
+    const storedCompanions = isCombat ? [] : normalizeCompanions(personaje.companions)
+    const companionCreatureIds = [...new Set(
+      storedCompanions.flatMap(companion => companion.creatureId ? [companion.creatureId] : [])
+    )]
     const fullFormCreatureIds = isCombat || isSheet
       ? overlayCreatureIds
       : [...new Set(storedForms.map(form => form.creatureId))]
+    const fullCreatureIds = [...new Set([...fullFormCreatureIds, ...companionCreatureIds])]
     const formSpellIds = [...new Set(storedForms.flatMap(form => form.spellId ? [form.spellId] : []))]
     const storedConditions = normalizeActiveConditions(personaje.activeConditions)
-    const equippedRows = (personaje.equipment ?? []).filter(eq => eq.equipped)
+    const equippedRows = (personaje.equipment ?? []).filter(eq => eq.equipped && !eq.holderId)
 
     const [
       loadedTraits,
@@ -3976,7 +4134,7 @@ export default class CharacterRepository implements ICharacterRepository {
       this.systemRepository.getMergedRulesConfig(personaje.systems ?? []),
       this.attributeService.getBySystems(personaje.systems ?? []),
       isCombat ? Promise.resolve([]) : this.normalizeAndFormatMoney(personaje),
-      fullFormCreatureIds.length ? this.creatureRepository.getByIds(fullFormCreatureIds) : Promise.resolve([]),
+      fullCreatureIds.length ? this.creatureRepository.getByIds(fullCreatureIds) : Promise.resolve([]),
       isSheet && summaryCreatureIds.length
         ? this.creatureRepository.getSummariesByIds(summaryCreatureIds)
         : Promise.resolve([] as CreatureFormSummary[]),
@@ -4138,17 +4296,10 @@ export default class CharacterRepository implements ICharacterRepository {
       rulesConfig.defaultMaxAttributeValue
     );
 
-    let maxCarryingCapacity: number;
-    if (rulesConfig.carryingCapacityFormula) {
-      maxCarryingCapacity = evaluateFormula(rulesConfig.carryingCapacityFormula, apiAttributes);
-    } else {
-      const strVal = apiAttributes.find(a => a.key === 'str')?.value ?? 10;
-      maxCarryingCapacity = strVal * 15;
-    }
-
-    if (traits?.find(trait => trait.id === "semblance-beast-bear")) {
-      maxCarryingCapacity *= 2
-    }
+    const maxCarryingCapacity = characterCarryingCapacity(
+      apiAttributes,
+      rulesConfig.carryingCapacityFormula
+    );
 
     const proficientIds = collectProficientSkillIds(personaje?.skills, traits ?? []);
     const skillsListEvaluated = await this.skillService.getCharacterSkills(
@@ -4179,9 +4330,10 @@ export default class CharacterRepository implements ICharacterRepository {
         rules: rulesConfig,
         pactProficiency: ownedWeaponBond(traits ?? [])?.grantsProficiency === true,
       });
+    const characterWornEquipment = equipmentWithCombatBonuses.filter(item => !item.holderId);
     const armorEquipment: ArmorRulesEquipment[] = isCombat
       ? acEquipment
-      : equipmentWithCombatBonuses;
+      : characterWornEquipment;
 
     const { ac } = await this.calculateAc(personaje, traits, {
       equipment: armorEquipment,
@@ -4204,7 +4356,7 @@ export default class CharacterRepository implements ICharacterRepository {
     );
     const wearingArmorWithoutProficiency = isCombat
       ? false
-      : isWearingArmorWithoutProficiency(equipmentWithCombatBonuses);
+      : isWearingArmorWithoutProficiency(characterWornEquipment);
 
     const formCreatureById = new Map(formCreatures.map(creature => [creature.id, creature]));
     const formSummaryById = new Map(formSummaries.map(creature => [creature.id, creature]));
@@ -4258,12 +4410,19 @@ export default class CharacterRepository implements ICharacterRepository {
       ...(item.level !== undefined ? { level: item.level } : {})
     }));
 
+    const hydratedCompanions = isCombat
+      ? []
+      : hydrateCompanions(storedCompanions, formCreatures);
+    const holderState = isCombat
+      ? { equipment: [] as CharacterEquipmentApi[], companions: hydratedCompanions, characterLoad: 0 }
+      : applyInventoryHolderState(equipmentWithCombatBonuses, hydratedCompanions, rulesConfig);
+
     const sheet: CharacterApi = {
       id: personaje._id.toString(),
       img: personaje.img,
       name: personaje.name,
       race: personaje.race,
-      size: personaje.size,
+      size: formatSize(personaje.size),
       classes: clases,
       subclasses: this.mapSubclassSummaries(personaje.subclasses ?? [], subclassSummariesById),
       campaign: personaje?.campaign ? { id: personaje?.campaign, name: campaign?.name } : null,
@@ -4313,17 +4472,18 @@ export default class CharacterRepository implements ICharacterRepository {
       savingThrows: personaje.savingThrows,
       equipment: isCombat
         ? (armorEquipment as unknown as CharacterEquipmentApi[])
-        : equipmentWithCombatBonuses,
+        : holderState.equipment,
       wearingArmorWithoutProficiency,
       money,
       spells: updatedSpells,
       maxCarryingCapacity,
+      load: holderState.characterLoad,
       spellcasting,
       optionSelections,
       forms,
       activeFormId,
       spellPrivileges: hydratedPrivileges,
-      companions: isCombat ? [] : normalizeCompanions(personaje.companions),
+      companions: holderState.companions,
       traitResources,
       activeTraitIds,
       hitDice,
@@ -4367,6 +4527,9 @@ export default class CharacterRepository implements ICharacterRepository {
       ...(item.bondStored ? { bondStored: true } : {}),
       ...(item.uniqueGranted ? { uniqueGranted: true } : {}),
       ...(item.customization ?? {}),
+      ...(item.holderId ? { holderId: item.holderId } : {}),
+      ...(item.drawnBy !== undefined ? { drawnBy: item.drawnBy } : {}),
+      ...(item.hpCurrent !== undefined ? { hpCurrent: item.hpCurrent } : {}),
     }));
   }
 
@@ -4386,6 +4549,22 @@ export default class CharacterRepository implements ICharacterRepository {
       ?? null;
   }
 
+  private mountGearLookupFrom(
+    formatted: EquipmentInstanceApi[]
+  ): (item: CharacterEquipmentMongo) => MountGearSlot | null {
+    const slotByInstanceId = new Map(
+      formatted.map(item => [item.instanceId, item.mountGear?.slot ?? null] as const)
+    );
+    const slotByEquipmentId = new Map(
+      formatted.map(item => [item.id, item.mountGear?.slot ?? null] as const)
+    );
+
+    return (item: CharacterEquipmentMongo) =>
+      slotByInstanceId.get(item.instanceId)
+      ?? slotByEquipmentId.get(item.equipmentId)
+      ?? null;
+  }
+
   private applyEquipOrThrow(
     inventory: CharacterEquipmentMongo[],
     instanceId: string,
@@ -4397,6 +4576,25 @@ export default class CharacterRepository implements ICharacterRepository {
     } catch (error) {
       if (error instanceof Error && error.message === "NO_EQUIP_SLOT") {
         throw new ValidationError("El equipamiento no tiene ranura de equipamiento (equipSlot)");
+      }
+      if (error instanceof Error && error.message === "INVENTORY_INSTANCE_NOT_FOUND") {
+        throw new NotFoundError("No se encontró el equipamiento en el personaje");
+      }
+      throw error;
+    }
+  }
+
+  private applyMountGearOrThrow(
+    inventory: CharacterEquipmentMongo[],
+    instanceId: string,
+    equipped: boolean,
+    slotOf: (item: CharacterEquipmentMongo) => MountGearSlot | null
+  ): CharacterEquipmentMongo[] {
+    try {
+      return applyMountGear(inventory, instanceId, equipped, slotOf);
+    } catch (error) {
+      if (error instanceof Error && error.message === "NO_MOUNT_GEAR_SLOT") {
+        throw new ValidationError("El arreo o la barda solo se equipan en una montura");
       }
       if (error instanceof Error && error.message === "INVENTORY_INSTANCE_NOT_FOUND") {
         throw new NotFoundError("No se encontró el equipamiento en el personaje");
@@ -4812,7 +5010,7 @@ export default class CharacterRepository implements ICharacterRepository {
     });
 
     const { ac } = await this.calculateAc(personaje, traits, {
-      equipment: equipmentWithCombatBonuses,
+      equipment: equipmentWithCombatBonuses.filter(item => !item.holderId),
       attributes: apiAttributes,
       rulesConfig
     });
@@ -4871,7 +5069,7 @@ export default class CharacterRepository implements ICharacterRepository {
       ).values(),
     ];
 
-    return enrichEquipmentWithCombatBonuses({
+    const enriched = enrichEquipmentWithCombatBonuses({
       equipment: equipment ?? [],
       attributes: apiAttributes,
       proficiencies: proficienciesForEquipmentCheck,
@@ -4880,6 +5078,11 @@ export default class CharacterRepository implements ICharacterRepository {
       rules: rulesConfig,
       pactProficiency: ownedWeaponBond(traits ?? [])?.grantsProficiency === true,
     });
+    return applyInventoryHolderState(
+      enriched,
+      hydrateCompanions(normalizeCompanions(personaje.companions), []),
+      rulesConfig
+    ).equipment;
   }
 
   private async normalizeAndFormatMoney(personaje: CharacterMongo): Promise<({ quantity: number } & CoinApi)[]> {

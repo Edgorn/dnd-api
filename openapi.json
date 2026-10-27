@@ -1500,7 +1500,7 @@
               "sizes": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/CreatureSize"
                 }
               },
               "tags": {
@@ -1554,7 +1554,7 @@
               "sizes": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/CreatureSize"
                 }
               },
               "tags": {
@@ -1704,6 +1704,10 @@
               "type": "string"
             },
             "description": "Lista de índices o IDs de rasgos incompatibles."
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "Si está oculto en la creación. También lo oculta el PDF y la vista combate."
           },
           "stackGroup": {
             "allOf": [
@@ -2040,6 +2044,10 @@
               "type": "string"
             },
             "description": "Lista de índices o IDs de rasgos incompatibles."
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "Si está oculto en la creación. También lo oculta el PDF y la vista combate."
           },
           "stackGroup": {
             "allOf": [
@@ -2551,7 +2559,19 @@
           },
           "carryingCapacityFormula": {
             "type": "string",
-            "description": "Fórmula de capacidad de carga máxima del personaje. Ver SystemCharacterFormulaSyntax.\nEjemplo: @attributes.str.value * 15\n"
+            "description": "Fórmula de capacidad de carga máxima del personaje. Ver SystemCharacterFormulaSyntax.\nSi falta, `maxCarryingCapacity` del personaje es null.\nEjemplo: @attributes.str.value * 15\n"
+          },
+          "drawCapacityMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de capacidad de tiro. Si no se define, el tiro no se calcula.\nEjemplo 5e: 5.\n"
+          },
+          "bardingCostMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de coste de la barda respecto a la armadura. Si no se define, el coste\nde barda no se calcula. Ejemplo 5e: 4.\n"
+          },
+          "bardingWeightMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de peso de la barda respecto a la armadura. Si no se define, el peso\nde barda no se calcula. Ejemplo 5e: 2.\n"
           },
           "attackBonusFormula": {
             "type": "string",
@@ -2750,7 +2770,19 @@
           },
           "carryingCapacityFormula": {
             "type": "string",
-            "description": "Capacidad de carga. Ver SystemCharacterFormulaSyntax.\nEjemplo: @attributes.str.value * 15\n"
+            "description": "Capacidad de carga. Ver SystemCharacterFormulaSyntax.\nSi falta, `maxCarryingCapacity` del personaje es null.\nEjemplo: @attributes.str.value * 15\n"
+          },
+          "drawCapacityMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de capacidad de tiro. Sin él no se calcula. Ejemplo 5e: 5.\n"
+          },
+          "bardingCostMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de coste de la barda. Sin él no se calcula. Ejemplo 5e: 4.\n"
+          },
+          "bardingWeightMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de peso de la barda. Sin él no se calcula. Ejemplo 5e: 2.\n"
           },
           "attackBonusFormula": {
             "type": "string",
@@ -2880,7 +2912,19 @@
           },
           "carryingCapacityFormula": {
             "type": "string",
-            "description": "Capacidad de carga. Ver SystemCharacterFormulaSyntax."
+            "description": "Capacidad de carga. Si falta, `maxCarryingCapacity` es null. Ver SystemCharacterFormulaSyntax."
+          },
+          "drawCapacityMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de tiro. Si falta, el tiro no se calcula."
+          },
+          "bardingCostMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de coste de barda. Si falta, el coste no se calcula."
+          },
+          "bardingWeightMultiplier": {
+            "type": "number",
+            "description": "Multiplicador de peso de barda. Si falta, el peso no se calcula."
           },
           "attackBonusFormula": {
             "type": "string",
@@ -3280,7 +3324,7 @@
               "sizes": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/CreatureSize"
                 }
               },
               "tags": {
@@ -4308,8 +4352,8 @@
             }
           },
           "size": {
-            "type": "string",
-            "description": "Tamaño típico (e.g. Mediano)."
+            "$ref": "#/components/schemas/CreatureSize",
+            "description": "Tamaño típico. También se aceptan nombres legado (p. ej. Mediano)."
           },
           "size_range": {
             "type": "object",
@@ -4517,7 +4561,7 @@
             "type": "string"
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
           },
           "speed": {
             "type": "object",
@@ -4782,7 +4826,7 @@
             }
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
           },
           "size_range": {
             "type": "object"
@@ -4912,7 +4956,7 @@
             "type": "object"
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
           },
           "size_range": {
             "type": "object"
@@ -6289,6 +6333,12 @@
           "containerStats": {
             "$ref": "#/components/schemas/ContainerRules"
           },
+          "mountGear": {
+            "$ref": "#/components/schemas/MountGear"
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/VehicleStats"
+          },
           "proficiencies": {
             "type": "array",
             "items": {
@@ -6407,6 +6457,47 @@
               "damageBonus": {
                 "type": "number",
                 "description": "Bono de daño de la fórmula del sistema. En la ficha de juego se suma el overlay de stances activas (p. ej. Furia en melee con Fuerza). El PDF usa el valor base.\n"
+              },
+              "holderId": {
+                "type": "string",
+                "nullable": true,
+                "description": "Compañero o instancia contenedor/vehículo que porta el objeto. Null u omitido = el personaje."
+              },
+              "load": {
+                "type": "number",
+                "description": "Peso del vehículo más su contenido. Solo en filas con bloque vehicle."
+              },
+              "capacity": {
+                "type": "number",
+                "nullable": true,
+                "description": "Capacidad de carga del vehículo (`cargoCapacity`)."
+              },
+              "drawCapacity": {
+                "type": "number",
+                "nullable": true,
+                "description": "Capacidad de tiro (multiplicador del sistema × suma de cargas de las bestias). Null si el sistema no define drawCapacityMultiplier o falta la carga de alguna bestia.\n"
+              },
+              "drawnBy": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "IDs de compañeros enganchados a este vehículo."
+              },
+              "hpCurrent": {
+                "type": "integer",
+                "description": "Puntos de golpe actuales de la instancia de vehículo. Se inicializa con vehicle.hitPoints al adquirir."
+              },
+              "ac": {
+                "type": "number",
+                "description": "Clase de armadura de la instancia de vehículo (`vehicle.armorClass`)."
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Avisos del portador. `overloaded` si load supera cargoCapacity; `overDrawCapacity` si load supera drawCapacity (solo cuando drawCapacity no es null); `insufficientAnimals` según vehicle.draft (minAnimals / minSize).\n"
               }
             }
           }
@@ -6515,6 +6606,100 @@
               }
             },
             "description": "Contenido inicial del equipamiento (packs o contenedores). Referencias por id y cantidad."
+          },
+          "mountGear": {
+            "$ref": "#/components/schemas/MountGear",
+            "nullable": true
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/VehicleStats",
+            "nullable": true
+          }
+        }
+      },
+      "MountGear": {
+        "type": "object",
+        "required": [
+          "slot"
+        ],
+        "properties": {
+          "slot": {
+            "type": "string",
+            "enum": [
+              "saddle",
+              "bridle",
+              "barding",
+              "saddlebags",
+              "harness"
+            ],
+            "description": "Ranura de arreo o barda en la montura."
+          }
+        }
+      },
+      "VehicleStats": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "description": "Bloque de vehículo. Las velocidades de viaje se guardan en millas por hora y la carga en libras.",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "land",
+              "water",
+              "air"
+            ]
+          },
+          "travelSpeed": {
+            "type": "object",
+            "required": [
+              "value",
+              "unit"
+            ],
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "mph"
+                ]
+              }
+            }
+          },
+          "cargoCapacity": {
+            "type": "number",
+            "description": "Capacidad de carga en libras."
+          },
+          "crew": {
+            "type": "integer"
+          },
+          "passengers": {
+            "type": "integer"
+          },
+          "armorClass": {
+            "type": "number"
+          },
+          "hitPoints": {
+            "type": "integer"
+          },
+          "damageThreshold": {
+            "type": "integer"
+          },
+          "draft": {
+            "type": "object",
+            "properties": {
+              "minAnimals": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Número mínimo de animales de tiro."
+              },
+              "minSize": {
+                "$ref": "#/components/schemas/CreatureSize"
+              }
+            }
           }
         }
       },
@@ -6615,6 +6800,14 @@
               }
             },
             "description": "Contenido del equipamiento (packs o contenedores). Referencias por id y cantidad."
+          },
+          "mountGear": {
+            "$ref": "#/components/schemas/MountGear",
+            "nullable": true
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/VehicleStats",
+            "nullable": true
           }
         }
       },
@@ -6749,6 +6942,18 @@
           }
         }
       },
+      "CreatureSize": {
+        "type": "string",
+        "description": "Tamaño canónico. También se aceptan nombres en español o inglés con otra capitalización (p. ej. Mediano, Medium); se normalizan a este valor.\n",
+        "enum": [
+          "tiny",
+          "small",
+          "medium",
+          "large",
+          "huge",
+          "gargantuan"
+        ]
+      },
       "Creature": {
         "type": "object",
         "properties": {
@@ -6798,7 +7003,19 @@
             "description": "Etiquetas de la criatura (p. ej. cambiaformas, demonio). No son el tipo ni la raza."
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/EquipmentCostApi",
+            "description": "Precio de catálogo de la criatura (p. ej. una montura). La unidad es una moneda hidratada."
+          },
+          "canBeMount": {
+            "type": "boolean",
+            "description": "Si es true, el personaje puede registrar esta criatura como montura.\n"
+          },
+          "carryingCapacity": {
+            "type": "number",
+            "description": "Capacidad de carga fija en libras. Si falta, el compañero hidratado no tiene tope."
           },
           "alignment": {
             "type": "string"
@@ -7146,7 +7363,21 @@
             "description": "Etiquetas opcionales (p. ej. cambiaformas, demonio). No son el tipo ni la raza."
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/EquipmentCost",
+            "nullable": true,
+            "description": "Precio de catálogo. unit es el ID de una moneda (Coin)."
+          },
+          "canBeMount": {
+            "type": "boolean",
+            "description": "Si se omite, se trata como false."
+          },
+          "carryingCapacity": {
+            "type": "number",
+            "nullable": true,
+            "description": "Capacidad de carga fija en libras. null en PATCH borra el campo."
           },
           "alignment": {
             "type": "string"
@@ -9788,7 +10019,7 @@
             }
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
           },
           "attributes": {
             "type": "array",
@@ -9876,6 +10107,88 @@
           "sourceTraitId": {
             "type": "string",
             "description": "ID del rasgo que sugirió el roster (orientación de UI; el servidor no lo exige)."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "narrative",
+              "mount",
+              "animal",
+              "hireling"
+            ],
+            "description": "Tipo de compañero. Si falta, se trata como narrative. `mount` exige una criatura con `canBeMount`."
+          },
+          "creatureId": {
+            "type": "string",
+            "description": "ID de la criatura del catálogo (monturas y animales)."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "purchase",
+              "trait",
+              "spell"
+            ],
+            "description": "Origen del compañero."
+          },
+          "hpCurrent": {
+            "type": "integer",
+            "description": "Puntos de golpe actuales. En GET, hpMax sale de la criatura hidratada."
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de estados activos sobre el compañero."
+          },
+          "creature": {
+            "type": "object",
+            "description": "Criatura hidratada en GET /character/{id} cuando hay creatureId. Incluye attributes, CA, HPMax y speed."
+          },
+          "attributes": {
+            "type": "array",
+            "description": "Características de la criatura (valor y modificador). Solo en lectura, si hay criatura hidratada.",
+            "items": {
+              "type": "object"
+            }
+          },
+          "hpMax": {
+            "type": "integer",
+            "description": "PG máximos de la criatura. Solo en lectura."
+          },
+          "speed": {
+            "type": "object",
+            "description": "Desplazamientos de la criatura. Solo en lectura."
+          },
+          "size": {
+            "type": "string",
+            "description": "Tamaño de la criatura. Solo en lectura."
+          },
+          "carryingCapacity": {
+            "type": "number",
+            "nullable": true,
+            "description": "Capacidad de carga de la criatura del catálogo, en libras. Null si la criatura no define el campo."
+          },
+          "load": {
+            "type": "number",
+            "description": "Peso total del equipo que porta el compañero, incluyendo contenido anidado."
+          },
+          "capacity": {
+            "type": "number",
+            "nullable": true,
+            "description": "Igual que carryingCapacity. Null si la criatura no define el campo; en ese caso no hay aviso de sobrecarga."
+          },
+          "ac": {
+            "type": "number",
+            "description": "CA de la criatura. Si la montura lleva barda equipada, es la CA de esa armadura."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Avisos de carga. `overloaded` solo si capacity no es null y load la supera."
           }
         }
       },
@@ -10021,7 +10334,7 @@
             "type": "string"
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
           },
           "classes": {
             "type": "array",
@@ -10353,7 +10666,13 @@
             "description": "Conjuros del personaje agrupados por nivel o clase."
           },
           "maxCarryingCapacity": {
-            "type": "number"
+            "type": "number",
+            "nullable": true,
+            "description": "Capacidad de carga del personaje según `carryingCapacityFormula` del sistema. Null si el sistema no define la fórmula."
+          },
+          "load": {
+            "type": "number",
+            "description": "Peso que carga el personaje. Solo filas con holderId nulo; excluye vehículos."
           },
           "spellcasting": {
             "type": "array",
@@ -10391,7 +10710,7 @@
             "items": {
               "$ref": "#/components/schemas/CharacterCompanion"
             },
-            "description": "Roster narrativo de compañeros. Vacío en fichas antiguas. No se valida contra companionRoster.count del rasgo."
+            "description": "Compañeros del personaje. Con creatureId se hidratan criatura, attributes, hpMax, CA, speed, size, carryingCapacity, load y capacity. Vacío en vista de combate."
           }
         }
       },
@@ -10439,7 +10758,7 @@
             "type": "string"
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
           },
           "cr": {
             "type": "number"
@@ -10501,7 +10820,7 @@
             }
           },
           "size": {
-            "type": "string"
+            "$ref": "#/components/schemas/CreatureSize"
           },
           "appearance": {
             "type": "object"
@@ -12640,7 +12959,7 @@
       },
       "post": {
         "summary": "Crear un nuevo sistema",
-        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"abilityScoreProgression\": [4, 8, 12, 16, 19],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\",\n  \"restRules\": {\n    \"kinds\": [\n      { \"key\": \"shortRest\", \"name\": \"Descanso corto\", \"duration\": { \"value\": 1, \"unit\": \"hour\" } },\n      { \"key\": \"longRest\", \"name\": \"Descanso largo\", \"duration\": { \"value\": 8, \"unit\": \"hour\" }, \"includes\": [\"shortRest\"] }\n    ],\n    \"endStancesOn\": [\"shortRest\"],\n    \"hitPointRecovery\": [\n      { \"restKey\": \"longRest\", \"hp\": \"full\", \"hitDice\": \"half\" }\n    ],\n    \"hitDiceSpending\": {\n      \"on\": [\"shortRest\"],\n      \"bonusFormula\": \"@attributes.con.modifier\"\n    },\n    \"spellSlotRecovery\": [\n      { \"restKey\": \"shortRest\", \"pools\": [\"fixedLevel\"] },\n      { \"restKey\": \"longRest\", \"pools\": [\"standard\", \"fixedLevel\"] }\n    ]\n  }\n}\n```\n",
+        "description": "`initiativeBonusFormula` define el **bono**, no la tirada. Para iniciativa total en la UI:\n`1d20 + personaje.initiativeBonus`. Valores como `1d20 + @attributes.dex.modifier` **no son válidos** al guardar el sistema.\n\nEjemplo de payload de referencia para D&D 5e (maxLevel 20):\n```json\n{\n  \"name\": \"D&D 5e\",\n  \"maxLevel\": 20,\n  \"xpProgression\": [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000],\n  \"proficiencyProgression\": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],\n  \"abilityScoreProgression\": [4, 8, 12, 16, 19],\n  \"hpInitialFormula\": \"max(@class.hitDie) + @attributes.con.modifier\",\n  \"hpLevelUpFormula\": \"@class.hitDie + @attributes.con.modifier\",\n  \"baseAcFormula\": \"10 + @attributes.dex.modifier\",\n  \"passiveSkillFormula\": \"10 + @skills.{skillName}.totalModifier\",\n  \"carryingCapacityFormula\": \"@attributes.str.value * 15\",\n  \"drawCapacityMultiplier\": 5,\n  \"bardingCostMultiplier\": 4,\n  \"bardingWeightMultiplier\": 2,\n  \"initiativeBonusFormula\": \"@attributes.dex.modifier\",\n  \"meleeAttackAttributes\": [\"str\"],\n  \"rangedAttackAttributes\": [\"dex\"],\n  \"attackBonusFormula\": \"@weapon.attributeModifier + @weapon.isProficient * @proficiencyBonus + @weapon.isMagic\",\n  \"damageBonusFormula\": \"@weapon.attributeModifier + @weapon.isMagic\",\n  \"restRules\": {\n    \"kinds\": [\n      { \"key\": \"shortRest\", \"name\": \"Descanso corto\", \"duration\": { \"value\": 1, \"unit\": \"hour\" } },\n      { \"key\": \"longRest\", \"name\": \"Descanso largo\", \"duration\": { \"value\": 8, \"unit\": \"hour\" }, \"includes\": [\"shortRest\"] }\n    ],\n    \"endStancesOn\": [\"shortRest\"],\n    \"hitPointRecovery\": [\n      { \"restKey\": \"longRest\", \"hp\": \"full\", \"hitDice\": \"half\" }\n    ],\n    \"hitDiceSpending\": {\n      \"on\": [\"shortRest\"],\n      \"bonusFormula\": \"@attributes.con.modifier\"\n    },\n    \"spellSlotRecovery\": [\n      { \"restKey\": \"shortRest\", \"pools\": [\"fixedLevel\"] },\n      { \"restKey\": \"longRest\", \"pools\": [\"standard\", \"fixedLevel\"] }\n    ]\n  }\n}\n```\n",
         "tags": [
           "Sistemas"
         ],
@@ -15563,6 +15882,7 @@
     "/equipment": {
       "get": {
         "summary": "Obtener lista de equipamientos filtrados por sistemas",
+        "description": "Incluye el equipo de los sistemas ancestros. hasVehicle=true deja solo vehículos. mountGearSlot filtra arreos y bardas por ranura.",
         "tags": [
           "Equipamiento"
         ],
@@ -15579,6 +15899,33 @@
               "type": "string"
             },
             "description": "ID o nombre del sistema para filtrar equipamientos (incluye ancestros)."
+          },
+          {
+            "in": "query",
+            "name": "hasVehicle",
+            "schema": {
+              "type": "string",
+              "enum": [
+                true,
+                false
+              ]
+            },
+            "description": "Si es true, solo devuelve objetos con bloque vehicle."
+          },
+          {
+            "in": "query",
+            "name": "mountGearSlot",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "saddle",
+                "bridle",
+                "barding",
+                "saddlebags",
+                "harness"
+              ]
+            },
+            "description": "Filtra arreos y bardas por ranura."
           }
         ],
         "responses": {
@@ -15722,6 +16069,71 @@
         "responses": {
           "200": {
             "description": "Lista de armaduras devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "subcategory": {
+                        "type": "string"
+                      },
+                      "equipSlot": {
+                        "$ref": "#/components/schemas/EquipSlot"
+                      },
+                      "armor": {
+                        "$ref": "#/components/schemas/Armor"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/equipment/gear": {
+      "get": {
+        "summary": "Obtener equipo de aventura",
+        "description": "Devuelve el equipamiento que no es arma (sin bloque weapon) ni armadura (sin ranura de cuerpo ni escudo con armor.class). No depende de category. Incluye herramientas, kits, munición, contenedores, vehículos y arreos.",
+        "tags": [
+          "Equipamiento"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema para filtrar equipamientos (incluye ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de equipo de aventura devuelta con éxito.",
             "content": {
               "application/json": {
                 "schema": {
@@ -16491,7 +16903,7 @@
     "/creatures": {
       "get": {
         "summary": "Obtener las criaturas de uno o varios sistemas",
-        "description": "Incluye criaturas de los sistemas ancestros. El publicador también ve las borradas lógicamente. Se puede filtrar por tipo de criatura.",
+        "description": "Incluye criaturas de los sistemas ancestros. El publicador también ve las borradas lógicamente. Se puede filtrar por tipo de criatura, etiquetas y si puede ser montura.",
         "tags": [
           "Criaturas"
         ],
@@ -16526,6 +16938,32 @@
               "type": "string"
             },
             "description": "Filtra por el ID del tipo de criatura."
+          },
+          {
+            "in": "query",
+            "name": "tags",
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "description": "Devuelve solo criaturas que tienen todas las etiquetas indicadas."
+          },
+          {
+            "in": "query",
+            "name": "canBeMount",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "true solo monturas de catálogo; false el resto."
           }
         ],
         "responses": {
@@ -17979,7 +18417,7 @@
     "/character/{id}/equipment/{instanceId}": {
       "delete": {
         "summary": "Eliminar equipamiento del inventario de un personaje",
-        "description": "Reduce o elimina una instancia del inventario por instanceId. Si se indica quantity y es menor que la pila, decrementa; si no, elimina la fila. No permite eliminar ítems favoritos, equipados o vinculados por pacto.",
+        "description": "Reduce o elimina una instancia del inventario por instanceId. Si se indica quantity y es menor que la pila, decrementa; si no, elimina la fila. No permite eliminar ítems favoritos, equipados, vinculados por pacto, ni portadores (contenedor o vehículo) que aún contienen equipo.",
         "tags": [
           "Personajes"
         ],
@@ -18051,7 +18489,7 @@
             "description": "Personaje o instancia de equipamiento no encontrada."
           },
           "409": {
-            "description": "El equipamiento está marcado como favorito, está equipado o es un arma vinculada."
+            "description": "El equipamiento está marcado como favorito, está equipado, es un arma vinculada o es un portador que aún contiene equipo."
           },
           "500": {
             "description": "Error del servidor."
@@ -18062,7 +18500,7 @@
     "/character/{id}/equipment/{instanceId}/equipped": {
       "patch": {
         "summary": "Equipar o desequipar una instancia del inventario",
-        "description": "Cambia el estado equipped de una instancia.\nSi la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.\nLa ranura ring admite 2 objetos; el resto admite 1. Un arma two_handed ocupa main_hand y off_hand.\nSi no hay hueco, desequipa las filas ocupadas en orden del array hasta hacer sitio.\nEl ítem debe tener equipSlot definido. Devuelve la tarjeta básica y un delta de ficha\n(inventario hidratado, CA, velocidad derivada, desventaja de sigilo, resistencias e inmunidades).\nNo reenvía conjuros, formas ni sabor.\n",
+        "description": "Cambia el estado equipped de una instancia.\nSi la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se muta esa.\nLa ranura ring admite 2 objetos; el resto admite 1. Un arma two_handed ocupa main_hand y off_hand.\nSi no hay hueco, desequipa las filas ocupadas en orden del array hasta hacer sitio.\nEl ítem debe tener equipSlot definido, salvo arreos y barda en una montura (`holderId` de compañero `mount` y `mountGear`):\nahí se usa una ranura de montura (una por slot) que no se mezcla con EquipSlot.\nDevuelve la tarjeta básica y un delta de ficha\n(inventario hidratado, CA, velocidad derivada, desventaja de sigilo, resistencias e inmunidades).\nNo reenvía conjuros, formas ni sabor.\n",
         "tags": [
           "Personajes"
         ],
@@ -18129,6 +18567,319 @@
           },
           "404": {
             "description": "Personaje o instancia de equipamiento no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/equipment/{instanceId}/customization": {
+      "patch": {
+        "summary": "Personalizar nombre o descripción de una instancia del inventario",
+        "description": "Fusiona name y/o description en el overlay de la instancia (no modifica el catálogo).\n`null` en un campo lo quita y vuelve al valor del catálogo. Un PATCH de un solo campo\nno borra el otro. Si tras el merge no queda overlay, se elimina customization.\nSi la pila tiene quantity mayor que 1, se parte una unidad a una instancia nueva y se\nmuta esa: `instanceId` de la respuesta es la fila mutada (puede ser distinta a la de la URL).\n`splitFrom` aparece solo si hubo corte. Devuelve el inventario hidratado.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la instancia de inventario."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "nullable": true,
+                    "minLength": 1,
+                    "description": "Nombre visible de esta instancia. Null vuelve al nombre del catálogo."
+                  },
+                  "description": {
+                    "nullable": true,
+                    "description": "Descripción de esta instancia. Texto, array de párrafos, o null para el catálogo.",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Personalización actualizada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "equipment",
+                    "instanceId"
+                  ],
+                  "properties": {
+                    "equipment": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CharacterEquipmentApi"
+                      }
+                    },
+                    "instanceId": {
+                      "type": "string",
+                      "description": "ID de MongoDB de la instancia mutada. Si se partió una pila, es el de la unidad nueva."
+                    },
+                    "splitFrom": {
+                      "type": "object",
+                      "description": "Presente solo si se partió una pila con quantity mayor que 1.",
+                      "properties": {
+                        "instanceId": {
+                          "type": "string",
+                          "description": "ID de la pila original (el de la URL)."
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "description": "Cantidad que queda en la pila original."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de entrada inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Personaje o instancia de equipamiento no encontrada."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/equipment/{instanceId}/location": {
+      "patch": {
+        "summary": "Mover una instancia de inventario a un portador",
+        "description": "Cambia el holderId de una fila. `null` la devuelve al personaje.\nEl portador debe ser un compañero existente o una fila de inventario con vehicle o containerStats.\nSi quantity es menor que la pila, se parte esa cantidad a una instancia nueva.\nNo se puede mover un objeto equipado por el personaje (409). No se permiten ciclos de contenedores.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la instancia de inventario."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "holderId"
+                ],
+                "properties": {
+                  "holderId": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "ID del compañero o instanceId del contenedor/vehículo. Null para el personaje."
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Cantidad a mover. Si se omite, se mueve toda la pila."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ubicación actualizada con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "equipment"
+                  ],
+                  "properties": {
+                    "equipment": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CharacterEquipmentApi"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Portador inválido, cantidad excesiva o ciclo de contenedores."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Personaje o instancia no encontrada."
+          },
+          "409": {
+            "description": "El objeto está equipado por el personaje."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/equipment/{instanceId}/draft": {
+      "patch": {
+        "summary": "Enganchar o desenganchar el tiro de un vehículo",
+        "description": "Sustituye `drawnBy` de una fila de inventario con bloque `vehicle`.\nSolo se aceptan compañeros `mount` o `animal` con `creatureId`, que no estén\nenganchados a otro vehículo. Una lista vacía desengancha el tiro.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "instanceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la instancia de inventario (vehículo)."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "companionIds"
+                ],
+                "properties": {
+                  "companionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs de compañeros de tiro. Vacío para desenganchar."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tiro actualizado con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "equipment"
+                  ],
+                  "properties": {
+                    "equipment": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CharacterEquipmentApi"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "La instancia no es un vehículo o el compañero no es apto para el tiro."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "404": {
+            "description": "Personaje, instancia o compañero no encontrados."
+          },
+          "409": {
+            "description": "El compañero ya tira de otro vehículo."
           },
           "500": {
             "description": "Error del servidor."
@@ -18422,8 +19173,8 @@
     },
     "/character/{id}/companions": {
       "put": {
-        "summary": "Sustituir el roster narrativo de compañeros",
-        "description": "Reemplaza por completo la lista de compañeros del personaje (hasta 20 entradas).\nEnvíe un array vacío para vaciar el roster.\nEs un registro narrativo (nombres, roles y notas). El servidor no simula combate\nni comprueba que la longitud coincida con `companionRoster.count` de ningún rasgo.\nEl identificador del personaje va en la URL, no en el cuerpo.\n",
+        "summary": "Sustituir el roster de compañeros",
+        "description": "Reemplaza la lista de compañeros del personaje (hasta 20 entradas).\nEnvíe un array vacío para vaciar el roster.\nSi una entrada reutiliza el `id` de un compañero existente, el servidor conserva\n`creatureId`, `hpCurrent` y `conditions` de esa entrada.\nMonturas (`kind: mount`) y animales requieren `creatureId`. `kind: mount` exige\nuna criatura con `canBeMount`. El identificador del personaje va en la URL, no en el cuerpo.\n",
         "tags": [
           "Personajes"
         ],
@@ -18498,6 +19249,290 @@
           },
           "404": {
             "description": "Personaje no encontrado."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "post": {
+        "summary": "Añadir un compañero",
+        "description": "Añade un compañero al roster (máximo 20). Si hay `creatureId`, debe existir y\npertenecer al sistema del personaje o a un ancestro; `hpCurrent` se inicializa a `HPMax`.\nMonturas (`kind: mount`) y animales requieren `creatureId`. `kind: mount` exige\nuna criatura con `canBeMount`. No descuenta dinero.\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "narrative",
+                      "mount",
+                      "animal",
+                      "hireling"
+                    ]
+                  },
+                  "creatureId": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "purchase",
+                      "trait",
+                      "spell"
+                    ]
+                  },
+                  "sourceTraitId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roster actualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "companions"
+                  ],
+                  "properties": {
+                    "companions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CharacterCompanion"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos o criatura de otro sistema."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o criatura no encontrados."
+          },
+          "409": {
+            "description": "Ya hay 20 compañeros."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/character/{id}/companions/{companionId}": {
+      "patch": {
+        "summary": "Actualizar un compañero",
+        "description": "Modifica nombre, rol, notas, PG actuales (recortados a HPMax de la criatura) o condiciones.",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "companionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del compañero."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "hpCurrent": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "conditions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Roster actualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "companions"
+                  ],
+                  "properties": {
+                    "companions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CharacterCompanion"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos inválidos."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o compañero no encontrados."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar un compañero",
+        "description": "Quita el compañero del roster. Responde 409 si transporta equipo o tira de un vehículo\n(comprobado a partir de la fase de inventario).\n",
+        "tags": [
+          "Personajes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje."
+          },
+          {
+            "in": "path",
+            "name": "companionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID del compañero."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Roster actualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "companions"
+                  ],
+                  "properties": {
+                    "companions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CharacterCompanion"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "Sin permiso para modificar este personaje."
+          },
+          "404": {
+            "description": "Personaje o compañero no encontrados."
+          },
+          "409": {
+            "description": "El compañero transporta equipo o tira de un vehículo."
           },
           "500": {
             "description": "Error del servidor."

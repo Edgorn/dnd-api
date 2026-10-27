@@ -37,6 +37,8 @@ const equipmentSchema: Schema = new Schema<EquipmentMongo>(
     proficiencies: { type: [String], default: [] },
     weapon: { type: Schema.Types.Mixed },
     armor: { type: Schema.Types.Mixed },
+    mountGear: { type: Schema.Types.Mixed },
+    vehicle: { type: Schema.Types.Mixed },
     content: [{
       _id: false,
       id: String,

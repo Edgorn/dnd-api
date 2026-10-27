@@ -61,6 +61,13 @@ describe("creatureMatchesFormPool", () => {
     expect(creatureMatchesFormPool(pool, wolf)).toBe(false);
   });
 
+  it("compara tamaños normalizados", () => {
+    const pool = { mode: "filter" as const, sizes: ["Tiny"] };
+    expect(creatureMatchesFormPool(pool, { ...owl, size: "tiny" })).toBe(true);
+    expect(creatureMatchesFormPool(pool, { ...owl, size: "Diminuto" })).toBe(true);
+    expect(creatureMatchesFormPool(pool, { ...owl, size: "Medium" })).toBe(false);
+  });
+
   it("usa creatureType.id si no hay creatureTypeId", () => {
     expect(creatureMatchesFormPool(
       { mode: "filter", creatureTypeIds: ["humanoid"] },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EquipSlot } from "../domain/types/equipment.types";
 import { CharacterEquipmentMongo } from "../domain/types/character.types";
-import { applyEquip, occupiedSlotsFor, slotCapacity } from "./inventorySlots";
+import { applyEquip, applyMountGear, occupiedSlotsFor, slotCapacity } from "./inventorySlots";
 
 function row(
   overrides: Partial<CharacterEquipmentMongo> & Pick<CharacterEquipmentMongo, "instanceId" | "equipmentId">
@@ -88,5 +88,28 @@ describe("applyEquip", () => {
     const slotOf = slots({ h1: "head" });
     const result = applyEquip([helmet], "h1", false, slotOf);
     expect(result[0].equipped).toBe(false);
+  });
+
+  it("does not unequip armor worn by a mount when the character equips armor", () => {
+    const barding = row({ instanceId: "b1", equipmentId: "barding", equipped: true, holderId: "horse" });
+    const mail = row({ instanceId: "m1", equipmentId: "mail" });
+    const slotOf = slots({ b1: "armor", m1: "armor" });
+    const result = applyEquip([barding, mail], "m1", true, slotOf);
+    expect(result.find(item => item.instanceId === "b1")?.equipped).toBe(true);
+    expect(result.find(item => item.instanceId === "m1")?.equipped).toBe(true);
+  });
+});
+
+describe("applyMountGear", () => {
+  it("keeps one item per mount slot on the same holder", () => {
+    const oldSaddle = row({ instanceId: "s1", equipmentId: "saddle-a", equipped: true, holderId: "horse" });
+    const newSaddle = row({ instanceId: "s2", equipmentId: "saddle-b", holderId: "horse" });
+    const otherHorse = row({ instanceId: "s3", equipmentId: "saddle-c", equipped: true, holderId: "mule" });
+    const slotOf = () => "saddle" as const;
+
+    const result = applyMountGear([oldSaddle, newSaddle, otherHorse], "s2", true, slotOf);
+    expect(result.find(item => item.instanceId === "s1")?.equipped).toBe(false);
+    expect(result.find(item => item.instanceId === "s2")?.equipped).toBe(true);
+    expect(result.find(item => item.instanceId === "s3")?.equipped).toBe(true);
   });
 });

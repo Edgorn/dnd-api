@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { CharacterEquipmentMongo, EQUIPMENT_MATERIALS } from "../../../domain/types/equipment.types";
+import {
+  CharacterEquipmentMongo,
+  EQUIPMENT_MATERIALS,
+  MOUNT_GEAR_SLOTS,
+  VEHICLE_KINDS
+} from "../../../domain/types/equipment.types";
+import { OptionalSizeSchema } from "./size.schema";
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -92,6 +98,28 @@ export const EquipmentBonusesSchema = z.object({
   saving_throws: z.number().optional()
 });
 
+export const MountGearSchema = z.object({
+  slot: z.enum(MOUNT_GEAR_SLOTS)
+}).strict();
+
+export const VehicleStatsSchema = z.object({
+  kind: z.enum(VEHICLE_KINDS),
+  travelSpeed: z.object({
+    value: z.number().nonnegative("La velocidad de viaje no puede ser negativa"),
+    unit: z.literal("mph")
+  }).strict().optional(),
+  cargoCapacity: z.number().nonnegative("La capacidad de carga no puede ser negativa").optional(),
+  crew: z.number().int().nonnegative("La tripulación no puede ser negativa").optional(),
+  passengers: z.number().int().nonnegative("Los pasajeros no pueden ser negativos").optional(),
+  armorClass: z.number().optional(),
+  hitPoints: z.number().int().nonnegative("Los puntos de golpe no pueden ser negativos").optional(),
+  damageThreshold: z.number().int().nonnegative("El umbral de daño no puede ser negativo").optional(),
+  draft: z.object({
+    minAnimals: z.number().int().min(1, "Debe haber al menos un animal de tiro").optional(),
+    minSize: OptionalSizeSchema
+  }).strict().optional()
+}).strict();
+
 const equipmentCustomizationFields = {
   quantity: z.number().min(1, "La cantidad debe ser al menos 1").optional(),
   name: z.string().min(1, "El nombre no puede estar vacío").optional(),
@@ -158,7 +186,9 @@ export const CreateEquipmentSchema = z.object({
   proficiencies: z.array(z.string()).optional(),
   weapon: WeaponSchema.nullable().optional(),
   armor: ArmorSchema.nullable().optional(),
-  content: z.array(CharacterEquipmentSchema).optional()
+  content: z.array(CharacterEquipmentSchema).optional(),
+  mountGear: MountGearSchema.nullable().optional(),
+  vehicle: VehicleStatsSchema.nullable().optional()
 });
 
 export const UpdateEquipmentSchema = z.object({
@@ -176,13 +206,21 @@ export const UpdateEquipmentSchema = z.object({
   proficiencies: z.array(z.string()).optional(),
   weapon: WeaponSchema.nullable().optional(),
   armor: ArmorSchema.nullable().optional(),
-  content: z.array(CharacterEquipmentSchema).optional()
+  content: z.array(CharacterEquipmentSchema).optional(),
+  mountGear: MountGearSchema.nullable().optional(),
+  vehicle: VehicleStatsSchema.nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "Debe proporcionar al menos un campo para modificar"
 });
 
 export const EquipmentParamsSchema = z.object({
   id: z.string().regex(objectIdRegex, "El ID debe ser un ObjectId válido de MongoDB")
+});
+
+export const GetEquipmentsQuerySchema = z.object({
+  ruleset: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
+  hasVehicle: z.enum(["true", "false"]).optional(),
+  mountGearSlot: z.enum(MOUNT_GEAR_SLOTS).optional()
 });
 
 const EquipmentChoiceFilterSchema = z.record(

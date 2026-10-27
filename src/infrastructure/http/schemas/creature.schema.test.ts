@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CreateCreatureSchema, UpdateCreatureSchema } from "./creature.schema";
+import { CreateCreatureSchema, GetCreaturesQuerySchema, UpdateCreatureSchema } from "./creature.schema";
 
 const priest = {
   name: "Sacerdote",
@@ -55,6 +55,7 @@ describe("CreateCreatureSchema", () => {
     if (result.success) {
       expect(result.data.speed.walk).toBe(25);
       expect(result.data.race).toBe("any");
+      expect(result.data.size).toBe("medium");
     }
   });
 
@@ -153,6 +154,10 @@ describe("CreateCreatureSchema", () => {
 
   it("rechaza una raza vacía", () => {
     expect(CreateCreatureSchema.safeParse({ ...priest, race: "" }).success).toBe(false);
+  });
+
+  it("rechaza un tamaño desconocido", () => {
+    expect(CreateCreatureSchema.safeParse({ ...priest, size: "colossal" }).success).toBe(false);
   });
 
   it("rechaza un alta sin nombre, sistema o tipo", () => {
@@ -365,6 +370,51 @@ describe("CreateCreatureSchema", () => {
         bypass: ["silvered"]
       }]
     }).success).toBe(false);
+  });
+});
+
+describe("CreateCreatureSchema cost and carrying", () => {
+  const coinId = "507f1f77bcf86cd799439011";
+
+  it("acepta coste de moneda, montura y capacidad de carga fija", () => {
+    const result = CreateCreatureSchema.safeParse({
+      ...priest,
+      cost: { quantity: 8, unit: coinId },
+      canBeMount: true,
+      carryingCapacity: 420
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.cost).toEqual({ quantity: 8, unit: coinId });
+      expect(result.data.canBeMount).toBe(true);
+      expect(result.data.carryingCapacity).toBe(420);
+    }
+  });
+
+  it("rechaza una unidad de moneda que no es ObjectId", () => {
+    expect(CreateCreatureSchema.safeParse({
+      ...priest,
+      cost: { quantity: 8, unit: "gp" }
+    }).success).toBe(false);
+  });
+});
+
+describe("GetCreaturesQuerySchema", () => {
+  it("acepta una etiqueta o varias", () => {
+    expect(GetCreaturesQuerySchema.safeParse({ tags: "mount" }).success).toBe(true);
+    expect(GetCreaturesQuerySchema.safeParse({ tags: ["mount", "beast"] }).success).toBe(true);
+  });
+
+  it("rechaza etiquetas vacías", () => {
+    expect(GetCreaturesQuerySchema.safeParse({ tags: "" }).success).toBe(false);
+    expect(GetCreaturesQuerySchema.safeParse({ tags: [""] }).success).toBe(false);
+  });
+
+  it("acepta canBeMount como true o false", () => {
+    expect(GetCreaturesQuerySchema.safeParse({ canBeMount: "true" }).success).toBe(true);
+    expect(GetCreaturesQuerySchema.safeParse({ canBeMount: "false" }).success).toBe(true);
+    expect(GetCreaturesQuerySchema.safeParse({ canBeMount: "yes" }).success).toBe(false);
   });
 });
 

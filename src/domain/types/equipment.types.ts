@@ -4,6 +4,7 @@ import { CoinApi } from "./coin.types";
 import { Property } from "./property.types";
 import { ProficiencyApi } from "./proficiencies.types";
 import { ArmorType } from "./armorType.types";
+import { CreatureSize } from "./size.types";
 
 export interface WeaponDamageMongo {
   dice: string;
@@ -94,6 +95,44 @@ export type EquipmentMaterial = typeof EQUIPMENT_MATERIALS[number];
 
 export type LiquidUnit = 'gallon' | 'pint' | 'ounce';
 export type SolidUnit = 'cubic_foot';
+
+export const MOUNT_GEAR_SLOTS = [
+  "saddle",
+  "bridle",
+  "barding",
+  "saddlebags",
+  "harness"
+] as const;
+export type MountGearSlot = (typeof MOUNT_GEAR_SLOTS)[number];
+
+export const VEHICLE_KINDS = ["land", "water", "air"] as const;
+export type VehicleKind = (typeof VEHICLE_KINDS)[number];
+
+export interface MountGear {
+  slot: MountGearSlot;
+}
+
+export interface VehicleTravelSpeed {
+  value: number;
+  unit: "mph";
+}
+
+export interface VehicleDraft {
+  minAnimals?: number;
+  minSize?: CreatureSize | string;
+}
+
+export interface VehicleStats {
+  kind: VehicleKind;
+  travelSpeed?: VehicleTravelSpeed;
+  cargoCapacity?: number;
+  crew?: number;
+  passengers?: number;
+  armorClass?: number;
+  hitPoints?: number;
+  damageThreshold?: number;
+  draft?: VehicleDraft;
+}
 
 export type EquipSlot =
   | 'head'
@@ -188,6 +227,9 @@ export interface CharacterEquipmentMongo {
     saving_throws?: number;
   };
   content?: CharacterEquipmentMongo[];
+  holderId?: string | null;
+  drawnBy?: string[];
+  hpCurrent?: number;
 }
 
 export interface EquipmentMongo {
@@ -213,6 +255,8 @@ export interface EquipmentMongo {
     armor_class?: number;
     saving_throws?: number;
   };
+  mountGear?: MountGear;
+  vehicle?: VehicleStats;
   deletedAt?: Date | null;
 }
 
@@ -243,6 +287,8 @@ export interface EquipmentApi {
     armor_class?: number;
     saving_throws?: number;
   };
+  mountGear?: MountGear;
+  vehicle?: VehicleStats;
   deletedAt?: Date | null;
 }
 
@@ -251,6 +297,9 @@ export interface EquipmentInstanceApi extends EquipmentApi {
   equipped?: boolean;
   isFavorite?: boolean;
   instanceId?: string;
+  holderId?: string | null;
+  drawnBy?: string[];
+  hpCurrent?: number;
 }
 
 export interface CharacterEquipmentApi extends EquipmentInstanceApi {
@@ -258,6 +307,11 @@ export interface CharacterEquipmentApi extends EquipmentInstanceApi {
   isProficient: boolean;
   attackBonus?: number;
   damageBonus?: number;
+  load?: number;
+  capacity?: number | null;
+  drawCapacity?: number | null;
+  ac?: number;
+  warnings?: string[];
 }
 
 export interface EquipmentOptionsMongo {
@@ -373,6 +427,13 @@ export interface InputCreateEquipment {
   weapon?: WeaponMongo | null;
   armor?: ArmorInput | null;
   content?: CharacterEquipmentMongo[];
+  mountGear?: MountGear | null;
+  vehicle?: VehicleStats | null;
+}
+
+export interface EquipmentListFilters {
+  hasVehicle?: boolean;
+  mountGearSlot?: MountGearSlot;
 }
 
 export interface InputUpdateEquipment {
@@ -392,4 +453,6 @@ export interface InputUpdateEquipment {
   weapon?: WeaponMongo | null;
   armor?: ArmorInput | null;
   content?: CharacterEquipmentMongo[];
+  mountGear?: MountGear | null;
+  vehicle?: VehicleStats | null;
 }

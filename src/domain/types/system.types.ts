@@ -23,6 +23,9 @@ export const SYSTEM_RULE_FIELD_KEYS = [
   "baseAcFormula",
   "passiveSkillFormula",
   "carryingCapacityFormula",
+  "drawCapacityMultiplier",
+  "bardingCostMultiplier",
+  "bardingWeightMultiplier",
   "attackBonusFormula",
   "damageBonusFormula",
   "meleeAttackAttributes",
@@ -113,6 +116,9 @@ export interface System {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  drawCapacityMultiplier?: number;
+  bardingCostMultiplier?: number;
+  bardingWeightMultiplier?: number;
   attackBonusFormula?: string;
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
@@ -139,6 +145,9 @@ export interface SystemRulesConfig {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  drawCapacityMultiplier?: number;
+  bardingCostMultiplier?: number;
+  bardingWeightMultiplier?: number;
   attackBonusFormula?: string;
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
@@ -175,6 +184,9 @@ export interface SystemApi {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  drawCapacityMultiplier?: number;
+  bardingCostMultiplier?: number;
+  bardingWeightMultiplier?: number;
   attackBonusFormula?: string;
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
@@ -224,6 +236,9 @@ export interface TypeCrearSystem {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  drawCapacityMultiplier?: number;
+  bardingCostMultiplier?: number;
+  bardingWeightMultiplier?: number;
   attackBonusFormula?: string;
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];
@@ -258,6 +273,9 @@ export interface TypeModificarSystem {
   baseAcFormula?: string;
   passiveSkillFormula?: string;
   carryingCapacityFormula?: string;
+  drawCapacityMultiplier?: number;
+  bardingCostMultiplier?: number;
+  bardingWeightMultiplier?: number;
   attackBonusFormula?: string;
   damageBonusFormula?: string;
   meleeAttackAttributes?: string[];

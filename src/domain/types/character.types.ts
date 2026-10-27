@@ -26,6 +26,8 @@ import { CharacterAttributeApi, AttributeApi } from "./attribute.types"
 import { SpellSlotPool } from "./system.types"
 import { Ideal } from "./background.types"
 import { CoinApi } from "./coin.types"
+import { CreatureSize } from "./size.types"
+import { CreatureApi } from "./creature.types"
 
 export type CharacterEquipmentCustomization = Omit<
   CatalogEquipmentMongo,
@@ -55,6 +57,12 @@ export interface CharacterEquipmentMongo {
   bondStored?: boolean;
   uniqueGranted?: boolean;
   customization?: CharacterEquipmentCustomization;
+  /** Companion id, vehicle/container instanceId, or omitted/null for the character. */
+  holderId?: string | null;
+  /** Companion ids hitched to this vehicle instance. */
+  drawnBy?: string[];
+  /** Current hit points of a vehicle instance. */
+  hpCurrent?: number;
 }
 
 export type CharacterStartingEquipmentInput = CatalogEquipmentMongo;
@@ -170,12 +178,24 @@ export interface GetCharactersByUserOptions {
   includeCombatSeed?: boolean;
 }
 
+export const COMPANION_KINDS = ["narrative", "mount", "animal", "hireling"] as const;
+export type CompanionKind = (typeof COMPANION_KINDS)[number];
+export const DEFAULT_COMPANION_KIND: CompanionKind = "narrative";
+
+export const COMPANION_SOURCES = ["purchase", "trait", "spell"] as const;
+export type CompanionSource = (typeof COMPANION_SOURCES)[number];
+
 export interface CharacterCompanion {
   id: string;
   name: string;
   role?: string;
   notes?: string;
   sourceTraitId?: string;
+  kind?: CompanionKind;
+  creatureId?: string;
+  source?: CompanionSource;
+  hpCurrent?: number;
+  conditions?: string[];
 }
 
 export interface CharacterCompanionInput {
@@ -184,10 +204,52 @@ export interface CharacterCompanionInput {
   role?: string;
   notes?: string;
   sourceTraitId?: string;
+  kind?: CompanionKind;
+  creatureId?: string;
+  source?: CompanionSource;
+  hpCurrent?: number;
+  conditions?: string[];
+}
+
+export interface CharacterCompanionApi extends CharacterCompanion {
+  creature?: CreatureApi;
+  attributes?: CharacterAttributeApi[];
+  speed?: Speed;
+  size?: CreatureSize | string;
+  hpMax?: number;
+  carryingCapacity?: number | null;
+  load?: number;
+  capacity?: number | null;
+  ac?: number;
+  warnings?: string[];
+}
+
+export interface CharacterCompanionRoster {
+  companions: CharacterCompanion[];
+  systems: string[];
+  inventory: CharacterEquipmentMongo[];
 }
 
 export interface UpdateCharacterCompanionsResponse {
   companions: CharacterCompanion[];
+}
+
+export interface AddCompanionInput {
+  name: string;
+  role?: string;
+  notes?: string;
+  sourceTraitId?: string;
+  kind?: CompanionKind;
+  creatureId?: string;
+  source?: CompanionSource;
+}
+
+export interface UpdateCompanionInput {
+  name?: string;
+  role?: string;
+  notes?: string;
+  hpCurrent?: number;
+  conditions?: string[];
 }
 
 export interface InputUpdateCharacterFlavor {
@@ -366,6 +428,7 @@ export interface TypeAddEquipment {
   equipmentId: string;
   quantity: number;
   isMagic: boolean;
+  hpCurrent?: number;
 }
 
 export interface TypeDeleteEquipment {
@@ -384,10 +447,40 @@ export interface TypeEquipEquipment {
   equipped: boolean;
 }
 
+export interface TypeMoveEquipment {
+  id: string;
+  instanceId: string;
+  userId: string;
+  holderId: string | null;
+  quantity?: number;
+}
+
+export interface TypeSetVehicleDraft {
+  id: string;
+  instanceId: string;
+  userId: string;
+  companionIds: string[];
+}
+
 export interface TypeToggleFavoriteEquipment {
   id: string;
   instanceId: string;
   isFavorite: boolean;
+}
+
+export interface TypeUpdateEquipmentCustomization {
+  id: string;
+  instanceId: string;
+  name?: string | null;
+  description?: string | string[] | null;
+}
+
+export interface UpdateCharacterEquipmentCustomizationResponse extends UpdateCharacterEquipmentResponse {
+  instanceId: string;
+  splitFrom?: {
+    instanceId: string;
+    quantity: number;
+  };
 }
 
 export interface ToggleFavoriteEquipmentResponse {
@@ -558,7 +651,7 @@ export interface CharacterApi {
   img: string,
   name: string,
   race: string,
-  size: string,
+  size: CreatureSize | string,
   classes: {
     class: string,
     level: number,
@@ -625,13 +718,14 @@ export interface CharacterApi {
     type?: AttributeApi;
     ritualOnlyExtraIds?: string[];
   }>,
-  maxCarryingCapacity: number,
+  maxCarryingCapacity: number | null,
+  load?: number,
   spellcasting?: SpellcastingLevel[],
   optionSelections?: CharacterOptionSelectionApi[],
   forms?: CharacterFormApi[],
   activeFormId?: string | null,
   spellPrivileges?: CharacterSpellPrivilegeApi[],
-  companions: CharacterCompanion[],
+  companions: CharacterCompanionApi[],
   traitResources: CharacterTraitResource[],
   activeTraitIds: string[],
   hitDice: CharacterHitDiceApi[]
@@ -672,7 +766,7 @@ export interface CharacterCombatApi {
   id: string;
   name: string;
   race: string;
-  size: string;
+  size: CreatureSize | string;
   classes: CharacterApi["classes"];
   alignment?: string;
   ac: number;
@@ -725,7 +819,7 @@ export interface CharacterStatePatch {
   activeTraitIds?: string[];
   ac?: number;
   speed?: Speed;
-  size?: string;
+  size?: CreatureSize | string;
   attributes?: CharacterAttributeApi[];
   initiativeBonus?: number;
   resistances?: Damage[];

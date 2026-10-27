@@ -3,11 +3,12 @@ import { ChoiceApi, ChoiceMongo, Speed } from ".";
 import { AttributeApi, CharacterAttributeApi } from "./attribute.types";
 import { CreatureTypeApi } from "./creatureType.types";
 import { DamageAffinityGrant, DamageAffinityGrantApi } from "./damageAffinity.types";
-import { EquipmentInstanceApi, CharacterEquipmentMongo } from "./equipment.types";
+import { EquipmentCost, EquipmentCostApi, EquipmentInstanceApi, CharacterEquipmentMongo } from "./equipment.types";
 import { ConditionApi } from "./condition.types";
 import { CreatureLanguages, CreatureLanguagesCreate, LanguageApi } from "./language.types";
 import { SkillSheetApi } from "./skill.types";
 import { RaceRef } from "./race.types";
+import { CreatureSize } from "./size.types";
 import { SpellApi } from "./spell.types";
 
 /**
@@ -120,6 +121,10 @@ export interface CreatureMongo {
   race?: string | null;
   tags?: string[];
   size: string;
+  cost?: EquipmentCost;
+  canBeMount?: boolean;
+  /** Catalog carrying capacity in pounds. */
+  carryingCapacity?: number;
   alignment: string;
   armor_class?: { value: number; notes?: string };
   HPMax: number;
@@ -161,7 +166,10 @@ export interface CreatureApi {
   creatureType?: CreatureTypeApi;
   race: RaceRef | typeof CREATURE_ANY_RACE | null;
   tags: string[];
-  size: string;
+  size: CreatureSize | string;
+  cost?: EquipmentCostApi;
+  canBeMount: boolean;
+  carryingCapacity?: number;
   alignment: string;
   armor_class?: { value: number; notes?: string };
   CA: number;
@@ -201,7 +209,10 @@ export interface CreateCreature {
   /** `"any"`, a race id, or null when the creature has no race. */
   race?: string | null;
   tags?: string[];
-  size: string;
+  size: CreatureSize | string;
+  cost?: EquipmentCost | null;
+  canBeMount?: boolean;
+  carryingCapacity?: number | null;
   alignment: string;
   armor_class?: { value: number; notes?: string } | null;
   HPMax: number;
@@ -236,4 +247,6 @@ export interface UpdateCreature extends Partial<CreateCreature> {
 
 export interface CreatureListFilters {
   creatureTypeId?: string;
+  tags?: string[];
+  canBeMount?: boolean;
 }

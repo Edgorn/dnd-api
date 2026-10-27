@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { CREATURE_ANY_RACE, CREATURE_USAGE_TYPES } from "../../../domain/types/creature.types";
+import { SizeSchema } from "./size.schema";
 import { DAMAGE_AFFINITY_BYPASSES, DAMAGE_AFFINITY_SOURCES } from "../../../domain/types/damageAffinity.types";
 import { normalizeDamageAffinityList } from "../../../utils/damageAffinity";
-import { GrantedEquipmentListSchema } from "./equipment.schema";
+import { CostSchema, GrantedEquipmentListSchema } from "./equipment.schema";
 
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
@@ -132,7 +133,10 @@ export const CreateCreatureSchema = z.object({
   creatureTypeId: z.string().min(1, "El tipo de criatura es obligatorio"),
   race: z.union([z.literal(CREATURE_ANY_RACE), z.string().min(1)]).nullable().optional(),
   tags: z.array(z.string().min(1)).optional(),
-  size: z.string().min(1, "El tamaño no puede estar vacío"),
+  size: SizeSchema,
+  cost: CostSchema.nullable().optional(),
+  canBeMount: z.boolean().optional(),
+  carryingCapacity: z.number().nonnegative("La capacidad de carga no puede ser negativa").nullable().optional(),
   alignment: z.string().min(1, "El alineamiento no puede estar vacío"),
   armor_class: ArmorClassSchema.nullable().optional(),
   HPMax: z.number().int().nonnegative("Los puntos de golpe no pueden ser negativos"),
@@ -178,7 +182,9 @@ export const UpdateCreatureSchema = CreateCreatureSchema.partial().refine(
 
 export const GetCreaturesQuerySchema = z.object({
   ruleset: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
-  creatureTypeId: z.string().min(1).optional()
+  creatureTypeId: z.string().min(1).optional(),
+  tags: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
+  canBeMount: z.enum(["true", "false"]).optional()
 });
 
 export type CreateCreatureInput = z.infer<typeof CreateCreatureSchema>;

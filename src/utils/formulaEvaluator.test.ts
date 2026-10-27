@@ -74,6 +74,15 @@ describe("formulaValidation", () => {
   it("rejects weapon tokens outside weapon formulas", () => {
     expect(validateSystemFormula("@weapon.attributeModifier")).toBeDefined();
   });
+
+  it("rejects former creature carry tokens", () => {
+    expect(
+      validateSystemFormula("@attributes.str.value * 15 * @size.carryMultiplier")
+    ).toBeDefined();
+    expect(
+      validateSystemFormula("@attributes.str.value * @carrying.multiplier")
+    ).toBeDefined();
+  });
 });
 
 describe("formulaEvaluator", () => {
@@ -370,5 +379,16 @@ describe("mergeRulesFromAncestry", () => {
     };
     const config = mergeRulesFromAncestry([childWithRests, parentWithRests, grandparent]);
     expect(config.restRules).toEqual({ kinds: [{ key: "watch", name: "Vela" }] });
+  });
+
+  it("inherits drawCapacityMultiplier from the nearest ancestor", () => {
+    const parentWithCarry: System = {
+      ...parent,
+      drawCapacityMultiplier: 5,
+      bardingCostMultiplier: 4
+    };
+    const config = mergeRulesFromAncestry([child, parentWithCarry, grandparent]);
+    expect(config.drawCapacityMultiplier).toBe(5);
+    expect(config.bardingCostMultiplier).toBe(4);
   });
 });

@@ -54,7 +54,10 @@ const characterSchema: Schema = new Schema<CharacterMongo>({
       bondStored: { type: Boolean, default: undefined },
       uniqueGranted: { type: Boolean, default: undefined },
       isFavorite: { type: Boolean, required: true, default: false },
-      customization: { type: Schema.Types.Mixed, default: undefined }
+      customization: { type: Schema.Types.Mixed, default: undefined },
+      holderId: { type: String, default: undefined },
+      drawnBy: { type: [String], default: undefined },
+      hpCurrent: { type: Number, default: undefined }
     }],
     default: []
   },
@@ -90,7 +93,12 @@ const characterSchema: Schema = new Schema<CharacterMongo>({
       name: { type: String, required: true },
       role: String,
       notes: String,
-      sourceTraitId: String
+      sourceTraitId: String,
+      kind: { type: String, enum: ["narrative", "mount", "animal", "hireling"] },
+      creatureId: String,
+      source: { type: String, enum: ["purchase", "trait", "spell"] },
+      hpCurrent: Number,
+      conditions: [String]
     }],
     default: []
   },

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatCompanionSheetRow, mergeSheetSpells } from "./escribirPdf";
+import {
+  buildCompanionSheetMarks,
+  formatCompanionSheetRow,
+  mergeSheetSpells,
+  prefixSheetMark,
+} from "./escribirPdf";
 import { SpellApi } from "../domain/types/spell.types";
 
 const spell = (partial: Pick<SpellApi, "name" | "level"> & Partial<SpellApi>): SpellApi => ({
@@ -67,5 +72,81 @@ describe("formatCompanionSheetRow", () => {
         notes: "Leal a la familia",
       }),
     ).toBe("Aldric (Mayordomo). Leal a la familia");
+  });
+
+  it("prefixes the holder mark when provided", () => {
+    expect(formatCompanionSheetRow({ name: "Relámpago", role: "Montura" }, "†")).toBe(
+      "† Relámpago (Montura)",
+    );
+  });
+});
+
+describe("buildCompanionSheetMarks", () => {
+  const horse = { id: "horse" };
+  const mule = { id: "mule" };
+  const steward = { id: "steward" };
+
+  it("assigns the same mark to a companion and its held item", () => {
+    const marks = buildCompanionSheetMarks(
+      [horse],
+      [{ instanceId: "pack", holderId: "horse" }],
+    );
+
+    expect(marks.byCompanionId.get("horse")).toBe("*");
+    expect(marks.byInstanceId.get("pack")).toBe("*");
+    expect(prefixSheetMark(marks.byInstanceId.get("pack"), "1x Mochila")).toBe("* 1x Mochila");
+  });
+
+  it("walks nested containers to the companion", () => {
+    const marks = buildCompanionSheetMarks(
+      [horse],
+      [
+        { instanceId: "pack", holderId: "horse" },
+        { instanceId: "ration", holderId: "pack" },
+      ],
+    );
+
+    expect(marks.byCompanionId.get("horse")).toBe("*");
+    expect(marks.byInstanceId.get("pack")).toBe("*");
+    expect(marks.byInstanceId.get("ration")).toBe("*");
+  });
+
+  it("leaves companions without held items unmarked", () => {
+    const marks = buildCompanionSheetMarks(
+      [steward, horse],
+      [{ instanceId: "pack", holderId: "horse" }],
+    );
+
+    expect(marks.byCompanionId.has("steward")).toBe(false);
+    expect(marks.byCompanionId.get("horse")).toBe("*");
+  });
+
+  it("assigns marks in roster order, not inventory order", () => {
+    const marks = buildCompanionSheetMarks(
+      [horse, mule],
+      [
+        { instanceId: "saddle-mule", holderId: "mule" },
+        { instanceId: "saddle-horse", holderId: "horse" },
+      ],
+    );
+
+    expect(marks.byCompanionId.get("horse")).toBe("*");
+    expect(marks.byCompanionId.get("mule")).toBe("†");
+    expect(marks.byInstanceId.get("saddle-horse")).toBe("*");
+    expect(marks.byInstanceId.get("saddle-mule")).toBe("†");
+  });
+
+  it("does not mark character-held items or holder cycles", () => {
+    const marks = buildCompanionSheetMarks(
+      [horse],
+      [
+        { instanceId: "sword", holderId: null },
+        { instanceId: "a", holderId: "b" },
+        { instanceId: "b", holderId: "a" },
+      ],
+    );
+
+    expect(marks.byCompanionId.size).toBe(0);
+    expect(marks.byInstanceId.size).toBe(0);
   });
 });

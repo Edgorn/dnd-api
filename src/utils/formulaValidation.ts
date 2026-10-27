@@ -33,7 +33,10 @@ export function validateAttributeModifierFormula(formula: string): string | unde
  */
 export function validateSystemFormula(
   formula: string,
-  options?: { allowSkillNamePlaceholder?: boolean; allowWeaponTokens?: boolean }
+  options?: {
+    allowSkillNamePlaceholder?: boolean;
+    allowWeaponTokens?: boolean;
+  }
 ): string | undefined {
   if (!formula.trim()) {
     return "La fórmula no puede estar vacía";

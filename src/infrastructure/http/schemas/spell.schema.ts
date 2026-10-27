@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { z } from "zod";
 import { CREATURE_FORM_PURPOSES } from "../../../domain/types/creatureForm.types";
+import { SizeSchema } from "./size.schema";
 
 const mongoId = z.string().refine(val => Types.ObjectId.isValid(val), {
   message: "Debe ser un ID de Mongo válido"
@@ -23,7 +24,7 @@ export const CreatureFormPoolFilterSchema = z.object({
   mode: z.literal("filter"),
   creatureTypeIds: z.array(mongoId).optional(),
   maxCR: z.number().min(0, "El CR máximo no puede ser negativo").optional(),
-  sizes: z.array(z.string().min(1, "El tamaño no puede estar vacío")).optional(),
+  sizes: z.array(SizeSchema).optional(),
   tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía")).optional()
 }).strict().superRefine((pool, ctx) => {
   if (pool.creatureTypeIds && new Set(pool.creatureTypeIds).size !== pool.creatureTypeIds.length) {

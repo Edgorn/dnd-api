@@ -28,6 +28,7 @@ describe("GetSystemApi", () => {
     name: "SRD",
     hpInitialFormula: "max(@class.hitDie) + @attributes.con.modifier",
     baseAcFormula: "10 + @attributes.dex.modifier",
+    drawCapacityMultiplier: 5,
     restRules: {
       kinds: [
         { key: "shortRest", name: "Descanso corto" },
@@ -87,6 +88,7 @@ describe("GetSystemApi", () => {
 
     expect(result.hpInitialFormula).toBe("12 + @attributes.con.modifier");
     expect(result.baseAcFormula).toBe("10 + @attributes.dex.modifier");
+    expect(result.drawCapacityMultiplier).toBe(5);
     expect(result.restRules?.kinds.map((kind) => kind.key)).toEqual(["shortRest", "longRest"]);
     expect(result).not.toHaveProperty("attributes");
     expect(result).not.toHaveProperty("skills");

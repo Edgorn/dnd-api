@@ -20,7 +20,7 @@ export class CreatureController {
 
   getBySystems = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { ruleset, creatureTypeId } = req.query;
+      const { ruleset, creatureTypeId, tags, canBeMount } = req.query;
       let rulesetArray: string[] = [];
       if (typeof ruleset === "string") {
         rulesetArray = [ruleset];
@@ -28,9 +28,19 @@ export class CreatureController {
         rulesetArray = ruleset.map(item => String(item));
       }
 
+      const tagList = typeof tags === "string"
+        ? [tags]
+        : Array.isArray(tags)
+          ? tags.map(item => String(item)).filter(Boolean)
+          : undefined;
+
       const creatures = await this.getCreaturesBySystemsUseCase.execute(
         rulesetArray,
-        { creatureTypeId: typeof creatureTypeId === "string" ? creatureTypeId : undefined },
+        {
+          creatureTypeId: typeof creatureTypeId === "string" ? creatureTypeId : undefined,
+          tags: tagList?.length ? tagList : undefined,
+          canBeMount: canBeMount === "true" ? true : canBeMount === "false" ? false : undefined
+        },
         req.user
       );
       return res.status(200).json(creatures);

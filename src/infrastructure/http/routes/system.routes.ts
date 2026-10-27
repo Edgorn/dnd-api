@@ -272,7 +272,23 @@ const router = Router();
  *           type: string
  *           description: |
  *             Fórmula de capacidad de carga máxima del personaje. Ver SystemCharacterFormulaSyntax.
+ *             Si falta, `maxCarryingCapacity` del personaje es null.
  *             Ejemplo: @attributes.str.value * 15
+ *         drawCapacityMultiplier:
+ *           type: number
+ *           description: |
+ *             Multiplicador de capacidad de tiro. Si no se define, el tiro no se calcula.
+ *             Ejemplo 5e: 5.
+ *         bardingCostMultiplier:
+ *           type: number
+ *           description: |
+ *             Multiplicador de coste de la barda respecto a la armadura. Si no se define, el coste
+ *             de barda no se calcula. Ejemplo 5e: 4.
+ *         bardingWeightMultiplier:
+ *           type: number
+ *           description: |
+ *             Multiplicador de peso de la barda respecto a la armadura. Si no se define, el peso
+ *             de barda no se calcula. Ejemplo 5e: 2.
  *         attackBonusFormula:
  *           type: string
  *           description: |
@@ -448,7 +464,20 @@ const router = Router();
  *           type: string
  *           description: |
  *             Capacidad de carga. Ver SystemCharacterFormulaSyntax.
+ *             Si falta, `maxCarryingCapacity` del personaje es null.
  *             Ejemplo: @attributes.str.value * 15
+ *         drawCapacityMultiplier:
+ *           type: number
+ *           description: |
+ *             Multiplicador de capacidad de tiro. Sin él no se calcula. Ejemplo 5e: 5.
+ *         bardingCostMultiplier:
+ *           type: number
+ *           description: |
+ *             Multiplicador de coste de la barda. Sin él no se calcula. Ejemplo 5e: 4.
+ *         bardingWeightMultiplier:
+ *           type: number
+ *           description: |
+ *             Multiplicador de peso de la barda. Sin él no se calcula. Ejemplo 5e: 2.
  *         attackBonusFormula:
  *           type: string
  *           description: |
@@ -549,7 +578,16 @@ const router = Router();
  *           description: Plantilla de habilidades pasivas con {skillName}. Ver SystemCharacterFormulaSyntax.
  *         carryingCapacityFormula:
  *           type: string
- *           description: Capacidad de carga. Ver SystemCharacterFormulaSyntax.
+ *           description: Capacidad de carga. Si falta, `maxCarryingCapacity` es null. Ver SystemCharacterFormulaSyntax.
+ *         drawCapacityMultiplier:
+ *           type: number
+ *           description: Multiplicador de tiro. Si falta, el tiro no se calcula.
+ *         bardingCostMultiplier:
+ *           type: number
+ *           description: Multiplicador de coste de barda. Si falta, el coste no se calcula.
+ *         bardingWeightMultiplier:
+ *           type: number
+ *           description: Multiplicador de peso de barda. Si falta, el peso no se calcula.
  *         attackBonusFormula:
  *           type: string
  *           description: Bono de ataque con armas. Ver SystemCharacterFormulaSyntax.
@@ -629,6 +667,9 @@ router.get('/systems', authMiddleware, validateQuery(ListSystemsQuerySchema), sy
  *         "baseAcFormula": "10 + @attributes.dex.modifier",
  *         "passiveSkillFormula": "10 + @skills.{skillName}.totalModifier",
  *         "carryingCapacityFormula": "@attributes.str.value * 15",
+ *         "drawCapacityMultiplier": 5,
+ *         "bardingCostMultiplier": 4,
+ *         "bardingWeightMultiplier": 2,
  *         "initiativeBonusFormula": "@attributes.dex.modifier",
  *         "meleeAttackAttributes": ["str"],
  *         "rangedAttackAttributes": ["dex"],

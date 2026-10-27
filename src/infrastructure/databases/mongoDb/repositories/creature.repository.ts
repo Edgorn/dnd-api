@@ -3,6 +3,7 @@ import IAttributeRepository from "../../../../domain/repositories/IAttributeRepo
 import ICreatureRepository from "../../../../domain/repositories/ICreatureRepository";
 import ICreatureTypeRepository from "../../../../domain/repositories/ICreatureTypeRepository";
 import IDamageRepository from "../../../../domain/repositories/IDamageRepository";
+import ICoinRepository from "../../../../domain/repositories/ICoinRepository";
 import IEquipmentRepository from "../../../../domain/repositories/IEquipmentRepository";
 import IConditionRepository from "../../../../domain/repositories/IConditionRepository";
 import ILanguageRepository from "../../../../domain/repositories/ILanguageRepository";
@@ -28,7 +29,10 @@ import {
   CreatureSpellcastingApi,
   UpdateCreature
 } from "../../../../domain/types/creature.types";
+import { CoinApi } from "../../../../domain/types/coin.types";
+import { EquipmentCost, EquipmentCostApi } from "../../../../domain/types/equipment.types";
 import { CreatureFormSummary } from "../../../../domain/types/creatureForm.types";
+import { formatSize } from "../../../../domain/types/size.types";
 import { RaceRef } from "../../../../domain/types/race.types";
 import { SpellApi } from "../../../../domain/types/spell.types";
 import { ordenarPorNombre } from "../../../../utils/formatters";
@@ -58,13 +62,15 @@ export default class CreatureRepository implements ICreatureRepository {
     private readonly attributeRepository: IAttributeRepository,
     private readonly creatureTypeRepository: ICreatureTypeRepository,
     private readonly equipmentRepository: IEquipmentRepository,
-    private readonly raceRepository: IRaceRepository
+    private readonly raceRepository: IRaceRepository,
+    private readonly coinRepository?: ICoinRepository
   ) {}
 
   async getBySystems(rulesets: string[], filters?: CreatureListFilters, userId?: string): Promise<CreatureApi[]> {
     const expandedRulesets = await this.systemRepository.getSystemsAndAncestors(rulesets);
-    const query: { ruleset: { $in: string[] }; deletedAt?: null; creatureTypeId?: string } = {
-      ruleset: { $in: expandedRulesets }
+    const query: Record<string, unknown> = {
+      ruleset: { $in: expandedRulesets },
+      ...creatureListQueryExtras(filters)
     };
 
     let includeDeleted = false;
@@ -80,10 +86,6 @@ export default class CreatureRepository implements ICreatureRepository {
 
     if (!includeDeleted) {
       query.deletedAt = null;
-    }
-
-    if (filters?.creatureTypeId) {
-      query.creatureTypeId = filters.creatureTypeId;
     }
 
     const creatures = await CreatureModel.find(query)
@@ -130,7 +132,7 @@ export default class CreatureRepository implements ICreatureRepository {
       creatures.map(creature => ({
         id: creature._id.toString(),
         name: creature.name,
-        size: creature.size,
+        size: formatSize(creature.size),
         cr: creature.challenge_rating
       }))
     );
@@ -146,6 +148,9 @@ export default class CreatureRepository implements ICreatureRepository {
       race: data.race ?? null,
       tags: data.tags ?? [],
       size: data.size,
+      cost: data.cost ?? undefined,
+      canBeMount: data.canBeMount ?? false,
+      carryingCapacity: typeof data.carryingCapacity === "number" ? data.carryingCapacity : undefined,
       alignment: data.alignment,
       armor_class: data.armor_class ?? undefined,
       HPMax: data.HPMax,
@@ -191,9 +196,17 @@ export default class CreatureRepository implements ICreatureRepository {
       }
     }
 
-    const updateQuery: { $set: Record<string, unknown>; $unset?: Record<string, string> } = { $set };
+    const $unset: Record<string, string> = {};
     if (data.traits !== undefined) {
-      updateQuery.$unset = { special_abilities: "" };
+      $unset.special_abilities = "";
+    }
+    if (data.carryingCapacity === null) {
+      delete $set.carryingCapacity;
+      $unset.carryingCapacity = "";
+    }
+    const updateQuery: { $set: Record<string, unknown>; $unset?: Record<string, string> } = { $set };
+    if (Object.keys($unset).length) {
+      updateQuery.$unset = $unset;
     }
 
     const updated = await CreatureModel.findByIdAndUpdate(
@@ -240,6 +253,7 @@ export default class CreatureRepository implements ICreatureRepository {
     const speakRaw = creature.languages?.speaks ?? [];
     const understandRaw = creature.languages?.understands ?? [];
 
+    const costUnitId = creatureCostUnitId(creature.cost);
     const [
       catalogAttributes,
       catalogSkills,
@@ -250,7 +264,8 @@ export default class CreatureRepository implements ICreatureRepository {
       languageChoices,
       spells,
       equipment,
-      race
+      race,
+      coins
     ] = await Promise.all([
       this.attributeRepository.getBySystems(expandedRulesets),
       this.skillRepository.getBySystems(expandedRulesets),
@@ -263,7 +278,10 @@ export default class CreatureRepository implements ICreatureRepository {
       this.languageRepository.formatLanguageChoices(creature.language_choices, creature.ruleset),
       this.spellRepository.getSpellsByIndexes(spellIds),
       this.equipmentRepository.getCharacterEquipmentsByIds(creature.equipment ?? []),
-      this.resolveRace(creature.race)
+      this.resolveRace(creature.race),
+      costUnitId && this.coinRepository
+        ? this.coinRepository.getCoinsByIds([costUnitId])
+        : Promise.resolve([] as CoinApi[])
     ]);
     const languageCatalog = languageApiById(catalogLanguages);
 
@@ -278,6 +296,7 @@ export default class CreatureRepository implements ICreatureRepository {
     const hydrate = (features: CreatureFeature[] | undefined) =>
       hydrateFeatures(features ?? []);
     const traits = resolveCreatureTraits(creature);
+    const cost = formatCreatureCatalogCost(creature.cost, coins[0]);
 
     return {
       id: creature._id.toString(),
@@ -288,7 +307,10 @@ export default class CreatureRepository implements ICreatureRepository {
       creatureType: creatureType ?? undefined,
       race,
       tags: creature.tags ?? [],
-      size: creature.size,
+      size: formatSize(creature.size),
+      ...(cost ? { cost } : {}),
+      canBeMount: Boolean(creature.canBeMount),
+      ...(typeof creature.carryingCapacity === "number" ? { carryingCapacity: creature.carryingCapacity } : {}),
       alignment: creature.alignment,
       armor_class: creature.armor_class,
       CA: resolveArmorClass(creature.armor_class, attributes),
@@ -450,6 +472,47 @@ export function creatureObjectIds(ids: string[]): Types.ObjectId[] {
   return ids
     .filter(id => Types.ObjectId.isValid(id))
     .map(id => new Types.ObjectId(id));
+}
+
+export function creatureListQueryExtras(filters?: CreatureListFilters): Record<string, unknown> {
+  const extras: Record<string, unknown> = {};
+  if (filters?.creatureTypeId) extras.creatureTypeId = filters.creatureTypeId;
+  if (filters?.tags?.length) extras.tags = { $all: filters.tags };
+  if (filters?.canBeMount === true) extras.canBeMount = true;
+  if (filters?.canBeMount === false) {
+    extras.$or = [{ canBeMount: false }, { canBeMount: { $exists: false } }];
+  }
+  return extras;
+}
+
+export function creatureCostUnitId(
+  cost?: EquipmentCost | { quantity?: number; unit?: unknown } | null
+): string {
+  if (!cost?.unit) return "";
+  if (typeof cost.unit === "object" && cost.unit !== null && (cost.unit as { _id?: unknown })._id) {
+    return String((cost.unit as { _id: unknown })._id);
+  }
+  return String(cost.unit);
+}
+
+export function formatCreatureCatalogCost(
+  cost: EquipmentCost | { quantity?: number; unit?: unknown } | null | undefined,
+  coin?: CoinApi
+): EquipmentCostApi | undefined {
+  if (!cost) return undefined;
+  const quantity = cost.quantity ?? 0;
+  if (coin) return { quantity, ...coin };
+  return {
+    quantity,
+    id: creatureCostUnitId(cost),
+    ruleset: "",
+    name: "",
+    abbreviation: "",
+    isBase: false,
+    multiplier: 1,
+    weight: 0,
+    color: ""
+  };
 }
 
 function unique(ids: string[]): string[] {

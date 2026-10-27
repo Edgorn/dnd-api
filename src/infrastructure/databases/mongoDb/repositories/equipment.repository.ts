@@ -36,8 +36,12 @@ import {
   ArmorMongo,
   ArmorApi,
   ArmorBasic,
-  BODY_EQUIP_SLOTS
+  BODY_EQUIP_SLOTS,
+  EquipmentListFilters,
+  MountGear,
+  VehicleStats
 } from "../../../../domain/types/equipment.types";
+import { formatSize } from "../../../../domain/types/size.types";
 import { CoinApi } from "../../../../domain/types/coin.types";
 import { Damage } from "../../../../domain/types/damage.types";
 import { Property } from "../../../../domain/types/property.types";
@@ -112,6 +116,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
       weapon: data.weapon,
       armor: data.armor,
       content: data.content,
+      mountGear: data.mountGear,
+      vehicle: data.vehicle,
       deletedAt: null
     });
 
@@ -153,14 +159,21 @@ export default class EquipmentRepository implements IEquipmentRepository {
     }));
   }
 
-  async getBySystems(rulesets: string[]): Promise<EquipmentApi[]> {
-    let filter: any = { deletedAt: null };
+  async getBySystems(rulesets: string[], filters?: EquipmentListFilters): Promise<EquipmentApi[]> {
+    let filter: Record<string, unknown> = { deletedAt: null };
 
     if (rulesets && rulesets.length > 0) {
       const expandedRulesets = this.systemRepository
         ? await this.systemRepository.getSystemsAndAncestors(rulesets)
         : rulesets;
       filter.ruleset = { $in: expandedRulesets };
+    }
+
+    if (filters?.hasVehicle) {
+      filter.vehicle = { $exists: true, $ne: null };
+    }
+    if (filters?.mountGearSlot) {
+      filter["mountGear.slot"] = filters.mountGearSlot;
     }
 
     const equipments = await EquipmentModel.find(filter).lean();
@@ -287,6 +300,29 @@ export default class EquipmentRepository implements IEquipmentRepository {
           equipSlot: "off_hand",
           "armor.class": { $exists: true, $ne: null }
         }
+      ]
+    };
+
+    if (rulesets.length > 0) {
+      const expandedRulesets = this.systemRepository
+        ? await this.systemRepository.getSystemsAndAncestors(rulesets)
+        : rulesets;
+      query.ruleset = { $in: expandedRulesets };
+    }
+
+    const equipments = await EquipmentModel.find(query).lean();
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentBasicSync(e, lookups)));
+  }
+
+  async getGear(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+    const query: Record<string, unknown> = {
+      deletedAt: null,
+      $and: [
+        { $or: [{ weapon: { $exists: false } }, { weapon: null }] },
+        { equipSlot: { $nin: [...BODY_EQUIP_SLOTS] } },
+        { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] }
       ]
     };
 
@@ -456,6 +492,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
     const isCycle = Boolean(idStr && ancestry.has(idStr));
     const canExpandContent =
       includeContent && !isCycle && nextAncestry.size <= EquipmentRepository.MAX_CONTENT_DEPTH;
+    const mountGear = formatMountGear(equipment.mountGear);
+    const vehicle = formatVehicleStats(equipment.vehicle);
 
     return {
       id: idStr,
@@ -478,6 +516,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
       weapon: this.formatWeaponSync(equipment.weapon, lookups),
       armor: this.formatArmorSync(equipment.armor, lookups),
       bonuses: equipment.bonuses,
+      ...(mountGear ? { mountGear } : {}),
+      ...(vehicle ? { vehicle } : {}),
       deletedAt: equipment.deletedAt ?? null
     };
   }
@@ -673,6 +713,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
         ...(charEquipment.uniqueGranted ? { uniqueGranted: true } : {}),
         isFavorite: charEquipment.isFavorite ?? false,
         equipped: charEquipment.equipped ?? false,
+        ...(charEquipment.holderId ? { holderId: charEquipment.holderId } : {}),
+        ...(charEquipment.drawnBy !== undefined ? { drawnBy: charEquipment.drawnBy } : {}),
+        ...(charEquipment.hpCurrent !== undefined ? { hpCurrent: charEquipment.hpCurrent } : {}),
         deletedAt: null
       };
     }
@@ -719,6 +762,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
       ...(charEquipment.uniqueGranted ? { uniqueGranted: true } : {}),
       isFavorite: charEquipment.isFavorite ?? false,
       equipped: charEquipment.equipped ?? false,
+      ...(charEquipment.holderId ? { holderId: charEquipment.holderId } : {}),
+      ...(charEquipment.drawnBy !== undefined ? { drawnBy: charEquipment.drawnBy } : {}),
+      ...(charEquipment.hpCurrent !== undefined ? { hpCurrent: charEquipment.hpCurrent } : {}),
       cost: charEquipment.cost
         ? this.formatEquipmentCostSync(charEquipment.cost, lookups)
         : formattedEq.cost
@@ -1086,4 +1132,30 @@ export default class EquipmentRepository implements IEquipmentRepository {
       )
     );
   }
+}
+
+export function formatMountGear(mountGear?: MountGear | null): MountGear | undefined {
+  if (!mountGear || typeof mountGear !== "object" || !mountGear.slot) return undefined;
+  return { slot: mountGear.slot };
+}
+
+export function formatVehicleStats(vehicle?: VehicleStats | null): VehicleStats | undefined {
+  if (!vehicle || typeof vehicle !== "object" || !vehicle.kind) return undefined;
+  const draft = vehicle.draft
+    ? {
+      ...(vehicle.draft.minAnimals !== undefined ? { minAnimals: vehicle.draft.minAnimals } : {}),
+      ...(vehicle.draft.minSize !== undefined ? { minSize: formatSize(vehicle.draft.minSize) } : {})
+    }
+    : undefined;
+  return {
+    kind: vehicle.kind,
+    ...(vehicle.travelSpeed ? { travelSpeed: vehicle.travelSpeed } : {}),
+    ...(vehicle.cargoCapacity !== undefined ? { cargoCapacity: vehicle.cargoCapacity } : {}),
+    ...(vehicle.crew !== undefined ? { crew: vehicle.crew } : {}),
+    ...(vehicle.passengers !== undefined ? { passengers: vehicle.passengers } : {}),
+    ...(vehicle.armorClass !== undefined ? { armorClass: vehicle.armorClass } : {}),
+    ...(vehicle.hitPoints !== undefined ? { hitPoints: vehicle.hitPoints } : {}),
+    ...(vehicle.damageThreshold !== undefined ? { damageThreshold: vehicle.damageThreshold } : {}),
+    ...(draft && Object.keys(draft).length ? { draft } : {})
+  };
 }

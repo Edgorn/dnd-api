@@ -5,12 +5,61 @@ import { CREATURE_ANY_RACE, CreatureInnateSpellcasting } from "../../../../domai
 import { SpellApi } from "../../../../domain/types/spell.types";
 import {
   collectDamageIds,
+  creatureListQueryExtras,
   creatureObjectIds,
+  formatCreatureCatalogCost,
   formatStoredCreatureRace,
   hydrateInnateSpellcasting,
   hydrateSpellcasting,
   resolveCreatureTraits
 } from "./creature.repository";
+
+describe("creatureListQueryExtras", () => {
+  it("añade tipo y etiquetas con $all", () => {
+    expect(creatureListQueryExtras({
+      creatureTypeId: "beast",
+      tags: ["mount", "beast"]
+    })).toEqual({
+      creatureTypeId: "beast",
+      tags: { $all: ["mount", "beast"] }
+    });
+  });
+
+  it("omite etiquetas vacías", () => {
+    expect(creatureListQueryExtras({ tags: [] })).toEqual({});
+  });
+
+  it("filtra monturas y no monturas", () => {
+    expect(creatureListQueryExtras({ canBeMount: true })).toEqual({ canBeMount: true });
+    expect(creatureListQueryExtras({ canBeMount: false })).toEqual({
+      $or: [{ canBeMount: false }, { canBeMount: { $exists: false } }]
+    });
+  });
+});
+
+describe("formatCreatureCatalogCost", () => {
+  it("hidrata la moneda cuando existe", () => {
+    const coin = {
+      id: "coin1",
+      ruleset: "sys1",
+      name: "Gold",
+      abbreviation: "gp",
+      isBase: true,
+      multiplier: 1,
+      weight: 0.02,
+      color: "#ffd700",
+      deletedAt: null
+    };
+    expect(formatCreatureCatalogCost({ quantity: 8, unit: "coin1" }, coin)).toEqual({
+      quantity: 8,
+      ...coin
+    });
+  });
+
+  it("omite el coste si no hay bloque", () => {
+    expect(formatCreatureCatalogCost(undefined)).toBeUndefined();
+  });
+});
 
 describe("collectDamageIds", () => {
   it("recoge ids legado y grants de afinidad", () => {

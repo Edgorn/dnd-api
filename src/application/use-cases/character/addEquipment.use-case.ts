@@ -15,9 +15,11 @@ export default class AddEquipment {
       throw new NotFoundError("Equipamiento no encontrado");
     }
 
+    const hpCurrent = catalog.vehicle?.hitPoints;
     return this.characterService.addEquipment({
       ...data,
       isMagic: catalog.isMagic === true,
+      ...(hpCurrent !== undefined ? { hpCurrent } : {}),
     });
   }
 }

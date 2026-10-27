@@ -10,7 +10,8 @@ import {
   EquipmentChoiceMongo,
   ResolvedEquipmentChoiceApi,
   EquipmentBasic,
-  EquipmentWeaponList
+  EquipmentWeaponList,
+  EquipmentListFilters
 } from "../types/equipment.types";
 
 export default interface IEquipmentRepository {
@@ -18,7 +19,7 @@ export default interface IEquipmentRepository {
   update(data: InputUpdateEquipment): Promise<EquipmentApi>;
   getById(id: string): Promise<EquipmentApi | null>;
   getNamesByIds(ids: string[]): Promise<Array<{ id: string; name: string }>>;
-  getBySystems(rulesets: string[]): Promise<EquipmentApi[]>;
+  getBySystems(rulesets: string[], filters?: EquipmentListFilters): Promise<EquipmentApi[]>;
   softDelete(id: string): Promise<void>;
   restore(id: string): Promise<void>;
   softDeleteByRuleset?(ruleset: string, deletedAt: Date): Promise<void>;
@@ -30,4 +31,5 @@ export default interface IEquipmentRepository {
   getEquipmentsByTypes(types: string[]): Promise<EquipmentBasic[]>;
   getWeapons(rulesets: string[]): Promise<EquipmentWeaponList[]>;
   getArmor(rulesets: string[]): Promise<EquipmentBasic[]>;
+  getGear(rulesets: string[]): Promise<EquipmentBasic[]>;
 }

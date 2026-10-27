@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { equipmentController, authMiddleware } from "../../dependencies";
-import { validateSchema } from "../middlewares/validateSchema";
-import { CreateEquipmentSchema, UpdateEquipmentSchema } from "../schemas/equipment.schema";
+import { validateQuery, validateSchema } from "../middlewares/validateSchema";
+import { CreateEquipmentSchema, GetEquipmentsQuerySchema, UpdateEquipmentSchema } from "../schemas/equipment.schema";
 
 const router = Router();
 
@@ -357,6 +357,10 @@ const router = Router();
  *           example: ["metal"]
  *         containerStats:
  *           $ref: '#/components/schemas/ContainerRules'
+ *         mountGear:
+ *           $ref: '#/components/schemas/MountGear'
+ *         vehicle:
+ *           $ref: '#/components/schemas/VehicleStats'
  *         proficiencies:
  *           type: array
  *           items:
@@ -438,6 +442,42 @@ const router = Router();
  *               description: >
  *                 Bono de daño de la fórmula del sistema. En la ficha de juego se suma el
  *                 overlay de stances activas (p. ej. Furia en melee con Fuerza). El PDF usa el valor base.
+ *             holderId:
+ *               type: string
+ *               nullable: true
+ *               description: Compañero o instancia contenedor/vehículo que porta el objeto. Null u omitido = el personaje.
+ *             load:
+ *               type: number
+ *               description: Peso del vehículo más su contenido. Solo en filas con bloque vehicle.
+ *             capacity:
+ *               type: number
+ *               nullable: true
+ *               description: Capacidad de carga del vehículo (`cargoCapacity`).
+ *             drawCapacity:
+ *               type: number
+ *               nullable: true
+ *               description: >
+ *                 Capacidad de tiro (multiplicador del sistema × suma de cargas de las bestias).
+ *                 Null si el sistema no define drawCapacityMultiplier o falta la carga de alguna bestia.
+ *             drawnBy:
+ *               type: array
+ *               items:
+ *                 type: string
+ *               description: IDs de compañeros enganchados a este vehículo.
+ *             hpCurrent:
+ *               type: integer
+ *               description: Puntos de golpe actuales de la instancia de vehículo. Se inicializa con vehicle.hitPoints al adquirir.
+ *             ac:
+ *               type: number
+ *               description: Clase de armadura de la instancia de vehículo (`vehicle.armorClass`).
+ *             warnings:
+ *               type: array
+ *               items:
+ *                 type: string
+ *               description: >
+ *                 Avisos del portador. `overloaded` si load supera cargoCapacity;
+ *                 `overDrawCapacity` si load supera drawCapacity (solo cuando drawCapacity no es null);
+ *                 `insufficientAnimals` según vehicle.draft (minAnimals / minSize).
  *     InputCreateEquipment:
  *       type: object
  *       required:
@@ -512,6 +552,63 @@ const router = Router();
  *                 description: Cantidad de unidades del objeto contenido.
  *                 example: 1
  *           description: Contenido inicial del equipamiento (packs o contenedores). Referencias por id y cantidad.
+ *         mountGear:
+ *           $ref: '#/components/schemas/MountGear'
+ *           nullable: true
+ *         vehicle:
+ *           $ref: '#/components/schemas/VehicleStats'
+ *           nullable: true
+ *     MountGear:
+ *       type: object
+ *       required:
+ *         - slot
+ *       properties:
+ *         slot:
+ *           type: string
+ *           enum: [saddle, bridle, barding, saddlebags, harness]
+ *           description: Ranura de arreo o barda en la montura.
+ *     VehicleStats:
+ *       type: object
+ *       required:
+ *         - kind
+ *       description: Bloque de vehículo. Las velocidades de viaje se guardan en millas por hora y la carga en libras.
+ *       properties:
+ *         kind:
+ *           type: string
+ *           enum: [land, water, air]
+ *         travelSpeed:
+ *           type: object
+ *           required:
+ *             - value
+ *             - unit
+ *           properties:
+ *             value:
+ *               type: number
+ *             unit:
+ *               type: string
+ *               enum: [mph]
+ *         cargoCapacity:
+ *           type: number
+ *           description: Capacidad de carga en libras.
+ *         crew:
+ *           type: integer
+ *         passengers:
+ *           type: integer
+ *         armorClass:
+ *           type: number
+ *         hitPoints:
+ *           type: integer
+ *         damageThreshold:
+ *           type: integer
+ *         draft:
+ *           type: object
+ *           properties:
+ *             minAnimals:
+ *               type: integer
+ *               minimum: 1
+ *               description: Número mínimo de animales de tiro.
+ *             minSize:
+ *               $ref: '#/components/schemas/CreatureSize'
  *     InputUpdateEquipment:
  *       type: object
  *       properties:
@@ -580,6 +677,12 @@ const router = Router();
  *                 description: Cantidad de unidades del objeto contenido.
  *                 example: 1
  *           description: Contenido del equipamiento (packs o contenedores). Referencias por id y cantidad.
+ *         mountGear:
+ *           $ref: '#/components/schemas/MountGear'
+ *           nullable: true
+ *         vehicle:
+ *           $ref: '#/components/schemas/VehicleStats'
+ *           nullable: true
  */
 
 /**
@@ -587,6 +690,7 @@ const router = Router();
  * /equipment:
  *   get:
  *     summary: Obtener lista de equipamientos filtrados por sistemas
+ *     description: Incluye el equipo de los sistemas ancestros. hasVehicle=true deja solo vehículos. mountGearSlot filtra arreos y bardas por ranura.
  *     tags:
  *       - Equipamiento
  *     security:
@@ -597,6 +701,18 @@ const router = Router();
  *         schema:
  *           type: string
  *         description: ID o nombre del sistema para filtrar equipamientos (incluye ancestros).
+ *       - in: query
+ *         name: hasVehicle
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: Si es true, solo devuelve objetos con bloque vehicle.
+ *       - in: query
+ *         name: mountGearSlot
+ *         schema:
+ *           type: string
+ *           enum: [saddle, bridle, barding, saddlebags, harness]
+ *         description: Filtra arreos y bardas por ranura.
  *     responses:
  *       200:
  *         description: Lista de equipamientos devuelta con éxito.
@@ -611,7 +727,7 @@ const router = Router();
  *       500:
  *         description: Error interno del servidor.
  */
-router.get("/equipment", authMiddleware, equipmentController.getBySystems);
+router.get("/equipment", authMiddleware, validateQuery(GetEquipmentsQuerySchema), equipmentController.getBySystems);
 
 /**
  * @openapi
@@ -689,6 +805,51 @@ router.get("/equipment/weapons", authMiddleware, equipmentController.getWeapons)
  *         description: Error interno del servidor.
  */
 router.get("/equipment/armor", authMiddleware, equipmentController.getArmor);
+
+/**
+ * @openapi
+ * /equipment/gear:
+ *   get:
+ *     summary: Obtener equipo de aventura
+ *     description: Devuelve el equipamiento que no es arma (sin bloque weapon) ni armadura (sin ranura de cuerpo ni escudo con armor.class). No depende de category. Incluye herramientas, kits, munición, contenedores, vehículos y arreos.
+ *     tags:
+ *       - Equipamiento
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema para filtrar equipamientos (incluye ancestros).
+ *     responses:
+ *       200:
+ *         description: Lista de equipo de aventura devuelta con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   category:
+ *                     type: string
+ *                   subcategory:
+ *                     type: string
+ *                   equipSlot:
+ *                     $ref: '#/components/schemas/EquipSlot'
+ *                   armor:
+ *                     $ref: '#/components/schemas/Armor'
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error interno del servidor.
+ */
+router.get("/equipment/gear", authMiddleware, equipmentController.getGear);
 
 /**
  * @openapi

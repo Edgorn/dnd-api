@@ -54,6 +54,7 @@ import RestoreEquipment from "../application/use-cases/equipment/restoreEquipmen
 import GetEquipmentsByTypes from "../application/use-cases/equipment/getEquipmentsByTypes.use-case";
 import GetEquipmentsWeapons from "../application/use-cases/equipment/getEquipmentsWeapons.use-case";
 import GetEquipmentsArmor from "../application/use-cases/equipment/getEquipmentsArmor.use-case";
+import GetEquipmentsGear from "../application/use-cases/equipment/getEquipmentsGear.use-case";
 import EquipmentService from "../domain/services/equipment.service";
 import EquipmentRepository from "./databases/mongoDb/repositories/equipment.repository";
 import { EquipmentController } from "./http/controllers/equipment.controller";
@@ -66,15 +67,21 @@ import LevelUp from "../application/use-cases/character/levelUp.use-case";
 import AddEquipment from "../application/use-cases/character/addEquipment.use-case";
 import DeleteEquipment from "../application/use-cases/character/deleteEquipment.use-case";
 import EquipEquipment from "../application/use-cases/character/equipEquipment.use-case";
+import MoveEquipment from "../application/use-cases/character/moveEquipment.use-case";
+import SetVehicleDraft from "../application/use-cases/character/setVehicleDraft.use-case";
 import UpdateMoney from "../application/use-cases/character/updateMoney.use-case";
 import GenerateCharacterPdf from "../application/use-cases/character/generateCharacterPdf.use-case";
 import BindWeaponBond from "../application/use-cases/character/bindWeaponBond.use-case";
 import ToggleFavoriteEquipment from "../application/use-cases/character/toggleFavoriteEquipment.use-case";
+import UpdateEquipmentCustomization from "../application/use-cases/character/updateEquipmentCustomization.use-case";
 import LearnSpells from "../application/use-cases/character/learnSpells.use-case";
 import CopySpells from "../application/use-cases/character/copySpells.use-case";
 import PrepareSpells from "../application/use-cases/character/prepareSpells.use-case";
 import BindSpellPrivileges from "../application/use-cases/character/bindSpellPrivileges.use-case";
 import UpdateCompanions from "../application/use-cases/character/updateCompanions.use-case";
+import AddCompanion from "../application/use-cases/character/addCompanion.use-case";
+import UpdateCompanion from "../application/use-cases/character/updateCompanion.use-case";
+import RemoveCompanion from "../application/use-cases/character/removeCompanion.use-case";
 import UpdateCharacterFlavor from "../application/use-cases/character/updateCharacterFlavor.use-case";
 import UseTrait from "../application/use-cases/character/useTrait.use-case";
 import DeactivateTrait from "../application/use-cases/character/deactivateTrait.use-case";
@@ -346,7 +353,8 @@ const creatureRepository = new CreatureRepository(
   attributeRepository,
   creatureTypeRepository,
   equipmentRepository,
-  raceRepository
+  raceRepository,
+  coinRepository
 )
 spellRepository.bindCreatureCatalog(creatureRepository, creatureTypeRepository)
 traitRepository.bindCreatureCatalog(creatureRepository)
@@ -487,6 +495,7 @@ const restoreEquipment = new RestoreEquipment(equipmentService, systemService);
 const getEquipmentsByTypes = new GetEquipmentsByTypes(equipmentService);
 const getEquipmentsWeapons = new GetEquipmentsWeapons(equipmentService);
 const getEquipmentsArmor = new GetEquipmentsArmor(equipmentService);
+const getEquipmentsGear = new GetEquipmentsGear(equipmentService);
 
 const getCharactersByUser = new GetCharactersByUser(characterService);
 const createCharacter = new CreateCharacter(characterService, systemService, equipmentRepository);
@@ -497,6 +506,8 @@ const levelUp = new LevelUp(characterService)
 const addEquipment = new AddEquipment(characterService, equipmentRepository);
 const deleteEquipment = new DeleteEquipment(characterService);
 const equipEquipment = new EquipEquipment(characterService);
+const moveEquipment = new MoveEquipment(characterRepository, equipmentRepository);
+const setVehicleDraft = new SetVehicleDraft(characterRepository, equipmentRepository);
 const updateMoney = new UpdateMoney(characterService);
 const characterSheetPdfGenerator = new CharacterSheetPdfGenerator();
 const generateCharacterPdf = new GenerateCharacterPdf(
@@ -506,11 +517,15 @@ const generateCharacterPdf = new GenerateCharacterPdf(
 );
 const bindWeaponBond = new BindWeaponBond(characterService);
 const toggleFavoriteEquipment = new ToggleFavoriteEquipment(characterService);
+const updateEquipmentCustomization = new UpdateEquipmentCustomization(characterService);
 const learnSpells = new LearnSpells(characterService);
 const copySpells = new CopySpells(characterService);
 const prepareSpells = new PrepareSpells(characterService);
 const bindSpellPrivileges = new BindSpellPrivileges(characterService);
-const updateCompanions = new UpdateCompanions(characterService);
+const updateCompanions = new UpdateCompanions(characterRepository, creatureRepository, systemRepository);
+const addCompanion = new AddCompanion(characterRepository, creatureRepository, systemRepository);
+const updateCompanion = new UpdateCompanion(characterRepository, creatureRepository);
+const removeCompanion = new RemoveCompanion(characterRepository);
 const updateCharacterFlavor = new UpdateCharacterFlavor(characterService);
 const useTrait = new UseTrait(characterService);
 const deactivateTrait = new DeactivateTrait(characterService);
@@ -658,7 +673,8 @@ export const equipmentController = new EquipmentController(
   restoreEquipment,
   getEquipmentsByTypes,
   getEquipmentsWeapons,
-  getEquipmentsArmor
+  getEquipmentsArmor,
+  getEquipmentsGear
 );
 
 export const characterController = new CharacterController(
@@ -671,6 +687,8 @@ export const characterController = new CharacterController(
   addEquipment,
   deleteEquipment,
   equipEquipment,
+  moveEquipment,
+  setVehicleDraft,
   updateMoney,
   generateCharacterPdf,
   bindWeaponBond,
@@ -680,6 +698,7 @@ export const characterController = new CharacterController(
   activateCharacterForm,
   deactivateCharacterForm,
   toggleFavoriteEquipment,
+  updateEquipmentCustomization,
   prepareSpells,
   bindSpellPrivileges,
   updateCompanions,
@@ -692,7 +711,10 @@ export const characterController = new CharacterController(
   spendSpellSlot,
   applyCharacterCondition,
   updateCharacterCondition,
-  removeCharacterCondition
+  removeCharacterCondition,
+  addCompanion,
+  updateCompanion,
+  removeCompanion
 )
 
 export const spellController = new SpellController(

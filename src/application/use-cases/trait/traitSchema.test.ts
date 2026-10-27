@@ -1559,6 +1559,48 @@ describe("CreateTraitSchema grantedSpells and creatureFormExtensions", () => {
   });
 });
 
+describe("CreateTraitSchema hidden", () => {
+  it("accepts true, false, or omitted", () => {
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      hidden: true
+    }).success).toBe(true);
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      hidden: false
+    }).success).toBe(true);
+    const omitted = CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo"
+    });
+    expect(omitted.success).toBe(true);
+    if (omitted.success) {
+      expect(omitted.data.hidden).toBeUndefined();
+    }
+  });
+
+  it("rejects a non-boolean hidden", () => {
+    expect(CreateTraitSchema.safeParse({
+      ruleset: "sys1",
+      name: "Rasgo",
+      hidden: "true"
+    }).success).toBe(false);
+  });
+});
+
+describe("UpdateTraitSchema hidden", () => {
+  it("accepts true or false", () => {
+    expect(UpdateTraitSchema.safeParse({ hidden: true }).success).toBe(true);
+    expect(UpdateTraitSchema.safeParse({ hidden: false }).success).toBe(true);
+  });
+
+  it("rejects a non-boolean hidden", () => {
+    expect(UpdateTraitSchema.safeParse({ hidden: "true" }).success).toBe(false);
+  });
+});
+
 describe("UpdateTraitSchema grantedSpells", () => {
   it("accepts null to clear grantedSpells and creatureFormExtensions", () => {
     expect(UpdateTraitSchema.safeParse({ grantedSpells: null }).success).toBe(true);

@@ -10,7 +10,8 @@ import {
   EquipmentChoiceMongo,
   ResolvedEquipmentChoiceApi,
   EquipmentBasic,
-  EquipmentWeaponList
+  EquipmentWeaponList,
+  EquipmentListFilters
 } from "../types/equipment.types";
 
 export default class EquipmentService {
@@ -28,8 +29,8 @@ export default class EquipmentService {
     return this.equipmentRepository.getById(id);
   }
 
-  getBySystems(rulesets: string[]): Promise<EquipmentApi[]> {
-    return this.equipmentRepository.getBySystems(rulesets);
+  getBySystems(rulesets: string[], filters?: EquipmentListFilters): Promise<EquipmentApi[]> {
+    return this.equipmentRepository.getBySystems(rulesets, filters);
   }
 
   softDelete(id: string): Promise<void> {
@@ -65,5 +66,9 @@ export default class EquipmentService {
 
   getArmor(rulesets: string[] = []): Promise<EquipmentBasic[]> {
     return this.equipmentRepository.getArmor(rulesets);
+  }
+
+  getGear(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+    return this.equipmentRepository.getGear(rulesets);
   }
 }

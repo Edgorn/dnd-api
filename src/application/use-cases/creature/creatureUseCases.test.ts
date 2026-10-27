@@ -398,5 +398,20 @@ describe("Creature use cases", () => {
       expect(result).toEqual([sampleCreature]);
       expect(creatureService.getBySystems).toHaveBeenCalledWith(["sys1"], { creatureTypeId: "type1" }, "user1");
     });
+
+    it("delega el listado filtrado por etiquetas", async () => {
+      const useCase = new GetCreaturesBySystems(creatureService as never);
+      creatureService.getBySystems.mockResolvedValue([sampleCreature]);
+
+      await useCase.execute(["sys1"], { tags: ["mount"] }, "user1");
+
+      expect(creatureService.getBySystems).toHaveBeenCalledWith(["sys1"], { tags: ["mount"] }, "user1");
+    });
+
+    it("delega el listado filtrado por montura", async () => {
+      const useCase = new GetCreaturesBySystems(creatureService as never);
+      await useCase.execute(["sys1"], { canBeMount: true }, "user1");
+      expect(creatureService.getBySystems).toHaveBeenCalledWith(["sys1"], { canBeMount: true }, "user1");
+    });
   });
 });

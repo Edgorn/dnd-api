@@ -245,6 +245,9 @@ export default class SystemRepository implements ISystemRepository {
       baseAcFormula: data.baseAcFormula,
       passiveSkillFormula: data.passiveSkillFormula,
       carryingCapacityFormula: data.carryingCapacityFormula,
+      drawCapacityMultiplier: data.drawCapacityMultiplier,
+      bardingCostMultiplier: data.bardingCostMultiplier,
+      bardingWeightMultiplier: data.bardingWeightMultiplier,
       attackBonusFormula: data.attackBonusFormula,
       damageBonusFormula: data.damageBonusFormula,
       meleeAttackAttributes: data.meleeAttackAttributes,
@@ -283,6 +286,9 @@ export default class SystemRepository implements ISystemRepository {
       baseAcFormula,
       passiveSkillFormula,
       carryingCapacityFormula,
+      drawCapacityMultiplier,
+      bardingCostMultiplier,
+      bardingWeightMultiplier,
       attackBonusFormula,
       damageBonusFormula,
       meleeAttackAttributes,
@@ -317,6 +323,9 @@ export default class SystemRepository implements ISystemRepository {
     if (baseAcFormula !== undefined) updateFields.baseAcFormula = baseAcFormula;
     if (passiveSkillFormula !== undefined) updateFields.passiveSkillFormula = passiveSkillFormula;
     if (carryingCapacityFormula !== undefined) updateFields.carryingCapacityFormula = carryingCapacityFormula;
+    if (drawCapacityMultiplier !== undefined) updateFields.drawCapacityMultiplier = drawCapacityMultiplier;
+    if (bardingCostMultiplier !== undefined) updateFields.bardingCostMultiplier = bardingCostMultiplier;
+    if (bardingWeightMultiplier !== undefined) updateFields.bardingWeightMultiplier = bardingWeightMultiplier;
     if (attackBonusFormula !== undefined) updateFields.attackBonusFormula = attackBonusFormula;
     if (damageBonusFormula !== undefined) updateFields.damageBonusFormula = damageBonusFormula;
     if (meleeAttackAttributes !== undefined) updateFields.meleeAttackAttributes = meleeAttackAttributes;

@@ -249,10 +249,17 @@ export async function escribirOrganizaciones({ pdfDoc, personaje, form }: any) {
   }
 
   if (personaje?.companions?.length) {
+    const companionMarks = buildCompanionSheetMarks(
+      personaje.companions,
+      personaje.equipment ?? [],
+    );
     for (const companion of personaje.companions) {
       const { textY, actualHeight } = escribirParrafo({
         titulo: "",
-        descripcion: formatCompanionSheetRow(companion),
+        descripcion: formatCompanionSheetRow(
+          companion,
+          companionMarks.byCompanionId.get(companion.id),
+        ),
         fontTitle: fontBold,
         fontText: fontRegular,
         maxWidth: 178,
@@ -459,13 +466,18 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
   const page2 = pages[1]
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const inventory = equipment ?? [];
+  const companionMarks = buildCompanionSheetMarks(personaje?.companions ?? [], inventory);
 
-  const bodyArmor = equipment.find(equip => equip.equipped && equip.equipSlot === 'armor');
+  const bodyArmor = inventory.find(equip => equip.equipped && equip.equipSlot === 'armor');
 
   if (bodyArmor) {
     escribirParrafo({
       titulo: '',
-      descripcion: (bodyArmor.name + (bodyArmor.isMagic ? ' +1' : '')),
+      descripcion: prefixSheetMark(
+        companionMarks.byInstanceId.get(bodyArmor.instanceId ?? ''),
+        bodyArmor.name + (bodyArmor.isMagic ? ' +1' : ''),
+      ),
       fontTitle: fontBold,
       fontText: fontRegular,
       maxWidth: 131,
@@ -480,7 +492,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
     }
   }
 
-  const equipo = equipment
+  const equipo = inventory
     .filter(equip => equip.weapon !== undefined || (equip.equipSlot !== undefined && equip.equipSlot !== null))
     .map(equip => {
       let dataProperties = ''
@@ -505,12 +517,18 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
           .join(', ') + ')'
       }
 
-      return equip.quantity + 'x ' + equip.name + (equip.isMagic ? ' +1' : '') + ' ' + dataProperties
+      return prefixSheetMark(
+        companionMarks.byInstanceId.get(equip.instanceId ?? ''),
+        equip.quantity + 'x ' + equip.name + (equip.isMagic ? ' +1' : '') + ' ' + dataProperties,
+      )
     })
 
-  const tesoro = equipment
+  const tesoro = inventory
     .filter(equip => equip.weapon === undefined && (equip.equipSlot === undefined || equip.equipSlot === null))
-    .map(equip => equip.quantity + 'x ' + equip.name)
+    .map(equip => prefixSheetMark(
+      companionMarks.byInstanceId.get(equip.instanceId ?? ''),
+      equip.quantity + 'x ' + equip.name,
+    ))
 
   escribirParrafo({
     titulo: '',
@@ -582,10 +600,87 @@ export function mergeSheetSpells(
   );
 }
 
-export function formatCompanionSheetRow(companion: Pick<CharacterCompanion, "name" | "role" | "notes">): string {
+const SHEET_HOLDER_MARKS = ["*", "†", "‡", "§", "¶", "#"] as const;
+
+export type CompanionSheetMarkRow = {
+  instanceId?: string;
+  holderId?: string | null;
+};
+
+export type CompanionSheetMarks = {
+  byCompanionId: Map<string, string>;
+  byInstanceId: Map<string, string>;
+};
+
+function sheetMarkAt(index: number): string {
+  if (index < SHEET_HOLDER_MARKS.length) return SHEET_HOLDER_MARKS[index];
+  return String.fromCharCode(65 + ((index - SHEET_HOLDER_MARKS.length) % 26));
+}
+
+function terminalCompanionId(
+  holderId: string | null | undefined,
+  holderByInstanceId: Map<string, string | null | undefined>,
+  companionIds: Set<string>,
+): string | undefined {
+  let current = holderId ?? null;
+  const seen = new Set<string>();
+  while (current) {
+    if (companionIds.has(current)) return current;
+    if (seen.has(current)) return undefined;
+    seen.add(current);
+    if (!holderByInstanceId.has(current)) return undefined;
+    current = holderByInstanceId.get(current) ?? null;
+  }
+  return undefined;
+}
+
+export function buildCompanionSheetMarks(
+  companions: Array<{ id: string }>,
+  equipment: CompanionSheetMarkRow[],
+): CompanionSheetMarks {
+  const byCompanionId = new Map<string, string>();
+  const byInstanceId = new Map<string, string>();
+  const companionIds = new Set(companions.map((companion) => companion.id));
+  const holderByInstanceId = new Map<string, string | null | undefined>();
+  for (const row of equipment) {
+    if (row.instanceId) holderByInstanceId.set(row.instanceId, row.holderId);
+  }
+
+  const loadedCompanionIds = new Set<string>();
+  const ownerByInstanceId = new Map<string, string>();
+  for (const row of equipment) {
+    const ownerId = terminalCompanionId(row.holderId, holderByInstanceId, companionIds);
+    if (!ownerId) continue;
+    loadedCompanionIds.add(ownerId);
+    if (row.instanceId) ownerByInstanceId.set(row.instanceId, ownerId);
+  }
+
+  let markIndex = 0;
+  for (const companion of companions) {
+    if (!loadedCompanionIds.has(companion.id)) continue;
+    byCompanionId.set(companion.id, sheetMarkAt(markIndex));
+    markIndex += 1;
+  }
+
+  for (const [instanceId, ownerId] of ownerByInstanceId) {
+    const mark = byCompanionId.get(ownerId);
+    if (mark) byInstanceId.set(instanceId, mark);
+  }
+
+  return { byCompanionId, byInstanceId };
+}
+
+export function prefixSheetMark(mark: string | undefined, line: string): string {
+  return mark ? `${mark} ${line}` : line;
+}
+
+export function formatCompanionSheetRow(
+  companion: Pick<CharacterCompanion, "name" | "role" | "notes">,
+  mark?: string,
+): string {
   const role = companion.role ? ` (${companion.role})` : "";
   const notes = companion.notes ? `. ${companion.notes}` : "";
-  return `${companion.name}${role}${notes}`;
+  return prefixSheetMark(mark, `${companion.name}${role}${notes}`);
 }
 
 export async function escribirConjuros({ form, personaje }: { form: any, personaje: CharacterApi }) {

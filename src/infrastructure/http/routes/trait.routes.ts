@@ -1086,7 +1086,7 @@ const router = Router();
  *             sizes:
  *               type: array
  *               items:
- *                 type: string
+ *                 $ref: '#/components/schemas/CreatureSize'
  *             tags:
  *               type: array
  *               items:
@@ -1120,7 +1120,7 @@ const router = Router();
  *             sizes:
  *               type: array
  *               items:
- *                 type: string
+ *                 $ref: '#/components/schemas/CreatureSize'
  *             tags:
  *               type: array
  *               items:
@@ -1229,6 +1229,9 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de índices o IDs de rasgos incompatibles.
+ *         hidden:
+ *           type: boolean
+ *           description: Si está oculto en la creación. También lo oculta el PDF y la vista combate.
  *         stackGroup:
  *           allOf:
  *             - $ref: '#/components/schemas/TraitStackGroup'
@@ -1492,6 +1495,9 @@ const router = Router();
  *           items:
  *             type: string
  *           description: Lista de índices o IDs de rasgos incompatibles.
+ *         hidden:
+ *           type: boolean
+ *           description: Si está oculto en la creación. También lo oculta el PDF y la vista combate.
  *         stackGroup:
  *           allOf:
  *             - $ref: '#/components/schemas/TraitStackGroup'

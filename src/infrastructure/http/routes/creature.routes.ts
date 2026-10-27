@@ -9,6 +9,18 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
+ *     CreatureSize:
+ *       type: string
+ *       description: >
+ *         Tamaño canónico. También se aceptan nombres en español o inglés con otra
+ *         capitalización (p. ej. Mediano, Medium); se normalizan a este valor.
+ *       enum:
+ *         - tiny
+ *         - small
+ *         - medium
+ *         - large
+ *         - huge
+ *         - gargantuan
  *     Creature:
  *       type: object
  *       properties:
@@ -41,7 +53,17 @@ const router = Router();
  *             type: string
  *           description: Etiquetas de la criatura (p. ej. cambiaformas, demonio). No son el tipo ni la raza.
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
+ *         cost:
+ *           $ref: '#/components/schemas/EquipmentCostApi'
+ *           description: Precio de catálogo de la criatura (p. ej. una montura). La unidad es una moneda hidratada.
+ *         canBeMount:
+ *           type: boolean
+ *           description: >
+ *             Si es true, el personaje puede registrar esta criatura como montura.
+ *         carryingCapacity:
+ *           type: number
+ *           description: Capacidad de carga fija en libras. Si falta, el compañero hidratado no tiene tope.
  *         alignment:
  *           type: string
  *         armor_class:
@@ -288,7 +310,18 @@ const router = Router();
  *             type: string
  *           description: Etiquetas opcionales (p. ej. cambiaformas, demonio). No son el tipo ni la raza.
  *         size:
- *           type: string
+ *           $ref: '#/components/schemas/CreatureSize'
+ *         cost:
+ *           $ref: '#/components/schemas/EquipmentCost'
+ *           nullable: true
+ *           description: Precio de catálogo. unit es el ID de una moneda (Coin).
+ *         canBeMount:
+ *           type: boolean
+ *           description: Si se omite, se trata como false.
+ *         carryingCapacity:
+ *           type: number
+ *           nullable: true
+ *           description: Capacidad de carga fija en libras. null en PATCH borra el campo.
  *         alignment:
  *           type: string
  *         armor_class:
@@ -566,7 +599,7 @@ const router = Router();
  * /creatures:
  *   get:
  *     summary: Obtener las criaturas de uno o varios sistemas
- *     description: Incluye criaturas de los sistemas ancestros. El publicador también ve las borradas lógicamente. Se puede filtrar por tipo de criatura.
+ *     description: Incluye criaturas de los sistemas ancestros. El publicador también ve las borradas lógicamente. Se puede filtrar por tipo de criatura, etiquetas y si puede ser montura.
  *     tags:
  *       - Criaturas
  *     security:
@@ -586,6 +619,20 @@ const router = Router();
  *         schema:
  *           type: string
  *         description: Filtra por el ID del tipo de criatura.
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           oneOf:
+ *             - type: string
+ *             - type: array
+ *               items:
+ *                 type: string
+ *         description: Devuelve solo criaturas que tienen todas las etiquetas indicadas.
+ *       - in: query
+ *         name: canBeMount
+ *         schema:
+ *           type: boolean
+ *         description: true solo monturas de catálogo; false el resto.
  *     responses:
  *       200:
  *         description: Listado de criaturas.

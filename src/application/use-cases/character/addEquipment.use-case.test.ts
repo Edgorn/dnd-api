@@ -84,4 +84,28 @@ describe("AddEquipment", () => {
     ).rejects.toThrow(NotFoundError);
     expect(characterServiceMock.addEquipment).not.toHaveBeenCalled();
   });
+
+  it("initializes hpCurrent from vehicle hitPoints", async () => {
+    const useCase = new AddEquipment(characterServiceMock as any, equipmentRepositoryMock as any);
+    equipmentRepositoryMock.getById.mockResolvedValue({
+      id: "eq-cart",
+      isMagic: false,
+      vehicle: { kind: "land", hitPoints: 50 },
+    });
+    characterServiceMock.addEquipment.mockResolvedValue({ equipment: [] });
+
+    await useCase.execute({
+      id: "char1",
+      equipmentId: "eq-cart",
+      quantity: 1,
+    });
+
+    expect(characterServiceMock.addEquipment).toHaveBeenCalledWith({
+      id: "char1",
+      equipmentId: "eq-cart",
+      quantity: 1,
+      isMagic: false,
+      hpCurrent: 50,
+    });
+  });
 });

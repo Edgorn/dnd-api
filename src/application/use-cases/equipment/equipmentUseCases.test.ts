@@ -8,6 +8,7 @@ import RestoreEquipment from "./restoreEquipment.use-case";
 import GetEquipmentsByTypes from "./getEquipmentsByTypes.use-case";
 import GetEquipmentsWeapons from "./getEquipmentsWeapons.use-case";
 import GetEquipmentsArmor from "./getEquipmentsArmor.use-case";
+import GetEquipmentsGear from "./getEquipmentsGear.use-case";
 import { AppError, NotFoundError } from "../../../domain/errors/AppError";
 
 describe("Equipment Use Cases", () => {
@@ -24,7 +25,8 @@ describe("Equipment Use Cases", () => {
       restore: vi.fn(),
       getEquipmentsByTypes: vi.fn(),
       getWeapons: vi.fn(),
-      getArmor: vi.fn()
+      getArmor: vi.fn(),
+      getGear: vi.fn()
     };
 
     systemServiceMock = {
@@ -336,7 +338,7 @@ describe("Equipment Use Cases", () => {
 
       const result = await useCase.execute(["sys1"]);
       expect(result).toEqual([{ id: "eq1" }, { id: "eq2" }]);
-      expect(equipmentServiceMock.getBySystems).toHaveBeenCalledWith(["sys1"]);
+      expect(equipmentServiceMock.getBySystems).toHaveBeenCalledWith(["sys1"], undefined);
     });
   });
 
@@ -426,6 +428,27 @@ describe("Equipment Use Cases", () => {
 
       await useCase.execute(undefined);
       expect(equipmentServiceMock.getArmor).toHaveBeenCalledWith([]);
+    });
+  });
+
+  describe("GetEquipmentsGear", () => {
+    it("should return gear that is neither weapon nor armor", async () => {
+      const useCase = new GetEquipmentsGear(equipmentServiceMock);
+      equipmentServiceMock.getGear.mockResolvedValue([
+        { id: "eq1", name: "Backpack", category: "Adventuring Gear" }
+      ]);
+
+      const result = await useCase.execute(["sys1"]);
+      expect(result).toEqual([{ id: "eq1", name: "Backpack", category: "Adventuring Gear" }]);
+      expect(equipmentServiceMock.getGear).toHaveBeenCalledWith(["sys1"]);
+    });
+
+    it("should default to empty rulesets when none provided", async () => {
+      const useCase = new GetEquipmentsGear(equipmentServiceMock);
+      equipmentServiceMock.getGear.mockResolvedValue([]);
+
+      await useCase.execute(undefined);
+      expect(equipmentServiceMock.getGear).toHaveBeenCalledWith([]);
     });
   });
 });

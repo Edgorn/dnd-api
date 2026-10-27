@@ -288,3 +288,33 @@ describe("CreateSystemSchema abilityScoreAlternativeGroupId", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("CreateSystemSchema carrying rules", () => {
+  it("accepts draw and barding scalars", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      drawCapacityMultiplier: 5,
+      bardingCostMultiplier: 4,
+      bardingWeightMultiplier: 2
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects creature carry tokens in carryingCapacityFormula", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "D&D 5e",
+      carryingCapacityFormula: "@attributes.str.value * 15 * @size.carryMultiplier"
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects carrying rules on a setting", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Forgotten Realms",
+      kind: "setting",
+      parentIds: ["507f1f77bcf86cd799439011"],
+      drawCapacityMultiplier: 5
+    });
+    expect(result.success).toBe(false);
+  });
+});

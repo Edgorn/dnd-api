@@ -1,5 +1,6 @@
 import type { CreatureApi } from "./creature.types";
 import type { CreatureTypeApi } from "./creatureType.types";
+import type { CreatureSize } from "./size.types";
 
 export const CREATURE_FORM_PURPOSES = ["companion", "self", "target"] as const;
 export type CreatureFormPurpose = (typeof CREATURE_FORM_PURPOSES)[number];
@@ -22,7 +23,7 @@ export interface CreatureFormPoolFilterStored {
   mode: "filter";
   creatureTypeIds?: string[];
   maxCR?: number;
-  sizes?: string[];
+  sizes?: Array<CreatureSize | string>;
   tags?: string[];
 }
 
@@ -46,7 +47,7 @@ export interface CreatureFormPoolFilterApi {
   creatureTypeIds?: string[];
   creatureTypes?: CreatureTypeApi[];
   maxCR?: number;
-  sizes?: string[];
+  sizes?: Array<CreatureSize | string>;
   tags?: string[];
 }
 
@@ -77,7 +78,7 @@ export interface CharacterFormMongo {
 export interface CreatureFormSummary {
   id: string;
   name: string;
-  size: string;
+  size: CreatureSize | string;
   cr: number;
 }
 

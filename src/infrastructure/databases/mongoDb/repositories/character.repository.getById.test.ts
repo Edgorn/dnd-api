@@ -279,6 +279,78 @@ describe("CharacterRepository.getById query budget", () => {
     expect(spellRepository.getSpellsByIndexes).not.toHaveBeenCalled();
   });
 
+  it("hydrates companion creature stats on full and sheet views", async () => {
+    const COMPANION_ID = "507f1f77bcf86cd7994390b1";
+    const CREATURE_ID = "507f1f77bcf86cd7994390b2";
+    const attributes = [
+      { id: "attr-str", key: "str", name: "Fuerza", value: 16, modifier: 3 }
+    ];
+    const catalogCreature = {
+      id: CREATURE_ID,
+      name: "Caballo de monta",
+      CA: 11,
+      HPMax: 19,
+      size: "large",
+      speed: { walk: 60 },
+      attributes,
+      carryingCapacity: 480
+    };
+    vi.mocked(CharacterModel.findById).mockReturnValue({
+      lean: vi.fn().mockResolvedValue({
+        ...sheetDoc(),
+        companions: [{
+          id: COMPANION_ID,
+          name: "Relámpago",
+          kind: "mount",
+          creatureId: CREATURE_ID,
+          source: "purchase",
+          hpCurrent: 12
+        }]
+      })
+    } as never);
+    creatureRepository.getByIds.mockResolvedValue([catalogCreature]);
+
+    const full = await repository.getById(CHAR_ID, USER_ID) as {
+      companions: Array<{
+        id: string;
+        hpMax?: number;
+        ac?: number;
+        size?: string;
+        speed?: { walk?: number };
+        attributes?: typeof attributes;
+        creature?: { id: string; attributes?: typeof attributes };
+      }>;
+    };
+
+    expect(creatureRepository.getByIds).toHaveBeenCalledWith([CREATURE_ID]);
+    expect(full.companions).toHaveLength(1);
+    expect(full.companions[0]).toMatchObject({
+      id: COMPANION_ID,
+      hpMax: 19,
+      ac: 11,
+      size: "large",
+      speed: { walk: 60 },
+      attributes,
+      creature: { id: CREATURE_ID, attributes }
+    });
+
+    creatureRepository.getByIds.mockClear();
+    creatureRepository.getByIds.mockResolvedValue([catalogCreature]);
+    const sheet = await repository.getById(CHAR_ID, USER_ID, { view: "sheet" }) as {
+      companions: Array<{ hpMax?: number; attributes?: typeof attributes }>;
+    };
+    expect(creatureRepository.getByIds).toHaveBeenCalledWith([CREATURE_ID]);
+    expect(sheet.companions[0]?.hpMax).toBe(19);
+    expect(sheet.companions[0]?.attributes).toEqual(attributes);
+
+    creatureRepository.getByIds.mockClear();
+    const combat = await repository.getById(CHAR_ID, USER_ID, { view: "combat" }) as {
+      companions?: unknown[];
+    };
+    expect(combat).not.toHaveProperty("companions");
+    expect(creatureRepository.getByIds).not.toHaveBeenCalled();
+  });
+
   it("getByIdForExport reuses the same character load for the owner id", async () => {
     const result = await repository.getByIdForExport(CHAR_ID, USER_ID);
 
