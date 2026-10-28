@@ -73,6 +73,21 @@ type IdBuckets = {
   contentRefs: Set<string>;
 };
 
+const RARITY_KEY_PRESENT = { rarityKey: { $type: "string", $ne: "" } };
+const RARITY_KEY_ABSENT = {
+  $or: [
+    { rarityKey: { $exists: false } },
+    { rarityKey: null },
+    { rarityKey: "" }
+  ]
+};
+
+function formatRarityKey(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 export default class EquipmentRepository implements IEquipmentRepository {
   private static readonly MAX_CONTENT_DEPTH = 5;
 
@@ -116,6 +131,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
       weapon: data.weapon,
       armor: data.armor,
       content: data.content,
+      isMagic: data.isMagic ?? false,
+      rarityKey: formatRarityKey(data.rarityKey),
       mountGear: data.mountGear,
       vehicle: data.vehicle,
       deletedAt: null
@@ -127,6 +144,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
 
   async update(data: InputUpdateEquipment): Promise<EquipmentApi> {
     const { id, ...updateFields } = data;
+    if (updateFields.rarityKey !== undefined) {
+      updateFields.rarityKey = formatRarityKey(updateFields.rarityKey);
+    }
     const updated = await EquipmentModel.findByIdAndUpdate(
       id,
       { $set: updateFields },
@@ -322,8 +342,28 @@ export default class EquipmentRepository implements IEquipmentRepository {
       $and: [
         { $or: [{ weapon: { $exists: false } }, { weapon: null }] },
         { equipSlot: { $nin: [...BODY_EQUIP_SLOTS] } },
-        { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] }
+        { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] },
+        RARITY_KEY_ABSENT
       ]
+    };
+
+    if (rulesets.length > 0) {
+      const expandedRulesets = this.systemRepository
+        ? await this.systemRepository.getSystemsAndAncestors(rulesets)
+        : rulesets;
+      query.ruleset = { $in: expandedRulesets };
+    }
+
+    const equipments = await EquipmentModel.find(query).lean();
+    if (!equipments.length) return [];
+    const lookups = await this.buildLookups(equipments);
+    return ordenarPorNombre(equipments.map(e => this.formatEquipmentBasicSync(e, lookups)));
+  }
+
+  async getMagicItems(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+    const query: Record<string, unknown> = {
+      deletedAt: null,
+      ...RARITY_KEY_PRESENT
     };
 
     if (rulesets.length > 0) {
@@ -509,6 +549,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
       materials: equipment.materials,
       containerStats: equipment.containerStats,
       isMagic: equipment.isMagic ?? false,
+      rarityKey: formatRarityKey(equipment.rarityKey),
       proficiencies: this.resolveProficiencies(equipment.proficiencies ?? [], lookups),
       content: canExpandContent
         ? this.formatContentSync(equipment.content ?? [], lookups, nextAncestry)
@@ -557,6 +598,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
       category: equipment.category || "",
       subcategory: equipment.subcategory || "",
       equipSlot: equipment.equipSlot ?? null,
+      isMagic: equipment.isMagic ?? false,
+      rarityKey: formatRarityKey(equipment.rarityKey),
       weapon: this.formatWeaponBasic(equipment.weapon),
       armor: this.formatArmorBasicSync(equipment.armor, lookups)
     };
@@ -577,6 +620,8 @@ export default class EquipmentRepository implements IEquipmentRepository {
       category: equipment.category || "",
       subcategory: equipment.subcategory || "",
       equipSlot: equipment.equipSlot ?? null,
+      isMagic: equipment.isMagic ?? false,
+      rarityKey: formatRarityKey(equipment.rarityKey),
       weapon: this.formatWeaponList(equipment.weapon, lookups),
       armor: this.formatArmorBasicSync(equipment.armor, lookups)
     };
@@ -707,6 +752,7 @@ export default class EquipmentRepository implements IEquipmentRepository {
         weapon: this.formatWeaponSync(charEquipment.weapon, lookups),
         armor: this.formatArmorSync(charEquipment.armor, lookups),
         isMagic: charEquipment.isMagic ?? false,
+        rarityKey: formatRarityKey(charEquipment.rarityKey),
         isBond: charEquipment.isBond ?? false,
         ...(charEquipment.bondOrigin ? { bondOrigin: charEquipment.bondOrigin } : {}),
         ...(charEquipment.bondStored ? { bondStored: true } : {}),
@@ -756,6 +802,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
         ? this.formatArmorSync(this.mergeArmor(matched.armor, charEquipment.armor), lookups)
         : formattedEq.armor,
       isMagic: charEquipment.isMagic ?? formattedEq.isMagic ?? false,
+      rarityKey: charEquipment.rarityKey !== undefined
+        ? formatRarityKey(charEquipment.rarityKey)
+        : (formattedEq.rarityKey ?? null),
       isBond: charEquipment.isBond ?? false,
       ...(charEquipment.bondOrigin ? { bondOrigin: charEquipment.bondOrigin } : {}),
       ...(charEquipment.bondStored ? { bondStored: true } : {}),
@@ -1061,6 +1110,9 @@ export default class EquipmentRepository implements IEquipmentRepository {
         ? this.formatArmorSync(this.mergeArmor(catalog.armor, override.armor), lookups)
         : base.armor,
       isMagic: override.isMagic ?? base.isMagic,
+      rarityKey: override.rarityKey !== undefined
+        ? formatRarityKey(override.rarityKey)
+        : (base.rarityKey ?? null),
       isBond: override.isBond !== undefined ? override.isBond : base.isBond,
       ...(override.bondOrigin ? { bondOrigin: override.bondOrigin } : {}),
       ...(override.bondStored ? { bondStored: true } : {}),

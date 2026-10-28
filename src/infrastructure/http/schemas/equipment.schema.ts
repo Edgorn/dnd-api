@@ -136,6 +136,7 @@ const equipmentCustomizationFields = {
   weapon: WeaponSchema.optional(),
   armor: ArmorSchema.optional(),
   isMagic: z.boolean().optional(),
+  rarityKey: z.string().trim().min(1).nullable().optional(),
   isBond: z.boolean().optional(),
   equipped: z.boolean().optional(),
   bonuses: EquipmentBonusesSchema.optional()
@@ -187,6 +188,8 @@ export const CreateEquipmentSchema = z.object({
   weapon: WeaponSchema.nullable().optional(),
   armor: ArmorSchema.nullable().optional(),
   content: z.array(CharacterEquipmentSchema).optional(),
+  isMagic: z.boolean().optional(),
+  rarityKey: z.string().trim().min(1).nullable().optional(),
   mountGear: MountGearSchema.nullable().optional(),
   vehicle: VehicleStatsSchema.nullable().optional()
 });
@@ -207,6 +210,8 @@ export const UpdateEquipmentSchema = z.object({
   weapon: WeaponSchema.nullable().optional(),
   armor: ArmorSchema.nullable().optional(),
   content: z.array(CharacterEquipmentSchema).optional(),
+  isMagic: z.boolean().optional(),
+  rarityKey: z.string().trim().min(1).nullable().optional(),
   mountGear: MountGearSchema.nullable().optional(),
   vehicle: VehicleStatsSchema.nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {

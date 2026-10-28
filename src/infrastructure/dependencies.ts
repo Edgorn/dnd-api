@@ -13,6 +13,8 @@ import CoinRepository from "./databases/mongoDb/repositories/coin.repository";
 import { CoinController } from "./http/controllers/coin.controller";
 import DenyJoinCampaign from "../application/use-cases/campaign/denyJoinCampaign.use-case";
 import AddCharacterToCampaign from "../application/use-cases/campaign/addCharacterToCampaign.use-case";
+import RemoveCharacterFromCampaign from "../application/use-cases/campaign/removeCharacterFromCampaign.use-case";
+import RemovePlayerFromCampaign from "../application/use-cases/campaign/removePlayerFromCampaign.use-case";
 import LoginUseCase from "../application/use-cases/auth/login.use-case";
 import CreateUserUseCase from "../application/use-cases/user/createUser.use-case";
 import GetCurrentUserUseCase from "../application/use-cases/user/getCurrentUser.use-case";
@@ -55,6 +57,7 @@ import GetEquipmentsByTypes from "../application/use-cases/equipment/getEquipmen
 import GetEquipmentsWeapons from "../application/use-cases/equipment/getEquipmentsWeapons.use-case";
 import GetEquipmentsArmor from "../application/use-cases/equipment/getEquipmentsArmor.use-case";
 import GetEquipmentsGear from "../application/use-cases/equipment/getEquipmentsGear.use-case";
+import GetEquipmentsMagicItems from "../application/use-cases/equipment/getEquipmentsMagicItems.use-case";
 import EquipmentService from "../domain/services/equipment.service";
 import EquipmentRepository from "./databases/mongoDb/repositories/equipment.repository";
 import { EquipmentController } from "./http/controllers/equipment.controller";
@@ -461,6 +464,8 @@ const requestJoinCampaign = new RequestJoinCampaign(campaignService)
 const acceptJoinCampaign = new AcceptJoinCampaign(campaignService)
 const denyJoinCampaign = new DenyJoinCampaign(campaignService)
 const addCharacterToCampaign = new AddCharacterToCampaign(campaignService, characterService)
+const removeCharacterFromCampaign = new RemoveCharacterFromCampaign(campaignService, characterService)
+const removePlayerFromCampaign = new RemovePlayerFromCampaign(campaignService, characterService)
 
 const getRaceSummaries = new GetRaceSummariesUseCase(raceService, systemService, entityOverrideService);
 const getRaceById = new GetRaceByIdUseCase(raceService, systemService, entityOverrideService);
@@ -496,6 +501,7 @@ const getEquipmentsByTypes = new GetEquipmentsByTypes(equipmentService);
 const getEquipmentsWeapons = new GetEquipmentsWeapons(equipmentService);
 const getEquipmentsArmor = new GetEquipmentsArmor(equipmentService);
 const getEquipmentsGear = new GetEquipmentsGear(equipmentService);
+const getEquipmentsMagicItems = new GetEquipmentsMagicItems(equipmentService);
 
 const getCharactersByUser = new GetCharactersByUser(characterService);
 const createCharacter = new CreateCharacter(characterService, systemService, equipmentRepository);
@@ -625,7 +631,9 @@ export const campaignController = new CampaignController(
   requestJoinCampaign,
   acceptJoinCampaign,
   denyJoinCampaign,
-  addCharacterToCampaign
+  addCharacterToCampaign,
+  removeCharacterFromCampaign,
+  removePlayerFromCampaign
 )
 
 export const authController = new AuthController(
@@ -674,7 +682,8 @@ export const equipmentController = new EquipmentController(
   getEquipmentsByTypes,
   getEquipmentsWeapons,
   getEquipmentsArmor,
-  getEquipmentsGear
+  getEquipmentsGear,
+  getEquipmentsMagicItems
 );
 
 export const characterController = new CharacterController(

@@ -456,8 +456,27 @@ export async function escribirTransfondo({ pdfDoc, background }: any) {
 }
 
 
-const armaduras: any = {
-  'Armadura de cuero tachonado': 'Cuero tachonado'
+export function shortenPdfArmorName(name: string): string {
+  const prefix = "Armadura de ";
+  if (!name.startsWith(prefix)) return name;
+  const rest = name.slice(prefix.length);
+  if (rest.length === 0) return rest;
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+
+export type PdfInventoryItem = {
+  weapon?: unknown;
+  equipSlot?: string | null;
+  isMagic?: boolean;
+  rarityKey?: string | null;
+};
+
+export function isPdfTreasureItem(equip: PdfInventoryItem): boolean {
+  if (equip.weapon !== undefined) return false;
+  if (equip.equipSlot !== undefined && equip.equipSlot !== null) return false;
+  if (equip.isMagic === true) return false;
+  if (typeof equip.rarityKey === "string" && equip.rarityKey.trim() !== "") return false;
+  return true;
 }
 
 export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { pdfDoc: any, equipment: CharacterEquipmentApi[], personaje: CharacterApi, form: any }) {
@@ -476,7 +495,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
       titulo: '',
       descripcion: prefixSheetMark(
         companionMarks.byInstanceId.get(bodyArmor.instanceId ?? ''),
-        bodyArmor.name + (bodyArmor.isMagic ? ' +1' : ''),
+        shortenPdfArmorName(bodyArmor.name) + (bodyArmor.isMagic ? ' +1' : ''),
       ),
       fontTitle: fontBold,
       fontText: fontRegular,
@@ -493,7 +512,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
   }
 
   const equipo = inventory
-    .filter(equip => equip.weapon !== undefined || (equip.equipSlot !== undefined && equip.equipSlot !== null))
+    .filter(equip => !isPdfTreasureItem(equip))
     .map(equip => {
       let dataProperties = ''
 
@@ -524,7 +543,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
     })
 
   const tesoro = inventory
-    .filter(equip => equip.weapon === undefined && (equip.equipSlot === undefined || equip.equipSlot === null))
+    .filter(equip => isPdfTreasureItem(equip))
     .map(equip => prefixSheetMark(
       companionMarks.byInstanceId.get(equip.instanceId ?? ''),
       equip.quantity + 'x ' + equip.name,

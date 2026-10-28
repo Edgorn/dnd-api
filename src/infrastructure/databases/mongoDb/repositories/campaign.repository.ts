@@ -173,6 +173,54 @@ export default class CampaignRepository implements ICampaignRepository {
     };
   }
 
+  async removeCharacter(campaignId: string, characterId: string): Promise<{ characterId: string } | null> {
+    const result = await Campaign.findOneAndUpdate(
+      {
+        _id: campaignId as any,
+        $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }]
+      },
+      { $pull: { characters: characterId } },
+      { returnDocument: "after" }
+    );
+
+    if (!result) {
+      return null;
+    }
+
+    return {
+      characterId
+    };
+  }
+
+  async removePlayer(
+    campaignId: string,
+    userId: string,
+    characterIds: string[]
+  ): Promise<{ userId: string, campaignId: string } | null> {
+    const result = await Campaign.findOneAndUpdate(
+      {
+        _id: campaignId as any,
+        $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }]
+      },
+      {
+        $pull: {
+          players: userId,
+          characters: { $in: characterIds }
+        }
+      },
+      { returnDocument: "after" }
+    );
+
+    if (!result) {
+      return null;
+    }
+
+    return {
+      userId,
+      campaignId
+    };
+  }
+
   private toStringArray(value: unknown): string[] {
     return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
   }

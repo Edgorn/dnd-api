@@ -9,4 +9,6 @@ export default interface ICampaignRepository {
   denyJoinRequest(data: CampaignJoinInput): Promise<{ userId: string, campaignId: string } | null>
   acceptJoinRequest(data: CampaignJoinInput): Promise<{ userId: string, campaignId: string } | null>
   addCharacter(campaignId: string, characterId: string): Promise<{ characterId: string } | null>
+  removeCharacter(campaignId: string, characterId: string): Promise<{ characterId: string } | null>
+  removePlayer(campaignId: string, userId: string, characterIds: string[]): Promise<{ userId: string, campaignId: string } | null>
 }

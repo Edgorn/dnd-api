@@ -152,6 +152,8 @@ describe("CharacterRepository list queries", () => {
     expect(systemRepository.getMergedRulesConfig).toHaveBeenCalledTimes(1);
     expect(systemRepository.getMergedRulesConfig).toHaveBeenCalledWith([SYSTEM_ID]);
     expect(result).toHaveLength(2);
+    expect(result[0].user).toBe("Edgar");
+    expect(result[0].userId).toBe(USER_ID);
     expect(result[0].subclasses).toEqual([
       { class: "class-1", name: "Campeón", id: SUBCLASS_ID }
     ]);
@@ -176,6 +178,8 @@ describe("CharacterRepository list queries", () => {
     const [item] = await repository.getByIds([CHAR_A]);
 
     expect(whereIn).toHaveBeenCalledWith([CHAR_A]);
+    expect(item.user).toBe("Edgar");
+    expect(item.userId).toBe(USER_ID);
     expect(item.attributes).toEqual([{ key: "dex", value: 14 }]);
     expect(item.systems).toEqual([SYSTEM_ID]);
     expect(item.speed).toEqual({ walk: 9 });

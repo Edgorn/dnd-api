@@ -18,6 +18,7 @@ export default interface ICharacterRepository {
   getByIds(idCharacters: string[]): Promise<CharacterBasic[]>
   getCampaignLink(characterId: string): Promise<CharacterCampaignLink | null>
   assignToCampaign(characterId: string, campaignId: string): Promise<CharacterBasic | null>
+  unassignFromCampaign(characterId: string, campaignId: string): Promise<{ characterId: string } | null>
   bindWeaponBond(data: TypeBindWeaponBond): Promise<CharacterEquipmentStateResponse>
   learnSpells(data: TypeLearnSpells): Promise<CharacterSpellStateResponse>
   copySpells(data: TypeCopySpells): Promise<CharacterSpellStateResponse>

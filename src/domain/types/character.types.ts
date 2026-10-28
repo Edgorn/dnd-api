@@ -550,6 +550,7 @@ export interface CharacterBasic {
   name: string,
   race: string,
   user: string,
+  userId: string,
   campaign: string | null,
   classes: {
     name: string,
@@ -651,6 +652,8 @@ export interface CharacterApi {
   img: string,
   name: string,
   race: string,
+  user: string,
+  userId: string,
   size: CreatureSize | string,
   classes: {
     class: string,

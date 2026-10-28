@@ -203,6 +203,13 @@ const router = Router();
  *           description: Subcategoría del equipamiento.
  *         equipSlot:
  *           $ref: '#/components/schemas/EquipSlot'
+ *         isMagic:
+ *           type: boolean
+ *           description: Indica si el objeto es mágico.
+ *         rarityKey:
+ *           type: string
+ *           nullable: true
+ *           description: Clave libre de rareza. Ausente o null significa sin rareza.
  *         weapon:
  *           $ref: '#/components/schemas/WeaponList'
  *         armor:
@@ -381,6 +388,11 @@ const router = Router();
  *         isMagic:
  *           type: boolean
  *           description: Indica si el objeto es mágico.
+ *         rarityKey:
+ *           type: string
+ *           nullable: true
+ *           description: Clave libre de rareza (p. ej. uncommon, unique). Ausente, vacío o null significa sin rareza.
+ *           example: "uncommon"
  *         isBond:
  *           type: boolean
  *           description: Indica si el objeto está vinculado.
@@ -558,6 +570,14 @@ const router = Router();
  *         vehicle:
  *           $ref: '#/components/schemas/VehicleStats'
  *           nullable: true
+ *         isMagic:
+ *           type: boolean
+ *           description: Indica si el objeto es mágico.
+ *         rarityKey:
+ *           type: string
+ *           nullable: true
+ *           description: Clave libre de rareza. Ausente, vacío o null significa sin rareza.
+ *           example: "rare"
  *     MountGear:
  *       type: object
  *       required:
@@ -683,6 +703,14 @@ const router = Router();
  *         vehicle:
  *           $ref: '#/components/schemas/VehicleStats'
  *           nullable: true
+ *         isMagic:
+ *           type: boolean
+ *           description: Indica si el objeto es mágico.
+ *         rarityKey:
+ *           type: string
+ *           nullable: true
+ *           description: Clave libre de rareza. null vacía el campo.
+ *           example: "legendary"
  */
 
 /**
@@ -797,6 +825,11 @@ router.get("/equipment/weapons", authMiddleware, equipmentController.getWeapons)
  *                     type: string
  *                   equipSlot:
  *                     $ref: '#/components/schemas/EquipSlot'
+ *                   isMagic:
+ *                     type: boolean
+ *                   rarityKey:
+ *                     type: string
+ *                     nullable: true
  *                   armor:
  *                     $ref: '#/components/schemas/Armor'
  *       401:
@@ -811,7 +844,7 @@ router.get("/equipment/armor", authMiddleware, equipmentController.getArmor);
  * /equipment/gear:
  *   get:
  *     summary: Obtener equipo de aventura
- *     description: Devuelve el equipamiento que no es arma (sin bloque weapon) ni armadura (sin ranura de cuerpo ni escudo con armor.class). No depende de category. Incluye herramientas, kits, munición, contenedores, vehículos y arreos.
+ *     description: Devuelve el equipamiento que no es arma (sin bloque weapon) ni armadura (sin ranura de cuerpo ni escudo con armor.class) y que no tiene rarityKey. No depende de category. Incluye herramientas, kits, munición, contenedores, vehículos y arreos.
  *     tags:
  *       - Equipamiento
  *     security:
@@ -842,6 +875,11 @@ router.get("/equipment/armor", authMiddleware, equipmentController.getArmor);
  *                     type: string
  *                   equipSlot:
  *                     $ref: '#/components/schemas/EquipSlot'
+ *                   isMagic:
+ *                     type: boolean
+ *                   rarityKey:
+ *                     type: string
+ *                     nullable: true
  *                   armor:
  *                     $ref: '#/components/schemas/Armor'
  *       401:
@@ -850,6 +888,56 @@ router.get("/equipment/armor", authMiddleware, equipmentController.getArmor);
  *         description: Error interno del servidor.
  */
 router.get("/equipment/gear", authMiddleware, equipmentController.getGear);
+
+/**
+ * @openapi
+ * /equipment/magic-items:
+ *   get:
+ *     summary: Obtener equipamientos con rareza
+ *     description: Devuelve el equipamiento que tiene rarityKey (cualquier categoría o ranura). No filtra por isMagic. Incluye ancestros del sistema.
+ *     tags:
+ *       - Equipamiento
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: ruleset
+ *         schema:
+ *           type: string
+ *         description: ID o nombre del sistema para filtrar equipamientos (incluye ancestros).
+ *     responses:
+ *       200:
+ *         description: Lista de objetos con rareza devuelta con éxito.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   name:
+ *                     type: string
+ *                   category:
+ *                     type: string
+ *                   subcategory:
+ *                     type: string
+ *                   equipSlot:
+ *                     $ref: '#/components/schemas/EquipSlot'
+ *                   isMagic:
+ *                     type: boolean
+ *                   rarityKey:
+ *                     type: string
+ *                     nullable: true
+ *                   armor:
+ *                     $ref: '#/components/schemas/Armor'
+ *       401:
+ *         description: No autorizado.
+ *       500:
+ *         description: Error interno del servidor.
+ */
+router.get("/equipment/magic-items", authMiddleware, equipmentController.getMagicItems);
 
 /**
  * @openapi

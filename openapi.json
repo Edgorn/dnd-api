@@ -6110,6 +6110,15 @@
           "equipSlot": {
             "$ref": "#/components/schemas/EquipSlot"
           },
+          "isMagic": {
+            "type": "boolean",
+            "description": "Indica si el objeto es mágico."
+          },
+          "rarityKey": {
+            "type": "string",
+            "nullable": true,
+            "description": "Clave libre de rareza. Ausente o null significa sin rareza."
+          },
           "weapon": {
             "$ref": "#/components/schemas/WeaponList"
           },
@@ -6367,6 +6376,12 @@
             "type": "boolean",
             "description": "Indica si el objeto es mágico."
           },
+          "rarityKey": {
+            "type": "string",
+            "nullable": true,
+            "description": "Clave libre de rareza (p. ej. uncommon, unique). Ausente, vacío o null significa sin rareza.",
+            "example": "uncommon"
+          },
           "isBond": {
             "type": "boolean",
             "description": "Indica si el objeto está vinculado."
@@ -6614,6 +6629,16 @@
           "vehicle": {
             "$ref": "#/components/schemas/VehicleStats",
             "nullable": true
+          },
+          "isMagic": {
+            "type": "boolean",
+            "description": "Indica si el objeto es mágico."
+          },
+          "rarityKey": {
+            "type": "string",
+            "nullable": true,
+            "description": "Clave libre de rareza. Ausente, vacío o null significa sin rareza.",
+            "example": "rare"
           }
         }
       },
@@ -6808,6 +6833,16 @@
           "vehicle": {
             "$ref": "#/components/schemas/VehicleStats",
             "nullable": true
+          },
+          "isMagic": {
+            "type": "boolean",
+            "description": "Indica si el objeto es mágico."
+          },
+          "rarityKey": {
+            "type": "string",
+            "nullable": true,
+            "description": "Clave libre de rareza. null vacía el campo.",
+            "example": "legendary"
           }
         }
       },
@@ -9713,7 +9748,11 @@
           },
           "user": {
             "type": "string",
-            "description": "Nombre del usuario creador o ID."
+            "description": "Nombre del usuario dueño."
+          },
+          "userId": {
+            "type": "string",
+            "description": "ID de MongoDB del usuario dueño."
           },
           "campaign": {
             "type": "string",
@@ -10332,6 +10371,14 @@
           },
           "race": {
             "type": "string"
+          },
+          "user": {
+            "type": "string",
+            "description": "Nombre del usuario dueño."
+          },
+          "userId": {
+            "type": "string",
+            "description": "ID de MongoDB del usuario dueño."
           },
           "size": {
             "$ref": "#/components/schemas/CreatureSize"
@@ -16091,6 +16138,13 @@
                       "equipSlot": {
                         "$ref": "#/components/schemas/EquipSlot"
                       },
+                      "isMagic": {
+                        "type": "boolean"
+                      },
+                      "rarityKey": {
+                        "type": "string",
+                        "nullable": true
+                      },
                       "armor": {
                         "$ref": "#/components/schemas/Armor"
                       }
@@ -16112,7 +16166,7 @@
     "/equipment/gear": {
       "get": {
         "summary": "Obtener equipo de aventura",
-        "description": "Devuelve el equipamiento que no es arma (sin bloque weapon) ni armadura (sin ranura de cuerpo ni escudo con armor.class). No depende de category. Incluye herramientas, kits, munición, contenedores, vehículos y arreos.",
+        "description": "Devuelve el equipamiento que no es arma (sin bloque weapon) ni armadura (sin ranura de cuerpo ni escudo con armor.class) y que no tiene rarityKey. No depende de category. Incluye herramientas, kits, munición, contenedores, vehículos y arreos.",
         "tags": [
           "Equipamiento"
         ],
@@ -16155,6 +16209,85 @@
                       },
                       "equipSlot": {
                         "$ref": "#/components/schemas/EquipSlot"
+                      },
+                      "isMagic": {
+                        "type": "boolean"
+                      },
+                      "rarityKey": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "armor": {
+                        "$ref": "#/components/schemas/Armor"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "500": {
+            "description": "Error interno del servidor."
+          }
+        }
+      }
+    },
+    "/equipment/magic-items": {
+      "get": {
+        "summary": "Obtener equipamientos con rareza",
+        "description": "Devuelve el equipamiento que tiene rarityKey (cualquier categoría o ranura). No filtra por isMagic. Incluye ancestros del sistema.",
+        "tags": [
+          "Equipamiento"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ruleset",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID o nombre del sistema para filtrar equipamientos (incluye ancestros)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de objetos con rareza devuelta con éxito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "subcategory": {
+                        "type": "string"
+                      },
+                      "equipSlot": {
+                        "$ref": "#/components/schemas/EquipSlot"
+                      },
+                      "isMagic": {
+                        "type": "boolean"
+                      },
+                      "rarityKey": {
+                        "type": "string",
+                        "nullable": true
                       },
                       "armor": {
                         "$ref": "#/components/schemas/Armor"
@@ -21783,6 +21916,134 @@
           },
           "409": {
             "description": "El personaje ya pertenece a esta u otra campaña."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/campaign/{id}/characters/{characterId}": {
+      "delete": {
+        "summary": "Sacar un personaje de una campaña",
+        "description": "Desvincula un personaje del usuario autenticado. El personaje no se borra y el usuario sigue siendo miembro de la campaña.",
+        "tags": [
+          "Campañas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la campaña."
+          },
+          {
+            "in": "path",
+            "name": "characterId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del personaje a desvincular."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personaje desvinculado de la campaña.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "characterId": {
+                      "type": "string",
+                      "description": "ID del personaje desvinculado."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID de campaña o de personaje inválido."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "El personaje no pertenece al usuario autenticado."
+          },
+          "404": {
+            "description": "Campaña no encontrada o el personaje no pertenece a esta campaña."
+          },
+          "500": {
+            "description": "Error del servidor."
+          }
+        }
+      }
+    },
+    "/campaign/{id}/players/{userId}": {
+      "delete": {
+        "summary": "Sacar a un jugador de una campaña",
+        "description": "El jugador autenticado puede abandonar la campaña o el master puede expulsar a un jugador aceptado. Se desvinculan los personajes de ese usuario. No se puede sacar al master.",
+        "tags": [
+          "Campañas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB de la campaña."
+          },
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID de MongoDB del jugador a sacar."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Jugador sacado de la campaña.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignJoinResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID de campaña o de usuario inválido."
+          },
+          "401": {
+            "description": "No autorizado."
+          },
+          "403": {
+            "description": "El usuario autenticado no puede sacar a ese jugador, o se intentó sacar al master."
+          },
+          "404": {
+            "description": "Campaña no encontrada o el usuario no es un jugador aceptado."
           },
           "500": {
             "description": "Error del servidor."

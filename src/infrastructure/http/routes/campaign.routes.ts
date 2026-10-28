@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { campaignController, authMiddleware } from "../../dependencies";
 import { validateParams, validateSchema } from "../middlewares/validateSchema";
-import { CampaignIdParamsSchema, CampaignJoinParamsSchema, CreateCampaignSchema, AddCharacterToCampaignBodySchema } from "../schemas/campaign.schema";
+import { CampaignIdParamsSchema, CampaignJoinParamsSchema, CampaignCharacterParamsSchema, CreateCampaignSchema, AddCharacterToCampaignBodySchema } from "../schemas/campaign.schema";
 
 const router = Router();
 
@@ -432,6 +432,106 @@ router.post(
   validateParams(CampaignIdParamsSchema),
   validateSchema(AddCharacterToCampaignBodySchema),
   campaignController.addCharacterToCampaign
+);
+
+/**
+ * @openapi
+ * /campaign/{id}/characters/{characterId}:
+ *   delete:
+ *     summary: Sacar un personaje de una campaña
+ *     description: Desvincula un personaje del usuario autenticado. El personaje no se borra y el usuario sigue siendo miembro de la campaña.
+ *     tags:
+ *       - Campañas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la campaña.
+ *       - in: path
+ *         name: characterId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del personaje a desvincular.
+ *     responses:
+ *       200:
+ *         description: Personaje desvinculado de la campaña.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 characterId:
+ *                   type: string
+ *                   description: ID del personaje desvinculado.
+ *       400:
+ *         description: ID de campaña o de personaje inválido.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: El personaje no pertenece al usuario autenticado.
+ *       404:
+ *         description: Campaña no encontrada o el personaje no pertenece a esta campaña.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.delete(
+  '/campaign/:id/characters/:characterId',
+  authMiddleware,
+  validateParams(CampaignCharacterParamsSchema),
+  campaignController.removeCharacterFromCampaign
+);
+
+/**
+ * @openapi
+ * /campaign/{id}/players/{userId}:
+ *   delete:
+ *     summary: Sacar a un jugador de una campaña
+ *     description: El jugador autenticado puede abandonar la campaña o el master puede expulsar a un jugador aceptado. Se desvinculan los personajes de ese usuario. No se puede sacar al master.
+ *     tags:
+ *       - Campañas
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB de la campaña.
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de MongoDB del jugador a sacar.
+ *     responses:
+ *       200:
+ *         description: Jugador sacado de la campaña.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CampaignJoinResult'
+ *       400:
+ *         description: ID de campaña o de usuario inválido.
+ *       401:
+ *         description: No autorizado.
+ *       403:
+ *         description: El usuario autenticado no puede sacar a ese jugador, o se intentó sacar al master.
+ *       404:
+ *         description: Campaña no encontrada o el usuario no es un jugador aceptado.
+ *       500:
+ *         description: Error del servidor.
+ */
+router.delete(
+  '/campaign/:id/players/:userId',
+  authMiddleware,
+  validateParams(CampaignJoinParamsSchema),
+  campaignController.removePlayerFromCampaign
 );
 
 export default router;

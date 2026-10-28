@@ -17,6 +17,11 @@ export const CampaignJoinParamsSchema = z.object({
   userId: objectIdSchema("ID de usuario requerido"),
 });
 
+export const CampaignCharacterParamsSchema = z.object({
+  id: objectIdSchema("ID de campaña requerido"),
+  characterId: objectIdSchema("ID de personaje requerido"),
+});
+
 export const CreateCampaignSchema = z
   .object({
     name: z.string().min(1, "El nombre es requerido"),
@@ -36,5 +41,6 @@ export const AddCharacterToCampaignBodySchema = z
 
 export type CampaignIdParams = z.infer<typeof CampaignIdParamsSchema>;
 export type CampaignJoinParams = z.infer<typeof CampaignJoinParamsSchema>;
+export type CampaignCharacterParams = z.infer<typeof CampaignCharacterParamsSchema>;
 export type CreateCampaignBody = z.infer<typeof CreateCampaignSchema>;
 export type AddCharacterToCampaignBody = z.infer<typeof AddCharacterToCampaignBodySchema>;

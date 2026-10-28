@@ -76,6 +76,10 @@ export default class CharacterService {
     return this.characterRepository.assignToCampaign(characterId, campaignId);
   }
 
+  unassignFromCampaign(characterId: string, campaignId: string): Promise<{ characterId: string } | null> {
+    return this.characterRepository.unassignFromCampaign(characterId, campaignId);
+  }
+
   bindWeaponBond(data: TypeBindWeaponBond): Promise<CharacterEquipmentStateResponse> {
     return this.characterRepository.bindWeaponBond(data);
   }

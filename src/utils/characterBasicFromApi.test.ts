@@ -8,6 +8,8 @@ function sheet(overrides: Partial<CharacterApi> = {}): CharacterApi {
     img: "https://img",
     name: "Ada",
     race: "Humano",
+    user: "Edgar",
+    userId: "user-1",
     size: "medium",
     classes: [{ class: "cls", level: 3, name: "Mago", hitDie: 6 }],
     subclasses: [{ class: "cls", name: "Evocación", id: "sub1" }],
@@ -52,7 +54,7 @@ function sheet(overrides: Partial<CharacterApi> = {}): CharacterApi {
 
 describe("toCharacterBasic", () => {
   it("projects list-card fields and drops sheet-only data", () => {
-    const basic = toCharacterBasic(sheet(), { user: "Edgar" });
+    const basic = toCharacterBasic(sheet());
 
     expect(basic).toEqual({
       id: "c1",
@@ -60,6 +62,7 @@ describe("toCharacterBasic", () => {
       name: "Ada",
       race: "Humano",
       user: "Edgar",
+      userId: "user-1",
       campaign: "Barovia",
       classes: [{ name: "Mago", level: 3 }],
       subclasses: [{ class: "cls", name: "Evocación", id: "sub1" }],
@@ -76,7 +79,6 @@ describe("toCharacterBasic", () => {
 
   it("prefers persisted ac and speed over stance overlays on the sheet", () => {
     const basic = toCharacterBasic(sheet(), {
-      user: "Edgar",
       ac: 13,
       speed: { walk: 9 },
     });
@@ -86,7 +88,7 @@ describe("toCharacterBasic", () => {
   });
 
   it("uses null campaign when the sheet has no campaign", () => {
-    const basic = toCharacterBasic(sheet({ campaign: null }), { user: "Edgar" });
+    const basic = toCharacterBasic(sheet({ campaign: null }));
     expect(basic.campaign).toBeNull();
   });
 });

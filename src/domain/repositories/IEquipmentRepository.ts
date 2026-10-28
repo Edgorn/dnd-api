@@ -32,4 +32,5 @@ export default interface IEquipmentRepository {
   getWeapons(rulesets: string[]): Promise<EquipmentWeaponList[]>;
   getArmor(rulesets: string[]): Promise<EquipmentBasic[]>;
   getGear(rulesets: string[]): Promise<EquipmentBasic[]>;
+  getMagicItems(rulesets: string[]): Promise<EquipmentBasic[]>;
 }

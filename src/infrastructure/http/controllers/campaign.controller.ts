@@ -5,6 +5,8 @@ import RequestJoinCampaign from "../../../application/use-cases/campaign/request
 import AcceptJoinCampaign from "../../../application/use-cases/campaign/acceptJoinCampaign.use-case";
 import DenyJoinCampaign from "../../../application/use-cases/campaign/denyJoinCampaign.use-case";
 import AddCharacterToCampaign from "../../../application/use-cases/campaign/addCharacterToCampaign.use-case";
+import RemoveCharacterFromCampaign from "../../../application/use-cases/campaign/removeCharacterFromCampaign.use-case";
+import RemovePlayerFromCampaign from "../../../application/use-cases/campaign/removePlayerFromCampaign.use-case";
 import { Response, NextFunction } from "express";
 import { AuthenticatedRequest } from "../interfaces/AuthenticatedRequest";
 import { ValidationError } from "../../../domain/errors/AppError";
@@ -17,7 +19,9 @@ export class CampaignController {
     private readonly requestJoin: RequestJoinCampaign,
     private readonly acceptJoin: AcceptJoinCampaign,
     private readonly denyJoin: DenyJoinCampaign,
-    private readonly addCharacter: AddCharacterToCampaign
+    private readonly addCharacter: AddCharacterToCampaign,
+    private readonly removeCharacter: RemoveCharacterFromCampaign,
+    private readonly removePlayer: RemovePlayerFromCampaign
   ) { }
 
   getCampaigns = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -144,6 +148,40 @@ export class CampaignController {
       return res.status(200).json(data);
     } catch (e) {
       console.error("[CampaignController.addCharacterToCampaign] Error:", e);
+      next(e);
+    }
+  };
+
+  removeCharacterFromCampaign = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user;
+      const { id, characterId } = req.params;
+
+      if (!userId) {
+        throw new ValidationError("El ID del usuario es obligatorio");
+      }
+
+      const data = await this.removeCharacter.execute({ userId, campaignId: id, characterId });
+      return res.status(200).json(data);
+    } catch (e) {
+      console.error("[CampaignController.removeCharacterFromCampaign] Error:", e);
+      next(e);
+    }
+  };
+
+  removePlayerFromCampaign = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const callerId = req.user;
+      const { id, userId } = req.params;
+
+      if (!callerId) {
+        throw new ValidationError("El ID del usuario es obligatorio");
+      }
+
+      const data = await this.removePlayer.execute({ callerId, campaignId: id, userId });
+      return res.status(200).json(data);
+    } catch (e) {
+      console.error("[CampaignController.removePlayerFromCampaign] Error:", e);
       next(e);
     }
   };

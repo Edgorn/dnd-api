@@ -34,6 +34,7 @@ const equipmentSchema: Schema = new Schema<EquipmentMongo>(
       saving_throws: Number
     },
     isMagic: { type: Boolean, default: false },
+    rarityKey: { type: String, default: null },
     proficiencies: { type: [String], default: [] },
     weapon: { type: Schema.Types.Mixed },
     armor: { type: Schema.Types.Mixed },

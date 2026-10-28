@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildCompanionSheetMarks,
   formatCompanionSheetRow,
+  isPdfTreasureItem,
   mergeSheetSpells,
   prefixSheetMark,
+  shortenPdfArmorName,
 } from "./escribirPdf";
 import { SpellApi } from "../domain/types/spell.types";
 
@@ -148,5 +150,45 @@ describe("buildCompanionSheetMarks", () => {
 
     expect(marks.byCompanionId.size).toBe(0);
     expect(marks.byInstanceId.size).toBe(0);
+  });
+});
+
+describe("isPdfTreasureItem", () => {
+  it("keeps weapons in the equipment box", () => {
+    expect(isPdfTreasureItem({ weapon: { damage: [] } })).toBe(false);
+  });
+
+  it("keeps slotted armor in the equipment box", () => {
+    expect(isPdfTreasureItem({ equipSlot: "armor" })).toBe(false);
+  });
+
+  it("keeps mundane gear without a slot in treasure", () => {
+    expect(isPdfTreasureItem({})).toBe(true);
+  });
+
+  it("moves catalog magic items with rarityKey to the equipment box", () => {
+    expect(isPdfTreasureItem({ rarityKey: "uncommon" })).toBe(false);
+  });
+
+  it("moves isMagic items without a slot to the equipment box", () => {
+    expect(isPdfTreasureItem({ isMagic: true })).toBe(false);
+  });
+
+  it("treats blank rarityKey as mundane treasure", () => {
+    expect(isPdfTreasureItem({ rarityKey: "   " })).toBe(true);
+    expect(isPdfTreasureItem({ rarityKey: null })).toBe(true);
+  });
+});
+
+describe("shortenPdfArmorName", () => {
+  it("strips the Armadura de prefix", () => {
+    expect(shortenPdfArmorName("Armadura de cuero tachonado")).toBe("Cuero tachonado");
+    expect(shortenPdfArmorName("Armadura de placas")).toBe("Placas");
+  });
+
+  it("leaves names without the prefix unchanged", () => {
+    expect(shortenPdfArmorName("Cota de mallas")).toBe("Cota de mallas");
+    expect(shortenPdfArmorName("")).toBe("");
+    expect(shortenPdfArmorName("Cuero")).toBe("Cuero");
   });
 });

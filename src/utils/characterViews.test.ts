@@ -20,6 +20,8 @@ function sheet(): CharacterApi {
     img: "",
     name: "Ada",
     race: "Humano",
+    user: "Edgar",
+    userId: "user-1",
     size: "medium",
     classes: [{ class: "cls", level: 1, name: "Mago", hitDie: 6 }],
     subclasses: [],
@@ -96,6 +98,8 @@ describe("characterViews", () => {
     expect(projected.spellsById.s1).not.toHaveProperty("description");
     expect(projected.traits[0]).not.toHaveProperty("incompatible_traits");
     expect(projected.traits[0].summary).toBe("sum");
+    expect(projected.user).toBe("Edgar");
+    expect(projected.userId).toBe("user-1");
   });
 
   it("toSpellRef requires an id", () => {

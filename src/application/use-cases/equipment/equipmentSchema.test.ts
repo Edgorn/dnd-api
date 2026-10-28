@@ -82,6 +82,42 @@ describe("GetEquipmentsQuerySchema", () => {
   });
 });
 
+describe("CreateEquipmentSchema isMagic and rarityKey", () => {
+  it("accepts isMagic and a non-empty rarityKey", () => {
+    const result = CreateEquipmentSchema.safeParse({
+      ...createBase,
+      isMagic: true,
+      rarityKey: "uncommon"
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("trims rarityKey", () => {
+    const result = CreateEquipmentSchema.safeParse({
+      ...createBase,
+      rarityKey: "  rare  "
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.rarityKey).toBe("rare");
+    }
+  });
+
+  it("rejects a blank rarityKey", () => {
+    expect(CreateEquipmentSchema.safeParse({
+      ...createBase,
+      rarityKey: "   "
+    }).success).toBe(false);
+  });
+});
+
+describe("UpdateEquipmentSchema isMagic and rarityKey", () => {
+  it("accepts null rarityKey to clear it", () => {
+    const result = UpdateEquipmentSchema.safeParse({ rarityKey: null, isMagic: false });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("UpdateEquipmentSchema materials", () => {
   it("accepts null to clear materials", () => {
     const result = UpdateEquipmentSchema.safeParse({ materials: null });

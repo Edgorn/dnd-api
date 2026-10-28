@@ -1484,6 +1484,20 @@ export default class CharacterRepository implements ICharacterRepository {
     return this.formatBasicCharacter(resultado);
   }
 
+  async unassignFromCampaign(characterId: string, campaignId: string): Promise<{ characterId: string } | null> {
+    const resultado = await CharacterModel.findOneAndUpdate(
+      { _id: characterId as any, campaign: campaignId },
+      { $set: { campaign: null } },
+      { returnDocument: "after" }
+    );
+
+    if (!resultado) {
+      return null;
+    }
+
+    return { characterId };
+  }
+
   async bindWeaponBond(data: TypeBindWeaponBond): Promise<CharacterEquipmentStateResponse> {
     const { id, instanceId, isBond } = data;
     const personaje = await CharacterModel.findById(id);
@@ -4007,6 +4021,7 @@ export default class CharacterRepository implements ICharacterRepository {
       img: personaje.img,
       name: personaje.name,
       user,
+      userId: personaje?.user ?? '',
       attributes: overlaidAttributes,
       systems: personaje.systems ?? [],
       speed: personaje.speed,
@@ -4112,7 +4127,8 @@ export default class CharacterRepository implements ICharacterRepository {
       formCreatures,
       formSummaries,
       conditionDocs,
-      resolvedCampaign
+      resolvedCampaign,
+      ownerName
     ] = await Promise.all([
       this.traitRepository.getTraitsByIndexes(personaje?.traits, personaje?.traitsData),
       isCombat
@@ -4143,7 +4159,8 @@ export default class CharacterRepository implements ICharacterRepository {
         : Promise.resolve([]),
       campaignSummary !== undefined
         ? Promise.resolve(campaignSummary)
-        : (personaje.campaign ? this.campaignReader.getById(personaje.campaign) : Promise.resolve(null))
+        : (personaje.campaign ? this.campaignReader.getById(personaje.campaign) : Promise.resolve(null)),
+      this.userRepository.getUserName(personaje.user ?? "")
     ])
 
     const expandedTraits = await this.expandTraitsForSystems(
@@ -4422,6 +4439,8 @@ export default class CharacterRepository implements ICharacterRepository {
       img: personaje.img,
       name: personaje.name,
       race: personaje.race,
+      user: ownerName,
+      userId: personaje.user ?? "",
       size: formatSize(personaje.size),
       classes: clases,
       subclasses: this.mapSubclassSummaries(personaje.subclasses ?? [], subclassSummariesById),
@@ -4903,14 +4922,10 @@ export default class CharacterRepository implements ICharacterRepository {
     personaje: CharacterMongo
   ): Promise<CharacterLevelUpResponse> {
     await this.refreshStoredAc(personaje);
-    const [sheet, user] = await Promise.all([
-      this.formatCharacter(personaje, { view: "sheet" }),
-      this.userRepository.getUserName(personaje.user ?? ""),
-    ]);
+    const sheet = await this.formatCharacter(personaje, { view: "sheet" });
     return {
       full: toSheetCharacter(sheet),
       basic: toCharacterBasic(sheet, {
-        user,
         ac: this.storedAcOf(personaje),
         speed: personaje.speed,
       }),
@@ -4921,14 +4936,10 @@ export default class CharacterRepository implements ICharacterRepository {
     personaje: CharacterMongo
   ): Promise<{ full: CharacterApi; basic: CharacterBasic }> {
     await this.refreshStoredAc(personaje);
-    const [full, user] = await Promise.all([
-      this.formatCharacter(personaje),
-      this.userRepository.getUserName(personaje.user ?? ""),
-    ]);
+    const full = await this.formatCharacter(personaje);
     return {
       full,
       basic: toCharacterBasic(full, {
-        user,
         ac: this.storedAcOf(personaje),
         speed: personaje.speed,
       }),

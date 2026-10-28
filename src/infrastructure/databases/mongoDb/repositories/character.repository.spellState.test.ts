@@ -159,7 +159,7 @@ describe("CharacterRepository spell mutation responses", () => {
     } as never);
 
     repository = new CharacterRepository(
-      { getUserName: vi.fn() } as never,
+      { getUserName: vi.fn().mockResolvedValue("Ada") } as never,
       equipmentRepository as never,
       traitRepository as never,
       proficiencyRepository as never,

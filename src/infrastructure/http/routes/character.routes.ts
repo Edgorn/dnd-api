@@ -423,7 +423,10 @@ const router = Router();
  *           description: Nombre de la raza del personaje.
  *         user:
  *           type: string
- *           description: Nombre del usuario creador o ID.
+ *           description: Nombre del usuario dueño.
+ *         userId:
+ *           type: string
+ *           description: ID de MongoDB del usuario dueño.
  *         campaign:
  *           type: string
  *           nullable: true
@@ -885,6 +888,12 @@ const router = Router();
  *           type: string
  *         race:
  *           type: string
+ *         user:
+ *           type: string
+ *           description: Nombre del usuario dueño.
+ *         userId:
+ *           type: string
+ *           description: ID de MongoDB del usuario dueño.
  *         size:
  *           $ref: '#/components/schemas/CreatureSize'
  *         classes:

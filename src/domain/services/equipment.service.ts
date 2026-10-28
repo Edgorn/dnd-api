@@ -71,4 +71,8 @@ export default class EquipmentService {
   getGear(rulesets: string[] = []): Promise<EquipmentBasic[]> {
     return this.equipmentRepository.getGear(rulesets);
   }
+
+  getMagicItems(rulesets: string[] = []): Promise<EquipmentBasic[]> {
+    return this.equipmentRepository.getMagicItems(rulesets);
+  }
 }

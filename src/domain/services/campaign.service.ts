@@ -35,4 +35,12 @@ export default class CampaignService {
   addCharacter(campaignId: string, characterId: string): Promise<{ characterId: string } | null> {
     return this.campaignRepository.addCharacter(campaignId, characterId);
   }
+
+  removeCharacter(campaignId: string, characterId: string): Promise<{ characterId: string } | null> {
+    return this.campaignRepository.removeCharacter(campaignId, characterId);
+  }
+
+  removePlayer(campaignId: string, userId: string, characterIds: string[]): Promise<{ userId: string, campaignId: string } | null> {
+    return this.campaignRepository.removePlayer(campaignId, userId, characterIds);
+  }
 }

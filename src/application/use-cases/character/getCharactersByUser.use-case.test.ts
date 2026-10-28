@@ -9,6 +9,7 @@ const card: CharacterListItem = {
   name: "Ada",
   race: "Humano",
   user: "Edgar",
+  userId: "user-1",
   campaign: null,
   classes: [{ name: "Guerrero", level: 1 }],
   subclasses: [],

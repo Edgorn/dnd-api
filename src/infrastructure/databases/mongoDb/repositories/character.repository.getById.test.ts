@@ -170,7 +170,7 @@ describe("CharacterRepository.getById query budget", () => {
     } as never);
 
     repository = new CharacterRepository(
-      { getUserName: vi.fn() } as never,
+      { getUserName: vi.fn().mockResolvedValue("Ada") } as never,
       equipmentRepository as never,
       traitRepository as never,
       proficiencyRepository as never,
@@ -198,6 +198,8 @@ describe("CharacterRepository.getById query budget", () => {
 
     expect(result.id).toBe(CHAR_ID);
     expect(result.name).toBe("Ada");
+    expect(result.user).toBe("Ada");
+    expect(result.userId).toBe(USER_ID);
     expect(systemRepository.getMergedRulesConfig).toHaveBeenCalledTimes(1);
     expect(systemRepository.getInitiativeBonusFormula).not.toHaveBeenCalled();
     expect(attributeService.getBySystems).toHaveBeenCalledTimes(1);
@@ -416,7 +418,7 @@ describe("CharacterRepository.getLevelUpData query budget", () => {
     } as never);
 
     const repository = new CharacterRepository(
-      { getUserName: vi.fn() } as never,
+      { getUserName: vi.fn().mockResolvedValue("Ada") } as never,
       { getCharacterEquipmentsByIds: vi.fn(), getArmorClassInputsByIds: vi.fn() } as never,
       traitRepository as never,
       { getProficienciesByIndices: vi.fn().mockResolvedValue([]) } as never,
@@ -475,7 +477,7 @@ describe("CharacterRepository.getLevelUpData query budget", () => {
     } as never);
 
     const repository = new CharacterRepository(
-      { getUserName: vi.fn() } as never,
+      { getUserName: vi.fn().mockResolvedValue("Ada") } as never,
       { getCharacterEquipmentsByIds: vi.fn(), getArmorClassInputsByIds: vi.fn() } as never,
       { getTraitsByIndexes: vi.fn().mockResolvedValue([]) } as never,
       { getProficienciesByIndices: vi.fn().mockResolvedValue([]) } as never,

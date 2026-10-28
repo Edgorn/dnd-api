@@ -9,6 +9,7 @@ import GetEquipmentsByTypes from "./getEquipmentsByTypes.use-case";
 import GetEquipmentsWeapons from "./getEquipmentsWeapons.use-case";
 import GetEquipmentsArmor from "./getEquipmentsArmor.use-case";
 import GetEquipmentsGear from "./getEquipmentsGear.use-case";
+import GetEquipmentsMagicItems from "./getEquipmentsMagicItems.use-case";
 import { AppError, NotFoundError } from "../../../domain/errors/AppError";
 
 describe("Equipment Use Cases", () => {
@@ -26,7 +27,8 @@ describe("Equipment Use Cases", () => {
       getEquipmentsByTypes: vi.fn(),
       getWeapons: vi.fn(),
       getArmor: vi.fn(),
-      getGear: vi.fn()
+      getGear: vi.fn(),
+      getMagicItems: vi.fn()
     };
 
     systemServiceMock = {
@@ -449,6 +451,29 @@ describe("Equipment Use Cases", () => {
 
       await useCase.execute(undefined);
       expect(equipmentServiceMock.getGear).toHaveBeenCalledWith([]);
+    });
+  });
+
+  describe("GetEquipmentsMagicItems", () => {
+    it("should return equipment that has a rarityKey", async () => {
+      const useCase = new GetEquipmentsMagicItems(equipmentServiceMock);
+      equipmentServiceMock.getMagicItems.mockResolvedValue([
+        { id: "eq1", name: "Bag of Holding", rarityKey: "uncommon" }
+      ]);
+
+      const result = await useCase.execute(["sys1"]);
+      expect(result).toEqual([
+        { id: "eq1", name: "Bag of Holding", rarityKey: "uncommon" }
+      ]);
+      expect(equipmentServiceMock.getMagicItems).toHaveBeenCalledWith(["sys1"]);
+    });
+
+    it("should default to empty rulesets when none provided", async () => {
+      const useCase = new GetEquipmentsMagicItems(equipmentServiceMock);
+      equipmentServiceMock.getMagicItems.mockResolvedValue([]);
+
+      await useCase.execute(undefined);
+      expect(equipmentServiceMock.getMagicItems).toHaveBeenCalledWith([]);
     });
   });
 });

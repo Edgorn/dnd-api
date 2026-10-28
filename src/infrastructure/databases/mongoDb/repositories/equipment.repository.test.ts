@@ -275,6 +275,7 @@ describe("EquipmentRepository lookup batching", () => {
         materials: undefined,
         containerStats: undefined,
         isMagic: false,
+        rarityKey: null,
         proficiencies: [simpleWeapons],
         content: [],
         weapon: {
@@ -307,6 +308,7 @@ describe("EquipmentRepository lookup batching", () => {
         materials: undefined,
         containerStats: undefined,
         isMagic: false,
+        rarityKey: null,
         proficiencies: [],
         content: [],
         weapon: undefined,
@@ -334,6 +336,7 @@ describe("EquipmentRepository lookup batching", () => {
         materials: undefined,
         containerStats: undefined,
         isMagic: false,
+        rarityKey: null,
         proficiencies: [],
         content: [],
         weapon: undefined,
@@ -351,6 +354,22 @@ describe("EquipmentRepository lookup batching", () => {
         equipped: false,
         isBond: false
       });
+    });
+
+    it("formats isMagic and rarityKey from the catalog", async () => {
+      mockFindLean([
+        baseDoc({
+          _id: "507f1f77bcf86cd799439081",
+          name: "Bag of Holding",
+          isMagic: true,
+          rarityKey: " uncommon "
+        })
+      ]);
+
+      const result = await repository.getBySystems([RULESET]);
+
+      expect(result[0].isMagic).toBe(true);
+      expect(result[0].rarityKey).toBe("uncommon");
     });
 
     it("formats mountGear and vehicle, normalizing draft minSize", async () => {
@@ -478,6 +497,34 @@ describe("EquipmentRepository lookup batching", () => {
       expect(result[0].options[0]).not.toHaveProperty("instanceId");
     });
 
+    it("overrides catalog rarityKey and can clear it with null", async () => {
+      mockFindLean([
+        baseDoc({
+          _id: LEATHER_ID,
+          name: "Leather Armor",
+          category: "Armor",
+          subcategory: "Light",
+          isMagic: true,
+          rarityKey: "uncommon"
+        })
+      ]);
+
+      const result = await repository.formatEquipmentItemChoices([
+        {
+          choose: 1,
+          options: [
+            { id: LEATHER_ID, rarityKey: "rare" },
+            { id: LEATHER_ID, rarityKey: null }
+          ]
+        }
+      ]);
+
+      expect(result?.[0].query_type).toBe("options");
+      if (result?.[0].query_type !== "options") return;
+      expect(result[0].options[0].rarityKey).toBe("rare");
+      expect(result[0].options[1].rarityKey).toBeNull();
+    });
+
     it("applies materials on an item leaf without turning quantity into inventory state", async () => {
       mockFindLean([leather]);
 
@@ -549,6 +596,8 @@ describe("EquipmentRepository lookup batching", () => {
           category: "Weapon",
           subcategory: "Simple",
           equipSlot: null,
+          isMagic: false,
+          rarityKey: null,
           weapon: {
             category: "Simple Melee",
             range: "Melee",
@@ -615,7 +664,14 @@ describe("EquipmentRepository lookup batching", () => {
         $and: [
           { $or: [{ weapon: { $exists: false } }, { weapon: null }] },
           { equipSlot: { $nin: [...BODY_EQUIP_SLOTS] } },
-          { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] }
+          { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] },
+          {
+            $or: [
+              { rarityKey: { $exists: false } },
+              { rarityKey: null },
+              { rarityKey: "" }
+            ]
+          }
         ]
       });
     });
@@ -631,8 +687,41 @@ describe("EquipmentRepository lookup batching", () => {
         $and: [
           { $or: [{ weapon: { $exists: false } }, { weapon: null }] },
           { equipSlot: { $nin: [...BODY_EQUIP_SLOTS] } },
-          { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] }
+          { $nor: [{ equipSlot: "off_hand", "armor.class": { $exists: true, $ne: null } }] },
+          {
+            $or: [
+              { rarityKey: { $exists: false } },
+              { rarityKey: null },
+              { rarityKey: "" }
+            ]
+          }
         ],
+        ruleset: { $in: [RULESET] }
+      });
+    });
+  });
+
+  describe("getMagicItems", () => {
+    it("queries equipment that has a non-empty rarityKey", async () => {
+      mockFindLean([]);
+
+      await repository.getMagicItems();
+
+      expect(EquipmentModel.find).toHaveBeenCalledWith({
+        deletedAt: null,
+        rarityKey: { $type: "string", $ne: "" }
+      });
+    });
+
+    it("applies expanded ruleset filter when rulesets are provided", async () => {
+      mockFindLean([]);
+
+      await repository.getMagicItems([RULESET]);
+
+      expect(systemRepository.getSystemsAndAncestors).toHaveBeenCalledWith([RULESET]);
+      expect(EquipmentModel.find).toHaveBeenCalledWith({
+        deletedAt: null,
+        rarityKey: { $type: "string", $ne: "" },
         ruleset: { $in: [RULESET] }
       });
     });

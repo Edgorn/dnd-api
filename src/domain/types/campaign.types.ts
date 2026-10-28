@@ -70,3 +70,9 @@ export interface AddCharacterToCampaignInput {
   campaignId: string,
   characterId: string
 }
+
+export interface RemovePlayerFromCampaignInput {
+  callerId: string,
+  campaignId: string,
+  userId: string
+}

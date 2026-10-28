@@ -216,6 +216,7 @@ export interface CharacterEquipmentMongo {
   weapon?: WeaponMongo;
   armor?: ArmorMongo;
   isMagic?: boolean;
+  rarityKey?: string | null;
   isBond?: boolean;
   bondOrigin?: WeaponBondOrigin;
   bondStored?: boolean;
@@ -251,6 +252,7 @@ export interface EquipmentMongo {
   armor?: ArmorMongo;
   weight?: number;
   isMagic?: boolean;
+  rarityKey?: string | null;
   bonuses?: {
     armor_class?: number;
     saving_throws?: number;
@@ -279,6 +281,7 @@ export interface EquipmentApi {
   weapon?: WeaponApi;
   armor?: ArmorApi;
   isMagic?: boolean;
+  rarityKey?: string | null;
   isBond?: boolean;
   bondOrigin?: WeaponBondOrigin;
   bondStored?: boolean;
@@ -388,6 +391,8 @@ export interface EquipmentBasic {
   category?: string;
   subcategory?: string;
   equipSlot?: EquipSlot | null;
+  isMagic?: boolean;
+  rarityKey?: string | null;
   weapon?: WeaponBasic;
   armor?: ArmorBasic;
 }
@@ -427,6 +432,8 @@ export interface InputCreateEquipment {
   weapon?: WeaponMongo | null;
   armor?: ArmorInput | null;
   content?: CharacterEquipmentMongo[];
+  isMagic?: boolean;
+  rarityKey?: string | null;
   mountGear?: MountGear | null;
   vehicle?: VehicleStats | null;
 }
@@ -453,6 +460,8 @@ export interface InputUpdateEquipment {
   weapon?: WeaponMongo | null;
   armor?: ArmorInput | null;
   content?: CharacterEquipmentMongo[];
+  isMagic?: boolean;
+  rarityKey?: string | null;
   mountGear?: MountGear | null;
   vehicle?: VehicleStats | null;
 }
