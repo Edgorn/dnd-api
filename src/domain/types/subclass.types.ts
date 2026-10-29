@@ -1,9 +1,25 @@
 import { ChoiceApi, ChoiceMongo } from ".";
 import { LevelSkillProficiencyChoice, SpellChoiceMongo } from "./classLevelChoices.types";
 import { OptionChoiceMongo, OptionReplacementConfig } from "./optionGroup.types";
+import { ProficiencyApi } from "./proficiencies.types";
 import { SkillApi } from "./skill.types";
-import { SpellApi } from "./spell.types";
+import { SpellApi, SpellRef } from "./spell.types";
 import { TraitApi, TraitDataMongo } from "./traits.types";
+
+export interface AlwaysPreparedSpellRow {
+  atLevel: number;
+  spellIds: string[];
+}
+
+export interface AlwaysPreparedSpellRowApi {
+  atLevel: number;
+  spells: SpellApi[];
+}
+
+export interface AlwaysPreparedSpellRowRefApi {
+  atLevel: number;
+  spells: SpellRef[];
+}
 
 export interface SubclassLevelInput {
   level: number;
@@ -42,7 +58,10 @@ export interface InputCreateSubclass {
   description?: string[];
   img?: string;
   levels?: SubclassLevelInput[];
+  proficiencies?: string[];
+  proficiencies_choices?: ChoiceMongo[] | null;
   expandedSpells?: string[];
+  alwaysPreparedSpells?: AlwaysPreparedSpellRow[];
   optionReplacements?: OptionReplacementConfig[] | null;
 }
 
@@ -54,7 +73,10 @@ export interface InputUpdateSubclass {
   description?: string[];
   img?: string;
   levels?: SubclassLevelInput[];
+  proficiencies?: string[];
+  proficiencies_choices?: ChoiceMongo[] | null;
   expandedSpells?: string[] | null;
+  alwaysPreparedSpells?: AlwaysPreparedSpellRow[] | null;
   optionReplacements?: OptionReplacementConfig[] | null;
 }
 
@@ -66,7 +88,10 @@ export interface SubclassMongo {
   description: string[];
   img: string;
   levels: SubclassLevelMongo[];
+  proficiencies: string[];
+  proficiencies_choices?: ChoiceMongo[];
   expandedSpells?: string[];
+  alwaysPreparedSpells?: AlwaysPreparedSpellRow[];
   optionReplacements?: OptionReplacementConfig[];
   deletedAt?: Date | null;
 }
@@ -88,7 +113,10 @@ export interface SubclassRulesRef {
   classId: string;
   name: string;
   levels: SubclassRulesLevel[];
+  proficiencies: string[];
+  proficiencies_choices?: ChoiceMongo[];
   expandedSpells: string[];
+  alwaysPreparedSpells?: AlwaysPreparedSpellRow[];
   optionReplacements?: OptionReplacementConfig[];
 }
 
@@ -100,7 +128,10 @@ export interface SubclassApi {
   description: string[];
   img: string;
   levels: SubclassLevelApi[];
+  proficiencies?: ProficiencyApi[];
+  proficiencies_choices?: ChoiceApi<ProficiencyApi>[];
   expandedSpells?: SpellApi[];
+  alwaysPreparedSpells?: AlwaysPreparedSpellRowApi[];
   optionReplacements?: OptionReplacementConfig[];
   deletedAt?: Date | null;
 }

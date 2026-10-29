@@ -16,6 +16,7 @@ const CLASS_ID = "507f1f77bcf86cd799439003";
 const CHAR_ID = "507f1f77bcf86cd799439004";
 const SPELL_ID = "507f1f77bcf86cd799439006";
 const TRAIT_ID = "507f1f77bcf86cd799439007";
+const SUBCLASS_ID = "507f1f77bcf86cd799439008";
 
 function sheetDoc() {
   return {
@@ -247,5 +248,40 @@ describe("CharacterRepository spell mutation responses", () => {
     expect(result).not.toHaveProperty("equipment");
     expect(equipmentRepository.getCharacterEquipmentsByIds).not.toHaveBeenCalled();
     expect(equipmentRepository.getArmorClassInputsByIds).not.toHaveBeenCalled();
+  });
+
+  it("prepareSpells strips always-prepared subclass spells from the persisted cap and returns them prepared", async () => {
+    const doc = {
+      ...sheetDoc(),
+      subclasses: [SUBCLASS_ID]
+    };
+    vi.mocked(CharacterModel.findById).mockResolvedValue(doc as never);
+    vi.mocked(CharacterModel.findByIdAndUpdate).mockResolvedValue({
+      ...doc,
+      preparedSpells: { [CLASS_ID]: [] }
+    } as never);
+    subclassRepository.getRulesByIds.mockResolvedValue([{
+      id: SUBCLASS_ID,
+      classId: CLASS_ID,
+      name: "Dominio de la Vida",
+      ruleset: SYSTEM_ID,
+      levels: [],
+      expandedSpells: [],
+      alwaysPreparedSpells: [{ atLevel: 1, spellIds: [SPELL_ID] }]
+    }]);
+
+    const result = await repository.prepareSpells({
+      id: CHAR_ID,
+      classId: CLASS_ID,
+      spells: [SPELL_ID],
+      userId: USER_ID
+    });
+
+    expect(CharacterModel.findByIdAndUpdate).toHaveBeenCalledWith(
+      CHAR_ID,
+      { $set: { preparedSpells: { [CLASS_ID]: [] } } },
+      { returnDocument: "after" }
+    );
+    expect(result.spells[CLASS_ID].prepared).toEqual([SPELL_ID]);
   });
 });

@@ -69,6 +69,7 @@ describe("Spell Use Cases", () => {
         classes: ["wizard"],
         ritual: false,
         tables: [{
+          title: "Tabla de comportamiento",
           headers: ["d10", "Comportamiento"],
           rows: [["1", "Se mueve en una dirección aleatoria."]]
         }]

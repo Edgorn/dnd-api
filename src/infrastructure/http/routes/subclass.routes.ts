@@ -9,6 +9,37 @@ const router = Router();
  * @openapi
  * components:
  *   schemas:
+ *     AlwaysPreparedSpellRowInput:
+ *       type: object
+ *       required:
+ *         - atLevel
+ *         - spellIds
+ *       properties:
+ *         atLevel:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nivel de la clase padre a partir del cual estos conjuros están activos.
+ *         spellIds:
+ *           type: array
+ *           minItems: 1
+ *           items:
+ *             type: string
+ *           description: ObjectIds de los conjuros de esta fila.
+ *     AlwaysPreparedSpellRow:
+ *       type: object
+ *       required:
+ *         - atLevel
+ *         - spells
+ *       properties:
+ *         atLevel:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nivel de la clase padre a partir del cual estos conjuros están activos.
+ *         spells:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Spell'
+ *           description: Conjuros hidratados de esta fila.
  *     SubclassLevelApi:
  *       type: object
  *       properties:
@@ -70,6 +101,16 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen representativa.
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Proficiency'
+ *           description: Competencias fijas otorgadas al tomar la subclase. Omitido si está vacío.
+ *         proficiencies_choices:
+ *           type: array
+ *           items:
+ *             type: object
+ *           description: Elecciones de competencias hidratadas (choose, options y query_type). Omitido si está vacío.
  *         expandedSpells:
  *           type: array
  *           items:
@@ -78,6 +119,15 @@ const router = Router();
  *             Lista de conjuros ampliada (p. ej. Infernal). No se otorgan solos: se añaden
  *             a la lista de la clase padre para este personaje al aprender, recambiar o
  *             preparar conjuros de esa clase. Omitido si está vacía.
+ *         alwaysPreparedSpells:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/AlwaysPreparedSpellRow'
+ *           description: >
+ *             Tabla de conjuros siempre preparados (p. ej. dominio de clérigo o
+ *             juramento de paladín). Al alcanzar el nivel de la clase padre se
+ *             consideran preparados, no cuentan para el tope diario y cuentan como
+ *             conjuros de esa clase aunque no estén en su lista. Omitido si está vacía.
  *         optionReplacements:
  *           type: array
  *           items:
@@ -172,11 +222,29 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen.
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de competencias fijas otorgadas al tomar la subclase.
+ *         proficiencies_choices:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/ChoiceMongo'
+ *           description: Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type o parentProficiencyId). Envíe null para borrar la lista.
  *         expandedSpells:
  *           type: array
  *           items:
  *             type: string
  *           description: ObjectIds de conjuros añadidos a la lista de la clase padre para quien tome esta subclase.
+ *         alwaysPreparedSpells:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/AlwaysPreparedSpellRowInput'
+ *           description: >
+ *             Tabla de conjuros siempre preparados por nivel de la clase padre
+ *             (p. ej. dominio de la Vida). atLevel no se repite; cada spellId es único.
  *         optionReplacements:
  *           type: array
  *           items:
@@ -207,12 +275,29 @@ const router = Router();
  *         img:
  *           type: string
  *           description: URL de la imagen.
+ *         proficiencies:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs de competencias fijas otorgadas al tomar la subclase.
+ *         proficiencies_choices:
+ *           type: array
+ *           nullable: true
+ *           items:
+ *             $ref: '#/components/schemas/ChoiceMongo'
+ *           description: Elecciones independientes de competencias. Envíe null para borrar la lista. Si se omite, se conserva.
  *         expandedSpells:
  *           nullable: true
  *           type: array
  *           items:
  *             type: string
  *           description: ObjectIds de la lista ampliada. null borra el campo. Si se omite, se conserva.
+ *         alwaysPreparedSpells:
+ *           nullable: true
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/AlwaysPreparedSpellRowInput'
+ *           description: Tabla de conjuros siempre preparados. null borra el campo. Si se omite, se conserva.
  *         optionReplacements:
  *           nullable: true
  *           type: array

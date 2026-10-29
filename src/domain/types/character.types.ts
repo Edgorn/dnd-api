@@ -13,6 +13,7 @@ import { ChoiceApi, Damage, Speed } from "."
 import { CharacterEquipmentApi, CharacterEquipmentMongo as CatalogEquipmentMongo, WeaponBondOrigin } from "./equipment.types"
 import { AttributeRequirements } from "./attributeRequirement.types"
 import { SpellApi, SpellRef } from "./spell.types"
+import { AlwaysPreparedSpellRowApi, AlwaysPreparedSpellRowRefApi } from "./subclass.types"
 import { ConditionApi } from "./condition.types"
 import { SpellcastingLevel, SubclassChoiceMenuApi } from "./characterClass.types"
 import {
@@ -919,12 +920,14 @@ export interface LevelUpData {
   requirementsMet?: boolean;
   dip?: LevelUpDipData;
   optionChoices?: PendingOptionChoice[];
+  alwaysPreparedSpells?: AlwaysPreparedSpellRowApi[] | AlwaysPreparedSpellRowRefApi[];
 }
 
-export interface LevelUpDataCompact extends Omit<LevelUpData, "spellChoices" | "spellChanges" | "dip"> {
+export interface LevelUpDataCompact extends Omit<LevelUpData, "spellChoices" | "spellChanges" | "dip" | "alwaysPreparedSpells"> {
   spellChoices?: SpellChoiceRefApi[];
   spellChanges?: LevelUpSpellChangesCompact;
   dip?: LevelUpDipDataCompact;
+  alwaysPreparedSpells?: AlwaysPreparedSpellRowRefApi[];
 }
 
 export type LevelUpDataResult = LevelUpData | LevelUpDataCompact;

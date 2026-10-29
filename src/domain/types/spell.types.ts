@@ -141,6 +141,7 @@ export interface SpellDuration {
 }
 
 export interface SpellTable {
+  title?: string;
   headers: string[];
   rows: string[][];
 }

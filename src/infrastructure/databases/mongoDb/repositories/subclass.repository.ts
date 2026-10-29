@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import ISubclassRepository from "../../../../domain/repositories/ISubclassRepository";
+import IProficiencyRepository from "../../../../domain/repositories/IProficiencyRepository";
 import ISpellRepository from "../../../../domain/repositories/ISpellRepository";
 import ISystemRepository from "../../../../domain/repositories/ISystemRepository";
 import ITraitRepository from "../../../../domain/repositories/ITraitRepository";
@@ -9,6 +10,7 @@ import { ChoiceMongo } from "../../../../domain/types";
 import { LevelSkillProficiencyChoice, SpellChoiceMongo } from "../../../../domain/types/classLevelChoices.types";
 import { OptionChoiceMongo } from "../../../../domain/types/optionGroup.types";
 import {
+  AlwaysPreparedSpellRowApi,
   InputCreateSubclass,
   InputUpdateSubclass,
   SubclassApi,
@@ -28,7 +30,8 @@ export default class SubclassRepository implements ISubclassRepository {
     private readonly systemRepository: ISystemRepository,
     private readonly traitRepository: ITraitRepository,
     private readonly skillService: SkillService,
-    private readonly spellRepository: ISpellRepository
+    private readonly spellRepository: ISpellRepository,
+    private readonly proficiencyRepository: IProficiencyRepository
   ) { }
 
   async getBySystems(rulesets: string[], classId?: string): Promise<SubclassApi[]> {
@@ -140,7 +143,7 @@ export default class SubclassRepository implements ISubclassRepository {
       _id: { $in: validIds },
       deletedAt: null
     })
-      .select("_id ruleset classId name levels expandedSpells optionReplacements")
+      .select("_id ruleset classId name levels proficiencies proficiencies_choices expandedSpells alwaysPreparedSpells optionReplacements")
       .lean<SubclassMongo[]>();
 
     return docs.map(doc => ({
@@ -149,7 +152,10 @@ export default class SubclassRepository implements ISubclassRepository {
       classId: doc.classId,
       name: doc.name,
       levels: this.toRulesLevels(doc.levels ?? []),
+      proficiencies: [...(doc.proficiencies ?? [])],
+      ...(doc.proficiencies_choices?.length ? { proficiencies_choices: doc.proficiencies_choices } : {}),
       expandedSpells: [...(doc.expandedSpells ?? [])],
+      ...(doc.alwaysPreparedSpells?.length ? { alwaysPreparedSpells: doc.alwaysPreparedSpells } : {}),
       ...(doc.optionReplacements?.length ? { optionReplacements: doc.optionReplacements } : {})
     }));
   }
@@ -169,7 +175,10 @@ export default class SubclassRepository implements ISubclassRepository {
       description: data.description ?? [],
       img: data.img ?? "",
       levels: this.mapLevelsForCreate(data.levels),
+      proficiencies: data.proficiencies ?? [],
+      ...(data.proficiencies_choices?.length ? { proficiencies_choices: data.proficiencies_choices } : {}),
       ...(data.expandedSpells?.length ? { expandedSpells: data.expandedSpells } : {}),
+      ...(data.alwaysPreparedSpells?.length ? { alwaysPreparedSpells: data.alwaysPreparedSpells } : {}),
       ...(data.optionReplacements?.length ? { optionReplacements: data.optionReplacements } : {})
     });
 
@@ -178,15 +187,31 @@ export default class SubclassRepository implements ISubclassRepository {
   }
 
   async update(data: InputUpdateSubclass): Promise<SubclassApi> {
-    const { id, levels, expandedSpells, optionReplacements, ...updateFields } = data;
+    const { id, levels, expandedSpells, alwaysPreparedSpells, optionReplacements, proficiencies, proficiencies_choices, ...updateFields } = data;
 
     const setFields: Record<string, unknown> = { ...updateFields };
     const unsetFields: Record<string, 1> = {};
+
+    if (proficiencies !== undefined) {
+      setFields.proficiencies = proficiencies;
+    }
+
+    if (proficiencies_choices === null) {
+      setFields.proficiencies_choices = [];
+    } else if (proficiencies_choices !== undefined) {
+      setFields.proficiencies_choices = proficiencies_choices;
+    }
 
     if (expandedSpells === null) {
       unsetFields.expandedSpells = 1;
     } else if (expandedSpells !== undefined) {
       setFields.expandedSpells = expandedSpells;
+    }
+
+    if (alwaysPreparedSpells === null) {
+      unsetFields.alwaysPreparedSpells = 1;
+    } else if (alwaysPreparedSpells !== undefined) {
+      setFields.alwaysPreparedSpells = alwaysPreparedSpells;
     }
 
     if (optionReplacements === null) {
@@ -373,6 +398,11 @@ export default class SubclassRepository implements ISubclassRepository {
     const expandedSpells = doc.expandedSpells?.length
       ? await this.spellRepository.getSpellsByIndexes(doc.expandedSpells)
       : [];
+    const alwaysPreparedSpells = await this.formatAlwaysPreparedSpells(doc.alwaysPreparedSpells);
+    const [proficiencies, proficiencies_choices] = await Promise.all([
+      this.proficiencyRepository.getProficienciesByIndices(doc.proficiencies ?? []),
+      this.proficiencyRepository.formatProficiencyChoices(doc.proficiencies_choices)
+    ]);
 
     return {
       id: doc._id ? doc._id.toString() : "",
@@ -382,10 +412,32 @@ export default class SubclassRepository implements ISubclassRepository {
       description: doc.description ?? [],
       img: doc.img || "",
       levels,
+      ...(proficiencies.length ? { proficiencies } : {}),
+      ...(proficiencies_choices.length ? { proficiencies_choices } : {}),
       ...(expandedSpells.length ? { expandedSpells } : {}),
+      ...(alwaysPreparedSpells.length ? { alwaysPreparedSpells } : {}),
       ...(doc.optionReplacements?.length ? { optionReplacements: doc.optionReplacements } : {}),
       deletedAt: doc.deletedAt
     };
+  }
+
+  private async formatAlwaysPreparedSpells(
+    rows?: Array<{ atLevel: number; spellIds: string[] }>
+  ): Promise<AlwaysPreparedSpellRowApi[]> {
+    if (!rows?.length) return [];
+    const ids = [...new Set(rows.flatMap(row => row.spellIds ?? []))];
+    const spells = ids.length ? await this.spellRepository.getSpellsByIndexes(ids) : [];
+    const byId = new Map(spells.filter(spell => spell.id).map(spell => [spell.id as string, spell]));
+    return rows
+      .map(row => ({
+        atLevel: row.atLevel,
+        spells: (row.spellIds ?? []).flatMap(id => {
+          const spell = byId.get(id);
+          return spell ? [spell] : [];
+        })
+      }))
+      .filter(row => row.spells.length > 0)
+      .sort((a, b) => a.atLevel - b.atLevel);
   }
 
   private async formatLevels(levels: SubclassLevelMongo[], ruleset: string): Promise<SubclassLevelApi[]> {

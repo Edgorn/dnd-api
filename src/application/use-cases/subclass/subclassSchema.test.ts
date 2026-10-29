@@ -161,12 +161,85 @@ describe("CreateSubclassSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts alwaysPreparedSpells rows", () => {
+    const spellId = "507f1f77bcf86cd799439013";
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Dominio de la Vida",
+      alwaysPreparedSpells: [
+        { atLevel: 1, spellIds: [spellId] },
+        { atLevel: 3, spellIds: [traitId] }
+      ]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects duplicated atLevel in alwaysPreparedSpells", () => {
+    const spellId = "507f1f77bcf86cd799439013";
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Dominio de la Vida",
+      alwaysPreparedSpells: [
+        { atLevel: 1, spellIds: [spellId] },
+        { atLevel: 1, spellIds: [traitId] }
+      ]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicated spellId in alwaysPreparedSpells", () => {
+    const spellId = "507f1f77bcf86cd799439013";
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Dominio de la Vida",
+      alwaysPreparedSpells: [
+        { atLevel: 1, spellIds: [spellId] },
+        { atLevel: 3, spellIds: [spellId] }
+      ]
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects skill_choices with choose less than 1", () => {
     const result = CreateSubclassSchema.safeParse({
       ruleset: "sys1",
       classId,
       name: "Colegio del Conocimiento",
       levels: [{ level: 3, skill_choices: { choose: 0 } }]
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts proficiencies and proficiencies_choices with options ids", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Dominio de la Forja",
+      proficiencies: [traitId],
+      proficiencies_choices: [{ choose: 3, options: [traitId] }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts proficiencies_choices with a type filter", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Dominio de la Forja",
+      proficiencies_choices: [{ choose: 3, filter: { type: "tool" } }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects proficiencies_choices when choose is less than 1", () => {
+    const result = CreateSubclassSchema.safeParse({
+      ruleset: "sys1",
+      classId,
+      name: "Dominio de la Forja",
+      proficiencies_choices: [{ choose: 0, filter: { type: "tool" } }]
     });
     expect(result.success).toBe(false);
   });
@@ -200,10 +273,38 @@ describe("UpdateSubclassSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts null alwaysPreparedSpells to clear the list", () => {
+    const result = UpdateSubclassSchema.safeParse({
+      alwaysPreparedSpells: null
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("accepts null optionReplacements to clear the list", () => {
     const result = UpdateSubclassSchema.safeParse({
       optionReplacements: null
     });
     expect(result.success).toBe(true);
+  });
+
+  it("accepts proficiencies_choices on update", () => {
+    const result = UpdateSubclassSchema.safeParse({
+      proficiencies_choices: [{ choose: 3, filter: { type: "tool" } }]
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null proficiencies_choices on update to clear the list", () => {
+    const result = UpdateSubclassSchema.safeParse({
+      proficiencies_choices: null
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects proficiencies_choices when choose is less than 1", () => {
+    const result = UpdateSubclassSchema.safeParse({
+      proficiencies_choices: [{ choose: 0, options: [classId] }]
+    });
+    expect(result.success).toBe(false);
   });
 });

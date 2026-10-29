@@ -203,6 +203,28 @@ describe("OpenAPI character spell mutation slices", () => {
     expect((schema?.properties as { full?: { $ref?: string } } | undefined)?.full?.$ref)
       .toBe("#/components/schemas/CharacterSheet");
   });
+
+  it("documents alwaysPreparedSpells on GET level-up-data", () => {
+    const item = spec.paths["/character/{id}/level-up-data"] as {
+      get?: {
+        responses?: {
+          "200"?: {
+            content?: {
+              "application/json"?: {
+                schema?: {
+                  properties?: Record<string, { description?: string; items?: { $ref?: string } }>;
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+    const props = item.get?.responses?.["200"]?.content?.["application/json"]?.schema?.properties ?? {};
+    expect(props.alwaysPreparedSpells?.items?.$ref).toBe("#/components/schemas/AlwaysPreparedSpellRow");
+    expect(props.alwaysPreparedSpells?.description).toMatch(/atLevel/);
+    expect(spec.components.schemas.AlwaysPreparedSpellRowRef).toBeDefined();
+  });
 });
 
 describe("OpenAPI character combat mutation patches", () => {

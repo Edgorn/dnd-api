@@ -12,6 +12,14 @@ export interface GrantedSpellOptionSelection {
   classId: string;
 }
 
+export interface GrantedSpellInput {
+  traits: GrantedSpellTrait[];
+  optionSelections?: GrantedSpellOptionSelection[];
+  classes: CharacterClassLevelEntry[];
+  classCatalogs: ClassCatalogForTraits[];
+  subclasses: SubclassCatalogForTraits[];
+}
+
 function classIdsGrantingTrait(
   traitId: string,
   optionSelections: GrantedSpellOptionSelection[],
@@ -42,13 +50,7 @@ function classIdsGrantingTrait(
   return [...fromLevels];
 }
 
-function collectGrantedExtrasByClass(input: {
-  traits: GrantedSpellTrait[];
-  optionSelections?: GrantedSpellOptionSelection[];
-  classes: CharacterClassLevelEntry[];
-  classCatalogs: ClassCatalogForTraits[];
-  subclasses: SubclassCatalogForTraits[];
-}): Record<string, Map<string, boolean>> {
+function collectGrantedExtrasByClass(input: GrantedSpellInput): Record<string, Map<string, boolean>> {
   const result: Record<string, Map<string, boolean>> = {};
   const selections = input.optionSelections ?? [];
 
@@ -77,13 +79,7 @@ function collectGrantedExtrasByClass(input: {
   return result;
 }
 
-export function grantedExtraSpellIdsByClass(input: {
-  traits: GrantedSpellTrait[];
-  optionSelections?: GrantedSpellOptionSelection[];
-  classes: CharacterClassLevelEntry[];
-  classCatalogs: ClassCatalogForTraits[];
-  subclasses: SubclassCatalogForTraits[];
-}): Record<string, string[]> {
+export function grantedExtraSpellIdsByClass(input: GrantedSpellInput): Record<string, string[]> {
   const collected = collectGrantedExtrasByClass(input);
   const result: Record<string, string[]> = {};
   for (const [classId, map] of Object.entries(collected)) {
@@ -92,13 +88,7 @@ export function grantedExtraSpellIdsByClass(input: {
   return result;
 }
 
-export function ritualOnlyGrantedExtraIdsByClass(input: {
-  traits: GrantedSpellTrait[];
-  optionSelections?: GrantedSpellOptionSelection[];
-  classes: CharacterClassLevelEntry[];
-  classCatalogs: ClassCatalogForTraits[];
-  subclasses: SubclassCatalogForTraits[];
-}): Record<string, string[]> {
+export function ritualOnlyGrantedExtraIdsByClass(input: GrantedSpellInput): Record<string, string[]> {
   const collected = collectGrantedExtrasByClass(input);
   const result: Record<string, string[]> = {};
   for (const [classId, map] of Object.entries(collected)) {

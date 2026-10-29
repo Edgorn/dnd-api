@@ -11,6 +11,38 @@ const ExpandedSpellIdsSchema = z.array(
   z.string().regex(objectIdRegex, "Cada conjuro ampliado debe ser un ObjectId válido de MongoDB")
 );
 
+const AlwaysPreparedSpellRowSchema = z.object({
+  atLevel: z.number().int().min(1, "El nivel de la concesión debe ser al menos 1"),
+  spellIds: z.array(
+    z.string().regex(objectIdRegex, "Cada conjuro debe ser un ObjectId válido de MongoDB")
+  ).min(1, "Debe indicar al menos un conjuro")
+}).strict();
+
+const AlwaysPreparedSpellsSchema = z.array(AlwaysPreparedSpellRowSchema).superRefine((rows, ctx) => {
+  const levels = new Set<number>();
+  const spellIds = new Set<string>();
+  rows.forEach((row, index) => {
+    if (levels.has(row.atLevel)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `alwaysPreparedSpells contiene el nivel duplicado ${row.atLevel}`,
+        path: [index, "atLevel"]
+      });
+    }
+    levels.add(row.atLevel);
+    row.spellIds.forEach((spellId, spellIndex) => {
+      if (spellIds.has(spellId)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "El conjuro está repetido",
+          path: [index, "spellIds", spellIndex]
+        });
+      }
+      spellIds.add(spellId);
+    });
+  });
+});
+
 const ChoiceMongoSchema = z.object({
   choose: z.number().int().min(1, "Debe elegir al menos 1"),
   options: z.array(z.string()).optional(),
@@ -55,7 +87,10 @@ export const CreateSubclassSchema = z.object({
   description: z.array(z.string()).optional(),
   img: z.string().optional(),
   levels: z.array(SubclassLevelInputSchema).optional(),
+  proficiencies: z.array(z.string()).optional(),
+  proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   expandedSpells: ExpandedSpellIdsSchema.optional(),
+  alwaysPreparedSpells: AlwaysPreparedSpellsSchema.optional(),
   optionReplacements: OptionReplacementsSchema.nullable().optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);
@@ -68,7 +103,10 @@ export const UpdateSubclassSchema = z.object({
   description: z.array(z.string()).optional(),
   img: z.string().optional(),
   levels: z.array(SubclassLevelInputSchema).optional(),
+  proficiencies: z.array(z.string()).optional(),
+  proficiencies_choices: z.array(ChoiceMongoSchema).nullable().optional(),
   expandedSpells: ExpandedSpellIdsSchema.nullable().optional(),
+  alwaysPreparedSpells: AlwaysPreparedSpellsSchema.nullable().optional(),
   optionReplacements: OptionReplacementsSchema.nullable().optional()
 }).superRefine((data, ctx) => {
   uniqueLevelsRefinement(data.levels, ctx);

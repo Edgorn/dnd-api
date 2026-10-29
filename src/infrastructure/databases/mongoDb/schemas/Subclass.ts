@@ -7,6 +7,8 @@ const subclassSchema: Schema = new Schema<SubclassMongo>({
   name: { type: String, required: true },
   description: { type: [String], default: [] },
   img: { type: String, default: "" },
+  proficiencies: { type: [String], default: [] },
+  proficiencies_choices: { type: [], default: [] },
   levels: [{
     level: { type: Number, required: true },
     traits: { type: [String], default: [] },
@@ -17,6 +19,7 @@ const subclassSchema: Schema = new Schema<SubclassMongo>({
     optionChoices: { type: Schema.Types.Mixed, default: undefined }
   }],
   expandedSpells: { type: [String], default: undefined },
+  alwaysPreparedSpells: { type: Schema.Types.Mixed, default: undefined },
   optionReplacements: { type: Schema.Types.Mixed, default: undefined },
   deletedAt: { type: Date, default: null }
 }, { collection: "subclasses", timestamps: true });

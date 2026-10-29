@@ -15,6 +15,9 @@ const router = Router();
  *         - headers
  *         - rows
  *       properties:
+ *         title:
+ *           type: string
+ *           description: Título opcional de la tabla.
  *         headers:
  *           type: array
  *           items:

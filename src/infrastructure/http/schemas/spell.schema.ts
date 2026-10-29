@@ -199,6 +199,7 @@ export const SpellDamageSchema = z.object({
 }).superRefine(validateSpellDamage);
 
 export const SpellTableSchema = z.object({
+  title: z.string().min(1, "El título no puede estar vacío").optional(),
   headers: z.array(z.string().min(1, "La cabecera no puede estar vacía")).min(1, "La tabla debe incluir al menos una cabecera"),
   rows: z.array(z.array(z.string()).min(1, "La fila debe incluir al menos una celda")).min(1, "La tabla debe incluir al menos una fila")
 }).superRefine((table, ctx) => {

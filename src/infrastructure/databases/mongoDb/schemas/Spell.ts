@@ -85,6 +85,7 @@ const spellSchema: Schema = new Schema<SpellMongo>({
   description: [String],
   tables: [{
     _id: false,
+    title: String,
     headers: [String],
     rows: [[String]]
   }],

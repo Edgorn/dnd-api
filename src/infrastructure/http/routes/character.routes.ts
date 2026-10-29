@@ -1222,6 +1222,21 @@ const router = Router();
  *     LevelUpDataCompact:
  *       type: object
  *       description: Menús de subida de nivel con SpellRef y subclases resumidas.
+ *     AlwaysPreparedSpellRowRef:
+ *       type: object
+ *       required:
+ *         - atLevel
+ *         - spells
+ *       properties:
+ *         atLevel:
+ *           type: integer
+ *           minimum: 1
+ *           description: Nivel de la clase padre a partir del cual estos conjuros están activos.
+ *         spells:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SpellRef'
+ *           description: Conjuros resumidos de esta fila.
  *     InputCreateCharacter:
  *       type: object
  *       required:
@@ -2681,6 +2696,12 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *       Si el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de
  *       clase (trucos, conocidos y `spellChanges.to`) incluyen `expandedSpells`. Si aún debe elegir
  *       subclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.
+ *       Con subclase asignada, `alwaysPreparedSpells` lista las filas cuyo `atLevel` es el nuevo
+ *       nivel de clase (conjuros de dominio que se desbloquean ahora). No forman parte de
+ *       `spellChoices`. En `view=full` cada fila hidrata `Spell`; en `view=compact`, `SpellRef`.
+ *       Si no hay subclase de esa clase o ninguna fila coincide, el campo se omite.
+ *       Al elegir subclase, las filas completas siguen en `subclassChoice.options[].alwaysPreparedSpells`
+ *       (`view=full`) o en `GET /subclasses/:id` (`view=compact`).
  *       Si la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa
  *       clase (nivel de clase 2+), `spellChanges` ofrece un recambio opcional (hasta `choose`
  *       pares from/to). No forma parte de `spellChoices` y se puede omitir.
@@ -2833,6 +2854,15 @@ router.patch('/character/:id/xp', authMiddleware, validateParams(CharacterIdPara
  *                     requisitos. selected son las ya elegidas.
  *                   items:
  *                     $ref: '#/components/schemas/PendingOptionChoice'
+ *                 alwaysPreparedSpells:
+ *                   type: array
+ *                   description: >
+ *                     Conjuros siempre preparados que se desbloquean en este nivel de clase
+ *                     (`atLevel` igual al nivel siguiente). Solo con subclase ya asignada.
+ *                     Informativo: no se eligen ni se envían en el POST. Omitido si no hay filas.
+ *                     En compact, `spells` es SpellRef (`AlwaysPreparedSpellRowRef`).
+ *                   items:
+ *                     $ref: '#/components/schemas/AlwaysPreparedSpellRow'
  *                 abilityScore:
  *                   type: boolean
  *                   description: >
@@ -3146,8 +3176,9 @@ router.post('/character/:id/level-up', authMiddleware, validateParams(CharacterI
  *       La clase debe definir `spellsPreparedFormula` y `preparedFrom`.
  *       No se pueden preparar trucos. El número de conjuros no puede superar el tope evaluado
  *       (`nivel de clase + modificador`, u otra fórmula). Los conjuros de un rasgo con
- *       `countsTowardPreparedCap: false` no cuentan para el tope y, si se envían, se ignoran
- *       al persistir. Si `preparedFrom` es `known`, cada conjuro debe estar entre los
+ *       `countsTowardPreparedCap: false` o los `alwaysPreparedSpells` de la subclase
+ *       no cuentan para el tope y, si se envían, se ignoran al persistir. Si `preparedFrom`
+ *       es `known`, cada conjuro debe estar entre los
  *       conocidos de esa clase; si es `classList`, debe pertenecer a la lista de conjuros
  *       de la clase. Solo se admiten niveles para los que la clase tenga ranuras.
  *     tags:

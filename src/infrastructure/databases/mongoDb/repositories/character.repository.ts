@@ -72,6 +72,10 @@ import {
   ritualOnlyExtraSpellIds,
   ritualOnlyGrantedExtraIdsByClass
 } from '../../../../utils/traitGrantedSpells';
+import {
+  subclassAlwaysPreparedSpellIds,
+  subclassAlwaysPreparedSpellRowsAtLevel
+} from '../../../../utils/subclassAlwaysPreparedSpells';
 import { overlaySpellsCreatureForms } from '../../../../utils/creatureFormPool';
 import {
   collectClassGrantedTraitIds,
@@ -196,7 +200,13 @@ import { normalizeCharacterDocument } from '../../../../utils/normalizeCharacter
 import { applyEquip, applyMountGear } from '../../../../utils/inventorySlots';
 import { applyInventoryHolderState, holderHasContents } from '../../../../utils/inventoryHolders';
 import ISystemRepository from '../../../../domain/repositories/ISystemRepository';
-import { SubclassApi, SubclassNameRef, SubclassRulesRef } from '../../../../domain/types/subclass.types';
+import {
+  AlwaysPreparedSpellRowApi,
+  AlwaysPreparedSpellRowRefApi,
+  SubclassApi,
+  SubclassNameRef,
+  SubclassRulesRef
+} from '../../../../domain/types/subclass.types';
 import { SystemRulesConfig } from '../../../../domain/types/system.types';
 import { createMergedRulesConfigMemo } from '../../../../utils/mergedRulesConfigMemo';
 import { listArmorClassFromRules, storedAcNumber } from '../../../../utils/listArmorClass';
@@ -982,7 +992,15 @@ export default class CharacterRepository implements ICharacterRepository {
       rulesConfig
     );
     const traits_data = raceMerged.traits_data;
-    const { spell_choices, spell_changes, subclassChoice, ability_score, abilityScoreAlternativeGroupId, skill_choices: levelSkillChoices } = classLevel;
+    const {
+      spell_choices,
+      spell_changes,
+      subclassChoice,
+      ability_score,
+      abilityScoreAlternativeGroupId,
+      skill_choices: levelSkillChoices,
+      alwaysPreparedSpells
+    } = classLevel;
     const assignedSubclasses = await this.getAssignedSubclassesForClass(personaje.subclasses ?? [], classId);
     const optionChoiceConfigs = this.mergeLevelOptionChoiceConfigs(
       classLevel.optionChoices,
@@ -1075,6 +1093,7 @@ export default class CharacterRepository implements ICharacterRepository {
       ...(requirementsMet !== undefined ? { requirementsMet } : {}),
       ...(isNewClass ? { dip: this.buildLevelUpDip(personaje, catalog, requirementsMet ?? true, compact) } : {}),
       ...(optionChoices.length ? { optionChoices } : {}),
+      ...(alwaysPreparedSpells?.length ? { alwaysPreparedSpells } : {}),
     };
   }
 
@@ -1783,12 +1802,17 @@ export default class CharacterRepository implements ICharacterRepository {
       ? await this.traitRepository.getTraitsByIndexes(privilegeTraitIds)
       : []
     const rulesByTraitId = this.buildPrivilegeRulesMap(privilegeTraits, privilegeInstances)
-    const excludedFromCap = privilegeSpellIdsExcludedFromCap(
-      privilegeInstances,
-      rulesByTraitId,
-      classId,
-      this.classLevelByClassId(personaje)
-    )
+    const assignedSubclasses = await this.getAssignedSubclassesForClass(personaje.subclasses ?? [], classId)
+    const subclassAlwaysIds = subclassAlwaysPreparedSpellIds(assignedSubclasses, classId, classEntry.level)
+    const excludedFromCap = new Set([
+      ...privilegeSpellIdsExcludedFromCap(
+        privilegeInstances,
+        rulesByTraitId,
+        classId,
+        this.classLevelByClassId(personaje)
+      ),
+      ...subclassAlwaysIds
+    ])
     const persistIds = spells.filter(id => !excludedFromCap.has(id))
     const [loadedSpells, extraClassSpellIds] = await Promise.all([
       persistIds.length ? this.spellRepository.getSpellsByIndexes(persistIds) : Promise.resolve([]),
@@ -2940,6 +2964,7 @@ export default class CharacterRepository implements ICharacterRepository {
     skill_choices?: ChoiceApi<SkillApi>;
     skillProficiencyChoices?: LevelSkillProficiencyChoice[];
     optionChoices?: OptionChoiceMongo[];
+    alwaysPreparedSpells?: AlwaysPreparedSpellRowApi[] | AlwaysPreparedSpellRowRefApi[];
   }> {
     const assignedSubclassIds = subclassIds ?? personaje.subclasses ?? [];
     const [dataLevel, loadedClass, assignedSubclasses] = await Promise.all([
@@ -2957,7 +2982,10 @@ export default class CharacterRepository implements ICharacterRepository {
       this.getAssignedSubclassesForClass(assignedSubclassIds, classId)
     ]);
     const clase = catalog ?? loadedClass;
-    const expandedSpells = await this.expandedSpellsFromRules(assignedSubclasses, compact);
+    const [expandedSpells, alwaysPreparedSpells] = await Promise.all([
+      this.expandedSpellsFromRules(assignedSubclasses, compact),
+      this.alwaysPreparedSpellsFromRules(assignedSubclasses, classId, nextLevel, compact)
+    ]);
     const knownSpellIds = this.getClassSpellIds(personaje, classId);
     const ownedSpellIds = [...knownSpellIds, ...getExtraSpellIds(personaje.extraSpells, classId)];
     const extraSpellIdsForClass = getExtraSpellIds(personaje.extraSpells, classId);
@@ -3014,6 +3042,7 @@ export default class CharacterRepository implements ICharacterRepository {
       skill_choices: dataLevel?.skill_choices,
       skillProficiencyChoices: dataLevel?.skillProficiencyChoices,
       optionChoices: dataLevel?.optionChoices,
+      ...(alwaysPreparedSpells.length ? { alwaysPreparedSpells } : {}),
     };
   }
 
@@ -3319,9 +3348,40 @@ export default class CharacterRepository implements ICharacterRepository {
       : this.spellRepository.getSpellsByIndexes(ids);
   }
 
+  private async alwaysPreparedSpellsFromRules(
+    subclasses: SubclassRulesRef[],
+    classId: string,
+    classLevel: number,
+    compact?: boolean
+  ): Promise<AlwaysPreparedSpellRowApi[] | AlwaysPreparedSpellRowRefApi[]> {
+    const rows = subclassAlwaysPreparedSpellRowsAtLevel(subclasses, classId, classLevel);
+    const ids = [...new Set(rows.flatMap(row => row.spellIds))];
+    if (!ids.length) return [];
+    const spells = compact
+      ? await this.spellRepository.getSpellRefsByIndexes(ids)
+      : await this.spellRepository.getSpellsByIndexes(ids);
+    const byId = new Map(
+      spells
+        .filter((spell): spell is typeof spell & { id: string } => Boolean(spell.id))
+        .map(spell => [spell.id, spell])
+    );
+    return rows
+      .map(row => ({
+        atLevel: row.atLevel,
+        spells: row.spellIds.flatMap(id => {
+          const spell = byId.get(id);
+          return spell ? [spell] : [];
+        })
+      }))
+      .filter(row => row.spells.length > 0);
+  }
+
   private async extraClassSpellIds(personaje: CharacterMongo, classId: string): Promise<string[]> {
     const subclasses = await this.getAssignedSubclassesForClass(personaje.subclasses ?? [], classId);
-    return subclasses.flatMap(item => item.expandedSpells);
+    const expanded = subclasses.flatMap(item => item.expandedSpells);
+    const classLevel = personaje.classes?.find(entry => entry.class === classId)?.level ?? 0;
+    const alwaysPrepared = subclassAlwaysPreparedSpellIds(subclasses, classId, classLevel);
+    return [...new Set([...expanded, ...alwaysPrepared])];
   }
 
   private async assertSubclassAvailable(
@@ -4737,6 +4797,15 @@ export default class CharacterRepository implements ICharacterRepository {
       subclasses: [...subclassRulesById.values()]
     };
     const derivedExtraByClass = grantedExtraSpellIdsByClass(grantedExtraInput);
+    const derivedAlwaysByClass: Record<string, string[]> = {};
+    for (const entry of personaje.classes ?? []) {
+      const always = subclassAlwaysPreparedSpellIds(
+        [...subclassRulesById.values()],
+        entry.class,
+        entry.level
+      );
+      if (always.length) derivedAlwaysByClass[entry.class] = always;
+    }
     const ritualOnlyExtraByClass = ritualOnlyGrantedExtraIdsByClass(grantedExtraInput);
     const updatedSpells: CharacterApi["spells"] = {};
 
@@ -4757,6 +4826,7 @@ export default class CharacterRepository implements ICharacterRepository {
       ...Object.keys(spells),
       ...Object.keys(extraSpellsMap),
       ...Object.keys(derivedExtraByClass),
+      ...Object.keys(derivedAlwaysByClass),
       ...Object.keys(preparedSpellsMap).filter(key => key !== "race"),
       ...privilegeInstances.map(item => item.classId)
     ]);
@@ -4819,7 +4889,10 @@ export default class CharacterRepository implements ICharacterRepository {
       });
       const alwaysIds = groupSpells === "race"
         ? []
-        : alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells, classLevelByClassId);
+        : mergePreparedWithPrivileges(
+          alwaysPreparedSpellIds(privilegeInstances, rulesByTraitId, groupSpells, classLevelByClassId),
+          derivedAlwaysByClass[groupSpells] ?? []
+        );
       const preparedIds = groupSpells === "race"
         ? []
         : mergePreparedWithPrivileges(

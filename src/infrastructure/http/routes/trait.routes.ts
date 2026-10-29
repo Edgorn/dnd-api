@@ -1286,6 +1286,7 @@ const router = Router();
  *           description: >
  *             Conjuros extra. IDs únicos. El conjuro con ritualOnly true debe ser
  *             un ritual. null borra el campo.
+ *             null borra el campo.
  *         creatureFormExtensions:
  *           nullable: true
  *           type: array

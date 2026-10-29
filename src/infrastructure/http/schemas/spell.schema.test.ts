@@ -203,7 +203,30 @@ describe("CreateSpellSchema tables", () => {
     if (result.success) {
       expect(result.data.tables).toHaveLength(1);
       expect(result.data.tables?.[0]?.headers).toEqual(["d10", "Comportamiento"]);
+      expect(result.data.tables?.[0]?.title).toBeUndefined();
     }
+  });
+
+  it("acepta una tabla con título", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      name: "Confusión",
+      tables: [{ ...confusionTable, title: "Tabla de comportamiento" }]
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tables?.[0]?.title).toBe("Tabla de comportamiento");
+    }
+  });
+
+  it("rechaza un título vacío", () => {
+    const result = CreateSpellSchema.safeParse({
+      ...plantGrowthBase,
+      tables: [{ ...confusionTable, title: "" }]
+    });
+
+    expect(result.success).toBe(false);
   });
 
   it("rechaza cabeceras vacías", () => {

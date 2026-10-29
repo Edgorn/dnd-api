@@ -510,5 +510,125 @@ describe("CharacterRepository.getLevelUpData query budget", () => {
     );
     expect(subclassRepository.getByClassAndSystems).not.toHaveBeenCalled();
   });
+
+  function levelUpRepository(overrides: {
+    subclassRepository: object;
+    spellRepository?: object;
+  }) {
+    return new CharacterRepository(
+      { getUserName: vi.fn().mockResolvedValue("Ada") } as never,
+      { getCharacterEquipmentsByIds: vi.fn(), getArmorClassInputsByIds: vi.fn() } as never,
+      { getTraitsByIndexes: vi.fn().mockResolvedValue([]) } as never,
+      { getProficienciesByIndices: vi.fn().mockResolvedValue([]) } as never,
+      { getByIds: vi.fn().mockResolvedValue([]) } as never,
+      { getCharacterSkills: vi.fn() } as never,
+      {
+        getSpellsByIndexes: vi.fn().mockResolvedValue([]),
+        formatSpellChoices: vi.fn(),
+        getSpellRefsByIndexes: vi.fn().mockResolvedValue([]),
+        formatSpellChoiceRefs: vi.fn(),
+        ...overrides.spellRepository
+      } as never,
+      {
+        getById: vi.fn().mockResolvedValue(CLASS_CATALOG),
+        dataLevelUp: vi.fn().mockResolvedValue({
+          hit_die: 10,
+          traits: [],
+          traits_data: {},
+          ability_score: false,
+          subclassChoice: null
+        }),
+        getRulesByIds: vi.fn().mockResolvedValue([CLASS_CATALOG])
+      } as never,
+      {
+        getSummariesByClassAndSystems: vi.fn().mockResolvedValue([]),
+        getByClassAndSystems: vi.fn(),
+        ...overrides.subclassRepository
+      } as never,
+      { getByGroupIds: vi.fn().mockResolvedValue([]) } as never,
+      { getByIds: vi.fn().mockResolvedValue([]) } as never,
+      { getLevelUpDataByLevels: vi.fn().mockResolvedValue(new Map()) } as never,
+      { getByIds: vi.fn() } as never,
+      { formatAttributes: vi.fn().mockResolvedValue([]), getBySystems: vi.fn().mockResolvedValue([]) } as never,
+      {
+        getMergedRulesConfig: vi.fn().mockResolvedValue({ proficiencyProgression: [2, 2] }),
+        getSystemsAndAncestors: vi.fn().mockResolvedValue([SYSTEM_ID])
+      } as never,
+      { getBySystems: vi.fn() } as never,
+      { getById: vi.fn() } as never,
+      {} as never,
+      {} as never,
+      { getByIds: vi.fn() } as never
+    );
+  }
+
+  it("hydrates alwaysPreparedSpells unlocked at the next class level", async () => {
+    const spell = { id: SPELL_ID, name: "Bendecir", level: 1, ruleset: SYSTEM_ID, classes: [] };
+    const getSpellsByIndexes = vi.fn().mockResolvedValue([spell]);
+    const getSpellRefsByIndexes = vi.fn().mockResolvedValue([{ id: SPELL_ID, name: "Bendecir", level: 1 }]);
+    const subclassRepository = {
+      getRulesByIds: vi.fn().mockResolvedValue([
+        {
+          id: SUBCLASS_ID,
+          classId: CLASS_ID,
+          name: "Vida",
+          ruleset: SYSTEM_ID,
+          levels: [],
+          expandedSpells: [],
+          alwaysPreparedSpells: [{ atLevel: 2, spellIds: [SPELL_ID] }]
+        }
+      ])
+    };
+
+    vi.mocked(CharacterModel.findById).mockReturnValue({
+      lean: vi.fn().mockResolvedValue(sheetDoc())
+    } as never);
+
+    const full = await levelUpRepository({
+      subclassRepository,
+      spellRepository: { getSpellsByIndexes, getSpellRefsByIndexes }
+    }).getLevelUpData(CHAR_ID, CLASS_ID, USER_ID);
+
+    expect(full.alwaysPreparedSpells).toEqual([{ atLevel: 2, spells: [spell] }]);
+    expect(getSpellsByIndexes).toHaveBeenCalledWith([SPELL_ID]);
+
+    vi.mocked(CharacterModel.findById).mockReturnValue({
+      lean: vi.fn().mockResolvedValue(sheetDoc())
+    } as never);
+
+    const compact = await levelUpRepository({
+      subclassRepository,
+      spellRepository: { getSpellsByIndexes, getSpellRefsByIndexes }
+    }).getLevelUpData(CHAR_ID, CLASS_ID, USER_ID, { view: "compact" });
+
+    expect(compact.alwaysPreparedSpells).toEqual([
+      { atLevel: 2, spells: [{ id: SPELL_ID, name: "Bendecir", level: 1 }] }
+    ]);
+    expect(getSpellRefsByIndexes).toHaveBeenCalledWith([SPELL_ID]);
+  });
+
+  it("omits alwaysPreparedSpells when no row unlocks at the next class level", async () => {
+    vi.mocked(CharacterModel.findById).mockReturnValue({
+      lean: vi.fn().mockResolvedValue(sheetDoc())
+    } as never);
+
+    const data = await levelUpRepository({
+      subclassRepository: {
+        getRulesByIds: vi.fn().mockResolvedValue([
+          {
+            id: SUBCLASS_ID,
+            classId: CLASS_ID,
+            name: "Vida",
+            ruleset: SYSTEM_ID,
+            levels: [],
+            expandedSpells: [],
+            alwaysPreparedSpells: [{ atLevel: 3, spellIds: [SPELL_ID] }]
+          }
+        ])
+      }
+    }).getLevelUpData(CHAR_ID, CLASS_ID, USER_ID);
+
+    expect(data).not.toHaveProperty("alwaysPreparedSpells");
+  });
 });
 

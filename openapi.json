@@ -1773,7 +1773,7 @@
             "items": {
               "$ref": "#/components/schemas/TraitGrantedSpellInput"
             },
-            "description": "Conjuros extra. IDs únicos. El conjuro con ritualOnly true debe ser un ritual. null borra el campo.\n"
+            "description": "Conjuros extra. IDs únicos. El conjuro con ritualOnly true debe ser un ritual. null borra el campo. null borra el campo.\n"
           },
           "creatureFormExtensions": {
             "nullable": true,
@@ -2953,6 +2953,49 @@
           }
         }
       },
+      "AlwaysPreparedSpellRowInput": {
+        "type": "object",
+        "required": [
+          "atLevel",
+          "spellIds"
+        ],
+        "properties": {
+          "atLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel de la clase padre a partir del cual estos conjuros están activos."
+          },
+          "spellIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "ObjectIds de los conjuros de esta fila."
+          }
+        }
+      },
+      "AlwaysPreparedSpellRow": {
+        "type": "object",
+        "required": [
+          "atLevel",
+          "spells"
+        ],
+        "properties": {
+          "atLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel de la clase padre a partir del cual estos conjuros están activos."
+          },
+          "spells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Spell"
+            },
+            "description": "Conjuros hidratados de esta fila."
+          }
+        }
+      },
       "SubclassLevelApi": {
         "type": "object",
         "properties": {
@@ -3032,12 +3075,33 @@
             "type": "string",
             "description": "URL de la imagen representativa."
           },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Proficiency"
+            },
+            "description": "Competencias fijas otorgadas al tomar la subclase. Omitido si está vacío."
+          },
+          "proficiencies_choices": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Elecciones de competencias hidratadas (choose, options y query_type). Omitido si está vacío."
+          },
           "expandedSpells": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Spell"
             },
             "description": "Lista de conjuros ampliada (p. ej. Infernal). No se otorgan solos: se añaden a la lista de la clase padre para este personaje al aprender, recambiar o preparar conjuros de esa clase. Omitido si está vacía.\n"
+          },
+          "alwaysPreparedSpells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlwaysPreparedSpellRow"
+            },
+            "description": "Tabla de conjuros siempre preparados (p. ej. dominio de clérigo o juramento de paladín). Al alcanzar el nivel de la clase padre se consideran preparados, no cuentan para el tope diario y cuentan como conjuros de esa clase aunque no estén en su lista. Omitido si está vacía.\n"
           },
           "optionReplacements": {
             "type": "array",
@@ -3156,12 +3220,34 @@
             "type": "string",
             "description": "URL de la imagen."
           },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de competencias fijas otorgadas al tomar la subclase."
+          },
+          "proficiencies_choices": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ChoiceMongo"
+            },
+            "description": "Elecciones independientes de competencias (IDs en options o filtro, por ejemplo type o parentProficiencyId). Envíe null para borrar la lista."
+          },
           "expandedSpells": {
             "type": "array",
             "items": {
               "type": "string"
             },
             "description": "ObjectIds de conjuros añadidos a la lista de la clase padre para quien tome esta subclase."
+          },
+          "alwaysPreparedSpells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlwaysPreparedSpellRowInput"
+            },
+            "description": "Tabla de conjuros siempre preparados por nivel de la clase padre (p. ej. dominio de la Vida). atLevel no se repite; cada spellId es único.\n"
           },
           "optionReplacements": {
             "type": "array",
@@ -3205,6 +3291,21 @@
             "type": "string",
             "description": "URL de la imagen."
           },
+          "proficiencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs de competencias fijas otorgadas al tomar la subclase."
+          },
+          "proficiencies_choices": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ChoiceMongo"
+            },
+            "description": "Elecciones independientes de competencias. Envíe null para borrar la lista. Si se omite, se conserva."
+          },
           "expandedSpells": {
             "nullable": true,
             "type": "array",
@@ -3212,6 +3313,14 @@
               "type": "string"
             },
             "description": "ObjectIds de la lista ampliada. null borra el campo. Si se omite, se conserva."
+          },
+          "alwaysPreparedSpells": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlwaysPreparedSpellRowInput"
+            },
+            "description": "Tabla de conjuros siempre preparados. null borra el campo. Si se omite, se conserva."
           },
           "optionReplacements": {
             "nullable": true,
@@ -3237,6 +3346,10 @@
           "rows"
         ],
         "properties": {
+          "title": {
+            "type": "string",
+            "description": "Título opcional de la tabla."
+          },
           "headers": {
             "type": "array",
             "items": {
@@ -10823,6 +10936,27 @@
       "LevelUpDataCompact": {
         "type": "object",
         "description": "Menús de subida de nivel con SpellRef y subclases resumidas."
+      },
+      "AlwaysPreparedSpellRowRef": {
+        "type": "object",
+        "required": [
+          "atLevel",
+          "spells"
+        ],
+        "properties": {
+          "atLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Nivel de la clase padre a partir del cual estos conjuros están activos."
+          },
+          "spells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpellRef"
+            },
+            "description": "Conjuros resumidos de esta fila."
+          }
+        }
       },
       "InputCreateCharacter": {
         "type": "object",
@@ -19762,7 +19896,7 @@
     "/character/{id}/level-up-data": {
       "get": {
         "summary": "Obtener datos para subir de nivel",
-        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSin `view` o con `view=full` el JSON es el histórico. `view=compact` usa SpellRef en los menús\nde conjuros, resúmenes de subclase (detalle en GET /subclasses/:id) y `dip.proficiencies` como `{id,name}`.\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traitsData` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traitsData`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traitsData` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skillChoices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skillChoices`.\n`optionChoices` de la raíz son grupos de opciones de este nivel de clase o de una subclase\nya asignada. Si aún debe elegir subclase, las elecciones de cada opción van hidratadas\n(`PendingOptionChoice`: groupName, options con available/unmet, selected) en\n`subclassChoice.options[].levels[].optionChoices`.\n`spellChoices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spellChanges.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spellChanges` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spellChoices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`abilityScore: true`), `abilityScoreAlternative`\nlista las opciones del grupo configurado en el sistema o la clase (elige 1 en lugar de los +2).\nEl POST debe enviar `abilityScore` o, si hay alternativa, `abilityScoreOption`.\n",
+        "description": "Devuelve la información necesaria para subir de nivel en una clase concreta del personaje\n(dado de golpe, bono de competencia, rasgos automáticos del nuevo nivel, elecciones de conjuros\ny, si toca, mejora de característica).\nSin `view` o con `view=full` el JSON es el histórico. `view=compact` usa SpellRef en los menús\nde conjuros, resúmenes de subclase (detalle en GET /subclasses/:id) y `dip.proficiencies` como `{id,name}`.\nSi `class` no está en `classes[]`, es un dip (`newClass: true`, nivel de clase 1) y `dip`\nincluye requisitos hidratados, competencias fijas y elecciones recortadas (sin las ya poseídas).\n`GET` no rechaza requisitos fallidos: `requirementsMet` indica si el personaje cumple los de\ntodas las clases implicadas (clases actuales + la nueva en un dip, o todas las poseídas al\ncontinuar siendo ya multiclase). Un personaje de una sola clase no tiene requisitos al seguirla.\nLos rasgos se filtran por `stackGroup` e `incompatible_traits` respecto a los ya poseídos.\n`traits` y `traitsData` proceden del nivel de clase (y subclases ya asignadas).\nSi el nivel de raza, clase o subclase cambia `traitsData`\nrespecto al nivel anterior, `traits` vuelve a incluir ese rasgo. Todos los rasgos de `traits` se\ndevuelven con la descripción y el resumen sustituidos con el `traitsData` del personaje\nfusionado con el del nivel.\nDespués se cierran igual que en la ficha: las elecciones ya guardadas sustituyen `{name}`,\n`{damage}`, `{area}` y `{save}`, y la CD de la acción sustituye `{dc}` con los atributos\nactuales y el bono de competencia del nivel siguiente. La mejora de característica de este\nnivel aún no está elegida, así que no entra en esa CD. Si un rasgo referencia la elección\nde daño de otro que no cambia en este nivel, esa elección se resuelve igualmente y el rasgo\norigen no se añade a `traits`.\nSi el nuevo nivel es el de elección de subclase (o posterior) y el personaje aún no tiene\nuna subclase de esa clase, se incluye `subclassChoice` con las opciones disponibles.\n`skillChoices` son habilidades nuevas a elegir en este nivel de clase o de una subclase\nya asignada (opciones ya poseídas recortadas). Si aún debe elegir subclase, las elecciones\nde cada opción van en `subclassChoice.options[].levels[].skillChoices`.\n`optionChoices` de la raíz son grupos de opciones de este nivel de clase o de una subclase\nya asignada. Si aún debe elegir subclase, las elecciones de cada opción van hidratadas\n(`PendingOptionChoice`: groupName, options con available/unmet, selected) en\n`subclassChoice.options[].levels[].optionChoices`.\n`spellChoices` incluye una elección de trucos sintetizada a partir del tope `cantrips`\nde la clase y los trucos que el personaje ya conoce, una elección de conjuros conocidos\nsintetizada a partir de `spellsLearned` de ese nivel (lista de la clase y niveles con\nranuras), más las elecciones persistidas de niveles 1–9.\nSi el personaje ya tiene subclase de esa clase, las elecciones sintetizadas de lista de\nclase (trucos, conocidos y `spellChanges.to`) incluyen `expandedSpells`. Si aún debe elegir\nsubclase, esos extras van en `subclassChoice.options[].expandedSpells` para sustituir en el cliente.\nCon subclase asignada, `alwaysPreparedSpells` lista las filas cuyo `atLevel` es el nuevo\nnivel de clase (conjuros de dominio que se desbloquean ahora). No forman parte de\n`spellChoices`. En `view=full` cada fila hidrata `Spell`; en `view=compact`, `SpellRef`.\nSi no hay subclase de esa clase o ninguna fila coincide, el campo se omite.\nAl elegir subclase, las filas completas siguen en `subclassChoice.options[].alwaysPreparedSpells`\n(`view=full`) o en `GET /subclasses/:id` (`view=compact`).\nSi la clase define `spellReplacement` y el personaje ya tiene conjuros conocidos de esa\nclase (nivel de clase 2+), `spellChanges` ofrece un recambio opcional (hasta `choose`\npares from/to). No forma parte de `spellChoices` y se puede omitir.\nSi el nivel otorga Mejora de característica (`abilityScore: true`), `abilityScoreAlternative`\nlista las opciones del grupo configurado en el sistema o la clase (elige 1 en lugar de los +2).\nEl POST debe enviar `abilityScore` o, si hay alternativa, `abilityScoreOption`.\n",
         "tags": [
           "Personajes"
         ],
@@ -19922,6 +20056,13 @@
                       "description": "Elecciones de grupos de opciones de este nivel (p. ej. invocaciones) de la clase o de una subclase ya asignada. Omitido si aún debe elegir subclase: entonces van en `subclassChoice.options[].levels[].optionChoices`. choose es cuántas hay que añadir. replace es cuántas se pueden cambiar (incluye `optionReplacements` de la clase o subclase si el personaje ya tiene opciones de ese grupo). options marca available/unmet según requisitos. selected son las ya elegidas.\n",
                       "items": {
                         "$ref": "#/components/schemas/PendingOptionChoice"
+                      }
+                    },
+                    "alwaysPreparedSpells": {
+                      "type": "array",
+                      "description": "Conjuros siempre preparados que se desbloquean en este nivel de clase (`atLevel` igual al nivel siguiente). Solo con subclase ya asignada. Informativo: no se eligen ni se envían en el POST. Omitido si no hay filas. En compact, `spells` es SpellRef (`AlwaysPreparedSpellRowRef`).\n",
+                      "items": {
+                        "$ref": "#/components/schemas/AlwaysPreparedSpellRow"
                       }
                     },
                     "abilityScore": {
@@ -20248,7 +20389,7 @@
     "/character/{id}/prepared-spells": {
       "put": {
         "summary": "Preparar conjuros de una clase",
-        "description": "Sustituye la lista de conjuros preparados de la clase indicada.\nLa clase debe definir `spellsPreparedFormula` y `preparedFrom`.\nNo se pueden preparar trucos. El número de conjuros no puede superar el tope evaluado\n(`nivel de clase + modificador`, u otra fórmula). Los conjuros de un rasgo con\n`countsTowardPreparedCap: false` no cuentan para el tope y, si se envían, se ignoran\nal persistir. Si `preparedFrom` es `known`, cada conjuro debe estar entre los\nconocidos de esa clase; si es `classList`, debe pertenecer a la lista de conjuros\nde la clase. Solo se admiten niveles para los que la clase tenga ranuras.\n",
+        "description": "Sustituye la lista de conjuros preparados de la clase indicada.\nLa clase debe definir `spellsPreparedFormula` y `preparedFrom`.\nNo se pueden preparar trucos. El número de conjuros no puede superar el tope evaluado\n(`nivel de clase + modificador`, u otra fórmula). Los conjuros de un rasgo con\n`countsTowardPreparedCap: false` o los `alwaysPreparedSpells` de la subclase\nno cuentan para el tope y, si se envían, se ignoran al persistir. Si `preparedFrom`\nes `known`, cada conjuro debe estar entre los\nconocidos de esa clase; si es `classList`, debe pertenecer a la lista de conjuros\nde la clase. Solo se admiten niveles para los que la clase tenga ranuras.\n",
         "tags": [
           "Personajes"
         ],
