@@ -4,6 +4,7 @@ import {
   formatCompanionSheetRow,
   isPdfTreasureItem,
   mergeSheetSpells,
+  pdfMagicBonusSuffix,
   prefixSheetMark,
   shortenPdfArmorName,
 } from "./escribirPdf";
@@ -177,6 +178,25 @@ describe("isPdfTreasureItem", () => {
   it("treats blank rarityKey as mundane treasure", () => {
     expect(isPdfTreasureItem({ rarityKey: "   " })).toBe(true);
     expect(isPdfTreasureItem({ rarityKey: null })).toBe(true);
+  });
+});
+
+describe("pdfMagicBonusSuffix", () => {
+  it("appends +1 to a magic weapon", () => {
+    expect(pdfMagicBonusSuffix({ isMagic: true, weapon: { damage: [] } })).toBe(" +1");
+  });
+
+  it("appends +1 to magic slotted armor", () => {
+    expect(pdfMagicBonusSuffix({ isMagic: true, equipSlot: "armor" })).toBe(" +1");
+  });
+
+  it("does not append +1 to magic items without weapon or slot", () => {
+    expect(pdfMagicBonusSuffix({ isMagic: true })).toBe("");
+  });
+
+  it("does not append +1 to mundane weapons or armor", () => {
+    expect(pdfMagicBonusSuffix({ weapon: { damage: [] } })).toBe("");
+    expect(pdfMagicBonusSuffix({ equipSlot: "armor" })).toBe("");
   });
 });
 

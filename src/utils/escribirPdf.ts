@@ -479,6 +479,14 @@ export function isPdfTreasureItem(equip: PdfInventoryItem): boolean {
   return true;
 }
 
+export function pdfMagicBonusSuffix(equip: PdfInventoryItem): string {
+  if (equip.isMagic !== true) return "";
+  const isWeapon = equip.weapon !== undefined;
+  const isSlotted = equip.equipSlot !== undefined && equip.equipSlot !== null;
+  if (!isWeapon && !isSlotted) return "";
+  return " +1";
+}
+
 export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { pdfDoc: any, equipment: CharacterEquipmentApi[], personaje: CharacterApi, form: any }) {
   const pages = pdfDoc.getPages();
   const page1 = pages[0]
@@ -495,7 +503,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
       titulo: '',
       descripcion: prefixSheetMark(
         companionMarks.byInstanceId.get(bodyArmor.instanceId ?? ''),
-        shortenPdfArmorName(bodyArmor.name) + (bodyArmor.isMagic ? ' +1' : ''),
+        shortenPdfArmorName(bodyArmor.name) + pdfMagicBonusSuffix(bodyArmor),
       ),
       fontTitle: fontBold,
       fontText: fontRegular,
@@ -538,7 +546,7 @@ export async function escribirEquipo({ pdfDoc, equipment, personaje, form }: { p
 
       return prefixSheetMark(
         companionMarks.byInstanceId.get(equip.instanceId ?? ''),
-        equip.quantity + 'x ' + equip.name + (equip.isMagic ? ' +1' : '') + ' ' + dataProperties,
+        equip.quantity + 'x ' + equip.name + pdfMagicBonusSuffix(equip) + ' ' + dataProperties,
       )
     })
 
