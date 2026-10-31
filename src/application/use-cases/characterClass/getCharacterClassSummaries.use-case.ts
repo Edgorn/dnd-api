@@ -1,12 +1,15 @@
 import CharacterClassService from "../../../domain/services/characterClass.service";
 import SubclassService from "../../../domain/services/subclass.service";
+import SystemService from "../../../domain/services/system.service";
 import { CharacterClassSummary, CharacterClassSummaryDraft } from "../../../domain/types/characterClass.types";
 import { descriptionTeaser } from "../../../utils/descriptionTeaser";
+import { filterExcludedById } from "../../../utils/catalogExclusions";
 
 export default class GetCharacterClassSummaries {
   constructor(
     private readonly characterClassService: CharacterClassService,
-    private readonly subclassService: SubclassService
+    private readonly subclassService: SubclassService,
+    private readonly systemService: SystemService
   ) { }
 
   async execute(rulesets?: string[]): Promise<CharacterClassSummary[]> {
@@ -15,12 +18,14 @@ export default class GetCharacterClassSummaries {
     }
 
     const drafts = await this.characterClassService.getSummaries(rulesets);
+    const exclusions = await this.systemService.getResolvedCatalogExclusions(rulesets);
+    const visible = filterExcludedById(drafts, exclusions.classIds);
     const counts = await this.subclassService.countByClassIds(
-      drafts.map(draft => draft.id),
+      visible.map(draft => draft.id),
       rulesets
     );
 
-    return drafts.map(draft => toCharacterClassSummary(draft, counts.get(draft.id) ?? 0));
+    return visible.map(draft => toCharacterClassSummary(draft, counts.get(draft.id) ?? 0));
   }
 }
 

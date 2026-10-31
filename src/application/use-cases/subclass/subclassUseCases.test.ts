@@ -159,19 +159,34 @@ describe("Subclass Use Cases", () => {
 
   describe("GetSubclassesBySystems", () => {
     it("returns an empty list when no rulesets are provided", async () => {
-      const useCase = new GetSubclassesBySystems(subclassServiceMock as never);
+      const systemServiceMock = { getResolvedCatalogExclusions: vi.fn() };
+      const useCase = new GetSubclassesBySystems(subclassServiceMock as never, systemServiceMock as never);
       const result = await useCase.execute([]);
       expect(result).toEqual([]);
       expect(subclassServiceMock.getBySystems).not.toHaveBeenCalled();
     });
 
     it("forwards rulesets and classId to the service", async () => {
-      const useCase = new GetSubclassesBySystems(subclassServiceMock as never);
+      const systemServiceMockLocal = {
+        getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set() })
+      };
+      const useCase = new GetSubclassesBySystems(subclassServiceMock as never, systemServiceMockLocal as never);
       subclassServiceMock.getBySystems.mockResolvedValue([createdSubclass]);
 
       const result = await useCase.execute(["sys-child"], classId);
       expect(result).toEqual([createdSubclass]);
       expect(subclassServiceMock.getBySystems).toHaveBeenCalledWith(["sys-child"], classId);
+    });
+
+    it("omits subclasses whose class is excluded", async () => {
+      const systemServiceMockLocal = {
+        getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set([classId]) })
+      };
+      const useCase = new GetSubclassesBySystems(subclassServiceMock as never, systemServiceMockLocal as never);
+      subclassServiceMock.getBySystems.mockResolvedValue([createdSubclass]);
+
+      const result = await useCase.execute(["sys-child"]);
+      expect(result).toEqual([]);
     });
   });
 

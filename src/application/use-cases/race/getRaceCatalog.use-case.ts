@@ -7,6 +7,7 @@ import {
   ancestryToRefs,
   applyRaceNameOverrides
 } from "../../../utils/applyRaceOverrides";
+import { pruneRaceCatalog } from "../../../utils/catalogExclusions";
 
 export default class GetRaceCatalogUseCase {
   constructor(
@@ -21,9 +22,10 @@ export default class GetRaceCatalogUseCase {
       return catalog;
     }
 
+    const exclusions = await this.systemService.getResolvedCatalogExclusions([ruleset]);
     const ancestry = await this.systemService.getAncestry(ruleset);
     if (ancestry.length === 0) {
-      return catalog;
+      return pruneRaceCatalog(catalog, exclusions.raceIds);
     }
 
     const overlays = await this.entityOverrideService.getBySystems(
@@ -31,6 +33,9 @@ export default class GetRaceCatalogUseCase {
       "race"
     );
 
-    return applyRaceNameOverrides(catalog, overlays, ancestryToRefs(ancestry));
+    return pruneRaceCatalog(
+      applyRaceNameOverrides(catalog, overlays, ancestryToRefs(ancestry)),
+      exclusions.raceIds
+    );
   }
 }

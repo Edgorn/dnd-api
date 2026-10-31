@@ -11,6 +11,7 @@ import {
 } from "../../../utils/applyRaceOverrides";
 import { EntityOverrideApi } from "../../../domain/types/entityOverride.types";
 import { toRaceSummary } from "./getRaceSummaries.use-case";
+import { isRaceExcluded, pruneRaceForest } from "../../../utils/catalogExclusions";
 
 export default class GetRaceByIdUseCase {
   constructor(
@@ -34,10 +35,27 @@ export default class GetRaceByIdUseCase {
       throw new NotFoundError("No se encontro la raza");
     }
 
+    const exclusions = await this.systemService.getResolvedCatalogExclusions([ruleset]);
+    const ancestorChain: string[] = [];
+    let parentId = race.parentId ?? null;
+    const seen = new Set<string>([id]);
+    while (parentId && !seen.has(parentId)) {
+      ancestorChain.push(parentId);
+      seen.add(parentId);
+      const parent = await this.raceService.getById(parentId, expanded);
+      parentId = parent?.parentId ?? null;
+    }
+    if (isRaceExcluded(id, ancestorChain, exclusions.raceIds)) {
+      throw new NotFoundError("No se encontro la raza");
+    }
+
     const subtree = await this.raceService.getSummarySubtree(id, ruleset);
+    const prunedLoadedSubtree = subtree
+      ? { name: subtree.name, list: pruneRaceForest(subtree.list, exclusions.raceIds) }
+      : undefined;
     const ancestry = await this.systemService.getAncestry(ruleset);
     if (ancestry.length === 0) {
-      return this.withSummarySubraces(race, subtree);
+      return this.withSummarySubraces(race, prunedLoadedSubtree);
     }
 
     const overlays = await this.entityOverrideService.getBySystems(
@@ -46,7 +64,11 @@ export default class GetRaceByIdUseCase {
     );
     const refs = ancestryToRefs(ancestry);
     const [patchedRace] = applyRaceOverrides([race], overlays, refs);
-    return this.withSummarySubraces(patchedRace, this.patchSubtree(subtree, overlays, refs));
+    const patchedSubtree = this.patchSubtree(subtree, overlays, refs);
+    const prunedSubtree = patchedSubtree
+      ? { name: patchedSubtree.name, list: pruneRaceForest(patchedSubtree.list, exclusions.raceIds) }
+      : undefined;
+    return this.withSummarySubraces(patchedRace, prunedSubtree);
   }
 
   private patchSubtree(

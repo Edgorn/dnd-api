@@ -102,7 +102,7 @@ export default class RaceRepository implements IRaceRepository {
       .select("_id name ruleset creatureTypeId parentId")
       .lean<RaceRefDoc[]>();
 
-    return this.mapRaceRefs(docs);
+    return this.mapRaceCatalog(docs);
   }
 
   async create(race: CreateRace): Promise<RaceApi> {
@@ -613,6 +613,14 @@ export default class RaceRepository implements IRaceRepository {
       name: race.name,
       ruleset: race.ruleset,
       creatureTypeId: this.resolveCreatureTypeIdFromMap(race, byId) ?? null
+    }));
+  }
+
+  private async mapRaceCatalog(races: RaceRefDoc[]): Promise<RaceCatalogItem[]> {
+    const refs = await this.mapRaceRefs(races);
+    return refs.map((ref, index) => ({
+      ...ref,
+      parentId: this.readParentId(races[index].parentId) ?? null
     }));
   }
 

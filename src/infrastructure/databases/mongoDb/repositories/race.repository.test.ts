@@ -441,8 +441,8 @@ describe("RaceRepository.getCatalog", () => {
       ruleset: { $in: [PARENT_SYSTEM_ID] }
     });
     expect(catalog).toEqual([
-      { id: ELF_ID, name: "Elf", ruleset: PARENT_SYSTEM_ID, creatureTypeId: typeId },
-      { id: childRaceId, name: "High Elf", ruleset: PARENT_SYSTEM_ID, creatureTypeId: typeId }
+      { id: ELF_ID, name: "Elf", ruleset: PARENT_SYSTEM_ID, creatureTypeId: typeId, parentId: null },
+      { id: childRaceId, name: "High Elf", ruleset: PARENT_SYSTEM_ID, creatureTypeId: typeId, parentId: ELF_ID }
     ]);
   });
 });

@@ -25,6 +25,10 @@ export default class GetCharacterClassById {
       if (!hydrationRulesets.includes(characterClass.ruleset)) {
         throw new NotFoundError("Clase no encontrada");
       }
+      const exclusions = await this.systemService.getResolvedCatalogExclusions([ruleset]);
+      if (exclusions.classIds.has(id)) {
+        throw new NotFoundError("Clase no encontrada");
+      }
     } else {
       hydrationRulesets = characterClass.ruleset
         ? await this.systemService.getSystemsAndAncestors([characterClass.ruleset])

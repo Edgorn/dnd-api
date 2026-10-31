@@ -8,22 +8,37 @@ const objectIdSchema = z
   .string()
   .regex(objectIdRegex, "Cada padre debe ser un ObjectId válido de MongoDB");
 
-const parentIdsSchema = z
-  .array(objectIdSchema)
-  .max(SYSTEM_MAX_PARENTS, `Un sistema no puede tener más de ${SYSTEM_MAX_PARENTS} padres`)
-  .superRefine((ids, ctx) => {
-    const seen = new Set<string>();
-    for (let i = 0; i < ids.length; i++) {
-      if (seen.has(ids[i])) {
-        ctx.addIssue({
-          code: "custom",
-          message: "parentIds no puede contener duplicados",
-          path: [i],
-        });
+const uniqueObjectIdArraySchema = (invalidMessage: string, duplicateMessage: string) =>
+  z
+    .array(z.string().regex(objectIdRegex, invalidMessage))
+    .superRefine((ids, ctx) => {
+      const seen = new Set<string>();
+      for (let i = 0; i < ids.length; i++) {
+        if (seen.has(ids[i])) {
+          ctx.addIssue({
+            code: "custom",
+            message: duplicateMessage,
+            path: [i],
+          });
+        }
+        seen.add(ids[i]);
       }
-      seen.add(ids[i]);
-    }
-  });
+    });
+
+const parentIdsSchema = uniqueObjectIdArraySchema(
+  "Cada padre debe ser un ObjectId válido de MongoDB",
+  "parentIds no puede contener duplicados"
+).max(SYSTEM_MAX_PARENTS, `Un sistema no puede tener más de ${SYSTEM_MAX_PARENTS} padres`);
+
+const excludedRaceIdsSchema = uniqueObjectIdArraySchema(
+  "Cada raza excluida debe ser un ObjectId válido de MongoDB",
+  "excludedRaceIds no puede contener duplicados"
+);
+
+const excludedClassIdsSchema = uniqueObjectIdArraySchema(
+  "Cada clase excluida debe ser un ObjectId válido de MongoDB",
+  "excludedClassIds no puede contener duplicados"
+);
 
 export const systemKindSchema = z.enum(SYSTEM_KINDS, {
   error: "kind debe ser ruleset, setting o campaign",
@@ -253,6 +268,8 @@ export const CreateSystemSchema = z
     isBase: z.boolean().optional(),
     kind: systemKindSchema.default("ruleset"),
     parentIds: parentIdsSchema.default([]),
+    excludedRaceIds: excludedRaceIdsSchema.optional(),
+    excludedClassIds: excludedClassIdsSchema.optional(),
     ...systemRulesFields,
   })
   .superRefine(progressionArrayRefinement)
@@ -266,6 +283,8 @@ export const UpdateSystemSchema = z
     isBase: z.boolean().optional(),
     kind: systemKindSchema.optional(),
     parentIds: parentIdsSchema.optional(),
+    excludedRaceIds: excludedRaceIdsSchema.optional(),
+    excludedClassIds: excludedClassIdsSchema.optional(),
     ...systemRulesFields,
   })
   .superRefine(progressionArrayRefinement)

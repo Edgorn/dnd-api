@@ -13,7 +13,17 @@ export default class SystemRepository implements ISystemRepository {
   private toSystem(doc: SystemDocument | null | undefined): System | null {
     if (!doc) return null;
     const parentIds = this.readParentIds(doc);
-    return { ...doc, parentIds };
+    return {
+      ...doc,
+      parentIds,
+      excludedRaceIds: this.readIdStrings(doc.excludedRaceIds),
+      excludedClassIds: this.readIdStrings(doc.excludedClassIds),
+    };
+  }
+
+  private readIdStrings(ids?: Array<string | { toString(): string }> | null): string[] {
+    if (!Array.isArray(ids)) return [];
+    return ids.map((id) => id.toString());
   }
 
   private readParentIds(doc: SystemDocument): NonNullable<System["parentIds"]> {
@@ -253,6 +263,8 @@ export default class SystemRepository implements ISystemRepository {
       meleeAttackAttributes: data.meleeAttackAttributes,
       rangedAttackAttributes: data.rangedAttackAttributes,
       restRules: data.restRules,
+      excludedRaceIds: this.toObjectIds(data.excludedRaceIds),
+      excludedClassIds: this.toObjectIds(data.excludedClassIds),
     });
 
     const resultado = await nuevoSistema.save();
@@ -294,6 +306,8 @@ export default class SystemRepository implements ISystemRepository {
       meleeAttackAttributes,
       rangedAttackAttributes,
       restRules,
+      excludedRaceIds,
+      excludedClassIds,
     } = data;
 
     const updateFields: Record<string, unknown> = {};
@@ -331,6 +345,8 @@ export default class SystemRepository implements ISystemRepository {
     if (meleeAttackAttributes !== undefined) updateFields.meleeAttackAttributes = meleeAttackAttributes;
     if (rangedAttackAttributes !== undefined) updateFields.rangedAttackAttributes = rangedAttackAttributes;
     if (restRules !== undefined) updateFields.restRules = restRules;
+    if (excludedRaceIds !== undefined) updateFields.excludedRaceIds = this.toObjectIds(excludedRaceIds);
+    if (excludedClassIds !== undefined) updateFields.excludedClassIds = this.toObjectIds(excludedClassIds);
 
     const resultado = await SistemasModel.findByIdAndUpdate(
       id,

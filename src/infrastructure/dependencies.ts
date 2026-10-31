@@ -336,6 +336,8 @@ const raceRepository = new RaceRepository(
   systemRepository
 )
 
+const systemService = new SystemService(systemRepository, optionGroupService, raceRepository, characterClassRepository)
+
 const backgroundRepository = new BackgroundRepository(
   systemRepository,
   skillRepository,
@@ -385,7 +387,8 @@ export const characterRepository = new CharacterRepository(
   campaignReaderRepository,
   creatureTypeRepository,
   damageRepository,
-  conditionRepository
+  conditionRepository,
+  systemService
 )
 
 const campaignRepository = new CampaignRepository(
@@ -425,7 +428,6 @@ const characterService = new CharacterService(characterRepository)
 const spellService = new SpellService(spellRepository)
 const traitService = new TraitService(traitRepository)
 const subclassService = new SubclassService(subclassRepository)
-const systemService = new SystemService(systemRepository, optionGroupService)
 
 const getOptionGroupsBySystems = new GetOptionGroupsBySystems(optionGroupService, systemService)
 const createOptionGroup = new CreateOptionGroup(optionGroupService, systemService)
@@ -483,8 +485,8 @@ const updateBackground = new UpdateBackground(backgroundRepository, systemReposi
 const softDeleteBackground = new SoftDeleteBackground(backgroundRepository);
 const restoreBackground = new RestoreBackground(backgroundRepository);
 
-const getCharacterClassSummaries = new GetCharacterClassSummaries(characterClassService, subclassService);
-const getCharacterClassCatalog = new GetCharacterClassCatalog(characterClassService);
+const getCharacterClassSummaries = new GetCharacterClassSummaries(characterClassService, subclassService, systemService);
+const getCharacterClassCatalog = new GetCharacterClassCatalog(characterClassService, systemService);
 const getCharacterClassById = new GetCharacterClassById(characterClassService, subclassService, systemService);
 const createCharacterClass = new CreateCharacterClass(characterClassService, systemService, getCharacterClassById);
 const updateCharacterClass = new UpdateCharacterClass(characterClassService, systemService, getCharacterClassById);
@@ -573,7 +575,7 @@ const updateTraitUseCase = new UpdateTraitUseCase(traitService, systemService, a
 const softDeleteTrait = new SoftDeleteTraitUseCase(traitService, systemService)
 const restoreTrait = new RestoreTraitUseCase(traitService, systemService)
 
-const getSubclassesBySystems = new GetSubclassesBySystems(subclassService)
+const getSubclassesBySystems = new GetSubclassesBySystems(subclassService, systemService)
 const getSubclassById = new GetSubclassById(subclassService)
 const createSubclass = new CreateSubclass(subclassService, systemService, characterClassService)
 const updateSubclass = new UpdateSubclass(subclassService, systemService, characterClassService)

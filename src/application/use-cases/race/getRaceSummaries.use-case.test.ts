@@ -63,7 +63,8 @@ describe("GetRaceSummariesUseCase", () => {
       getSummaries: vi.fn().mockResolvedValue([draft])
     } as unknown as RaceService;
     const systemService = {
-      getAncestry: vi.fn()
+      getAncestry: vi.fn(),
+      getResolvedCatalogExclusions: vi.fn()
     } as unknown as SystemService;
     const entityOverrideService = {
       getBySystems: vi.fn()
@@ -94,7 +95,8 @@ describe("GetRaceSummariesUseCase", () => {
       getSummaries: vi.fn().mockResolvedValue([draft])
     } as unknown as RaceService;
     const systemService = {
-      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
+      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem]),
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set() })
     } as unknown as SystemService;
     const entityOverrideService = {
       getBySystems: vi.fn().mockResolvedValue([overlay])
@@ -107,5 +109,42 @@ describe("GetRaceSummariesUseCase", () => {
     expect(result.descriptionTeaser).toBe("Child elves live in the woods.");
     expect(result.inherited).toBe(true);
     expect(result.overriddenFields).toEqual(["description"]);
+  });
+
+  it("hides an excluded root and its subraces", async () => {
+    const raceService = {
+      getSummaries: vi.fn().mockResolvedValue([draft, { ...draft, id: "dwarf", name: "Dwarf", subraces: undefined }])
+    } as unknown as RaceService;
+    const systemService = {
+      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem]),
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(["elf1"]), classIds: new Set() })
+    } as unknown as SystemService;
+    const entityOverrideService = {
+      getBySystems: vi.fn().mockResolvedValue([])
+    } as unknown as EntityOverrideService;
+
+    const useCase = new GetRaceSummariesUseCase(raceService, systemService, entityOverrideService);
+    const result = await useCase.execute(childId.toString());
+
+    expect(result.map((item) => item.id)).toEqual(["dwarf"]);
+  });
+
+  it("hides an excluded subrace and keeps the root", async () => {
+    const raceService = {
+      getSummaries: vi.fn().mockResolvedValue([draft])
+    } as unknown as RaceService;
+    const systemService = {
+      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem]),
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(["high-elf"]), classIds: new Set() })
+    } as unknown as SystemService;
+    const entityOverrideService = {
+      getBySystems: vi.fn().mockResolvedValue([])
+    } as unknown as EntityOverrideService;
+
+    const useCase = new GetRaceSummariesUseCase(raceService, systemService, entityOverrideService);
+    const [result] = await useCase.execute(childId.toString());
+
+    expect(result.id).toBe("elf1");
+    expect(result.subraces).toBeUndefined();
   });
 });

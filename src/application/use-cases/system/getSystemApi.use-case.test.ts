@@ -50,6 +50,7 @@ describe("GetSystemApi", () => {
   const userService = { getUserById: vi.fn() };
   const raceRepository = {
     countRootRacesByRulesets: vi.fn(),
+    getById: vi.fn(),
   };
 
   let useCase: GetSystemApi;
@@ -65,6 +66,7 @@ describe("GetSystemApi", () => {
         ["child", 4],
       ])
     );
+    raceRepository.getById.mockResolvedValue(undefined);
 
     useCase = new GetSystemApi(
       systemService as unknown as SystemService,
@@ -94,5 +96,33 @@ describe("GetSystemApi", () => {
     expect(result).not.toHaveProperty("skills");
     expect(result).not.toHaveProperty("coins");
     expect(systemService.getAncestry).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns own and inherited catalog exclusions and subtracts capped root races", async () => {
+    const parentWithExclusions = makeSystem("parent", {
+      name: "SRD",
+      excludedRaceIds: ["elf-root"],
+      excludedClassIds: ["wizard"],
+    });
+    const childWithExclusions = makeSystem("child", {
+      name: "Homebrew",
+      parentIds: [asId("parent")],
+      isBase: false,
+      excludedRaceIds: ["dwarf-root"],
+      excludedClassIds: ["bard"],
+    });
+    systemService.getAncestry.mockResolvedValue([childWithExclusions, parentWithExclusions]);
+    raceRepository.getById.mockImplementation(async (id: string) => {
+      if (id === "elf-root" || id === "dwarf-root") return { id, parentId: null };
+      return { id, parentId: "elf-root" };
+    });
+
+    const result = await useCase.execute(childWithExclusions, "owner-1");
+
+    expect(result.excludedRaceIds).toEqual(["dwarf-root"]);
+    expect(result.excludedClassIds).toEqual(["bard"]);
+    expect(result.inheritedExcludedRaceIds).toEqual(["elf-root"]);
+    expect(result.inheritedExcludedClassIds).toEqual(["wizard"]);
+    expect(result.racesCount).toBe(5);
   });
 });

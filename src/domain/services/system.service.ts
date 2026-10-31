@@ -1,4 +1,6 @@
 import ISystemRepository from "../repositories/ISystemRepository";
+import IRaceRepository from "../repositories/IRaceRepository";
+import ICharacterClassRepository from "../repositories/ICharacterClassRepository";
 import OptionGroupService from "./optionGroup.service";
 import {
   System,
@@ -16,6 +18,7 @@ import {
   parentIdStrings,
   parentsOfFromSystems,
 } from "./systemHierarchy";
+import { isRaceExcluded, mergeCatalogExclusions } from "../../utils/catalogExclusions";
 
 const PENDING_SYSTEM_ID = "__pending__";
 
@@ -32,7 +35,9 @@ type HierarchyInput = {
 export default class SystemService {
   constructor(
     private readonly systemRepository: ISystemRepository,
-    private readonly optionGroupService?: OptionGroupService
+    private readonly optionGroupService?: OptionGroupService,
+    private readonly raceRepository?: IRaceRepository,
+    private readonly characterClassRepository?: ICharacterClassRepository
   ) {}
 
   getByUserId(userId: string, accessibleSystemIds: string[], kind?: SystemKind): Promise<System[]> {
@@ -59,6 +64,11 @@ export default class SystemService {
       rulesSource: normalized as unknown as Record<string, unknown>,
     });
     await this.assertAbilityScoreAlternativeGroup(normalized.abilityScoreAlternativeGroupId, parentIds);
+    await this.assertCatalogExclusions({
+      excludedRaceIds: normalized.excludedRaceIds,
+      excludedClassIds: normalized.excludedClassIds,
+      parentIds,
+    });
 
     return this.systemRepository.create(normalized);
   }
@@ -98,6 +108,12 @@ export default class SystemService {
     }
 
     await this.assertAbilityScoreAlternativeGroup(data.abilityScoreAlternativeGroupId, [data.id]);
+    await this.assertCatalogExclusions({
+      excludedRaceIds: data.excludedRaceIds,
+      excludedClassIds: data.excludedClassIds,
+      parentIds,
+      systemId: data.id,
+    });
 
     return this.systemRepository.update({ ...data, kind, isBase, parentIds });
   }
@@ -144,6 +160,34 @@ export default class SystemService {
 
   restore(id: string): Promise<void> {
     return this.systemRepository.restore(id);
+  }
+
+  async getResolvedCatalogExclusions(rulesets: string[]): Promise<{ raceIds: Set<string>; classIds: Set<string> }> {
+    if (!rulesets.length) {
+      return { raceIds: new Set(), classIds: new Set() };
+    }
+
+    const graph = await this.collectAncestryGraph(rulesets);
+    return mergeCatalogExclusions([...graph.values()]);
+  }
+
+  async assertRaceAllowed(raceId: string, rulesets: string[]): Promise<void> {
+    if (!raceId || !rulesets.length) return;
+    const { raceIds } = await this.getResolvedCatalogExclusions(rulesets);
+    if (raceIds.size === 0) return;
+
+    const ancestorChain = await this.raceAncestorIds(raceId);
+    if (isRaceExcluded(raceId, ancestorChain, raceIds)) {
+      throw new AppError("La raza no está disponible en este sistema", 400);
+    }
+  }
+
+  async assertClassAllowed(classId: string, rulesets: string[]): Promise<void> {
+    if (!classId || !rulesets.length) return;
+    const { classIds } = await this.getResolvedCatalogExclusions(rulesets);
+    if (classIds.has(classId)) {
+      throw new AppError("La clase no está disponible en este sistema", 400);
+    }
   }
 
   async assertSingleBase(systemIds: string[]): Promise<void> {
@@ -386,6 +430,86 @@ export default class SystemService {
     if (childKind === "ruleset" && parentKind !== "ruleset") {
       throw new AppError("Un ruleset solo puede tener como padre otro ruleset", 400);
     }
+  }
+
+  private async assertCatalogExclusions(input: {
+    excludedRaceIds?: string[];
+    excludedClassIds?: string[];
+    parentIds: string[];
+    systemId?: string;
+  }): Promise<void> {
+    const raceIds = input.excludedRaceIds ?? [];
+    const classIds = input.excludedClassIds ?? [];
+    if (raceIds.length === 0 && classIds.length === 0) return;
+
+    const ancestorRulesets = await this.expandedAncestorRulesets(input.parentIds, input.systemId);
+
+    for (const raceId of raceIds) {
+      if (!this.raceRepository) {
+        throw new AppError("La raza excluida no existe", 400);
+      }
+      const race = await this.raceRepository.getById(raceId);
+      if (!race) {
+        throw new AppError("La raza excluida no existe", 400);
+      }
+      if (!this.rulesetBelongsToAncestors(race.ruleset, ancestorRulesets, input.systemId)) {
+        throw new AppError("Solo se pueden excluir razas de sistemas ancestros", 400);
+      }
+    }
+
+    for (const classId of classIds) {
+      if (!this.characterClassRepository) {
+        throw new AppError("La clase excluida no existe", 400);
+      }
+      const characterClass = await this.characterClassRepository.getById(classId);
+      if (!characterClass || characterClass.deletedAt) {
+        throw new AppError("La clase excluida no existe", 400);
+      }
+      if (!this.rulesetBelongsToAncestors(characterClass.ruleset, ancestorRulesets, input.systemId)) {
+        throw new AppError("Solo se pueden excluir clases de sistemas ancestros", 400);
+      }
+    }
+  }
+
+  private async expandedAncestorRulesets(parentIds: string[], systemId?: string): Promise<Set<string>> {
+    const allowed = new Set<string>();
+    const graph = await this.collectAncestryGraph(parentIds);
+    for (const node of graph.values()) {
+      const id = node._id.toString();
+      if (systemId && id === systemId) continue;
+      allowed.add(id);
+      if (node.name) allowed.add(node.name);
+    }
+    return allowed;
+  }
+
+  private rulesetBelongsToAncestors(
+    ruleset: string,
+    ancestorRulesets: Set<string>,
+    systemId?: string
+  ): boolean {
+    if (systemId && (ruleset === systemId)) return false;
+    return ancestorRulesets.has(ruleset);
+  }
+
+  private async raceAncestorIds(raceId: string): Promise<string[]> {
+    if (!this.raceRepository) return [];
+
+    const chain: string[] = [];
+    const seen = new Set<string>();
+    let currentId: string | null | undefined = raceId;
+
+    while (currentId) {
+      if (seen.has(currentId)) break;
+      seen.add(currentId);
+      const race = await this.raceRepository.getById(currentId);
+      const parentId = race?.parentId ? race.parentId.toString() : null;
+      if (!parentId) break;
+      chain.push(parentId);
+      currentId = parentId;
+    }
+
+    return chain;
   }
 
   private async assertAbilityScoreAlternativeGroup(

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import GetCharacterClassCatalog from "./getCharacterClassCatalog.use-case";
 import CharacterClassService from "../../../domain/services/characterClass.service";
+import SystemService from "../../../domain/services/system.service";
 
 const catalog = [
   { id: "class1", name: "Mago", ruleset: "sys1" }
@@ -12,7 +13,11 @@ describe("GetCharacterClassCatalog", () => {
       getCatalog: vi.fn()
     } as unknown as CharacterClassService;
 
-    const useCase = new GetCharacterClassCatalog(characterClassService);
+    const systemService = {
+      getResolvedCatalogExclusions: vi.fn()
+    } as unknown as SystemService;
+
+    const useCase = new GetCharacterClassCatalog(characterClassService, systemService);
     const result = await useCase.execute();
 
     expect(result).toEqual([]);
@@ -24,7 +29,11 @@ describe("GetCharacterClassCatalog", () => {
       getCatalog: vi.fn().mockResolvedValue(catalog)
     } as unknown as CharacterClassService;
 
-    const useCase = new GetCharacterClassCatalog(characterClassService);
+    const systemService = {
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set() })
+    } as unknown as SystemService;
+
+    const useCase = new GetCharacterClassCatalog(characterClassService, systemService);
     const result = await useCase.execute(["sys1"]);
 
     expect(characterClassService.getCatalog).toHaveBeenCalledWith(["sys1"], false);
@@ -36,9 +45,27 @@ describe("GetCharacterClassCatalog", () => {
       getCatalog: vi.fn().mockResolvedValue(catalog)
     } as unknown as CharacterClassService;
 
-    const useCase = new GetCharacterClassCatalog(characterClassService);
+    const systemService = {
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set() })
+    } as unknown as SystemService;
+
+    const useCase = new GetCharacterClassCatalog(characterClassService, systemService);
     await useCase.execute(["sys1"], true);
 
     expect(characterClassService.getCatalog).toHaveBeenCalledWith(["sys1"], true);
+  });
+
+  it("omits excluded classes from the catalog", async () => {
+    const characterClassService = {
+      getCatalog: vi.fn().mockResolvedValue(catalog)
+    } as unknown as CharacterClassService;
+    const systemService = {
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set(["class1"]) })
+    } as unknown as SystemService;
+
+    const useCase = new GetCharacterClassCatalog(characterClassService, systemService);
+    const result = await useCase.execute(["sys1"]);
+
+    expect(result).toEqual([]);
   });
 });

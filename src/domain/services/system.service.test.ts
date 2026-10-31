@@ -255,3 +255,115 @@ describe("SystemService hierarchy", () => {
     await expect(service.assertSingleBase(["phb", "mm"])).resolves.toBeUndefined();
   });
 });
+
+describe("SystemService catalog exclusions", () => {
+  const repository = {
+    getById: vi.fn(),
+    getByIds: vi.fn(),
+    getAncestry: vi.fn(),
+    getChildren: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    hasChildren: vi.fn(),
+  };
+  const raceRepository = { getById: vi.fn() };
+  const characterClassRepository = { getById: vi.fn() };
+  let service: SystemService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    repository.hasChildren.mockResolvedValue(false);
+    repository.getChildren.mockResolvedValue([]);
+    repository.create.mockImplementation(async (data: TypeCrearSystem) =>
+      makeSystem("created", { kind: data.kind, publisher: data.publisher, isBase: data.isBase, parentIds: data.parentIds as System["parentIds"] })
+    );
+    repository.getAncestry.mockImplementation(async (id: string) => {
+      const seen = new Set<string>();
+      const result: System[] = [];
+      const queue = [id];
+      while (queue.length > 0) {
+        const currentId = queue.shift()!;
+        if (seen.has(currentId)) continue;
+        seen.add(currentId);
+        const node = await repository.getById(currentId);
+        if (!node) continue;
+        result.push(node);
+        queue.push(...parentIdStrings(node.parentIds));
+      }
+      return result;
+    });
+    service = new SystemService(
+      repository as unknown as ISystemRepository,
+      undefined,
+      raceRepository as never,
+      characterClassRepository as never
+    );
+  });
+
+  it("rejects excluding a race that belongs to the system being updated", async () => {
+    repository.getById.mockImplementation(async (id: string) => {
+      if (id === "child") return makeSystem("child", { parentIds: [asId("rules")] });
+      if (id === "rules") return makeSystem("rules", { isBase: true, isOpen: true });
+      return null;
+    });
+    raceRepository.getById.mockResolvedValue({ id: "elf", ruleset: "child" });
+
+    await expect(service.update({
+      id: "child",
+      userId: "user-1",
+      excludedRaceIds: ["elf"],
+    })).rejects.toMatchObject({
+      statusCode: 400,
+      message: "Solo se pueden excluir razas de sistemas ancestros",
+    });
+  });
+
+  it("rejects an excluded race that does not exist", async () => {
+    repository.getById.mockResolvedValue(makeSystem("rules", { isBase: true, isOpen: true }));
+    raceRepository.getById.mockResolvedValue(undefined);
+
+    await expect(service.create({
+      ...baseCreate,
+      kind: "setting",
+      parentIds: ["rules"],
+      excludedRaceIds: ["missing"],
+    })).rejects.toMatchObject({
+      statusCode: 400,
+      message: "La raza excluida no existe",
+    });
+  });
+
+  it("accepts excluding a race from an ancestor", async () => {
+    repository.getById.mockResolvedValue(makeSystem("rules", { isBase: true, isOpen: true }));
+    raceRepository.getById.mockResolvedValue({ id: "elf", ruleset: "rules" });
+
+    await service.create({
+      ...baseCreate,
+      kind: "setting",
+      parentIds: ["rules"],
+      excludedRaceIds: ["elf"],
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
+      excludedRaceIds: ["elf"],
+    }));
+  });
+
+  it("rejects excluding a class from the same system", async () => {
+    repository.getById.mockImplementation(async (id: string) => {
+      if (id === "child") return makeSystem("child", { parentIds: [asId("rules")] });
+      if (id === "rules") return makeSystem("rules", { isBase: true, isOpen: true });
+      return null;
+    });
+    characterClassRepository.getById.mockResolvedValue({ id: "wizard", ruleset: "child" });
+
+    await expect(service.update({
+      id: "child",
+      userId: "user-1",
+      excludedClassIds: ["wizard"],
+    })).rejects.toMatchObject({
+      statusCode: 400,
+      message: "Solo se pueden excluir clases de sistemas ancestros",
+    });
+  });
+});

@@ -40,7 +40,8 @@ describe("GetCharacterClassById", () => {
       getSummariesByClassAndSystems: vi.fn().mockResolvedValue([evocation])
     } as unknown as SubclassService;
     const systemService = {
-      getSystemsAndAncestors: vi.fn().mockResolvedValue(["parent"])
+      getSystemsAndAncestors: vi.fn().mockResolvedValue(["parent"]),
+      getResolvedCatalogExclusions: vi.fn()
     } as unknown as SystemService;
 
     const useCase = new GetCharacterClassById(characterClassService, subclassService, systemService);
@@ -69,7 +70,8 @@ describe("GetCharacterClassById", () => {
       getSummariesByClassAndSystems: vi.fn()
     } as unknown as SubclassService;
     const systemService = {
-      getSystemsAndAncestors: vi.fn().mockResolvedValue(["child", "other"])
+      getSystemsAndAncestors: vi.fn().mockResolvedValue(["child", "other"]),
+      getResolvedCatalogExclusions: vi.fn()
     } as unknown as SystemService;
 
     const useCase = new GetCharacterClassById(characterClassService, subclassService, systemService);
@@ -92,5 +94,23 @@ describe("GetCharacterClassById", () => {
     const useCase = new GetCharacterClassById(characterClassService, subclassService, systemService);
 
     await expect(useCase.execute("class1")).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("throws 404 when the class is excluded in the viewed ruleset", async () => {
+    const characterClassService = {
+      getById: vi.fn().mockResolvedValue(wizard)
+    } as unknown as CharacterClassService;
+    const subclassService = {
+      getSummariesByClassAndSystems: vi.fn()
+    } as unknown as SubclassService;
+    const systemService = {
+      getSystemsAndAncestors: vi.fn().mockResolvedValue(["child", "parent"]),
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set(["class1"]) })
+    } as unknown as SystemService;
+
+    const useCase = new GetCharacterClassById(characterClassService, subclassService, systemService);
+
+    await expect(useCase.execute("class1", "child")).rejects.toBeInstanceOf(NotFoundError);
+    expect(subclassService.getSummariesByClassAndSystems).not.toHaveBeenCalled();
   });
 });

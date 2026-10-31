@@ -193,12 +193,38 @@ const router = Router();
  *           description: |
  *             Identificadores de los sistemas padre, en orden de prioridad entre hermanos.
  *             `setting` y `campaign` exigen al menos un padre. El orden se usa en la linealización C3.
+ *         excludedRaceIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             IDs de razas del catálogo ancestro ocultas por este sistema. Vacío o ausente hereda todo.
+ *             Excluir una raza raíz oculta también sus subrazas. No se puede excluir contenido del propio sistema.
+ *         excludedClassIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             IDs de clases del catálogo ancestro ocultas por este sistema. Vacío o ausente hereda todo.
+ *             Excluir una clase oculta sus subclases en los listados. No se puede des-capar lo excluido por un ancestro.
+ *         inheritedExcludedRaceIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Unión de `excludedRaceIds` de los ancestros, sin las exclusiones propias.
+ *         inheritedExcludedClassIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Unión de `excludedClassIds` de los ancestros, sin las exclusiones propias.
  *         canEdit:
  *           type: boolean
  *           description: Indica si el usuario autenticado tiene permisos de edición.
  *         racesCount:
  *           type: integer
- *           description: Cantidad de razas asociadas (incluyendo heredadas).
+ *           description: |
+ *             Cantidad de razas raíz asociadas (incluyendo heredadas), descontando las ocultas
+ *             por exclusiones propias y heredadas.
  *         globalModifierFormula:
  *           type: string
  *           description: |
@@ -392,6 +418,20 @@ const router = Router();
  *             type: string
  *           description: |
  *             IDs de MongoDB de los sistemas padre, en orden de prioridad. Obligatorio para `setting` y `campaign`.
+ *         excludedRaceIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             IDs de razas de sistemas ancestros a ocultar. Permitido también en `setting` y `campaign`.
+ *             ObjectIds únicos. Vacío o omitido no capara nada en este nodo.
+ *         excludedClassIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             IDs de clases de sistemas ancestros a ocultar. Permitido también en `setting` y `campaign`.
+ *             ObjectIds únicos. Vacío o omitido no capara nada en este nodo.
  *         globalModifierFormula:
  *           type: string
  *           description: |
@@ -525,6 +565,18 @@ const router = Router();
  *             type: string
  *           description: |
  *             IDs de MongoDB de los sistemas padre. Obligatorio si `kind` es `setting` o `campaign`.
+ *         excludedRaceIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             IDs de razas de sistemas ancestros a ocultar. Permitido también en `setting` y `campaign`.
+ *         excludedClassIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: |
+ *             IDs de clases de sistemas ancestros a ocultar. Permitido también en `setting` y `campaign`.
  *         globalModifierFormula:
  *           type: string
  *           description: |
@@ -727,7 +779,8 @@ router.post('/systems', authMiddleware, validateSchema(CreateSystemSchema), syst
  *   get:
  *     summary: Obtener el detalle completo de un sistema
  *     description: |
- *       Devuelve `SystemApi` (metadatos, fórmulas, progresiones y `racesCount`, incluyendo herencia de reglas).
+ *       Devuelve `SystemApi` (metadatos, fórmulas, progresiones, `racesCount` y exclusiones de catálogo,
+ *       incluyendo herencia de reglas y de listas negras de razas/clases).
  *       Características, habilidades y monedas se obtienen con `GET /attributes`, `GET /skills` y `GET /coins` filtrando por `ruleset`.
  *       El acceso sigue la misma regla que `GET /systems`: publicador, sistema abierto (`isOpen`)
  *       o identificador presente en `accessibleSystems` del usuario.

@@ -26,6 +26,12 @@ export default class CreateCharacter {
 
   async execute(data: CreateCharacterInput): Promise<CharacterBasic | null> {
     await this.systemService.assertSingleBase(data.systems || []);
+    if (data.raceId) {
+      await this.systemService.assertRaceAllowed(data.raceId, data.systems || []);
+    }
+    if (data.classId) {
+      await this.systemService.assertClassAllowed(data.classId, data.systems || []);
+    }
     const companions = this.parseCompanions(data.companions);
     const equipment = await this.resolveStartingEquipment(this.parseStartingEquipment(data.equipment));
     return this.characterService.create({ ...data, equipment, companions });

@@ -253,6 +253,10 @@ const router = Router();
  *           nullable: true
  *         ruleset:
  *           type: string
+ *         parentId:
+ *           type: string
+ *           nullable: true
+ *           description: ID de la raza padre si este ítem es una subraza.
  *     RaceDetail:
  *       allOf:
  *         - $ref: '#/components/schemas/Race'

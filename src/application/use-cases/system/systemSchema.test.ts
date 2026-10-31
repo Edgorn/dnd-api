@@ -251,6 +251,38 @@ describe("CreateSystemSchema restRules", () => {
   });
 });
 
+describe("CreateSystemSchema catalog exclusions", () => {
+  const raceId = "507f1f77bcf86cd799439011";
+  const classId = "507f1f77bcf86cd799439012";
+
+  it("accepts unique ObjectId arrays on a setting", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Forgotten Realms",
+      kind: "setting",
+      parentIds: ["507f1f77bcf86cd799439013"],
+      excludedRaceIds: [raceId],
+      excludedClassIds: [classId],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects duplicate race ids", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      excludedRaceIds: [raceId, raceId],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid class id", () => {
+    const result = CreateSystemSchema.safeParse({
+      name: "Homebrew",
+      excludedClassIds: ["wizard"],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("UpdateSystemSchema abilityScoreProgression", () => {
   it("accepts an empty array", () => {
     const result = UpdateSystemSchema.safeParse({

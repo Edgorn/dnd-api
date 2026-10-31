@@ -41,7 +41,8 @@ describe("GetRaceCatalogUseCase", () => {
       getCatalog: vi.fn().mockResolvedValue(catalog)
     } as unknown as RaceService;
     const systemService = {
-      getAncestry: vi.fn()
+      getAncestry: vi.fn(),
+      getResolvedCatalogExclusions: vi.fn()
     } as unknown as SystemService;
     const entityOverrideService = {
       getBySystems: vi.fn()
@@ -67,7 +68,8 @@ describe("GetRaceCatalogUseCase", () => {
       getCatalog: vi.fn().mockResolvedValue(catalog)
     } as unknown as RaceService;
     const systemService = {
-      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
+      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem]),
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set() })
     } as unknown as SystemService;
     const entityOverrideService = {
       getBySystems: vi.fn().mockResolvedValue([overlay])
@@ -80,5 +82,27 @@ describe("GetRaceCatalogUseCase", () => {
       { id: "elf1", name: "Elfo", creatureTypeId: "humanoid", ruleset: parentId.toString() },
       { id: "high-elf", name: "High Elf", creatureTypeId: "humanoid", ruleset: parentId.toString() }
     ]);
+  });
+
+  it("drops an excluded race and children with parentId", async () => {
+    const withParents: RaceCatalogItem[] = [
+      { id: "elf1", name: "Elf", creatureTypeId: "humanoid", ruleset: parentId.toString(), parentId: null },
+      { id: "high-elf", name: "High Elf", creatureTypeId: "humanoid", ruleset: parentId.toString(), parentId: "elf1" }
+    ];
+    const raceService = {
+      getCatalog: vi.fn().mockResolvedValue(withParents)
+    } as unknown as RaceService;
+    const systemService = {
+      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem]),
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(["elf1"]), classIds: new Set() })
+    } as unknown as SystemService;
+    const entityOverrideService = {
+      getBySystems: vi.fn().mockResolvedValue([])
+    } as unknown as EntityOverrideService;
+
+    const useCase = new GetRaceCatalogUseCase(raceService, systemService, entityOverrideService);
+    const result = await useCase.execute(childId.toString(), true);
+
+    expect(result).toEqual([]);
   });
 });

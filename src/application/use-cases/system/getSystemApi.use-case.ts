@@ -4,6 +4,7 @@ import IRaceRepository from "../../../domain/repositories/IRaceRepository";
 import { isRulesetSystem, resolveSystemKind, System, SystemApi } from "../../../domain/types/system.types";
 import { AppError } from "../../../domain/errors/AppError";
 import { mergeRulesFromAncestry } from "../../../utils/systemRulesMerge";
+import { mergeCatalogExclusions, toIdStrings } from "../../../utils/catalogExclusions";
 
 export default class GetSystemApi {
   constructor(
@@ -51,6 +52,20 @@ export default class GetSystemApi {
     for (const key of new Set(ancestryRulesets)) {
       racesCount += raceCounts.get(key) ?? 0;
     }
+
+    const excludedRaceIds = toIdStrings(sys.excludedRaceIds);
+    const excludedClassIds = toIdStrings(sys.excludedClassIds);
+    const inherited = mergeCatalogExclusions(resolvedAncestry.slice(1));
+    const inheritedExcludedRaceIds = [...inherited.raceIds];
+    const inheritedExcludedClassIds = [...inherited.classIds];
+
+    const excludedRootIds = new Set([...excludedRaceIds, ...inheritedExcludedRaceIds]);
+    let excludedRoots = 0;
+    for (const raceId of excludedRootIds) {
+      const race = await this.raceRepository.getById(raceId);
+      if (race && !race.parentId) excludedRoots += 1;
+    }
+    racesCount = Math.max(0, racesCount - excludedRoots);
 
     const mergedRules = mergeRulesFromAncestry(resolvedAncestry);
 
@@ -102,6 +117,10 @@ export default class GetSystemApi {
       meleeAttackAttributes: mergedRules.meleeAttackAttributes,
       rangedAttackAttributes: mergedRules.rangedAttackAttributes,
       restRules: mergedRules.restRules,
+      excludedRaceIds,
+      excludedClassIds,
+      inheritedExcludedRaceIds,
+      inheritedExcludedClassIds,
     };
   }
 }

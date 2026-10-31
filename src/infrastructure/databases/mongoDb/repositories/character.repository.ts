@@ -39,6 +39,7 @@ import IRaceRepository from '../../../../domain/repositories/IRaceRepository';
 import ICreatureTypeRepository from '../../../../domain/repositories/ICreatureTypeRepository';
 import IDamageRepository from '../../../../domain/repositories/IDamageRepository';
 import IConditionRepository from '../../../../domain/repositories/IConditionRepository';
+import SystemService from '../../../../domain/services/system.service';
 import { PendingCatalogChoice, TraitApi, TraitChoiceValue, TraitChoices, TraitDataMongo, SpellPrivilegeRule } from '../../../../domain/types/traits.types';
 import { CreatureTypeApi } from '../../../../domain/types/creatureType.types';
 import { RaceLevelMongo, RaceRef } from '../../../../domain/types/race.types';
@@ -318,7 +319,8 @@ export default class CharacterRepository implements ICharacterRepository {
     private readonly campaignReader: ICampaignReader,
     private readonly creatureTypeRepository: ICreatureTypeRepository,
     private readonly damageRepository: IDamageRepository,
-    private readonly conditionRepository: IConditionRepository
+    private readonly conditionRepository: IConditionRepository,
+    private readonly systemService?: SystemService
   ) { }
 
   async getByUser(id: string, options?: GetCharactersByUserOptions): Promise<CharacterListItem[]> {
@@ -2866,7 +2868,11 @@ export default class CharacterRepository implements ICharacterRepository {
     }
 
     const currentEntry = personaje.classes?.find(clas => clas.class === classId);
-    return { catalog, currentEntry, isNewClass: !currentEntry };
+    const isNewClass = !currentEntry;
+    if (isNewClass) {
+      await this.systemService?.assertClassAllowed(classId, personaje.systems ?? []);
+    }
+    return { catalog, currentEntry, isNewClass };
   }
 
   private levelUpHitDie(

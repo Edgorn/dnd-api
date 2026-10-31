@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import GetCharacterClassSummaries from "./getCharacterClassSummaries.use-case";
 import CharacterClassService from "../../../domain/services/characterClass.service";
 import SubclassService from "../../../domain/services/subclass.service";
+import SystemService from "../../../domain/services/system.service";
 import { CharacterClassSummaryDraft } from "../../../domain/types/characterClass.types";
 
 const longParagraph = `${"A".repeat(210)} extra`;
@@ -25,8 +26,11 @@ describe("GetCharacterClassSummaries", () => {
     const subclassService = {
       countByClassIds: vi.fn()
     } as unknown as SubclassService;
+    const systemService = {
+      getResolvedCatalogExclusions: vi.fn()
+    } as unknown as SystemService;
 
-    const useCase = new GetCharacterClassSummaries(characterClassService, subclassService);
+    const useCase = new GetCharacterClassSummaries(characterClassService, subclassService, systemService);
     const result = await useCase.execute();
 
     expect(result).toEqual([]);
@@ -41,8 +45,11 @@ describe("GetCharacterClassSummaries", () => {
     const subclassService = {
       countByClassIds: vi.fn().mockResolvedValue(new Map([["class1", 3]]))
     } as unknown as SubclassService;
+    const systemService = {
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set() })
+    } as unknown as SystemService;
 
-    const useCase = new GetCharacterClassSummaries(characterClassService, subclassService);
+    const useCase = new GetCharacterClassSummaries(characterClassService, subclassService, systemService);
     const [result] = await useCase.execute(["sys1"]);
 
     expect(characterClassService.getSummaries).toHaveBeenCalledWith(["sys1"]);
@@ -59,5 +66,23 @@ describe("GetCharacterClassSummaries", () => {
       subclassCount: 3
     });
     expect(result).not.toHaveProperty("description");
+  });
+
+  it("omits excluded classes", async () => {
+    const characterClassService = {
+      getSummaries: vi.fn().mockResolvedValue([draft, { ...draft, id: "class2", name: "Guerrero" }])
+    } as unknown as CharacterClassService;
+    const subclassService = {
+      countByClassIds: vi.fn().mockResolvedValue(new Map([["class2", 1]]))
+    } as unknown as SubclassService;
+    const systemService = {
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set(["class1"]) })
+    } as unknown as SystemService;
+
+    const useCase = new GetCharacterClassSummaries(characterClassService, subclassService, systemService);
+    const result = await useCase.execute(["sys1"]);
+
+    expect(result.map((item) => item.id)).toEqual(["class2"]);
+    expect(subclassService.countByClassIds).toHaveBeenCalledWith(["class2"], ["sys1"]);
   });
 });

@@ -140,6 +140,7 @@ export interface RaceCatalogItem {
   name: string;
   creatureTypeId: string | null;
   ruleset: string;
+  parentId?: string | null;
 }
 
 export interface RaceChoiceCount {

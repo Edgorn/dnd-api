@@ -124,6 +124,8 @@ export interface System {
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
   restRules?: SystemRestRules;
+  excludedRaceIds?: string[];
+  excludedClassIds?: string[];
   deletedAt?: Date;
 }
 
@@ -192,6 +194,10 @@ export interface SystemApi {
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
   restRules?: SystemRestRules;
+  excludedRaceIds: string[];
+  excludedClassIds: string[];
+  inheritedExcludedRaceIds: string[];
+  inheritedExcludedClassIds: string[];
 }
 
 export type SystemBasic = Pick<SystemApi, "id" | "name" | "description">;
@@ -244,6 +250,8 @@ export interface TypeCrearSystem {
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
   restRules?: SystemRestRules;
+  excludedRaceIds?: string[];
+  excludedClassIds?: string[];
 }
 
 export interface TypeModificarSystem {
@@ -281,4 +289,6 @@ export interface TypeModificarSystem {
   meleeAttackAttributes?: string[];
   rangedAttackAttributes?: string[];
   restRules?: SystemRestRules;
+  excludedRaceIds?: string[];
+  excludedClassIds?: string[];
 }

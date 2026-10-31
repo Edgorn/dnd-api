@@ -33,6 +33,8 @@ const system: Schema = new Schema<System>({
   damageBonusFormula: String,
   meleeAttackAttributes: [String],
   rangedAttackAttributes: [String],
+  excludedRaceIds: [{ type: Schema.Types.ObjectId }],
+  excludedClassIds: [{ type: Schema.Types.ObjectId }],
   restRules: {
     type: {
       kinds: [{

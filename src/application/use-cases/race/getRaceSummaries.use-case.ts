@@ -8,6 +8,7 @@ import {
   applyRaceOverrides,
   raceDescriptionTeaser
 } from "../../../utils/applyRaceOverrides";
+import { pruneRaceForest } from "../../../utils/catalogExclusions";
 
 export default class GetRaceSummariesUseCase {
   constructor(
@@ -22,9 +23,10 @@ export default class GetRaceSummariesUseCase {
       return drafts.map(toRaceSummary);
     }
 
+    const exclusions = await this.systemService.getResolvedCatalogExclusions([ruleset]);
     const ancestry = await this.systemService.getAncestry(ruleset);
     if (ancestry.length === 0) {
-      return drafts.map(toRaceSummary);
+      return pruneRaceForest(drafts.map(toRaceSummary), exclusions.raceIds);
     }
 
     const overlays = await this.entityOverrideService.getBySystems(
@@ -32,7 +34,10 @@ export default class GetRaceSummariesUseCase {
       "race"
     );
 
-    return applyRaceOverrides(drafts, overlays, ancestryToRefs(ancestry)).map(toRaceSummary);
+    return pruneRaceForest(
+      applyRaceOverrides(drafts, overlays, ancestryToRefs(ancestry)).map(toRaceSummary),
+      exclusions.raceIds
+    );
   }
 }
 

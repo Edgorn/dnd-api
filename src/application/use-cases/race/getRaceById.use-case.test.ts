@@ -65,7 +65,8 @@ describe("GetRaceByIdUseCase", () => {
     } as unknown as RaceService;
     const systemService = {
       getSystemsAndAncestors: vi.fn(),
-      getAncestry: vi.fn()
+      getAncestry: vi.fn(),
+      getResolvedCatalogExclusions: vi.fn()
     } as unknown as SystemService;
     const entityOverrideService = {
       getBySystems: vi.fn()
@@ -112,7 +113,8 @@ describe("GetRaceByIdUseCase", () => {
     } as unknown as RaceService;
     const systemService = {
       getSystemsAndAncestors: vi.fn().mockResolvedValue(expanded),
-      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem])
+      getAncestry: vi.fn().mockResolvedValue([childSystem, parentSystem]),
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(), classIds: new Set() })
     } as unknown as SystemService;
     const entityOverrideService = {
       getBySystems: vi.fn().mockResolvedValue(overlays)
@@ -138,7 +140,8 @@ describe("GetRaceByIdUseCase", () => {
     } as unknown as RaceService;
     const systemService = {
       getSystemsAndAncestors: vi.fn().mockResolvedValue([childId.toString(), parentId.toString()]),
-      getAncestry: vi.fn()
+      getAncestry: vi.fn(),
+      getResolvedCatalogExclusions: vi.fn()
     } as unknown as SystemService;
     const entityOverrideService = {
       getBySystems: vi.fn()
@@ -148,6 +151,26 @@ describe("GetRaceByIdUseCase", () => {
 
     await expect(useCase.execute("elf1", childId.toString())).rejects.toBeInstanceOf(NotFoundError);
     expect(entityOverrideService.getBySystems).not.toHaveBeenCalled();
+    expect(raceService.getSummarySubtree).not.toHaveBeenCalled();
+  });
+
+  it("throws 404 when the race is excluded in the viewed ruleset", async () => {
+    const raceService = {
+      getById: vi.fn().mockResolvedValue(parentRace),
+      getSummarySubtree: vi.fn()
+    } as unknown as RaceService;
+    const systemService = {
+      getSystemsAndAncestors: vi.fn().mockResolvedValue([childId.toString(), parentId.toString()]),
+      getAncestry: vi.fn(),
+      getResolvedCatalogExclusions: vi.fn().mockResolvedValue({ raceIds: new Set(["elf1"]), classIds: new Set() })
+    } as unknown as SystemService;
+    const entityOverrideService = {
+      getBySystems: vi.fn()
+    } as unknown as EntityOverrideService;
+
+    const useCase = new GetRaceByIdUseCase(raceService, systemService, entityOverrideService);
+
+    await expect(useCase.execute("elf1", childId.toString())).rejects.toBeInstanceOf(NotFoundError);
     expect(raceService.getSummarySubtree).not.toHaveBeenCalled();
   });
 });
